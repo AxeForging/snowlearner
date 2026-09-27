@@ -79,6 +79,16 @@ fn gsettings(args: &[&str]) -> Result<String> {
 }
 
 /// True when our shortcuts are registered in GNOME.
+/// Which of `ids` are not registered yet (e.g. shortcuts added in a newer version).
+pub fn missing<'a>(ids: &[&'a str]) -> Vec<&'a str> {
+    let current = gsettings(&["get", SCHEMA, "custom-keybindings"]).map(|v| parse_list(&v)).unwrap_or_default();
+    missing_from(&current, ids)
+}
+
+pub fn missing_from<'a>(current: &[String], ids: &[&'a str]) -> Vec<&'a str> {
+    ids.iter().copied().filter(|id| !current.contains(&path(id))).collect()
+}
+
 pub fn installed() -> bool {
     available()
         && gsettings(&["get", SCHEMA, "custom-keybindings"])
@@ -110,6 +120,19 @@ pub fn remove() -> Result<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shortcuts_added_in_a_newer_version_are_reported_missing() {
+        // Installed before Ctrl+Alt+P existed: say/summary/menu/grab only, plus someone else's.
+        let current: Vec<String> = ["say", "summary", "menu", "grab"]
+            .iter()
+            .map(|id| path(id))
+            .chain(["/org/gnome/other/custom0/".to_string()])
+            .collect();
+        assert_eq!(missing_from(&current, &["say", "menu", "progress"]), vec!["progress"]);
+        assert!(missing_from(&merged(&current, &["progress"]), &["progress"]).is_empty());
+        assert_eq!(missing_from(&[], &["say"]), vec!["say"]);
+    }
 
     #[test]
     fn hotkeys_become_gnome_accelerators() {

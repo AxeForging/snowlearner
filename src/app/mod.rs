@@ -103,7 +103,12 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
             }
         }
     } else if crate::control::gnome::installed() {
-        eprintln!("Hotkeys: GNOME shortcuts active ({}, {}, {}).", bindings[0].0, bindings[1].0, bindings[2].0);
+        let keys: Vec<&str> = bindings.iter().map(|(k, _)| *k).collect();
+        eprintln!("Hotkeys: GNOME shortcuts active ({}).", keys.join(", "));
+        let missing = crate::control::gnome::missing(&["say", "summary", "menu", "grab", "progress"]);
+        if !missing.is_empty() {
+            eprintln!("  not registered yet: {} — run `snowlearner setup` to add them.", missing.join(", "));
+        }
         None
     } else {
         let exe = std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "snowlearner".into());
@@ -764,6 +769,17 @@ impl ApplicationHandler<UserEvent> for App {
     fn window_event(&mut self, el: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         if let WindowEvent::ModifiersChanged(m) = &event {
             self.modifiers = *m;
+        }
+        // Shown again or refocused: what the window system kept may be stale.
+        if matches!(
+            event,
+            WindowEvent::Focused(_) | WindowEvent::Occluded(false) | WindowEvent::ScaleFactorChanged { .. }
+        ) {
+            for s in [&mut self.main, &mut self.menu_win, &mut self.orb].into_iter().flatten() {
+                if s.window.id() == id {
+                    s.screen.invalidate();
+                }
+            }
         }
         let is_orb = self.orb.as_ref().is_some_and(|o| o.window.id() == id);
         if is_orb {

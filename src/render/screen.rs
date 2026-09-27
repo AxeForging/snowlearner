@@ -77,6 +77,16 @@ impl Screen {
         }
     }
 
+    /// Resend whole frames for a moment (the window was shown again, refocused…).
+    pub fn invalidate(&mut self) {
+        match self {
+            Screen::Cpu(c) => c.invalidate(),
+            // The GPU path redraws every pixel every frame.
+            #[cfg(feature = "gpu")]
+            Screen::Gpu(_) => {}
+        }
+    }
+
     pub fn resize(&mut self, width: u32, height: u32) {
         match self {
             Screen::Cpu(c) => c.resize(width, height),

@@ -290,6 +290,23 @@ mod tests {
 
     const NOISE: f32 = 0.003;
 
+    /// This laptop's real mic, measured (AMD "HiFi Mic1", stereo 48 kHz): the
+    /// left channel sits at +0.044 DC, the right near 0, true room noise ~0.0013.
+    /// Returns what the mic path (`mic::record`) hands the endpointer.
+    fn through_offset_mic(voice: &[f32]) -> Vec<f32> {
+        let stereo: Vec<f32> = voice.iter().flat_map(|&v| [v + 0.044, v]).collect();
+        let mut mono = crate::speech::resample::to_mono(&stereo, 2);
+        crate::speech::highpass::HighPass::new(RATE).process(&mut mono);
+        mono
+    }
+
+    #[test]
+    fn a_mic_with_a_dc_offset_still_hears_a_normal_voice() {
+        let mut e = Endpointer::new(RATE, short());
+        let mono = through_offset_mic(&cat(&[room(1.5, 0.0013), word(0.7, 0.03), room(3.0, 0.0013)]));
+        assert_eq!(play(&mut e, &mono), Status::Done { speech: true }, "the DC offset was taken for room noise");
+    }
+
     #[test]
     fn a_short_word_said_right_away_is_heard() {
         // "Yes." starting 100 ms after the mic opens: inside the echo guard

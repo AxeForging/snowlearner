@@ -19,6 +19,7 @@ src/
                      gpu.rs (wgpu present, `gpu` feature, see-through fallback), png_out.rs
   speech/            voices.rs (SpeechEngine trait + system/http/command engines), tts.rs (OS
                      voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs,
+                     highpass.rs (DC/rumble removal before measuring),
                      resident.rs (loads the whisper model on demand, frees it when idle);
                      audio.rs with `audio`; mic.rs + stt.rs with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs, path.rs (words → chunks →
