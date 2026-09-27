@@ -74,6 +74,8 @@ pub struct Mage {
     blink: f32,
     next_blink: f32,
     pub volley: bool,
+    /// A lesson (or pause) is on: return to watching after any action.
+    watching: bool,
     pub bubble: Option<super::warrior::Bubble>,
 }
 
@@ -100,6 +102,7 @@ impl Mage {
             blink: 0.0,
             next_blink: 2.0,
             volley: false,
+            watching: false,
             bubble: None,
         }
     }
@@ -126,7 +129,12 @@ impl Mage {
         }
     }
 
+    fn rest(&self) -> Act {
+        if self.watching { Act::Watch } else { Act::Walk }
+    }
+
     pub fn watch(&mut self, on: bool) {
+        self.watching = on;
         match (on, self.act) {
             (true, Act::Walk) => self.set(Act::Watch),
             (false, Act::Watch) => self.set(Act::Walk),
@@ -180,7 +188,7 @@ impl Mage {
                 Some(Event::Release { x, y })
             }
             Act::Recover if self.t > RECOVER => {
-                self.set(Act::Walk);
+                self.set(self.rest());
                 None
             }
             Act::Summon if self.t > SUMMON => {
@@ -191,7 +199,7 @@ impl Mage {
                 // Knocked back, away from where he faces.
                 self.x = (self.x - self.dir * 18.0 * dt * (1.0 - self.t / STAGGER).max(0.0)).clamp(min_x, max_x);
                 if self.t > STAGGER {
-                    self.set(Act::Walk);
+                    self.set(self.rest());
                 }
                 None
             }
@@ -355,6 +363,18 @@ mod tests {
         m.watch(false);
         run(&mut m, 1.0);
         assert!(m.x > 50.0);
+    }
+
+    #[test]
+    fn after_a_counterattack_during_a_lesson_he_goes_back_to_watching() {
+        let mut m = Mage::new(50.0);
+        m.watch(true);
+        m.start_throw(false);
+        run(&mut m, 2.0);
+        assert_eq!(m.act, Act::Watch);
+        let x = m.x;
+        run(&mut m, 1.0);
+        assert_eq!(m.x, x, "stands still");
     }
 
     #[test]

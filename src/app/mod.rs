@@ -373,6 +373,7 @@ impl App {
     fn toggle_pause(&mut self) {
         self.menu.paused = !self.menu.paused;
         if let Some(scene) = &mut self.scene {
+            self.lesson.set_paused(self.menu.paused, scene);
             scene.set_paused(self.menu.paused);
             let msg = if self.menu.paused { "Mago pausado. Bom foco!" } else { "O mago voltou!" };
             scene.hud.toast(msg, 3.0);

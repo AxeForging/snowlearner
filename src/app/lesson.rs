@@ -17,7 +17,11 @@ pub const MAX_TRIES: u32 = 3;
 /// Correct answers in a row that call the sun.
 pub const SUN_COMBO: u32 = 3;
 const RESULT_SECONDS: f32 = 3.5;
-const RETRY_PAUSE: f32 = 1.6;
+const RETRY_PAUSE: f32 = 2.5;
+/// Hotkey auto-repeat / double clicks within this window are ignored.
+const DEBOUNCE: f32 = 0.8;
+/// How long a "didn't hear you" prompt waits before closing on its own.
+const WAIT_USER: f32 = 25.0;
 const SUMMARY_LINGER: f32 = 8.0;
 const LAST_SUMMARY_KEY: &str = "last_summary_day";
 
@@ -65,8 +69,16 @@ enum Stage {
     Speaking,
     Listening,
     Confirm,
-    Result { until: f32 },
-    RetryPause { until: f32 },
+    Result {
+        until: f32,
+    },
+    RetryPause {
+        until: f32,
+    },
+    /// Heard nothing: wait for the learner to try again (no auto-retry frenzy).
+    WaitUser {
+        until: f32,
+    },
 }
 
 enum State {
@@ -88,6 +100,8 @@ pub struct Lesson {
     combo: u32,
     done_today: u32,
     goal_celebrated: bool,
+    paused: bool,
+    last_primary: f32,
 }
 
 impl Lesson {
@@ -110,6 +124,8 @@ impl Lesson {
             roll: 7,
             combo: 0,
             done_today,
+            paused: false,
+            last_primary: f32::NEG_INFINITY,
         }
     }
 
@@ -249,8 +265,27 @@ impl Lesson {
         });
     }
 
+    /// Paused (black hole): no lessons, nudges or recaps until resumed.
+    pub fn set_paused(&mut self, on: bool, scene: &mut Scene) {
+        self.paused = on;
+        if on {
+            self.close(scene);
+        }
+        self.idle_for = 0.0;
+    }
+
     pub fn handle(&mut self, input: Input, scene: &mut Scene) -> Vec<Job> {
         let mut jobs = Vec::new();
+        if self.paused {
+            match input {
+                Input::Tick { dt, .. } => self.clock += dt,
+                Input::Primary | Input::Summary => {
+                    scene.hud.toast("Em pausa: botão direito no orbe (ou P) para voltar", 3.0)
+                }
+                _ => {}
+            }
+            return jobs;
+        }
         match input {
             Input::Tick { dt, now } => self.tick(dt, now, scene, &mut jobs),
             Input::Primary => self.primary(scene, &mut jobs),
@@ -267,8 +302,20 @@ impl Lesson {
     }
 
     fn primary(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
+        let bounce = self.clock - self.last_primary < DEBOUNCE;
+        self.last_primary = self.clock;
+        let skipping = matches!(
+            self.state,
+            State::Summary { .. } | State::Challenge { stage: Stage::Result { .. } | Stage::WaitUser { .. }, .. }
+        );
+        if bounce && skipping {
+            return; // held hotkey / double click: don't skip ahead
+        }
         match self.state {
             State::Idle => self.start_challenge(scene, jobs),
+            State::Challenge { phrase, stage: Stage::WaitUser { .. }, tries, .. } => {
+                self.replay(phrase, tries, scene, jobs)
+            }
             State::Challenge { phrase, stage: Stage::Confirm, tries, .. } => {
                 let say = self.phrase(phrase).say.clone();
                 self.finish_attempt(phrase, tries, &say, 1.0, true, scene);
@@ -405,12 +452,16 @@ impl Lesson {
                 }
                 self.finish_attempt(phrase, tries, &text, m.score, passed, scene);
             }
-            (State::Challenge { phrase, stage: Stage::Listening, tries, .. }, SpeechEvent::NoSpeech { .. }) => {
-                let (phrase, tries) = (*phrase, *tries);
+            (State::Challenge { stage, .. }, SpeechEvent::NoSpeech { .. }) if *stage == Stage::Listening => {
+                // Silence is not a wrong answer: don't record it, don't auto-retry.
+                *stage = Stage::WaitUser { until: self.clock + WAIT_USER };
+                scene.set_listening(false);
+                scene.mage_say("Hã? Não ouvi nada!", 2.5);
                 if let Some(c) = &mut scene.hud.caption {
+                    c.status = Status::Failed;
                     c.heard = Some("(silêncio)".into());
+                    c.footer = format!("Não ouvi nada. {} ou clique no orbe para tentar de novo", self.opts.hotkey);
                 }
-                self.finish_attempt(phrase, tries, "", 0.0, false, scene);
             }
             (State::Challenge { stage, .. }, SpeechEvent::Failed { error, .. }) if *stage == Stage::Listening => {
                 // Mic or model trouble: fall back to self-confirmation.
@@ -513,24 +564,32 @@ impl Lesson {
             }
             State::Challenge { stage: Stage::Result { until }, .. } if self.clock >= until => self.close(scene),
             State::Challenge { phrase, stage: Stage::RetryPause { until }, tries, .. } if self.clock >= until => {
-                // Replay just the target phrase (recall turns into repeat), then listen again.
-                let p = self.phrase(phrase).clone();
-                let job = self.job_id();
-                self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job };
-                let tag = self.tag(&p, Mode::Repeat);
-                if let Some(c) = &mut scene.hud.caption {
-                    c.status = Status::Speaking;
-                    c.feedback = None;
-                    c.heard = None;
-                    c.tag = tag;
-                    c.active = p.cue.iter().position(|s| matches!(s, Segment::Target(t) if *t == p.say));
-                }
-                let part = Utterance { text: p.say.clone(), lang: self.deck.language.clone(), slow: true };
-                jobs.push(Job::Speak { id: job, parts: vec![part] });
+                self.replay(phrase, tries, scene, jobs)
             }
+            State::Challenge { stage: Stage::WaitUser { until }, .. } if self.clock >= until => self.close(scene),
             State::Summary { close_at: Some(t), .. } if self.clock >= t => self.close(scene),
             _ => {}
         }
+    }
+
+    /// Replays just the target phrase (recall turns into repeat), then listens again.
+    fn replay(&mut self, phrase: usize, tries: u32, scene: &mut Scene, jobs: &mut Vec<Job>) {
+        let p = self.phrase(phrase).clone();
+        let job = self.job_id();
+        self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job };
+        let tag = self.tag(&p, Mode::Repeat);
+        if let Some(c) = &mut scene.hud.caption {
+            c.status = Status::Speaking;
+            c.feedback = None;
+            c.heard = None;
+            c.footer = String::new();
+            c.tag = tag;
+            c.segments = p.cue.clone();
+            c.meaning = p.meaning.clone();
+            c.active = p.cue.iter().position(|s| matches!(s, Segment::Target(t) if *t == p.say));
+        }
+        let part = Utterance { text: p.say.clone(), lang: self.deck.language.clone(), slow: true };
+        jobs.push(Job::Speak { id: job, parts: vec![part] });
     }
 
     fn maybe_auto_summary(&mut self, now: DateTime<Local>, scene: &mut Scene, jobs: &mut Vec<Job>) {
@@ -835,7 +894,7 @@ mod tests {
         let (mut id, _) = Fixture::speak_job(&f.send(Input::Primary));
         for attempt in 1..=MAX_TRIES {
             f.send(Input::Speech(SpeechEvent::Spoken { id }));
-            f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "banana split".into() }));
             if attempt < MAX_TRIES {
                 id = Fixture::speak_job(&f.tick(RETRY_PAUSE + 0.2)).0;
             }
@@ -873,12 +932,60 @@ mod tests {
     }
 
     #[test]
+    fn silence_waits_for_the_learner_instead_of_retrying_on_its_own() {
+        let mut f = fixture(true);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        assert!(f.tick(10.0).is_empty(), "no automatic retry");
+        assert!(f.scene.hud.caption.as_ref().unwrap().footer.contains("tentar de novo"));
+        assert!(f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap().is_empty(), "not an attempt");
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert_eq!(parts[0].text, f.current_say(), "retries when asked");
+        f.send(Input::Dismiss);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        f.tick(WAIT_USER + 0.5);
+        assert!(f.lesson.is_idle(), "gives up quietly if you walk away");
+    }
+
+    #[test]
+    fn a_held_hotkey_does_not_skip_through_phrases() {
+        let mut f = fixture(true);
+        f.answer(true);
+        let passed = f.current_say();
+        for _ in 0..5 {
+            f.send(Input::Primary); // auto-repeat burst
+        }
+        assert_eq!(f.current_say(), passed, "still showing the result");
+        f.tick(DEBOUNCE + 0.1);
+        f.send(Input::Primary);
+        assert_ne!(f.current_say(), passed, "a deliberate press moves on");
+    }
+
+    #[test]
+    fn pause_cancels_the_lesson_and_blocks_new_ones_until_resumed() {
+        let mut f = fixture(true);
+        f.send(Input::Primary);
+        f.lesson.set_paused(true, &mut f.scene);
+        assert!(f.lesson.is_idle() && f.scene.hud.caption.is_none());
+        assert!(f.send(Input::Primary).is_empty());
+        assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("pausa"));
+        f.scene.hud.toast = None;
+        f.tick(120.0);
+        assert!(f.scene.hud.toast.is_none(), "no nudges while paused");
+        f.lesson.set_paused(false, &mut f.scene);
+        assert!(!f.send(Input::Primary).is_empty());
+    }
+
+    #[test]
     fn gives_up_after_max_tries_and_records_each_attempt() {
         let mut f = fixture(true);
         let (mut id, _) = Fixture::speak_job(&f.send(Input::Primary));
         for attempt in 1..=MAX_TRIES {
             f.send(Input::Speech(SpeechEvent::Spoken { id }));
-            f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "banana split".into() }));
             if attempt < MAX_TRIES {
                 id = Fixture::speak_job(&f.tick(RETRY_PAUSE + 0.2)).0;
             }
