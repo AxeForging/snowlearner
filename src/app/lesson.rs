@@ -1059,6 +1059,7 @@ mod tests {
     #[test]
     fn wrong_answer_shows_feedback_and_replays_only_the_target() {
         let mut f = fixture(true);
+        f.scene.fires.clear(); // a campfire thawing nearby is not the lesson melting
         let snow_before = f.scene.snow.fill();
         f.answer(false);
         let cap = f.scene.hud.caption.as_ref().unwrap();
