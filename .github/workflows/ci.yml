@@ -8,6 +8,10 @@ on:
   #   branches: [main]
   # pull_request:
 
+env:
+  # Portable whisper.cpp: a cached -march=native build crashes (SIGILL) on a different runner CPU.
+  GGML_NATIVE: "OFF"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -32,6 +36,8 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev espeak-ng
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ggml-portable
       - run: cargo test
       - run: cargo test --no-default-features
       - name: speech end-to-end (Linux)

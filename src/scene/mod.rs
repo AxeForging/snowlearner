@@ -1027,6 +1027,9 @@ impl Scene {
         let wfeet = self.lift_warrior.map(|l| l.y).unwrap_or_else(|| self.feet_y(wx));
         let wdx = dangle(&self.lift_warrior, self.time);
         self.warrior.draw_at(c, self.warrior.x + wdx, wfeet, self.time);
+        if self.lift_warrior.is_some_and(|l| l.held) && self.warrior.act != warrior::Act::Frozen {
+            hand::draw_shy(c, (self.warrior.x + wdx).round() as i32, wfeet.round() as i32 - warrior::HEIGHT, self.time);
+        }
         for m in &self.mobs {
             m.draw(c, self.feet_y(m.center()), self.time);
         }

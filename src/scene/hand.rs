@@ -38,12 +38,15 @@ pub const MAGE_HELD: &[&str] = &[
 ];
 pub const MAGE_LANDED: &[&str] = &["Hmpf!", "Você vai pagar por isso!", "Ai... minha dignidade."];
 pub const WARRIOR_HELD: &[&str] = &[
-    "Ei... isso é constrangedor...",
+    "Ei... isso é constrangedor... 👉👈",
     "Me coloca no chão, por favor...",
-    "Todo mundo tá olhando...",
+    "Todo mundo tá olhando... 👉👈",
     "Eu tenho medo de altura!",
+    "N-não precisa me carregar... 👉👈",
+    "S-senpai...? 👉👈",
 ];
-pub const WARRIOR_LANDED: &[&str] = &["Ufa... obrigado?", "Chão, doce chão.", "Não conta pra ninguém, tá?"];
+pub const WARRIOR_LANDED: &[&str] =
+    &["Ufa... obrigado? 👉👈", "Chão, doce chão.", "Não conta pra ninguém, tá?", "F-foi até legal... 👉👈"];
 
 /// Who is in the hand.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +96,25 @@ pub fn draw_hand(c: &mut Canvas, x: f32, y: f32, closed: bool, time: f32) {
     c.dot(x + a.cos() * 6.0, y + a.sin() * 6.0, hex(0xffffff));
 }
 
+/// The warrior's embarrassed pose while held: blushing cheeks and index
+/// fingers poking together in front of his chest (👉👈). `top` is the sprite top.
+pub fn draw_shy(c: &mut Canvas, x: i32, top: i32, time: f32) {
+    let blush = hex(0xff7aa8);
+    for (dx, dy) in [(3, 5), (4, 6), (8, 5), (7, 6)] {
+        c.set(x + dx, top + dy, blush);
+    }
+    // Fingertips tap: apart, touch, apart…
+    let gap = if (time * 4.0) as i32 % 2 == 0 { 1 } else { 0 };
+    let (skin, edge) = (hex(0xf2c29b), hex(0x7a4a2e));
+    let y = top + 9;
+    for (fx, dir) in [(5 - gap, -1), (6 + gap, 1)] {
+        for i in 0..3 {
+            c.set(fx + x + dir * i, y, skin);
+            c.set(fx + x + dir * i, y + 1, edge);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,6 +130,19 @@ mod tests {
         }
         assert!(landed);
         assert_eq!(l.y, 100.0);
+    }
+
+    #[test]
+    fn the_warrior_gets_shy_fingers_in_speech_and_in_his_pose() {
+        assert!(WARRIOR_HELD.iter().any(|l| l.contains("👉👈")));
+        assert!(!MAGE_HELD.iter().chain(MAGE_LANDED).any(|l| l.contains('👉')), "the mage is not shy");
+        let tip = |t: f32| {
+            let mut c = Canvas::new(20, 20);
+            draw_shy(&mut c, 0, 0, t);
+            c.get(5, 9).is_some_and(|p| p[3] > 0)
+        };
+        assert!(!tip(0.0), "fingers apart");
+        assert!(tip(0.3), "fingertips touching");
     }
 
     #[test]
