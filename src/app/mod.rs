@@ -584,9 +584,11 @@ impl App {
                 self.menu.meter = None;
                 self.menu.test_result = format!("Erro: {error}");
             }
-            SpeechEvent::Spoken { .. } => {
+            // The worker reports Spoken even after a part failed: keep the error.
+            SpeechEvent::Spoken { .. } if !self.menu.test_result.starts_with("Erro:") => {
                 self.menu.test_result = "✓ Vozes tocadas. Troque em Voz pt-BR / Voz do idioma.".into()
             }
+            SpeechEvent::Spoken { .. } => {}
             SpeechEvent::Part { .. } => {}
         }
     }
