@@ -495,9 +495,9 @@ impl App {
                 self.lesson.set_options(|o| o.daily_goal = g, scene);
             }
             Item::Mode => scene.hud.toast("Modo de tela muda ao reiniciar o Snowlearner", 3.0),
-            Item::Mic | Item::Speaker | Item::Engine | Item::VoiceNative | Item::VoiceLearning => {
+            Item::Mic | Item::Speaker | Item::Engine | Item::Endpoint | Item::VoiceNative | Item::VoiceLearning => {
                 self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
-                if item == Item::Engine {
+                if matches!(item, Item::Engine | Item::Endpoint) {
                     let desc = self.settings.voice().describe();
                     scene.hud.toast(format!("Voz: {desc}"), 3.0);
                     self.refresh_audio_lists();
@@ -745,7 +745,16 @@ impl App {
     }
 }
 
-fn menu_key(key: &Key) -> Option<menu::Key> {
+/// `editing`: the panel's address field is open, so typed text goes to it.
+fn menu_key(key: &Key, editing: bool, ctrl: bool) -> Option<menu::Key> {
+    if editing {
+        match key {
+            Key::Named(NamedKey::Backspace) => return Some(menu::Key::Backspace),
+            Key::Named(NamedKey::Space) => return Some(menu::Key::Char(' ')),
+            Key::Character(text) if !ctrl => return text.chars().next().map(menu::Key::Char),
+            _ => {}
+        }
+    }
     Some(match key {
         Key::Named(NamedKey::ArrowUp) => menu::Key::Up,
         Key::Named(NamedKey::ArrowDown) => menu::Key::Down,
@@ -881,7 +890,8 @@ impl ApplicationHandler<UserEvent> for App {
                     event: KeyEvent { logical_key, state: ElementState::Pressed, .. },
                     ..
                 } => {
-                    if let Some(k) = menu_key(&logical_key) {
+                    let (editing, ctrl) = (self.menu.editing().is_some(), self.modifiers.state().control_key());
+                    if let Some(k) = menu_key(&logical_key, editing, ctrl) {
                         let action = self.menu.key(k, &mut self.settings);
                         self.menu_action(action, el);
                     }
