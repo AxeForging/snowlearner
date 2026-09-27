@@ -1,0 +1,13 @@
+pre-commit:
+  commands:
+    fmt:
+      glob: "*.rs"
+      run: cargo fmt -- {staged_files} && git add {staged_files}
+    clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets -- -D warnings
+
+commit-msg:
+  commands:
+    conventional:
+      run: grep -qE '^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\([a-z0-9-]+\))?!?: .+' {1}

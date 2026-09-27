@@ -1,0 +1,136 @@
+language = "en"
+native = "pt-BR"
+title = "Everyday English"
+default_cue = "Repita comigo: {}"
+
+[[phrase]]
+say = "I'm hungry"
+meaning = "Estou com fome"
+cue = "Para dizer que estou com fome, devo dizer: {}"
+tip = "O 'h' de hungry sai como um 'rr' suave: 'rrãngri'."
+
+[[phrase]]
+say = "I'm cold"
+meaning = "Estou com frio"
+cue = "O guerreiro está congelando! Diga que está com frio: {}"
+tip = "Cold rima com 'gold'. O 'l' quase some: 'côuld'."
+
+[[phrase]]
+say = "Good morning"
+meaning = "Bom dia"
+cue = "De manhã, para cumprimentar alguém: {}"
+
+[[phrase]]
+say = "How are you?"
+meaning = "Como você está?"
+cue = "Para perguntar como a pessoa está: {}"
+tip = "Fale ligado: 'rráuáriu'."
+
+[[phrase]]
+say = "Nice to meet you"
+meaning = "Prazer em te conhecer"
+cue = "Quando conhece alguém novo: {}"
+tip = "Meet you vira 'mítchu' quando falado rápido."
+
+[[phrase]]
+say = "Thank you very much"
+meaning = "Muito obrigado"
+cue = "Para agradecer muito: {}"
+tip = "O 'th' é com a língua entre os dentes, não é 'f' nem 't'."
+
+[[phrase]]
+say = "Can I have the check, please?"
+meaning = "Pode me trazer a conta, por favor?"
+cue = "No restaurante, para pedir a conta: {}"
+
+[[phrase]]
+say = "Where is the bathroom?"
+meaning = "Onde fica o banheiro?"
+cue = "Para perguntar onde fica o banheiro: {}"
+
+[[phrase]]
+say = "I don't understand"
+meaning = "Eu não entendo"
+cue = "Quando não entender algo, diga: {}"
+tip = "Don't: o 't' final quase não aparece."
+
+[[phrase]]
+say = "Could you repeat that?"
+meaning = "Você poderia repetir?"
+cue = "Para pedir que repitam, com educação: {}"
+
+[[phrase]]
+say = "I'm learning English"
+meaning = "Estou aprendendo inglês"
+cue = "Conte que está aprendendo inglês: {}"
+
+[[phrase]]
+say = "What time is it?"
+meaning = "Que horas são?"
+cue = "Para perguntar as horas: {}"
+
+[[phrase]]
+say = "It's very cold today"
+meaning = "Está muito frio hoje"
+cue = "Olhe pela janela congelada e diga: {}"
+
+[[phrase]]
+say = "I need help"
+meaning = "Eu preciso de ajuda"
+cue = "Se precisar de ajuda: {}"
+
+[[phrase]]
+say = "How much is this?"
+meaning = "Quanto custa isso?"
+cue = "Numa loja, para perguntar o preço: {}"
+
+[[phrase]]
+say = "I would like a coffee"
+meaning = "Eu gostaria de um café"
+cue = "Na cafeteria, peça um café com educação: {}"
+tip = "I would vira 'I'd' na fala: 'áid laik'."
+
+[[phrase]]
+say = "See you tomorrow"
+meaning = "Até amanhã"
+cue = "Para se despedir até amanhã: {}"
+
+[[phrase]]
+say = "I'm tired"
+meaning = "Estou cansado"
+cue = "Para dizer que está cansado: {}"
+
+[[phrase]]
+say = "Let's go"
+meaning = "Vamos lá"
+cue = "Para chamar alguém para ir: {}"
+
+[[phrase]]
+say = "I agree"
+meaning = "Eu concordo"
+cue = "Numa reunião, para concordar: {}"
+
+[[phrase]]
+say = "Excuse me"
+meaning = "Com licença"
+cue = "Para pedir licença ou chamar atenção: {}"
+
+[[phrase]]
+say = "What does this mean?"
+meaning = "O que isso significa?"
+cue = "Para perguntar o significado de algo: {}"
+
+[[phrase]]
+say = "I'm on my way"
+meaning = "Estou a caminho"
+cue = "Avise que está chegando: {}"
+
+[[phrase]]
+say = "Have a nice day"
+meaning = "Tenha um bom dia"
+cue = "Para desejar um bom dia a alguém: {}"
+
+[[phrase]]
+say = "The fire is warm"
+meaning = "A fogueira está quente"
+cue = "O guerreiro acendeu uma fogueira! Diga que ela está quente: {}"

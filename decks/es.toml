@@ -1,0 +1,133 @@
+language = "es"
+native = "pt-BR"
+title = "Español del día a día"
+default_cue = "Repita comigo: {}"
+
+[[phrase]]
+say = "Tengo hambre"
+meaning = "Estou com fome"
+cue = "Para dizer que estou com fome, devo dizer: {}"
+tip = "Em espanhol se 'tem' fome: tengo hambre. O 'h' é mudo."
+
+[[phrase]]
+say = "Tengo frío"
+meaning = "Estou com frio"
+cue = "O guerreiro está congelando! Diga que está com frio: {}"
+
+[[phrase]]
+say = "Buenos días"
+meaning = "Bom dia"
+cue = "De manhã, para cumprimentar alguém: {}"
+
+[[phrase]]
+say = "¿Cómo estás?"
+meaning = "Como você está?"
+cue = "Para perguntar como a pessoa está: {}"
+
+[[phrase]]
+say = "Mucho gusto"
+meaning = "Muito prazer"
+cue = "Quando conhece alguém novo: {}"
+
+[[phrase]]
+say = "Muchas gracias"
+meaning = "Muito obrigado"
+cue = "Para agradecer muito: {}"
+
+[[phrase]]
+say = "La cuenta, por favor"
+meaning = "A conta, por favor"
+cue = "No restaurante, para pedir a conta: {}"
+
+[[phrase]]
+say = "¿Dónde está el baño?"
+meaning = "Onde fica o banheiro?"
+cue = "Para perguntar onde fica o banheiro: {}"
+tip = "Baño com 'ñ' soa como o nosso 'nh': banho."
+
+[[phrase]]
+say = "No entiendo"
+meaning = "Não entendo"
+cue = "Quando não entender algo, diga: {}"
+
+[[phrase]]
+say = "¿Puedes repetir, por favor?"
+meaning = "Você pode repetir, por favor?"
+cue = "Para pedir que repitam: {}"
+
+[[phrase]]
+say = "Estoy aprendiendo español"
+meaning = "Estou aprendendo espanhol"
+cue = "Conte que está aprendendo espanhol: {}"
+
+[[phrase]]
+say = "¿Qué hora es?"
+meaning = "Que horas são?"
+cue = "Para perguntar as horas: {}"
+
+[[phrase]]
+say = "Hace mucho frío hoy"
+meaning = "Está muito frio hoje"
+cue = "Olhe pela janela congelada e diga: {}"
+tip = "Para o clima, o espanhol usa 'hace': hace frío, hace calor."
+
+[[phrase]]
+say = "Necesito ayuda"
+meaning = "Preciso de ajuda"
+cue = "Se precisar de ajuda: {}"
+
+[[phrase]]
+say = "¿Cuánto cuesta?"
+meaning = "Quanto custa?"
+cue = "Numa loja, para perguntar o preço: {}"
+
+[[phrase]]
+say = "Quisiera un café"
+meaning = "Eu gostaria de um café"
+cue = "Na cafeteria, peça um café com educação: {}"
+
+[[phrase]]
+say = "Hasta mañana"
+meaning = "Até amanhã"
+cue = "Para se despedir até amanhã: {}"
+
+[[phrase]]
+say = "Estoy cansado"
+meaning = "Estou cansado"
+cue = "Para dizer que está cansado: {}"
+
+[[phrase]]
+say = "Vamos"
+meaning = "Vamos"
+cue = "Para chamar alguém para ir: {}"
+
+[[phrase]]
+say = "Estoy de acuerdo"
+meaning = "Concordo"
+cue = "Numa reunião, para concordar: {}"
+
+[[phrase]]
+say = "Perdón"
+meaning = "Com licença / desculpa"
+cue = "Para pedir licença ou desculpas: {}"
+
+[[phrase]]
+say = "¿Qué significa esto?"
+meaning = "O que isso significa?"
+cue = "Para perguntar o significado de algo: {}"
+
+[[phrase]]
+say = "Ya voy en camino"
+meaning = "Já estou a caminho"
+cue = "Avise que está chegando: {}"
+
+[[phrase]]
+say = "Que tengas un buen día"
+meaning = "Tenha um bom dia"
+cue = "Para desejar um bom dia a alguém: {}"
+
+[[phrase]]
+say = "El fuego está caliente"
+meaning = "O fogo está quente"
+cue = "O guerreiro acendeu uma fogueira! Diga que ela está quente: {}"
+tip = "Cuidado: 'caliente' é quente. 'Calor' é o calor do clima."

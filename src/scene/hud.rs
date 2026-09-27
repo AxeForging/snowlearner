@@ -1,0 +1,369 @@
+//! On-screen text: lesson captions (legendas) with highlights and per-word
+//! feedback, the end-of-day summary panel, and short toasts.
+
+use crate::learn::cue::Segment;
+use crate::render::canvas::{Canvas, Rgba, hex};
+use crate::render::font;
+use crate::speech::matcher::WordHit;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// TTS is reading the cue.
+    Speaking,
+    /// Mic is open.
+    Listening,
+    /// Recognizer is working.
+    Thinking,
+    Passed,
+    Failed,
+    /// No recognizer available: say it, then confirm with the hotkey.
+    Confirm,
+}
+
+impl Status {
+    fn label(self) -> &'static str {
+        match self {
+            Status::Speaking => "OUÇA",
+            Status::Listening => "FALE AGORA",
+            Status::Thinking => "PENSANDO",
+            Status::Passed => "ACERTOU!",
+            Status::Failed => "QUASE! TENTE DE NOVO",
+            Status::Confirm => "FALE E CONFIRME",
+        }
+    }
+
+    fn color(self) -> Rgba {
+        match self {
+            Status::Passed => hex(0x7dff9b),
+            Status::Failed => hex(0xff8a6b),
+            Status::Listening => hex(0xffd64a),
+            _ => hex(0x9be8ff),
+        }
+    }
+}
+
+pub struct Caption {
+    pub segments: Vec<Segment>,
+    /// The phrase being practiced (target segments equal to it get feedback colors).
+    pub say: String,
+    /// Segment currently being read aloud.
+    pub active: Option<usize>,
+    pub meaning: String,
+    pub status: Status,
+    pub feedback: Option<Vec<WordHit>>,
+    pub heard: Option<String>,
+    pub footer: String,
+}
+
+pub struct SummaryLine {
+    pub say: String,
+    pub meaning: String,
+    pub ok: bool,
+}
+
+pub struct SummaryPanel {
+    pub title: String,
+    pub lines: Vec<SummaryLine>,
+    pub active: Option<usize>,
+    pub footer: String,
+}
+
+pub struct Toast {
+    pub text: String,
+    pub left: f32,
+}
+
+#[derive(Default)]
+pub struct Hud {
+    pub caption: Option<Caption>,
+    pub summary: Option<SummaryPanel>,
+    pub toast: Option<Toast>,
+}
+
+const INK: Rgba = hex(0xe6ecff);
+const DIM: Rgba = hex(0x8f96d8);
+const TARGET: Rgba = hex(0x9be8ff);
+const HIT: Rgba = hex(0x7dff9b);
+const MISS: Rgba = hex(0xff6b6b);
+const PANEL: Rgba = hex(0x0e0c2c);
+const BORDER: Rgba = hex(0x4ea2d8);
+
+const MIC: &[&str] = &[".##.", ".##.", ".##.", "#..#", ".##.", "..#.", ".###"];
+const SPEAKER: &[&str] = &["..#..", ".##.#", "###..", "###.#", ".##..", "..#.#"];
+const CHECK: &[&str] = &["....#", "...#.", "#.#..", ".#..."];
+const CROSS: &[&str] = &["#...#", ".#.#.", "..#..", ".#.#.", "#...#"];
+
+struct Token {
+    text: String,
+    color: Rgba,
+    marked: bool,
+}
+
+impl Hud {
+    pub fn step(&mut self, dt: f32) {
+        if let Some(t) = &mut self.toast {
+            t.left -= dt;
+            if t.left <= 0.0 {
+                self.toast = None;
+            }
+        }
+    }
+
+    pub fn toast(&mut self, text: impl Into<String>, seconds: f32) {
+        self.toast = Some(Toast { text: text.into(), left: seconds });
+    }
+
+    pub fn draw(&self, c: &mut Canvas, ground_y: i32, time: f32) {
+        if let Some(cap) = &self.caption {
+            draw_caption(c, cap, ground_y, time);
+        }
+        if let Some(s) = &self.summary {
+            draw_summary(c, s, time);
+        }
+        if let Some(t) = &self.toast {
+            let w = font::text_width(&t.text);
+            font::draw_outlined(c, (c.w - w) / 2, 6, &t.text, hex(0xffffff), hex(0x1b1942));
+        }
+    }
+}
+
+fn panel(c: &mut Canvas, x: i32, y: i32, w: i32, h: i32) {
+    c.rect(x + 1, y, w - 2, h, PANEL);
+    c.rect(x, y + 1, w, h - 2, PANEL);
+    c.rect(x + 1, y, w - 2, 1, BORDER);
+    c.rect(x + 1, y + h - 1, w - 2, 1, BORDER);
+    c.rect(x, y + 1, 1, h - 2, BORDER);
+    c.rect(x + w - 1, y + 1, 1, h - 2, BORDER);
+    c.rect(x + 2, y + 1, w - 4, 1, hex(0x1d2a5a));
+}
+
+fn tokens(cap: &Caption) -> Vec<Token> {
+    let mut out = Vec::new();
+    for (i, seg) in cap.segments.iter().enumerate() {
+        let active = cap.active == Some(i);
+        let feedback = match (&cap.feedback, seg) {
+            (Some(f), Segment::Target(t)) if t == &cap.say => Some(f),
+            _ => None,
+        };
+        for (j, word) in seg.text().split_whitespace().enumerate() {
+            let color = match (seg, feedback) {
+                (_, Some(f)) => {
+                    if f.get(j).is_some_and(|h| h.hit) {
+                        HIT
+                    } else {
+                        MISS
+                    }
+                }
+                (Segment::Target(_), None) => TARGET,
+                (Segment::Native(_), None) if cap.active.is_some() && !active => DIM,
+                (Segment::Native(_), None) => INK,
+            };
+            out.push(Token { text: word.to_string(), color, marked: active && seg.is_target() });
+        }
+    }
+    out
+}
+
+/// Greedy layout of colored words into lines of at most `max_w` px.
+fn layout(tokens: &[Token], max_w: i32) -> Vec<Vec<usize>> {
+    let space = font::ADVANCE;
+    let mut lines: Vec<Vec<usize>> = vec![vec![]];
+    let mut w = 0;
+    for (i, t) in tokens.iter().enumerate() {
+        let tw = font::text_width(&t.text);
+        let line = lines.last_mut().unwrap();
+        if !line.is_empty() && w + space + tw > max_w {
+            lines.push(vec![i]);
+            w = tw;
+        } else {
+            w += if line.is_empty() { tw } else { space + tw };
+            line.push(i);
+        }
+    }
+    lines.retain(|l| !l.is_empty());
+    lines
+}
+
+fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
+    let pw = (c.w - 16).min(300);
+    let inner = pw - 12;
+    let toks = tokens(cap);
+    let lines = layout(&toks, inner);
+    let lh = font::LINE_H - 1;
+    let mut rows = 1 + lines.len() as i32;
+    let meaning_lines = if cap.meaning.is_empty() { vec![] } else { font::wrap(&format!("= {}", cap.meaning), inner) };
+    rows += meaning_lines.len() as i32;
+    let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&format!("Ouvi: \"{h}\""), inner)).unwrap_or_default();
+    rows += heard_lines.len() as i32;
+    if !cap.footer.is_empty() {
+        rows += 1;
+    }
+    let ph = rows * lh + 8;
+    let px = (c.w - pw) / 2;
+    // Upper part of the screen: clear of the characters and their speech bubbles.
+    let py = (c.h / 8).min(ground_y - ph - 50).max(4);
+    panel(c, px, py, pw, ph);
+
+    // Header: icon + status.
+    let mut y = py + 3;
+    let icon_c = cap.status.color();
+    match cap.status {
+        Status::Speaking => c.sprite(SPEAKER, &[('#', icon_c)], px + 6, y + 4, false),
+        Status::Listening | Status::Confirm => c.sprite(MIC, &[('#', icon_c)], px + 6, y + 3, false),
+        Status::Passed => c.sprite(CHECK, &[('#', icon_c)], px + 6, y + 5, false),
+        Status::Failed => c.sprite(CROSS, &[('#', icon_c)], px + 6, y + 4, false),
+        Status::Thinking => {}
+    }
+    let mut label = cap.status.label().to_string();
+    if matches!(cap.status, Status::Listening | Status::Thinking) {
+        label.push_str(&".".repeat(1 + (time * 3.0) as usize % 3));
+    }
+    font::draw(c, px + 14, y, &label, icon_c);
+    y += lh;
+
+    for line in &lines {
+        let mut x = px + 6;
+        for &i in line {
+            let t = &toks[i];
+            let tw = font::text_width(&t.text);
+            if t.marked {
+                c.rect(x - 1, y + 2, tw + 2, font::LINE_H - 3, hex(0x2a5a9a));
+            }
+            font::draw(c, x, y, &t.text, if t.marked { hex(0xffffff) } else { t.color });
+            if t.color == TARGET || t.color == HIT || t.color == MISS {
+                c.rect(x, y + font::ASCENT + 9, tw, 1, t.color);
+            }
+            x += tw + font::ADVANCE;
+        }
+        y += lh;
+    }
+    for l in &meaning_lines {
+        font::draw(c, px + 6, y, l, DIM);
+        y += lh;
+    }
+    for l in &heard_lines {
+        font::draw(c, px + 6, y, l, hex(0xc9d3e8));
+        y += lh;
+    }
+    if !cap.footer.is_empty() {
+        font::draw(c, px + 6, y, &cap.footer, hex(0x6e74b8));
+    }
+}
+
+fn draw_summary(c: &mut Canvas, s: &SummaryPanel, time: f32) {
+    let pw = (c.w - 16).min(320);
+    let inner = pw - 22;
+    let lh = font::LINE_H - 1;
+    let mut rows: Vec<(Vec<String>, Rgba, Option<bool>, bool)> = Vec::new();
+    for (i, l) in s.lines.iter().enumerate() {
+        let active = s.active == Some(i);
+        let text = format!("{} = {}", l.say, l.meaning);
+        let color = if active {
+            hex(0xffffff)
+        } else if l.ok {
+            INK
+        } else {
+            DIM
+        };
+        rows.push((font::wrap(&text, inner), color, Some(l.ok), active));
+    }
+    let max_rows = ((c.h - 40) / lh).max(3) as usize;
+    let mut body_lines: usize = rows.iter().map(|r| r.0.len()).sum();
+    while body_lines > max_rows && !rows.is_empty() {
+        body_lines -= rows.remove(0).0.len(); // keep the most recent phrases
+    }
+    let ph = (body_lines as i32 + 3) * lh + 8;
+    let (px, py) = ((c.w - pw) / 2, ((c.h - ph) / 2).max(4));
+    panel(c, px, py, pw, ph);
+    let mut y = py + 3;
+    let title_w = font::text_width(&s.title);
+    font::draw(c, px + (pw - title_w) / 2, y, &s.title, hex(0xffd64a));
+    y += lh + 2;
+    for (lines, color, ok, active) in rows {
+        if active {
+            let pulse = if (time * 4.0).sin() > 0.0 { hex(0x2a5a9a) } else { hex(0x1d2a5a) };
+            c.rect(px + 3, y + 1, pw - 6, lines.len() as i32 * lh, pulse);
+        }
+        match ok {
+            Some(true) => c.sprite(CHECK, &[('#', HIT)], px + 6, y + 5, false),
+            Some(false) => c.sprite(CROSS, &[('#', MISS)], px + 6, y + 4, false),
+            None => {}
+        }
+        for l in lines {
+            font::draw(c, px + 16, y, &l, color);
+            y += lh;
+        }
+    }
+    font::draw(c, px + 6, py + ph - lh - 3, &s.footer, hex(0x9be8ff));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn caption(feedback: Option<Vec<WordHit>>) -> Caption {
+        Caption {
+            segments: vec![
+                Segment::Native("Para dizer que estou com fome, devo dizer:".into()),
+                Segment::Target("I'm hungry".into()),
+            ],
+            say: "I'm hungry".into(),
+            active: None,
+            meaning: "Estou com fome".into(),
+            status: Status::Listening,
+            feedback,
+            heard: None,
+            footer: String::new(),
+        }
+    }
+
+    #[test]
+    fn target_words_are_highlighted_and_native_words_are_not() {
+        let t = tokens(&caption(None));
+        let hungry = t.iter().find(|t| t.text == "hungry").unwrap();
+        let fome = t.iter().find(|t| t.text == "fome,").unwrap();
+        assert_eq!(hungry.color, TARGET);
+        assert_eq!(fome.color, INK);
+    }
+
+    #[test]
+    fn feedback_colors_each_target_word_by_hit_or_miss() {
+        let fb = vec![WordHit { word: "I'm".into(), hit: true }, WordHit { word: "hungry".into(), hit: false }];
+        let t = tokens(&caption(Some(fb)));
+        assert_eq!(t.iter().find(|t| t.text == "I'm").unwrap().color, HIT);
+        assert_eq!(t.iter().find(|t| t.text == "hungry").unwrap().color, MISS);
+    }
+
+    #[test]
+    fn segment_being_read_is_marked_and_others_dimmed() {
+        let mut cap = caption(None);
+        cap.active = Some(1);
+        let t = tokens(&cap);
+        assert!(t.iter().filter(|t| t.marked).all(|t| t.text == "I'm" || t.text == "hungry"));
+        assert_eq!(t.iter().find(|t| t.text == "Para").unwrap().color, DIM);
+    }
+
+    #[test]
+    fn layout_wraps_but_never_drops_words() {
+        let t = tokens(&caption(None));
+        let lines = layout(&t, 80);
+        assert!(lines.len() > 2);
+        assert_eq!(lines.iter().map(Vec::len).sum::<usize>(), t.len());
+    }
+
+    #[test]
+    fn caption_and_summary_draw_within_a_small_canvas() {
+        let mut hud = Hud { caption: Some(caption(None)), ..Default::default() };
+        hud.summary = Some(SummaryPanel {
+            title: "RESUMO DE HOJE".into(),
+            lines: (0..40)
+                .map(|i| SummaryLine { say: format!("phrase {i}"), meaning: "x".into(), ok: i % 2 == 0 })
+                .collect(),
+            active: Some(39),
+            footer: "40 frases".into(),
+        });
+        let mut c = Canvas::new(200, 120);
+        hud.draw(&mut c, 120, 0.0);
+        assert!(c.opaque_in(0, 0, 200, 120) > 500);
+    }
+}

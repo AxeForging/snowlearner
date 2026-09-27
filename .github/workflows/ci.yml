@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev
+      - uses: Swatinem/rust-cache@v2
+      - run: make lint
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev espeak-ng
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+      - run: cargo test --no-default-features
+      - name: speech end-to-end (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cargo run --quiet -- model download --name tiny
+          SNOWLEARNER_TEST_MODEL=$HOME/.local/share/snowlearner/models/ggml-tiny.bin \
+            cargo test --test speech_e2e -- --ignored

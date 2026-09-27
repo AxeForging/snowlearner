@@ -1,0 +1,51 @@
+# snowlearner — working notes
+
+Pixel-art desktop language-practice app (Rust). Spec: `docs/specs/001-snowlearner-mvp.md`.
+
+## Layout — one domain per directory, one concept per file
+
+```
+src/
+  main.rs            thin entry → cli::main
+  lib.rs             module list only
+  cli/               mod.rs = clap definitions, commands.rs = subcommand bodies
+  app/               mod.rs = winit loop + wiring, lesson.rs = lesson state machine (pure),
+                     platform.rs = session detection / overlay-vs-window decisions (pure)
+  scene/             pure seeded simulation; one file per actor/element
+                     (mage, warrior, friends, fire, ice, snow, frost, backdrop, hud, rng)
+  render/            canvas.rs (CPU pixels), font.rs (bitmap font), gpu.rs (wgpu present), png_out.rs
+  speech/            tts.rs, worker.rs (thread), matcher.rs, endpoint.rs, resample.rs;
+                     mic.rs + stt.rs only with the `stt` feature
+  learn/             deck.rs, cue.rs ({{target}} segments), picker.rs
+  control/           hotkeys.rs, ipc.rs (localhost commands + single instance)
+  config/            settings.rs, level.rs (commitment), paths.rs
+  store/             history.rs (SQLite)
+decks/<lang>.toml    built-in decks (embedded with include_str!)
+tests/cli.rs         drives the built binary (CARGO_BIN_EXE_snowlearner) with SNOWLEARNER_HOME
+tests/speech_e2e.rs  real whisper run on synthesized speech (#[ignore], needs a model)
+```
+
+Naming: files are the noun they hold (`snow.rs` holds `Snow`); a directory's `mod.rs` is
+either the orchestrator (`scene/mod.rs`, `app/mod.rs`) or just the module list.
+New actors go in `scene/<actor>.rs`; new platform integrations in the matching domain dir.
+
+## Rules
+
+- Keep `scene/`, `app/lesson.rs`, `app/platform.rs`, `learn/`, `speech/matcher.rs` free of
+  windows, audio devices and wall-clock reads — that's what makes them testable.
+- Art is 1-bit alpha only (fully opaque or clear); fake transparency with `canvas::bayer` dithering.
+- All user-facing text in the app is pt-BR; check new text with `font::supports`.
+- Never pass user text through a shell (see `speech/tts.rs` tests).
+
+## Commands
+
+```sh
+make test / make lint / make test-speech / make snapshot
+cargo run -- --mode window        # run from source
+cargo run -- doctor
+```
+
+## Tests
+
+Behavior-named, no mocks inside the crate. Binary behavior is tested through the real binary.
+Bugs: write the failing test first, then fix.
