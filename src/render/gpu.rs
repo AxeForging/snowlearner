@@ -50,15 +50,7 @@ pub struct Gpu {
 impl Gpu {
     pub fn new(window: Arc<Window>, want_transparent: bool) -> Result<Gpu> {
         let size = window.inner_size();
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
-        let surface = instance.create_surface(window).context("creating GPU surface")?;
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::LowPower,
-            force_fallback_adapter: false,
-            compatible_surface: Some(&surface),
-            ..Default::default()
-        }))
-        .context("no compatible GPU adapter")?;
+        let (surface, adapter) = pick_adapter(&window)?;
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("snowlearner"),
             required_limits: wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
@@ -246,6 +238,35 @@ impl Gpu {
         self.queue.submit([enc.finish()]);
         self.queue.present(frame);
     }
+}
+
+/// Vulkan/Metal/DX12 first, GL only when none of those work: enabling GL
+/// alongside makes the driver load a second graphics stack (~20 MB resident)
+/// that is never used. `WGPU_BACKEND` (e.g. `gl`) overrides the choice.
+fn pick_adapter(window: &Arc<Window>) -> Result<(wgpu::Surface<'static>, wgpu::Adapter)> {
+    let tries = if std::env::var_os("WGPU_BACKEND").is_some() {
+        vec![wgpu::InstanceDescriptor::new_without_display_handle_from_env().backends]
+    } else {
+        vec![wgpu::Backends::PRIMARY, wgpu::Backends::GL]
+    };
+    let mut last = None;
+    for backends in tries {
+        let mut desc = wgpu::InstanceDescriptor::new_without_display_handle_from_env();
+        desc.backends = backends;
+        let instance = wgpu::Instance::new(desc);
+        let surface = instance.create_surface(window.clone()).context("creating GPU surface")?;
+        match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::LowPower,
+            force_fallback_adapter: false,
+            compatible_surface: Some(&surface),
+            ..Default::default()
+        })) {
+            Ok(adapter) => return Ok((surface, adapter)),
+            Err(e) => last = Some(e),
+        }
+    }
+    Err(last.map(anyhow::Error::from).unwrap_or_else(|| anyhow::anyhow!("no GPU backend enabled")))
+        .context("no compatible GPU adapter")
 }
 
 /// Prefers a mode that composites our alpha over the desktop.

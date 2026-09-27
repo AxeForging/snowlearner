@@ -3,11 +3,14 @@
 //! ignored after a cancel.
 
 use super::endpoint::ListenPlan;
+#[cfg(feature = "stt")]
+use super::resident::Resident;
 use super::voices::{TtsEngine, Voice};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
+use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Utterance {
@@ -144,8 +147,29 @@ impl Speech {
                 let mut cfg = cfg;
                 let mut voice = voice;
                 #[cfg(feature = "stt")]
-                let mut recognizer: Option<super::stt::Recognizer> = None;
-                for job in rx {
+                let mut recognizer =
+                    Resident::<super::stt::Recognizer>::new(super::resident::SPEECH_MODEL_IDLE, Instant::now());
+                loop {
+                    // Sleep until the next job, waking only to free an idle speech model.
+                    #[cfg(feature = "stt")]
+                    let deadline = recognizer.deadline();
+                    #[cfg(not(feature = "stt"))]
+                    let deadline: Option<Instant> = None;
+                    let job = match deadline {
+                        None => match rx.recv() {
+                            Ok(job) => job,
+                            Err(_) => break,
+                        },
+                        Some(at) => match rx.recv_timeout(at.saturating_duration_since(Instant::now())) {
+                            Ok(job) => job,
+                            Err(RecvTimeoutError::Timeout) => {
+                                #[cfg(feature = "stt")]
+                                recognizer.release_if_idle(Instant::now());
+                                continue;
+                            }
+                            Err(RecvTimeoutError::Disconnected) => break,
+                        },
+                    };
                     match job {
                         Job::Configure(new) => {
                             cfg = *new;
@@ -166,12 +190,14 @@ impl Speech {
                         #[cfg(feature = "stt")]
                         Job::Listen { id, lang, plan } => {
                             let ev = listen(id, &lang, plan, &cfg, &mut recognizer, &stop_worker, &notify);
+                            recognizer.touch(Instant::now());
                             notify(ev);
                         }
                         #[cfg(feature = "stt")]
                         Job::MicTest { id, lang } => {
                             let plan = ListenPlan { think: 6.0, expected: 3.0 };
                             let ev = listen(id, &lang, plan, &cfg, &mut recognizer, &stop_worker, &notify);
+                            recognizer.touch(Instant::now());
                             notify(ev);
                         }
                         #[cfg(not(feature = "stt"))]
@@ -202,15 +228,13 @@ fn listen(
     lang: &str,
     plan: ListenPlan,
     cfg: &VoiceSettings,
-    recognizer: &mut Option<super::stt::Recognizer>,
+    recognizer: &mut Resident<super::stt::Recognizer>,
     stop: &AtomicBool,
     notify: &impl Fn(SpeechEvent),
 ) -> SpeechEvent {
     stop.store(false, Ordering::SeqCst);
     let result = (|| -> anyhow::Result<Option<String>> {
-        if recognizer.is_none() {
-            *recognizer = Some(super::stt::Recognizer::load(&cfg.model)?);
-        }
+        recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
         let rec = super::mic::record(plan, &cfg.mic, stop, |level, speaking| {
             notify(SpeechEvent::Level { id, level, speaking })
         })?;
@@ -218,7 +242,8 @@ fn listen(
             return Ok(None);
         }
         notify(SpeechEvent::Thinking { id });
-        Ok(Some(recognizer.as_ref().unwrap().transcribe(&rec.samples, lang)?))
+        let model = recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
+        Ok(Some(model.transcribe(&rec.samples, lang)?))
     })();
     match result {
         Ok(Some(text)) => SpeechEvent::Heard { id, text },

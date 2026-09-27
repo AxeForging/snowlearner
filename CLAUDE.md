@@ -16,7 +16,8 @@ src/
                      vortex = black hole + orb, hand = magic hand, backdrop, hud, rng)
   render/            canvas.rs (CPU pixels), font.rs (bitmap font), gpu.rs (wgpu present), png_out.rs
   speech/            voices.rs (SpeechEngine trait + system/http/command engines), tts.rs (OS
-                     voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs;
+                     voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs,
+                     resident.rs (loads the whisper model on demand, frees it when idle);
                      audio.rs with `audio`; mic.rs + stt.rs with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs
   control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts),
