@@ -11,6 +11,12 @@ use std::collections::VecDeque;
 const MAX_AGE: usize = 3;
 /// Side of a damage tile, in canvas pixels.
 const TILE: usize = 16;
+/// Frames sent whole after a window appears (or is invalidated): X11 drops
+/// what is drawn before the window is mapped yet reports the buffer as shown.
+pub const SETTLE_FRAMES: u64 = 15;
+/// A whole frame now and then heals anything the window system lost (an
+/// expose without a compositor). ~2 s at 30 fps; costs <1% even full-screen.
+pub const REFRESH_EVERY: u64 = 60;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Redraw {
@@ -27,12 +33,15 @@ pub struct Damage {
     dims: (i32, i32, u32, usize, usize),
     /// Changed pixels of each recent frame, newest first.
     recent: VecDeque<Vec<u32>>,
+    /// Frames since the window appeared or was last invalidated.
+    frames: u64,
 }
 
 impl Damage {
     /// What to repaint in a buffer that shows the frame from `age` presents ago
     /// (`0` = unknown contents). Call once per presented frame.
     pub fn next(&mut self, canvas: &Canvas, scale: u32, w: usize, h: usize, age: u8) -> Redraw {
+        self.frames += 1;
         let dims = (canvas.w, canvas.h, scale, w, h);
         if dims != self.dims || self.prev.len() != canvas.bytes().len() {
             self.dims = dims;
@@ -46,7 +55,7 @@ impl Damage {
         self.recent.truncate(MAX_AGE);
 
         let age = age as usize;
-        if age == 0 || age > self.recent.len() {
+        if age == 0 || age > self.recent.len() || self.frames <= SETTLE_FRAMES || self.frames % REFRESH_EVERY == 0 {
             return Redraw::Full;
         }
         let mut union: Vec<u32> = self.recent.iter().take(age).flatten().copied().collect();
@@ -58,6 +67,14 @@ impl Damage {
             return Redraw::Full;
         }
         Redraw::Pixels(union)
+    }
+}
+
+impl Damage {
+    /// The window's contents may be gone (shown again, resized, refocused):
+    /// send whole frames for a moment.
+    pub fn invalidate(&mut self) {
+        self.frames = 0;
     }
 }
 
@@ -166,6 +183,42 @@ mod tests {
         out
     }
 
+    /// Past the start-up frames, where everything is still sent whole.
+    fn settle(d: &mut Damage, c: &Canvas, scale: u32, w: usize, h: usize) {
+        for _ in 0..SETTLE_FRAMES {
+            d.next(c, scale, w, h, 1);
+        }
+    }
+
+    #[test]
+    fn a_new_window_is_sent_whole_until_it_has_surely_appeared() {
+        // X11 drops what is drawn before the window is mapped, yet reports the
+        // buffer as shown: the panel came up black with only the cursor painted.
+        let c = Canvas::new(8, 8);
+        let mut d = Damage::default();
+        for i in 0..SETTLE_FRAMES {
+            assert_eq!(d.next(&c, 1, 8, 8, 1), Redraw::Full, "start-up frame {i}");
+        }
+        assert_eq!(d.next(&c, 1, 8, 8, 1), Redraw::Pixels(vec![]));
+    }
+
+    #[test]
+    fn the_whole_frame_is_resent_now_and_then_as_a_safety_net() {
+        let c = Canvas::new(8, 8);
+        let mut d = Damage::default();
+        let fulls = (0..REFRESH_EVERY * 3).filter(|_| d.next(&c, 1, 8, 8, 1) == Redraw::Full).count() as u64;
+        assert_eq!(fulls, SETTLE_FRAMES + 3, "start-up, then one every {REFRESH_EVERY} frames");
+    }
+
+    #[test]
+    fn invalidating_resends_everything_for_a_moment() {
+        let c = Canvas::new(8, 8);
+        let mut d = Damage::default();
+        settle(&mut d, &c, 1, 8, 8);
+        d.invalidate(); // exposed, resized, refocused…
+        assert_eq!(d.next(&c, 1, 8, 8, 1), Redraw::Full);
+    }
+
     #[test]
     fn the_first_frame_and_unknown_buffers_are_drawn_whole() {
         let c = Canvas::new(8, 8);
@@ -178,7 +231,7 @@ mod tests {
     fn an_unchanged_frame_repaints_nothing_and_one_moved_flake_repaints_one_pixel() {
         let mut c = Canvas::new(8, 8);
         let mut d = Damage::default();
-        d.next(&c, 2, 16, 16, 0);
+        settle(&mut d, &c, 2, 16, 16);
         assert_eq!(d.next(&c, 2, 16, 16, 1), Redraw::Pixels(vec![]));
         c.set(3, 2, hex(0xffffff));
         assert_eq!(d.next(&c, 2, 16, 16, 1), Redraw::Pixels(vec![2 * 8 + 3]));
@@ -188,7 +241,7 @@ mod tests {
     fn an_older_buffer_also_gets_the_frames_it_missed() {
         let mut c = Canvas::new(8, 8);
         let mut d = Damage::default();
-        d.next(&c, 1, 8, 8, 0);
+        settle(&mut d, &c, 1, 8, 8);
         c.set(1, 0, hex(0xffffff));
         d.next(&c, 1, 8, 8, 1);
         c.set(5, 7, hex(0xffffff));
@@ -200,7 +253,7 @@ mod tests {
     fn resizing_or_a_new_scale_starts_over() {
         let c = Canvas::new(8, 8);
         let mut d = Damage::default();
-        d.next(&c, 2, 16, 16, 0);
+        settle(&mut d, &c, 2, 16, 16);
         assert_eq!(d.next(&c, 2, 15, 16, 1), Redraw::Full, "window resized");
         assert_eq!(d.next(&c, 3, 15, 16, 1), Redraw::Full, "scale changed");
         assert_eq!(d.next(&Canvas::new(9, 8), 3, 15, 16, 1), Redraw::Full, "canvas resized");
@@ -210,7 +263,7 @@ mod tests {
     fn a_mostly_changed_frame_is_cheaper_redrawn_whole() {
         let mut c = Canvas::new(8, 8);
         let mut d = Damage::default();
-        d.next(&c, 1, 8, 8, 0);
+        settle(&mut d, &c, 1, 8, 8);
         c.clear(hex(0x112233));
         assert_eq!(d.next(&c, 1, 8, 8, 1), Redraw::Full);
     }

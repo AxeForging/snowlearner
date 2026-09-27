@@ -29,6 +29,10 @@ impl Cpu {
         Ok(cpu)
     }
 
+    pub fn invalidate(&mut self) {
+        self.damage.invalidate();
+    }
+
     pub fn resize(&mut self, width: u32, height: u32) {
         let (w, h) = (width.max(1), height.max(1));
         if (w, h) == self.size {

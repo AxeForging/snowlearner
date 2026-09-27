@@ -1,4 +1,5 @@
 pub mod endpoint;
+pub mod highpass;
 pub mod matcher;
 pub mod resample;
 pub mod resident;

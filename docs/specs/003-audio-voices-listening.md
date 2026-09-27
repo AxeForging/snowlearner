@@ -11,6 +11,9 @@ Status: approved in chat (2026-09-27).
 ## Listening (endpointer v2)
 - **Echo guard**: ignore the first 250 ms after the mic opens (tail of the TTS voice).
 - **Thinking time** before you start: repeat 6 s, recall 10 s (countdown shown).
+- **DC removal** (2026-09-27): a 30 Hz high-pass runs on the mono mic signal before the
+  endpointer and whisper. A laptop mic measured +0.044 DC on one channel (room noise ~0.0013);
+  counted as noise, it raised the gate above a normal voice.
 - **Calibration** (revised 2026-09-27): the floor is the 20th percentile of the last 6 s
   (guard included) and is frozen once speech starts; onset = 3 loud frames within 5; a
   word-sized burst (≤ 1.5 s) already going when the mic opens counts once the quiet after it

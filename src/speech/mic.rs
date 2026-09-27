@@ -3,6 +3,7 @@
 
 use super::audio;
 use super::endpoint::{Endpointer, ListenPlan, Status};
+use super::highpass::HighPass;
 use super::resample::{WHISPER_RATE, resample, to_mono};
 use anyhow::{Context, Result, anyhow, bail};
 use cpal::traits::{DeviceTrait, StreamTrait};
@@ -67,6 +68,7 @@ pub fn record(
     stream.play().map_err(|e| anyhow!("starting microphone: {e}"))?;
 
     let mut endpoint = Endpointer::new(rate, plan);
+    let mut highpass = HighPass::new(rate);
     let mut mono = Vec::new();
     let deadline = Instant::now() + Duration::from_secs_f32(plan.max_total() + 1.0);
     let mut last_level = Instant::now();
@@ -81,7 +83,8 @@ pub fn record(
             Err(mpsc::RecvTimeoutError::Timeout) if Instant::now() < deadline => continue,
             Err(_) => break endpoint.started(),
         };
-        let m = to_mono(&chunk, channels);
+        let mut m = to_mono(&chunk, channels);
+        highpass.process(&mut m); // before measuring: some mics sit far from zero
         let status = endpoint.feed(&m);
         mono.extend(m);
         if last_level.elapsed() >= Duration::from_millis(66) {
