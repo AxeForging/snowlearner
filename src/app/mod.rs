@@ -12,7 +12,7 @@ use crate::control::hotkeys::Hotkeys;
 use crate::control::ipc::{self, Command};
 use crate::learn::deck::Deck;
 use crate::render::canvas::Canvas;
-use crate::render::gpu::Gpu;
+use crate::render::screen::Screen;
 use crate::scene::Scene;
 use crate::scene::hud::Cheats;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
@@ -192,10 +192,10 @@ fn build_event_loop(resolved: &Resolved) -> Result<EventLoop<UserEvent>> {
     builder.build().context("could not open a window (no display?)")
 }
 
-/// A window with its GPU surface and art canvas.
+/// A window with its screen (CPU or GPU presenter) and art canvas.
 struct Surface {
     window: Arc<Window>,
-    gpu: Gpu,
+    screen: Screen,
     canvas: Canvas,
     scale: u32,
 }
@@ -347,12 +347,12 @@ impl App {
             eprintln!("could not create the orb; use the panel hotkey instead");
             return;
         };
-        match Gpu::new(window.clone(), true) {
-            Ok(gpu) => {
-                self.orb = Some(Surface { window, gpu, canvas: Canvas::new(ORB_ART, ORB_ART), scale });
+        match Screen::new(window.clone(), true) {
+            Ok(screen) => {
+                self.orb = Some(Surface { window, screen, canvas: Canvas::new(ORB_ART, ORB_ART), scale });
                 self.sync_hole(pos.x, pos.y);
             }
-            Err(e) => eprintln!("orb GPU init failed: {e:#}"),
+            Err(e) => eprintln!("could not draw the orb: {e:#}"),
         }
     }
 
@@ -370,7 +370,7 @@ impl App {
             o.canvas.clear(crate::render::canvas::CLEAR);
             let c = ORB_ART as f32 / 2.0;
             crate::scene::vortex::draw_orb(&mut o.canvas, (c, c), 6.0, time, paused);
-            o.gpu.present(&o.canvas, o.scale);
+            o.screen.present(&o.canvas, o.scale);
         }
     }
 
@@ -600,12 +600,12 @@ impl App {
                 return;
             }
         };
-        match Gpu::new(window.clone(), false) {
-            Ok(gpu) => {
+        match Screen::new(window.clone(), false) {
+            Ok(screen) => {
                 self.menu_win =
-                    Some(Surface { window, gpu, canvas: Canvas::new(menu::WIDTH, menu::HEIGHT), scale: MENU_SCALE })
+                    Some(Surface { window, screen, canvas: Canvas::new(menu::WIDTH, menu::HEIGHT), scale: MENU_SCALE })
             }
-            Err(e) => eprintln!("panel GPU init failed: {e:#}"),
+            Err(e) => eprintln!("could not draw the panel: {e:#}"),
         }
     }
 
@@ -619,7 +619,7 @@ impl App {
         self.input(Input::Tick { dt, now: chrono::Local::now() });
         if let (Some(scene), Some(main)) = (&self.scene, &mut self.main) {
             scene.draw(&mut main.canvas);
-            main.gpu.present(&main.canvas, main.scale);
+            main.screen.present(&main.canvas, main.scale);
         }
     }
 
@@ -633,7 +633,7 @@ impl App {
         );
         if let Some(m) = &mut self.menu_win {
             self.menu.draw(&mut m.canvas, &self.settings, time);
-            m.gpu.present(&m.canvas, m.scale);
+            m.screen.present(&m.canvas, m.scale);
         }
     }
 
@@ -708,20 +708,20 @@ impl ApplicationHandler<UserEvent> for App {
         if self.resolved.overlay && window.set_cursor_hittest(false).is_err() {
             eprintln!("This desktop cannot make the overlay click-through.");
         }
-        let gpu = match Gpu::new(window.clone(), self.resolved.overlay) {
+        let screen = match Screen::new(window.clone(), self.resolved.overlay) {
             Ok(g) => g,
             Err(e) => {
-                eprintln!("GPU init failed: {e:#}");
+                eprintln!("could not draw the window: {e:#}");
                 el.exit();
                 return;
             }
         };
-        let transparent = gpu.transparent;
+        let transparent = screen.transparent();
         if self.resolved.overlay && !transparent {
             eprintln!("This compositor has no transparent windows; drawing the full winter scene instead.");
         }
         let size = window.inner_size();
-        self.main = Some(Surface { window, gpu, canvas: Canvas::new(1, 1), scale: 1 });
+        self.main = Some(Surface { window, screen, canvas: Canvas::new(1, 1), scale: 1 });
         self.fit(size.width, size.height);
         let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(1);
         let (w, h) = self.main.as_ref().map(|m| (m.canvas.w, m.canvas.h)).unwrap_or((320, 180));
@@ -816,7 +816,7 @@ impl ApplicationHandler<UserEvent> for App {
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::Resized(size) => {
                 if let Some(main) = &mut self.main {
-                    main.gpu.resize(size.width, size.height);
+                    main.screen.resize(size.width, size.height);
                 }
                 self.fit(size.width, size.height);
             }

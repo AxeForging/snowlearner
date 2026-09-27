@@ -7,16 +7,19 @@ description = "A pixel-art frost mage that freezes your screen until you practic
 license = "MIT"
 
 [features]
-default = ["stt"]
+default = ["stt", "gpu"]
 # Audio devices: microphone capture, speaker playback (HTTP/command voices).
 audio = ["dep:cpal", "dep:hound"]
 # Local speech recognition (whisper.cpp). Without it the app still runs;
 # phrases are confirmed with the hotkey instead of the mic.
 stt = ["audio", "dep:whisper-rs"]
+# GPU presentation (wgpu), used only for see-through windows the CPU path can't
+# show (native Wayland/macOS/Windows). Without it everything draws on the CPU.
+gpu = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
 
 [dependencies]
 anyhow = "1"
-bytemuck = { version = "1", features = ["derive"] }
+bytemuck = { version = "1", features = ["derive"], optional = true }
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 cpal = { version = "0.18", optional = true }
@@ -24,7 +27,7 @@ hound = { version = "3", optional = true }
 directories = "6"
 global-hotkey = "0.8"
 png = "0.18"
-pollster = "1"
+pollster = { version = "1", optional = true }
 rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -32,9 +35,10 @@ strsim = "0.11"
 toml = "1"
 unicode-normalization = "0.1"
 ureq = "3"
-wgpu = "30"
+wgpu = { version = "30", optional = true }
 whisper-rs = { version = "0.16", optional = true }
 winit = "0.30"
+softbuffer = "0.4"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 x11-dl = "2"

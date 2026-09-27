@@ -30,7 +30,9 @@ The only way to fight back: **speak the language you're learning.**
 | ![fight](docs/img/fight.webp) | ![black hole](docs/img/blackhole.webp) |
 
 No cloud, no LLM required: recognition is whisper.cpp running offline.
-About 4% of one CPU core and ~140 MB RAM while running (release build, +~150 MB once you speak).
+**No GPU needed**: everything is drawn on the CPU and blitted to the window, redrawing only
+what changed. About 2–3% of one CPU core and ~30 MB RAM while running (release build; the
+speech model adds ~150 MB during a lesson and is freed 2 minutes after).
 
 ## Install
 
@@ -46,7 +48,8 @@ Build dependencies: Rust ≥ 1.85, CMake and a C/C++ compiler (for whisper.cpp).
 Linux also needs ALSA and libclang headers (`dnf install alsa-lib-devel clang-devel` /
 `apt install libasound2-dev libclang-dev`) and, at runtime, `speech-dispatcher` or `espeak-ng`.
 Feature flags: `stt` (default: mic + recognition), `audio` (devices + playback only),
-none (hotkey confirms your answer).
+`gpu` (default: only used for see-through windows on native Wayland/macOS/Windows),
+none (hotkey confirms your answer, CPU-only drawing). `SNOWLEARNER_RENDERER=cpu|gpu` forces one.
 
 ## Use
 

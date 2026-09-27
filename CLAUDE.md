@@ -14,7 +14,9 @@ src/
   scene/             pure seeded simulation; one file per actor/element
                      (mage, pyro = fire mage, warrior, mobs, friends, fire, ice, snow, frost,
                      vortex = black hole + orb, hand = magic hand, backdrop, hud, rng)
-  render/            canvas.rs (CPU pixels), font.rs (bitmap font), gpu.rs (wgpu present), png_out.rs
+  render/            canvas.rs (CPU pixels), font.rs (bitmap font), screen.rs (picks the presenter),
+                     cpu.rs (softbuffer present, default), damage.rs (redraw only what changed),
+                     gpu.rs (wgpu present, `gpu` feature, see-through fallback), png_out.rs
   speech/            voices.rs (SpeechEngine trait + system/http/command engines), tts.rs (OS
                      voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs,
                      resident.rs (loads the whisper model on demand, frees it when idle);
@@ -40,6 +42,7 @@ New actors go in `scene/<actor>.rs`; new platform integrations in the matching d
   windows, audio devices and wall-clock reads — that's what makes them testable.
 - Art is 1-bit alpha only (fully opaque or clear); fake transparency with `canvas::bayer` dithering.
 - All user-facing text in the app is pt-BR; check new text with `font::supports`.
+- No GPU required: windows present through `render/screen.rs`; the GPU is only a fallback.
 - Never pass user text through a shell (see `speech/tts.rs` tests).
 - Balance: one correct answer melts only `Pace::melt_fraction`; nothing melts snow for free.
 - New lessons must be real situations (topic + pt-BR situation + meaning), never drills.
