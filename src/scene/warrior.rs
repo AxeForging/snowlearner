@@ -84,11 +84,13 @@ pub enum Event {
     },
 }
 
+#[derive(Clone)]
 pub struct Bubble {
     pub text: String,
     pub left: f32,
 }
 
+#[derive(Clone)]
 pub struct Warrior {
     pub x: f32,
     pub dir: f32,
@@ -132,6 +134,16 @@ impl Warrior {
     pub fn say(&mut self, text: impl Into<String>, seconds: f32) {
         if self.act != Act::Frozen {
             self.bubble = Some(Bubble { text: text.into(), left: seconds });
+        }
+    }
+
+    /// Only ages the speech bubble (while held by the magic hand).
+    pub fn tick_bubble(&mut self, dt: f32) {
+        if let Some(b) = &mut self.bubble {
+            b.left -= dt;
+            if b.left <= 0.0 {
+                self.bubble = None;
+            }
         }
     }
 
@@ -222,6 +234,13 @@ impl Warrior {
             }
             _ => None,
         }
+    }
+
+    /// Draws as if standing at `x` (dangling from the magic hand).
+    pub fn draw_at(&self, c: &mut Canvas, x: f32, feet_y: f32, time: f32) {
+        let mut shown = self.clone();
+        shown.x = x;
+        shown.draw(c, feet_y, time);
     }
 
     pub fn draw(&self, c: &mut Canvas, feet_y: f32, time: f32) {

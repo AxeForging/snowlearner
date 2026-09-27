@@ -1,6 +1,6 @@
 //! Subcommand implementations.
 
-use super::{Cli, Cmd, ConfigAction, ModelAction, RunArgs, ShortcutAction};
+use super::{AudioAction, Cli, Cmd, ConfigAction, ModelAction, RunArgs, ShortcutAction, VoicesAction};
 use crate::app::platform::{self, Session};
 use crate::config::paths::Paths;
 use crate::config::settings::{MODELS, Settings};
@@ -10,7 +10,6 @@ use crate::learn::deck::Deck;
 use crate::render::{canvas::Canvas, png_out};
 use crate::scene::Scene;
 use crate::scene::hud::{Caption, Status};
-use crate::speech::tts::Tts;
 use crate::store::history::History;
 use anyhow::{Context, Result, bail};
 use chrono::{Local, NaiveDate};
@@ -27,6 +26,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Cmd::Menu => remote(&settings, Command::Menu),
         Cmd::Shortcuts { action } => shortcuts(&settings, action),
         Cmd::Pause => remote(&settings, Command::Pause),
+        Cmd::Grab => remote(&settings, Command::Grab),
         Cmd::Report { date, speak } => report(&settings, &paths, date.as_deref(), speak),
         Cmd::Decks => decks(&settings, &paths),
         Cmd::Config { action: ConfigAction::Init { force } } => {
@@ -51,8 +51,11 @@ pub fn dispatch(cli: Cli) -> Result<()> {
             Ok(())
         }
         Cmd::Doctor => doctor(&settings, &paths),
-        Cmd::Snapshot { out, seconds, width, height, scale, overlay, caption, seed } => {
-            snapshot(&settings, &paths, &out, seconds, width, height, scale, overlay, caption, seed, cli.run.level)
+        Cmd::Audio { action } => audio(&settings, &paths, action),
+        Cmd::Voices { action } => voices(&settings, action),
+        Cmd::Snapshot { out, seconds, width, height, scale, overlay, caption, seed, scenario, frames, fps } => {
+            let shot = Shot { seconds, width, height, scale, overlay, caption, seed, scenario, frames, fps };
+            snapshot(&settings, &paths, &out, shot, cli.run.level)
         }
     }
 }
@@ -90,6 +93,7 @@ fn shortcuts(settings: &Settings, action: ShortcutAction) -> Result<()> {
                 gnome::Shortcut { id: "say", name: "Snowlearner: praticar", keys: settings.hotkey_challenge.clone() },
                 gnome::Shortcut { id: "summary", name: "Snowlearner: resumo", keys: settings.hotkey_summary.clone() },
                 gnome::Shortcut { id: "menu", name: "Snowlearner: painel", keys: settings.hotkey_menu.clone() },
+                gnome::Shortcut { id: "grab", name: "Snowlearner: mão mágica", keys: settings.hotkey_grab.clone() },
             ];
             gnome::install(&exe, &list)?;
             for s in &list {
@@ -100,6 +104,93 @@ fn shortcuts(settings: &Settings, action: ShortcutAction) -> Result<()> {
         ShortcutAction::Remove => println!("removed {} snowlearner shortcut(s)", gnome::remove()?),
     }
     Ok(())
+}
+
+fn sample_text(lang: &str) -> &'static str {
+    match lang.split('-').next().unwrap_or(lang) {
+        "pt" => "Olá! Esta é a voz em português.",
+        "es" => "¡Hola! Esta es la voz en español.",
+        _ => "Hello! This is the English voice.",
+    }
+}
+
+fn voices(settings: &Settings, action: VoicesAction) -> Result<()> {
+    let voice = settings.voice();
+    match action {
+        VoicesAction::List { lang } => {
+            let lang = lang.unwrap_or_else(|| settings.learning.clone());
+            let list = voice.voices(&lang)?;
+            println!("{} · {lang}: {} voice(s)", voice.describe(), list.len());
+            for v in list {
+                println!("  {v}");
+            }
+        }
+        VoicesAction::Test { lang, voice: name, text } => {
+            let lang = lang.unwrap_or_else(|| settings.learning.clone());
+            let configured = if lang == settings.native { &settings.voice_native } else { &settings.voice_learning };
+            let name = name.unwrap_or_else(|| configured.clone());
+            let text = text.unwrap_or_else(|| sample_text(&lang).to_string());
+            println!("{} · {lang} · {}", voice.describe(), if name.is_empty() { "automatic voice" } else { &name });
+            voice.speak(&text, &lang, &name, false)?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(feature = "audio")]
+fn audio(settings: &Settings, paths: &Paths, action: AudioAction) -> Result<()> {
+    use crate::speech::audio;
+    let mark = |name: &str, chosen: &str| if name == chosen { "*" } else { " " };
+    match action {
+        AudioAction::Mics => {
+            println!("microphones (* = configured; empty config = system default):");
+            for m in audio::input_names() {
+                println!(" {} {m}", mark(&m, &settings.mic));
+            }
+        }
+        AudioAction::Speakers => {
+            println!("speakers (* = configured; empty config = system default):");
+            for m in audio::output_names() {
+                println!(" {} {m}", mark(&m, &settings.speaker));
+            }
+        }
+        AudioAction::TestMic => test_mic(settings, paths)?,
+    }
+    Ok(())
+}
+
+#[cfg(not(feature = "audio"))]
+fn audio(_: &Settings, _: &Paths, _: AudioAction) -> Result<()> {
+    bail!("this build has no audio support (build with the default features)")
+}
+
+#[cfg(feature = "stt")]
+fn test_mic(settings: &Settings, paths: &Paths) -> Result<()> {
+    use crate::speech::endpoint::ListenPlan;
+    use std::sync::atomic::AtomicBool;
+    let mic = if settings.mic.is_empty() { "system default".to_string() } else { settings.mic.clone() };
+    println!("Mic: {mic}. Say something in {} (you have ~6 s to start)...", settings.learning);
+    let stop = AtomicBool::new(false);
+    let plan = ListenPlan { think: 6.0, expected: 3.0 };
+    let rec = crate::speech::mic::record(plan, &settings.mic, &stop, |level, speaking| {
+        let bars = ((level.sqrt() * 2.2).clamp(0.0, 1.0) * 30.0) as usize;
+        print!("\r  [{:<30}] {}", "#".repeat(bars), if speaking { "speaking " } else { "listening" });
+        std::io::stdout().flush().ok();
+    })?;
+    println!();
+    if !rec.heard_speech {
+        println!("No speech detected. Check the mic and its volume, or pick another: `snowlearner audio mics`.");
+        return Ok(());
+    }
+    let recognizer = crate::speech::stt::Recognizer::load(&paths.model_file(&settings.model))?;
+    let text = recognizer.transcribe(&rec.samples, &settings.learning)?;
+    println!("Heard: \"{text}\"");
+    Ok(())
+}
+
+#[cfg(all(feature = "audio", not(feature = "stt")))]
+fn test_mic(_: &Settings, _: &Paths) -> Result<()> {
+    bail!("this build has no speech recognition")
 }
 
 fn parse_day(date: Option<&str>) -> Result<NaiveDate> {
@@ -127,7 +218,7 @@ fn report(settings: &Settings, paths: &Paths, date: Option<&str>, speak: bool) -
     let learned = rows.iter().filter(|r| r.successes > 0).count();
     println!("  {learned} de {} frases acertadas", rows.len());
     if speak {
-        let tts = Tts::detect();
+        let tts = settings.voice();
         tts.speak(&format!("Hoje você praticou {learned} frases."), &settings.native, &settings.voice_native, false)?;
         for r in rows.iter().filter(|r| r.successes > 0) {
             tts.speak(&r.say, &settings.learning, &settings.voice_learning, true)?;
@@ -218,13 +309,12 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
             "not available here — see below".into()
         }
     );
-    let tts = Tts::detect();
+    let voice = settings.voice();
     println!(
-        "{}voice (TTS)   {}",
-        ok(tts.engine().is_some()),
-        tts.engine()
-            .map(|e| e.name().to_string())
-            .unwrap_or_else(|| "none — install speech-dispatcher or espeak-ng".into())
+        "{}voice (TTS)   {}{}",
+        ok(voice.available()),
+        voice.describe(),
+        if voice.available() { "" } else { " — install speech-dispatcher/espeak-ng or set tts_engine" }
     );
     let stt_built = cfg!(feature = "stt");
     let model = paths.model_file(&settings.model);
@@ -239,7 +329,8 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
     );
     #[cfg(feature = "stt")]
     {
-        let mic = crate::speech::mic::default_input_name();
+        let mic =
+            if settings.mic.is_empty() { crate::speech::mic::default_input_name() } else { Some(settings.mic.clone()) };
         println!("{}microphone    {}", ok(mic.is_some()), mic.unwrap_or_else(|| "none found".into()));
     }
     match Deck::load(&settings.learning, &paths.decks_dir()) {
@@ -267,6 +358,7 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
             (settings.hotkey_challenge.as_str(), Command::Challenge),
             (settings.hotkey_summary.as_str(), Command::Summary),
             (settings.hotkey_menu.as_str(), Command::Menu),
+            (settings.hotkey_grab.as_str(), Command::Grab),
             ("(any key)", Command::Pause),
         ];
         println!("\n{}", platform::shortcut_help(&exe, &bindings));
@@ -274,49 +366,165 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+/// A scripted event in a snapshot clip: (seconds into the clip, action).
+type Cue = (f32, Box<dyn Fn(&mut Scene)>);
+
+pub struct Shot {
+    pub seconds: f32,
+    pub width: i32,
+    pub height: i32,
+    pub scale: u32,
+    pub overlay: bool,
+    pub caption: bool,
+    pub seed: u64,
+    pub scenario: super::Scenario,
+    pub frames: u32,
+    pub fps: u32,
+}
+
+fn lesson_caption(p: &crate::learn::deck::Phrase, status: Status) -> Caption {
+    Caption {
+        segments: p.cue.clone(),
+        say: p.say.clone(),
+        active: p.cue.iter().position(|s| s.is_target()),
+        meaning: p.meaning.clone(),
+        status,
+        feedback: None,
+        heard: None,
+        footer: String::new(),
+        tag: match &p.level {
+            Some(l) => format!("{} · {l} · repita", p.topic),
+            None => format!("{} · repita", p.topic),
+        },
+        listen: None,
+    }
+}
+
 fn snapshot(
     settings: &Settings,
     paths: &Paths,
     out: &std::path::Path,
-    seconds: f32,
-    width: i32,
-    height: i32,
-    scale: u32,
-    overlay: bool,
-    caption: bool,
-    seed: u64,
+    shot: Shot,
     level: Option<crate::config::level::Commitment>,
 ) -> Result<()> {
+    use super::Scenario;
+    use crate::scene::hud::{Meter, Stats};
+    let Shot { seconds, width, height, scale, overlay, caption, seed, scenario, frames, fps } = shot;
     if !(80..=4000).contains(&width) || !(60..=4000).contains(&height) {
         bail!("--width must be 80..=4000 and --height 60..=4000");
+    }
+    if !(1..=600).contains(&frames) || !(1..=60).contains(&fps) {
+        bail!("--frames must be 1..=600 and --fps 1..=60");
     }
     let pace = level.unwrap_or(settings.commitment).pace();
     let mut scene = Scene::new(width, height, seed, pace, overlay);
     let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
     scene.tips = vec![format!("Aperte {} e fale comigo!", settings.hotkey_challenge)];
-    let dt = 1.0 / 30.0;
-    for _ in 0..(seconds.max(0.0) / dt) as i32 {
-        scene.step(dt);
-    }
-    if caption {
-        let p = &deck.phrases[0];
-        let target = p.cue.iter().position(|s| s.is_target());
-        scene.hud.caption = Some(Caption {
-            segments: p.cue.clone(),
-            say: p.say.clone(),
-            active: target,
-            meaning: p.meaning.clone(),
-            status: Status::Speaking,
-            feedback: None,
-            heard: None,
-            footer: String::new(),
-            tag: format!("{} · repita", p.topic),
-        });
+    scene.show_orb = !overlay;
+    scene.hole = (10.0, 10.0);
+    let step = |scene: &mut Scene, secs: f32| {
+        for _ in 0..(secs.max(0.0) * 30.0) as i32 {
+            scene.step(1.0 / 30.0);
+        }
+    };
+    step(&mut scene, seconds);
+    let phrase = deck.phrases.iter().find(|p| p.situation.is_some()).unwrap_or(&deck.phrases[0]).clone();
+    // Scripted events at a given frame time (seconds into the clip).
+    let mut script: Vec<Cue> = Vec::new();
+    match scenario {
+        Scenario::Idle => {
+            if caption {
+                scene.hud.caption = Some(lesson_caption(&phrase, Status::Speaking));
+            }
+        }
+        Scenario::Lesson => {
+            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label: "EN · trabalho".into() });
+            scene.set_practicing(true);
+            scene.mage_say("Repita, se for capaz!", 3.0);
+            step(&mut scene, 1.0);
+            scene.set_listening(true);
+            let mut cap = lesson_caption(&phrase, Status::Listening);
+            cap.active = None;
+            cap.footer = format!("Terminou? {} · Esc: cancelar", settings.hotkey_challenge);
+            cap.listen = Some(Meter { level: 0.0, speaking: false, think_left: 6.0, think_total: 6.0 });
+            scene.hud.caption = Some(cap);
+            let say = phrase.say.clone();
+            script.push((0.0, Box::new(|s: &mut Scene| s.set_listening(true))));
+            for i in 0..24 {
+                let t = 0.4 + i as f32 * 0.08;
+                script.push((
+                    t,
+                    Box::new(move |s: &mut Scene| {
+                        if let Some(m) = s.hud.caption.as_mut().and_then(|c| c.listen.as_mut()) {
+                            m.speaking = true;
+                            m.level = 0.03 + 0.12 * ((i as f32 * 1.7).sin().abs());
+                        }
+                    }),
+                ));
+            }
+            script.push((
+                2.4,
+                Box::new(move |s: &mut Scene| {
+                    if let Some(c) = s.hud.caption.as_mut() {
+                        c.listen = None;
+                        c.status = Status::Passed;
+                        c.footer = "Ctrl+Alt+M: próxima frase".into();
+                        c.heard = Some(say.to_lowercase());
+                        c.feedback = Some(
+                            c.say
+                                .split_whitespace()
+                                .map(|w| crate::speech::matcher::WordHit { word: w.into(), hit: true })
+                                .collect(),
+                        );
+                    }
+                    s.celebrate(1.0);
+                    s.mage_say("Argh! Não!", 3.0);
+                }),
+            ));
+        }
+        Scenario::Fight => {
+            scene.spawn_mobs();
+            step(&mut scene, 4.0);
+            script.push((0.2, Box::new(|s: &mut Scene| s.cast_skill(crate::scene::Skill::IcicleRain))));
+            script.push((2.4, Box::new(|s: &mut Scene| s.cast_skill(crate::scene::Skill::Friend))));
+        }
+        Scenario::Blackhole => {
+            script.push((0.6, Box::new(|s: &mut Scene| s.set_paused(true))));
+            script.push((3.6, Box::new(|s: &mut Scene| s.set_paused(false))));
+        }
     }
     let mut canvas = Canvas::new(width, height);
-    scene.draw(&mut canvas);
-    png_out::write(&canvas, scale, out)?;
-    println!("wrote {} ({}x{})", out.display(), width as u32 * scale, height as u32 * scale);
+    let frame_dt = 1.0 / fps as f32;
+    let mut t = 0.0f32;
+    let stem = out.with_extension("");
+    for f in 0..frames {
+        for (at, action) in &script {
+            if *at >= t && *at < t + frame_dt {
+                action(&mut scene);
+            }
+        }
+        scene.draw(&mut canvas);
+        let path = if frames == 1 {
+            out.to_path_buf()
+        } else {
+            std::path::PathBuf::from(format!("{}-{f:03}.png", stem.display()))
+        };
+        png_out::write(&canvas, scale, &path)?;
+        let sub = (frame_dt * 30.0).round().max(1.0) as i32;
+        for _ in 0..sub {
+            scene.step(frame_dt / sub as f32);
+        }
+        t += frame_dt;
+    }
+    if frames == 1 {
+        println!("wrote {} ({}x{})", out.display(), width as u32 * scale, height as u32 * scale);
+    } else {
+        println!(
+            "wrote {frames} frames {}-000.png … ({}x{})",
+            stem.display(),
+            width as u32 * scale,
+            height as u32 * scale
+        );
+    }
     Ok(())
 }

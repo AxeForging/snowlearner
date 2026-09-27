@@ -65,6 +65,7 @@ pub enum Event {
     Summoned,
 }
 
+#[derive(Clone)]
 pub struct Mage {
     pub x: f32,
     pub dir: f32,
@@ -144,6 +145,16 @@ impl Mage {
 
     pub fn say(&mut self, text: impl Into<String>, seconds: f32) {
         self.bubble = Some(super::warrior::Bubble { text: text.into(), left: seconds });
+    }
+
+    /// Only ages the speech bubble (while held by the magic hand).
+    pub fn tick_bubble(&mut self, dt: f32) {
+        if let Some(b) = &mut self.bubble {
+            b.left -= dt;
+            if b.left <= 0.0 {
+                self.bubble = None;
+            }
+        }
     }
 
     pub fn stagger(&mut self) {
@@ -246,6 +257,13 @@ impl Mage {
         let (ox, oy) = self.origin(feet_y);
         let (lx, ly) = self.hand_local();
         (self.world(ox, lx), oy + ly)
+    }
+
+    /// Draws as if standing at `x` (dangling from the magic hand).
+    pub fn draw_at(&self, c: &mut Canvas, x: f32, feet_y: f32, time: f32) {
+        let mut shown = self.clone();
+        shown.x = x;
+        shown.draw(c, feet_y, time);
     }
 
     pub fn draw(&self, c: &mut Canvas, feet_y: f32, time: f32) {

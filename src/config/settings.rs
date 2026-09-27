@@ -4,6 +4,7 @@
 use super::level::Commitment;
 use crate::learn::deck::LEVELS;
 use crate::learn::picker::Practice;
+use crate::speech::voices::TtsEngine;
 use anyhow::{Context, Result, bail};
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
@@ -36,6 +37,8 @@ pub struct Settings {
     pub hotkey_summary: String,
     /// Opens the control panel (settings, pause, practice now).
     pub hotkey_menu: String,
+    /// Magic hand for 15 s (holding Ctrl+Alt does it too where the OS allows).
+    pub hotkey_grab: String,
     /// Where the magic orb sits on screen (overlay mode); negative = top-right corner.
     pub orb_x: i32,
     pub orb_y: i32,
@@ -46,10 +49,22 @@ pub struct Settings {
     pub ipc_port: u16,
     /// Whisper model size: tiny | base | small.
     pub model: String,
+    /// Seconds you get to start answering (recall mode gets +4).
     pub listen_seconds: f32,
     /// Optional TTS voice names; empty = pick by language.
     pub voice_native: String,
     pub voice_learning: String,
+    /// system (OS voices) | http (OpenAI-compatible server, e.g. Kokoro) | command.
+    pub tts_engine: TtsEngine,
+    /// Base URL of the HTTP speech server (Kokoro-FastAPI default shown).
+    pub tts_url: String,
+    pub tts_model: String,
+    /// Command template for `command`: {text} {lang} {voice} {out}.
+    pub tts_command: String,
+    /// Microphone name ("" = system default). `snowlearner audio mics` lists them.
+    pub mic: String,
+    /// Speaker for audio the app plays itself ("" = default).
+    pub speaker: String,
     /// auto (repeat new phrases, recall known ones) | repeat | recall.
     pub practice: Practice,
     /// Only practice this topic; empty = all topics.
@@ -71,15 +86,22 @@ impl Default for Settings {
             hotkey_challenge: "Ctrl+Alt+M".into(),
             hotkey_summary: "Ctrl+Alt+J".into(),
             hotkey_menu: "Ctrl+Alt+K".into(),
+            hotkey_grab: "Ctrl+Alt+G".into(),
             orb_x: -1,
             orb_y: -1,
             summary_time: "21:00".into(),
             match_threshold: 0.72,
             ipc_port: 47821,
             model: "base".into(),
-            listen_seconds: 7.0,
+            listen_seconds: 6.0,
             voice_native: String::new(),
             voice_learning: String::new(),
+            tts_engine: TtsEngine::System,
+            tts_url: "http://localhost:8880/v1".into(),
+            tts_model: "kokoro".into(),
+            tts_command: String::new(),
+            mic: String::new(),
+            speaker: String::new(),
             practice: Practice::Auto,
             topic: String::new(),
             max_level: "B2".into(),
@@ -127,6 +149,12 @@ impl Settings {
         if !LEVELS.contains(&self.max_level.as_str()) {
             bail!("`max_level` must be one of {LEVELS:?}, got {:?}", self.max_level);
         }
+        if self.tts_engine == TtsEngine::Http && !self.tts_url.starts_with("http") {
+            bail!("`tts_url` must be an http(s) URL, got {:?}", self.tts_url);
+        }
+        if self.tts_engine == TtsEngine::Command && self.tts_command.trim().is_empty() {
+            bail!("`tts_command` is required when `tts_engine = \"command\"`");
+        }
         if !(1..=200).contains(&self.daily_goal) {
             bail!("`daily_goal` must be 1..=200, got {}", self.daily_goal);
         }
@@ -138,6 +166,17 @@ impl Settings {
     pub fn topic_filter(&self) -> Option<String> {
         let t = self.topic.trim().to_lowercase();
         (!t.is_empty()).then_some(t)
+    }
+
+    /// The voice engine these settings describe.
+    pub fn voice(&self) -> crate::speech::voices::Voice {
+        crate::speech::voices::Voice::new(
+            self.tts_engine,
+            &self.tts_url,
+            &self.tts_model,
+            &self.tts_command,
+            &self.speaker,
+        )
     }
 
     /// Persists the current settings (used by the in-app menu).
@@ -205,6 +244,8 @@ mod tests {
             ("learning = ''", "learning"),
             ("max_level = 'Z1'", "max_level"),
             ("daily_goal = 0", "daily_goal"),
+            ("tts_engine = 'http'\ntts_url = 'localhost'", "tts_url"),
+            ("tts_engine = 'command'", "tts_command"),
         ] {
             std::fs::write(&p, src).unwrap();
             let err = format!("{:#}", Settings::load(&p).unwrap_err());

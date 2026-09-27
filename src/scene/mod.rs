@@ -6,6 +6,7 @@ pub mod backdrop;
 pub mod fire;
 pub mod friends;
 pub mod frost;
+pub mod hand;
 pub mod hud;
 pub mod ice;
 pub mod mage;
@@ -115,6 +116,11 @@ pub struct Scene {
     /// The frost mage can't throw while stunned (after the sun).
     stun_t: f32,
     pokes: u32,
+    /// Magic hand position while hand mode is on (Ctrl+Alt / `snowlearner grab`).
+    pub hand: Option<(f32, f32)>,
+    grabbed: Option<(hand::Who, f32, f32)>,
+    lift_mage: Option<hand::Lift>,
+    lift_warrior: Option<hand::Lift>,
     paused: bool,
     /// Pause black-hole animation state.
     vortex: vortex::Phase,
@@ -170,6 +176,10 @@ impl Scene {
             sun_t: 0.0,
             stun_t: 0.0,
             pokes: 0,
+            hand: None,
+            grabbed: None,
+            lift_mage: None,
+            lift_warrior: None,
             paused: false,
             vortex: vortex::Phase::Open,
             hole: (w as f32 - 14.0, 14.0),
@@ -257,6 +267,116 @@ impl Scene {
         self.vortex = if on { vortex::Phase::Closing(0.0) } else { vortex::Phase::Opening(0.0) };
         if on {
             self.mage.say("Nããão! O buraco negro!", 1.5);
+        }
+    }
+
+    /// Hand mode on/off (showing the magic hand). Turning it off drops whoever is held.
+    pub fn set_hand(&mut self, on: bool) {
+        if !on {
+            self.release();
+            self.hand = None;
+        }
+    }
+
+    /// Moves the hand; a held character follows it.
+    pub fn hand_move(&mut self, x: f32, y: f32) {
+        self.hand = Some((x, y));
+        let Some((who, ox, oy)) = self.grabbed else { return };
+        let (w, ground) = (self.w as f32, self.ground_y());
+        match who {
+            hand::Who::Mage => {
+                self.mage.x = (x - ox).clamp(0.0, w - mage::WIDTH as f32);
+                if let Some(l) = &mut self.lift_mage {
+                    l.y = (y + oy).min(ground);
+                }
+            }
+            hand::Who::Warrior => {
+                self.warrior.x = (x - ox).clamp(0.0, w - warrior::WIDTH as f32);
+                if let Some(l) = &mut self.lift_warrior {
+                    l.y = (y + oy).min(ground);
+                }
+            }
+        }
+    }
+
+    /// Tries to pick someone up at (x, y). Frozen warriors are too heavy.
+    pub fn grab_at(&mut self, x: f32, y: f32) -> Option<hand::Who> {
+        self.hand = Some((x, y));
+        let inside = |ox: f32, feet: f32, w: i32, h: i32| {
+            x >= ox - 2.0 && x <= ox + w as f32 + 2.0 && y >= feet - h as f32 - 3.0 && y <= feet + 2.0
+        };
+        let mfeet = self.lift_mage.map(|l| l.y).unwrap_or_else(|| self.feet_y(self.mage.x + 8.0));
+        let wfeet = self.lift_warrior.map(|l| l.y).unwrap_or_else(|| self.feet_y(self.warrior.x + 6.0));
+        if inside(self.mage.x, mfeet, mage::WIDTH, mage::HEIGHT) {
+            self.grabbed = Some((hand::Who::Mage, x - self.mage.x, mfeet - y));
+            self.lift_mage = Some(hand::Lift::new(mfeet));
+            let line = *self.rng.pick(hand::MAGE_HELD);
+            self.mage.say(line, 2.2);
+            return Some(hand::Who::Mage);
+        }
+        if inside(self.warrior.x, wfeet, warrior::WIDTH, warrior::HEIGHT) && self.warrior.act != warrior::Act::Frozen {
+            self.grabbed = Some((hand::Who::Warrior, x - self.warrior.x, wfeet - y));
+            self.lift_warrior = Some(hand::Lift::new(wfeet));
+            let line = *self.rng.pick(hand::WARRIOR_HELD);
+            self.warrior.say(line, 2.2);
+            return Some(hand::Who::Warrior);
+        }
+        None
+    }
+
+    /// Lets go: whoever was held falls into the snow.
+    pub fn release(&mut self) {
+        if let Some((who, _, _)) = self.grabbed.take() {
+            let lift = match who {
+                hand::Who::Mage => &mut self.lift_mage,
+                hand::Who::Warrior => &mut self.lift_warrior,
+            };
+            if let Some(l) = lift {
+                l.held = false;
+            }
+        }
+    }
+
+    pub fn holding(&self) -> Option<hand::Who> {
+        self.grabbed.map(|(w, _, _)| w)
+    }
+
+    /// Held characters complain now and then; released ones fall and land with a puff.
+    fn step_lifts(&mut self, dt: f32) {
+        let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
+        let wx = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let (mground, wground) = (self.feet_y(mx), self.feet_y(wx));
+        let mut says = Vec::new();
+        for (who, lift, ground, x) in [
+            (hand::Who::Mage, &mut self.lift_mage, mground, mx),
+            (hand::Who::Warrior, &mut self.lift_warrior, wground, wx),
+        ] {
+            let Some(l) = lift else { continue };
+            if l.held {
+                l.talk_in -= dt;
+                if l.talk_in <= 0.0 {
+                    l.talk_in = 3.0;
+                    says.push((who, true, x));
+                }
+            } else if l.fall(dt, ground) {
+                *lift = None;
+                says.push((who, false, x));
+            }
+        }
+        for (who, held, x) in says {
+            let line = match (who, held) {
+                (hand::Who::Mage, true) => *self.rng.pick(hand::MAGE_HELD),
+                (hand::Who::Mage, false) => *self.rng.pick(hand::MAGE_LANDED),
+                (hand::Who::Warrior, true) => *self.rng.pick(hand::WARRIOR_HELD),
+                (hand::Who::Warrior, false) => *self.rng.pick(hand::WARRIOR_LANDED),
+            };
+            match who {
+                hand::Who::Mage => self.mage.say(line, 2.2),
+                hand::Who::Warrior => self.warrior.say(line, 2.2),
+            }
+            if !held {
+                self.burst_snow(x, 12);
+            }
         }
     }
 
@@ -445,9 +565,17 @@ impl Scene {
             }
         }
 
+        self.step_lifts(dt);
+
         // Mage.
         let roll = self.rng.f32();
-        match self.mage.step(dt, self.pace.walk_speed, 2.0, w - mage::WIDTH as f32 - 2.0, roll) {
+        let mage_event = if self.lift_mage.is_some() {
+            self.mage.tick_bubble(dt);
+            None
+        } else {
+            self.mage.step(dt, self.pace.walk_speed, 2.0, w - mage::WIDTH as f32 - 2.0, roll)
+        };
+        match mage_event {
             Some(mage::Event::Release { x, y }) => {
                 let feet = self.feet_y(self.mage.x + mage::WIDTH as f32 / 2.0);
                 let (hx, hy) = (x, feet + y);
@@ -620,7 +748,13 @@ impl Scene {
                 .min_by(|a, b| (a.center() - wc).abs().total_cmp(&(b.center() - wc).abs()))
                 .map(Mob::center)
         };
-        match self.warrior.step(dt, freeze, near_fire, 4.0, w - warrior::WIDTH as f32 - 4.0, roll) {
+        let warrior_event = if self.lift_warrior.is_some() {
+            self.warrior.tick_bubble(dt);
+            None
+        } else {
+            self.warrior.step(dt, freeze, near_fire, 4.0, w - warrior::WIDTH as f32 - 4.0, roll)
+        };
+        match warrior_event {
             Some(warrior::Event::FireLit { x }) => self.fires.push(Fire::new(x.clamp(6.0, w - 6.0))),
             Some(warrior::Event::Strike { x }) => self.strike(x),
             None => {}
@@ -870,6 +1004,9 @@ impl Scene {
             vortex::draw_orb(c, self.hole, ORB_R, self.time, true);
         }
         self.hud.draw(c, gy as i32, self.time);
+        if let Some((hx, hy)) = self.hand {
+            hand::draw_hand(c, hx, hy, self.grabbed.is_some(), self.time);
+        }
     }
 
     /// Everything that lives in the world (not the landscape, not the HUD).
@@ -883,12 +1020,20 @@ impl Scene {
             f.draw(c, self.feet_y(f.x + f.kind.width() as f32 / 2.0), self.time);
         }
         let wx = self.warrior.x + warrior::WIDTH as f32 / 2.0;
-        self.warrior.draw(c, self.feet_y(wx), self.time);
+        let dangle = |lift: &Option<hand::Lift>, t: f32| match lift {
+            Some(l) if l.held => (t * 9.0).sin() * 1.2,
+            _ => 0.0,
+        };
+        let wfeet = self.lift_warrior.map(|l| l.y).unwrap_or_else(|| self.feet_y(wx));
+        let wdx = dangle(&self.lift_warrior, self.time);
+        self.warrior.draw_at(c, self.warrior.x + wdx, wfeet, self.time);
         for m in &self.mobs {
             m.draw(c, self.feet_y(m.center()), self.time);
         }
         let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
-        self.mage.draw(c, self.feet_y(mx), self.time);
+        let mfeet = self.lift_mage.map(|l| l.y).unwrap_or_else(|| self.feet_y(mx));
+        let mdx = dangle(&self.lift_mage, self.time);
+        self.mage.draw_at(c, self.mage.x + mdx, mfeet, self.time);
         let px = self.pyro.x + mage::WIDTH as f32 / 2.0;
         self.pyro.draw(c, self.feet_y(px), self.time);
         for fb in &self.fireballs {
@@ -914,7 +1059,7 @@ impl Scene {
             c.dot(f.x, f.y, if f.speed > 13.0 { hex(0xffffff) } else { hex(0xc9d0f2) });
         }
         if let Some(b) = &self.mage.bubble {
-            let top = self.feet_y(mx) as i32 - mage::HEIGHT - 8;
+            let top = mfeet as i32 - mage::HEIGHT - 8;
             warrior::draw_bubble(c, mx as i32, top, &b.text);
         }
     }
@@ -1147,6 +1292,49 @@ mod tests {
         let mut c = Canvas::new(240, 135);
         s.draw(&mut c);
         assert_eq!(c.get(12, 12), Some(hex(0x05030d)), "black hole in the orb");
+    }
+
+    #[test]
+    fn the_magic_hand_lifts_the_mage_who_complains_and_falls_when_released() {
+        let mut s = Scene::new(240, 135, 13, Commitment::Steady.pace(), true);
+        run(&mut s, 1.0);
+        let (mx, feet) = (s.mage.x + 8.0, s.feet_y(s.mage.x + 8.0));
+        assert_eq!(s.grab_at(mx, feet - 10.0), Some(hand::Who::Mage));
+        assert!(hand::MAGE_HELD.contains(&s.mage_bubble().unwrap()), "pissy");
+        s.hand_move(150.0, 40.0);
+        let before = s.snow.fill();
+        run(&mut s, 3.0);
+        assert!((s.mage.x - 142.0).abs() < 2.0, "carried along");
+        assert!(s.snow.fill() <= before + 1e-3 || s.cubes_in_flight() == 0, "no throwing while dangling");
+        s.release();
+        run(&mut s, 2.0);
+        assert!(s.holding().is_none());
+        let mut c = Canvas::new(240, 135);
+        s.draw(&mut c);
+    }
+
+    #[test]
+    fn the_warrior_is_shy_but_a_frozen_one_cannot_be_lifted() {
+        let mut s = Scene::new(240, 135, 14, Commitment::Steady.pace(), true);
+        let (wx, feet) = (s.warrior.x + 6.0, s.feet_y(s.warrior.x + 6.0));
+        assert_eq!(s.grab_at(wx, feet - 8.0), Some(hand::Who::Warrior));
+        assert!(hand::WARRIOR_HELD.contains(&s.warrior.bubble.as_ref().unwrap().text.as_str()));
+        s.set_hand(false);
+        assert!(s.holding().is_none(), "turning the hand off drops him");
+        run(&mut s, 2.0);
+        s.warrior.warmth = 0.001;
+        s.snow.dust(100.0);
+        run(&mut s, 3.0);
+        assert_eq!(s.warrior.act, warrior::Act::Frozen);
+        let feet = s.feet_y(s.warrior.x + 6.0);
+        assert_eq!(s.grab_at(s.warrior.x + 6.0, feet - 8.0), None);
+    }
+
+    #[test]
+    fn grabbing_empty_space_does_nothing_but_shows_the_hand() {
+        let mut s = Scene::new(240, 135, 15, Commitment::Steady.pace(), true);
+        assert_eq!(s.grab_at(120.0, 5.0), None);
+        assert!(s.hand.is_some());
     }
 
     #[test]

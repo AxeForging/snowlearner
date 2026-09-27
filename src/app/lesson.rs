@@ -7,7 +7,8 @@ use crate::learn::cue::Segment;
 use crate::learn::deck::{Deck, Phrase};
 use crate::learn::picker::{self, Mode, Practice};
 use crate::scene::Scene;
-use crate::scene::hud::{Caption, Stats, Status, SummaryLine, SummaryPanel};
+use crate::scene::hud::{Caption, Meter, Stats, Status, SummaryLine, SummaryPanel};
+use crate::speech::endpoint::ListenPlan;
 use crate::speech::matcher::{self, WordHit};
 use crate::speech::worker::{Job, SpeechEvent, Utterance};
 use crate::store::history::{Attempt, History};
@@ -50,6 +51,7 @@ pub struct Options {
     pub native: String,
     pub threshold: f32,
     pub can_listen: bool,
+    /// Seconds you get to start answering (recall gets +4).
     pub listen_seconds: f32,
     pub hotkey: String,
     pub summary_hotkey: String,
@@ -316,6 +318,13 @@ impl Lesson {
             State::Challenge { phrase, stage: Stage::WaitUser { .. }, tries, .. } => {
                 self.replay(phrase, tries, scene, jobs)
             }
+            State::Challenge { stage: Stage::Listening, .. } => {
+                // "I'm done talking": stop the mic now instead of waiting for silence.
+                jobs.push(Job::StopListening);
+                if let Some(c) = &mut scene.hud.caption {
+                    c.footer = "Ok, analisando...".into();
+                }
+            }
             State::Challenge { phrase, stage: Stage::Confirm, tries, .. } => {
                 let say = self.phrase(phrase).say.clone();
                 self.finish_attempt(phrase, tries, &say, 1.0, true, scene);
@@ -358,12 +367,17 @@ impl Lesson {
             heard: None,
             footer: String::new(),
             tag: self.tag(&p, mode),
+            listen: None,
         });
         jobs.push(Job::Speak { id: job, parts: self.parts(&cue) });
     }
 
     fn after_cue(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
-        let State::Challenge { stage, job, .. } = &mut self.state else { return };
+        let State::Challenge { phrase, mode, stage, job, .. } = &mut self.state else { return };
+        let words = self.deck.phrases[*phrase].say.split_whitespace().count();
+        let recall = *mode == Mode::Recall;
+        let mut plan = ListenPlan::for_phrase(words, recall);
+        plan.think = self.opts.listen_seconds + if recall { 4.0 } else { 0.0 };
         if self.opts.can_listen {
             scene.set_listening(true);
         }
@@ -373,13 +387,10 @@ impl Lesson {
             if let Some(c) = cap {
                 c.active = None;
                 c.status = Status::Listening;
-                c.footer = "Esc: cancelar".into();
+                c.footer = format!("Terminou? {} · Esc: cancelar", self.opts.hotkey);
+                c.listen = Some(Meter { level: 0.0, speaking: false, think_left: plan.think, think_total: plan.think });
             }
-            jobs.push(Job::Listen {
-                id: *job,
-                lang: self.deck.language.clone(),
-                max_seconds: self.opts.listen_seconds,
-            });
+            jobs.push(Job::Listen { id: *job, lang: self.deck.language.clone(), plan });
         } else {
             *stage = Stage::Confirm;
             if let Some(c) = cap {
@@ -395,15 +406,7 @@ impl Lesson {
             State::Challenge { job, .. } | State::Summary { job, .. } => job,
             State::Idle => return,
         };
-        let id = match &ev {
-            SpeechEvent::Part { id, .. }
-            | SpeechEvent::Spoken { id }
-            | SpeechEvent::Thinking { id }
-            | SpeechEvent::Heard { id, .. }
-            | SpeechEvent::NoSpeech { id }
-            | SpeechEvent::Failed { id, .. } => *id,
-        };
-        if id != current {
+        if ev.id() != current {
             return; // stale: belongs to a cancelled challenge
         }
         match (&mut self.state, ev) {
@@ -430,6 +433,12 @@ impl Lesson {
                 scene.hud.toast(format!("Voz indisponível: {error}"), 5.0);
                 self.after_cue(scene, jobs);
             }
+            (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::Level { level, speaking, .. }) => {
+                if let Some(m) = scene.hud.caption.as_mut().and_then(|c| c.listen.as_mut()) {
+                    m.level = level;
+                    m.speaking |= speaking;
+                }
+            }
             (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::Thinking { .. }) => {
                 if let Some(c) = &mut scene.hud.caption {
                     c.status = Status::Thinking;
@@ -440,6 +449,11 @@ impl Lesson {
                 let p = self.phrase(phrase).clone();
                 let (m, _) = matcher::score_any(&p.answers(), &text);
                 let passed = m.passed(self.opts.threshold);
+                if !passed && matcher::is_hallucination(&text) {
+                    // Whisper invented "Thank you for watching" out of noise: that's silence.
+                    self.silence(scene);
+                    return;
+                }
                 // Feedback is shown on the preferred phrase; an accepted variant lights it all green.
                 let words = if passed {
                     p.say.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
@@ -452,27 +466,34 @@ impl Lesson {
                 }
                 self.finish_attempt(phrase, tries, &text, m.score, passed, scene);
             }
-            (State::Challenge { stage, .. }, SpeechEvent::NoSpeech { .. }) if *stage == Stage::Listening => {
-                // Silence is not a wrong answer: don't record it, don't auto-retry.
-                *stage = Stage::WaitUser { until: self.clock + WAIT_USER };
-                scene.set_listening(false);
-                scene.mage_say("Hã? Não ouvi nada!", 2.5);
-                if let Some(c) = &mut scene.hud.caption {
-                    c.status = Status::Failed;
-                    c.heard = Some("(silêncio)".into());
-                    c.footer = format!("Não ouvi nada. {} ou clique no orbe para tentar de novo", self.opts.hotkey);
-                }
-            }
+            (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::NoSpeech { .. }) => self.silence(scene),
             (State::Challenge { stage, .. }, SpeechEvent::Failed { error, .. }) if *stage == Stage::Listening => {
                 // Mic or model trouble: fall back to self-confirmation.
                 *stage = Stage::Confirm;
                 scene.hud.toast(format!("Microfone/reconhecimento indisponível: {error}"), 6.0);
                 if let Some(c) = &mut scene.hud.caption {
+                    c.listen = None;
                     c.status = Status::Confirm;
                     c.footer = format!("Fale em voz alta e aperte {} para confirmar", self.opts.hotkey);
                 }
             }
             _ => {}
+        }
+    }
+
+    /// Nothing (real) was heard: not a wrong answer — don't record it, don't
+    /// auto-retry; wait for the learner.
+    fn silence(&mut self, scene: &mut Scene) {
+        if let State::Challenge { stage, .. } = &mut self.state {
+            *stage = Stage::WaitUser { until: self.clock + WAIT_USER };
+        }
+        scene.set_listening(false);
+        scene.mage_say("Hã? Não ouvi nada!", 2.5);
+        if let Some(c) = &mut scene.hud.caption {
+            c.status = Status::Failed;
+            c.listen = None;
+            c.heard = Some("(silêncio)".into());
+            c.footer = format!("Não ouvi nada. {} ou clique no orbe para tentar de novo", self.opts.hotkey);
         }
     }
 
@@ -539,6 +560,7 @@ impl Lesson {
         self.refresh_stats(scene);
         if let Some(c) = &mut scene.hud.caption {
             c.active = None;
+            c.listen = None;
             c.status = if passed { Status::Passed } else { Status::Failed };
             c.footer = footer;
             if !passed && mode == Mode::Recall {
@@ -551,6 +573,12 @@ impl Lesson {
 
     fn tick(&mut self, dt: f32, now: DateTime<Local>, scene: &mut Scene, jobs: &mut Vec<Job>) {
         self.clock += dt;
+        if let State::Challenge { stage: Stage::Listening, .. } = self.state
+            && let Some(m) = scene.hud.caption.as_mut().and_then(|c| c.listen.as_mut())
+            && !m.speaking
+        {
+            m.think_left = (m.think_left - dt).max(0.0);
+        }
         match self.state {
             State::Idle => {
                 self.idle_for += dt;
@@ -948,6 +976,52 @@ mod tests {
         f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
         f.tick(WAIT_USER + 0.5);
         assert!(f.lesson.is_idle(), "gives up quietly if you walk away");
+    }
+
+    #[test]
+    fn listening_gets_a_plan_sized_to_the_phrase_and_the_mode() {
+        let mut o = options(true);
+        o.practice = Practice::Recall;
+        let mut f = fixture_with(o);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        let jobs = f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        let Some(Job::Listen { plan, .. }) = jobs.first() else { panic!("{jobs:?}") };
+        assert_eq!(plan.think, 7.0 + 4.0, "recall gets extra thinking time");
+        let words = f.current_say().split_whitespace().count() as f32;
+        assert!((plan.expected - (0.45 * words + 0.6)).abs() < 1e-4);
+    }
+
+    #[test]
+    fn the_caption_shows_a_live_meter_and_a_thinking_countdown() {
+        let mut f = fixture(true);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.tick(2.0);
+        let m = f.scene.hud.caption.as_ref().unwrap().listen.as_ref().unwrap();
+        assert!((m.think_left - 5.0).abs() < 0.15, "counting down: {}", m.think_left);
+        f.send(Input::Speech(SpeechEvent::Level { id, level: 0.2, speaking: true }));
+        f.tick(2.0);
+        let m = f.scene.hud.caption.as_ref().unwrap().listen.as_ref().unwrap();
+        assert!(m.speaking && m.level > 0.1);
+        assert!((m.think_left - 5.0).abs() < 0.15, "countdown stops once you talk");
+    }
+
+    #[test]
+    fn pressing_the_hotkey_while_talking_means_done() {
+        let mut f = fixture(true);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        assert_eq!(f.send(Input::Primary), vec![Job::StopListening]);
+    }
+
+    #[test]
+    fn a_whisper_hallucination_is_treated_as_silence_not_a_miss() {
+        let mut f = fixture(true);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Thank you for watching!".into() }));
+        assert_eq!(f.scene.hud.caption.as_ref().unwrap().heard.as_deref(), Some("(silêncio)"));
+        assert!(f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap().is_empty());
     }
 
     #[test]

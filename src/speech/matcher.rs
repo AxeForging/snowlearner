@@ -107,6 +107,26 @@ pub fn score_any(answers: &[&str], heard: &str) -> (MatchResult, usize) {
         .unwrap_or_else(|| (score("", heard), 0))
 }
 
+/// Phrases whisper is known to invent on silence/noise (trained on subtitles).
+const HALLUCINATIONS: &[&str] = &[
+    "thank you for watching",
+    "thanks for watching",
+    "thank you",
+    "subtitles by the amara org community",
+    "please subscribe",
+    "you",
+    "obrigado por assistir",
+    "legendas pela comunidade amara org",
+    "gracias por ver",
+    "subtitulos realizados por la comunidad de amara org",
+];
+
+/// True when the whole transcript is one of whisper's stock hallucinations.
+pub fn is_hallucination(text: &str) -> bool {
+    let norm = normalize(text).join(" ");
+    norm.is_empty() || HALLUCINATIONS.iter().any(|h| normalize(h).join(" ") == norm)
+}
+
 pub fn score(target: &str, heard: &str) -> MatchResult {
     let t = normalize(target);
     let h = normalize(heard);
@@ -191,6 +211,15 @@ mod tests {
         assert_eq!(i, 1);
         let (m, _) = score_any(&["Could you repeat that?"], "pizza");
         assert!(!m.passed(PASS));
+    }
+
+    #[test]
+    fn stock_hallucinations_are_recognized_as_non_answers() {
+        assert!(is_hallucination("Thank you for watching!"));
+        assert!(is_hallucination(" Legendas pela comunidade Amara.org "));
+        assert!(is_hallucination(""));
+        assert!(!is_hallucination("Thank you very much"));
+        assert!(!is_hallucination("I'm hungry"));
     }
 
     #[test]

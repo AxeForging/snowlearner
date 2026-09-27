@@ -16,6 +16,9 @@ pub enum Command {
     Menu,
     /// Pause/resume the frost mage (meetings, focus time).
     Pause,
+    /// Magic hand for 15 s: pick up the mage or the warrior (for desktops where
+    /// holding Ctrl+Alt can't be detected, e.g. Wayland).
+    Grab,
     Quit,
 }
 
@@ -27,6 +30,7 @@ impl Command {
             "dismiss" => Some(Command::Dismiss),
             "menu" => Some(Command::Menu),
             "pause" => Some(Command::Pause),
+            "grab" => Some(Command::Grab),
             "quit" => Some(Command::Quit),
             _ => None,
         }
@@ -39,6 +43,7 @@ impl Command {
             Command::Dismiss => "dismiss",
             Command::Menu => "menu",
             Command::Pause => "pause",
+            Command::Grab => "grab",
             Command::Quit => "quit",
         }
     }

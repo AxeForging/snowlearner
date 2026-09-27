@@ -50,6 +50,8 @@ pub enum Cmd {
     },
     /// Pause / resume the frost mage in the running app.
     Pause,
+    /// Magic hand for 15 s: drag the mage or the warrior around (Ctrl+Alt+G).
+    Grab,
     /// Close the running app.
     Quit,
     /// Print what you practiced on a day (works without the app running).
@@ -75,6 +77,16 @@ pub enum Cmd {
     },
     /// Check what works on this machine and how to fix what doesn't.
     Doctor,
+    /// Microphones and speakers: list them, test the mic.
+    Audio {
+        #[command(subcommand)]
+        action: AudioAction,
+    },
+    /// Text-to-speech voices: list and try them.
+    Voices {
+        #[command(subcommand)]
+        action: VoicesAction,
+    },
     /// Render the scene to a PNG without opening a window.
     Snapshot {
         out: PathBuf,
@@ -96,7 +108,28 @@ pub enum Cmd {
         caption: bool,
         #[arg(long, default_value_t = 7)]
         seed: u64,
+        /// Staged moment to capture.
+        #[arg(long, value_enum, default_value_t = Scenario::Idle)]
+        scenario: Scenario,
+        /// Write an animation: N frames as OUT-000.png, OUT-001.png… (see scripts/render-docs.sh).
+        #[arg(long, default_value_t = 1)]
+        frames: u32,
+        /// Frames per second of the animation.
+        #[arg(long, default_value_t = 15)]
+        fps: u32,
     },
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Scenario {
+    /// The mage at work, nothing staged.
+    Idle,
+    /// A lesson: listening with the live meter, then a correct answer's fireball.
+    Lesson,
+    /// Icicle rain, a summoned friend and the warrior fighting frost mobs.
+    Fight,
+    /// Pausing: everything is sucked into the orb's black hole.
+    Blackhole,
 }
 
 #[derive(Subcommand, Debug)]
@@ -108,6 +141,37 @@ pub enum ConfigAction {
     },
     /// Print where config, decks, history and models live.
     Path,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AudioAction {
+    /// List microphones (use a name as `mic` in the config or pick it in the panel).
+    Mics,
+    /// List speakers (used by the http/command voice engines).
+    Speakers,
+    /// Record from the configured mic with a live meter, then show what was heard.
+    TestMic,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum VoicesAction {
+    /// List voices of the configured engine for a language.
+    List {
+        /// Language code (default: the one you're learning).
+        #[arg(long)]
+        lang: Option<String>,
+    },
+    /// Speak a sample sentence.
+    Test {
+        #[arg(long)]
+        lang: Option<String>,
+        /// Voice name (default: the configured one for that language).
+        #[arg(long)]
+        voice: Option<String>,
+        /// Custom text.
+        #[arg(long)]
+        text: Option<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]

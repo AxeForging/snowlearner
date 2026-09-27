@@ -172,6 +172,35 @@ impl Tts {
         Tts { engine, mac_voices }
     }
 
+    /// Voices this engine offers for `lang` (names to put in `voice_*`).
+    pub fn voices(&self, lang: &str) -> Vec<String> {
+        let loc = locale(lang);
+        let run = |prog: &str, args: &[&str]| {
+            Command::new(prog)
+                .args(args)
+                .output()
+                .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+                .unwrap_or_default()
+        };
+        match self.engine {
+            Some(Engine::SpdSay) => parse_spd_voices(&run("spd-say", &["-L"]), &loc),
+            Some(Engine::EspeakNg) => parse_espeak_voices(&run("espeak-ng", &["--voices"]), &loc),
+            Some(Engine::Say) => voices_for_locale(&self.mac_voices, &loc),
+            Some(Engine::PowerShell) => {
+                let script = "Add-Type -AssemblyName System.Speech; \
+                    (New-Object System.Speech.Synthesis.SpeechSynthesizer).GetInstalledVoices() | \
+                    ForEach-Object { $_.VoiceInfo.Name + '|' + $_.VoiceInfo.Culture.Name }";
+                let out = run("powershell", &["-NoProfile", "-NonInteractive", "-Command", script]);
+                let pairs: Vec<(String, String)> = out
+                    .lines()
+                    .filter_map(|l| l.split_once('|').map(|(n, c)| (n.trim().to_string(), c.trim().to_string())))
+                    .collect();
+                voices_for_locale(&pairs, &loc)
+            }
+            None => Vec::new(),
+        }
+    }
+
     pub fn engine(&self) -> Option<Engine> {
         self.engine
     }
@@ -196,9 +225,78 @@ impl Tts {
     }
 }
 
+fn lang_matches(candidate: &str, loc: &str) -> bool {
+    let (c, l) = (candidate.to_ascii_lowercase().replace('_', "-"), loc.to_ascii_lowercase());
+    let base = l.split('-').next().unwrap_or(&l).to_string();
+    c == l || c == base || c.starts_with(&format!("{base}-"))
+}
+
+/// Prefers voices of the exact region (pt-BR over pt-PT) when there are any.
+fn prefer_exact(rows: Vec<(String, String)>, loc: &str) -> Vec<String> {
+    let exact: Vec<String> = rows
+        .iter()
+        .filter(|(_, l)| l.eq_ignore_ascii_case(loc) || l.replace('_', "-").eq_ignore_ascii_case(loc))
+        .map(|(n, _)| n.clone())
+        .collect();
+    if !exact.is_empty() { exact } else { rows.into_iter().map(|(n, _)| n).collect() }
+}
+
+/// `spd-say -L` rows: "  English (America)      en-US      none" (columns split by 2+ spaces).
+pub fn parse_spd_voices(listing: &str, loc: &str) -> Vec<String> {
+    let rows = listing
+        .lines()
+        .filter_map(|l| {
+            let cols: Vec<&str> = l.split("  ").map(str::trim).filter(|c| !c.is_empty()).collect();
+            (cols.len() >= 2 && lang_matches(cols[1], loc)).then(|| (cols[0].to_string(), cols[1].to_string()))
+        })
+        .collect();
+    prefer_exact(rows, loc)
+}
+
+/// `espeak-ng --voices` rows: "Pty Language Age/Gender VoiceName File Other".
+pub fn parse_espeak_voices(listing: &str, loc: &str) -> Vec<String> {
+    let mut out: Vec<String> = listing
+        .lines()
+        .skip(1)
+        .filter_map(|l| {
+            let cols: Vec<&str> = l.split_whitespace().collect();
+            (cols.len() >= 4 && lang_matches(cols[1], loc)).then(|| cols[1].to_string())
+        })
+        .collect();
+    out.dedup();
+    out
+}
+
+fn voices_for_locale(pairs: &[(String, String)], loc: &str) -> Vec<String> {
+    prefer_exact(pairs.iter().filter(|(_, l)| lang_matches(l, loc)).cloned().collect(), loc)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spd_voice_list_is_filtered_by_language() {
+        let listing = "NAME                                LANGUAGE                  VARIANT\n\
+                       English (America)                   en-US                     none\n\
+                       English (America)+Alex              en-US                     Alex\n\
+                       Portuguese (Portugal)               pt-PT                     none\n\
+                       Portuguese (Brazil)                 pt-BR                     none\n\
+                       Spanish (Spain)                     es                        none\n";
+        assert_eq!(parse_spd_voices(listing, "pt-BR"), vec!["Portuguese (Brazil)"]);
+        assert_eq!(parse_spd_voices(listing, "en-US"), vec!["English (America)", "English (America)+Alex"]);
+        assert_eq!(parse_spd_voices(listing, "es-ES"), vec!["Spanish (Spain)"]);
+    }
+
+    #[test]
+    fn espeak_voice_list_is_filtered_by_language() {
+        let listing = "Pty Language       Age/Gender VoiceName          File                 Other Languages\n \
+                       2  en-us           --/M      English_(America)  gmw/en-US            (en 3)\n \
+                       5  pt-br           --/M      Portuguese_(Brazil) roa/pt-BR           (pt 6)\n \
+                       5  es              --/M      Spanish_(Spain)    roa/es\n";
+        assert_eq!(parse_espeak_voices(listing, "pt-BR"), vec!["pt-br"]);
+        assert_eq!(parse_espeak_voices(listing, "es-ES"), vec!["es"]);
+    }
 
     #[test]
     fn deck_codes_become_region_locales() {

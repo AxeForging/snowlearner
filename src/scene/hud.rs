@@ -55,6 +55,17 @@ pub struct Caption {
     pub footer: String,
     /// Small right-aligned header label: "trabalho · A2 · de memória".
     pub tag: String,
+    /// Live microphone state while listening.
+    pub listen: Option<Meter>,
+}
+
+/// Mic level meter + thinking-time countdown shown while listening.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Meter {
+    pub level: f32,
+    pub speaking: bool,
+    pub think_left: f32,
+    pub think_total: f32,
 }
 
 /// Progress corner: today's count against the goal, combo, language/topic.
@@ -91,6 +102,32 @@ pub struct Hud {
     pub stats: Option<Stats>,
     /// Key/mouse cheat sheet (window mode, `H`).
     pub help: Option<Vec<String>>,
+    /// Compact shortcut sheet next to the orb (hover / Ctrl+Alt held).
+    pub cheats: Option<Cheats>,
+}
+
+/// Shortcut sheet: a prefix ("Ctrl+Alt +") and key → action rows, drawn next to `anchor`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cheats {
+    pub anchor: (f32, f32),
+    pub prefix: String,
+    pub rows: Vec<(String, String)>,
+    pub footer: String,
+}
+
+impl Cheats {
+    /// Builds the sheet from hotkeys like "Ctrl+Alt+M", sharing their common prefix.
+    pub fn from_hotkeys(anchor: (f32, f32), keys: &[(&str, &str)], footer: &str) -> Cheats {
+        let split = |k: &str| {
+            k.rsplit_once('+').map(|(p, l)| (format!("{p}+"), l.to_string())).unwrap_or((String::new(), k.to_string()))
+        };
+        let prefix = keys.first().map(|(k, _)| split(k).0).unwrap_or_default();
+        let shared = keys.iter().all(|(k, _)| split(k).0 == prefix);
+        let rows =
+            keys.iter().map(|(k, what)| (if shared { split(k).1 } else { k.to_string() }, what.to_string())).collect();
+        let prefix = if shared { prefix.trim_end_matches('+').to_string() + " +" } else { String::new() };
+        Cheats { anchor, prefix, rows, footer: footer.to_string() }
+    }
 }
 
 const INK: Rgba = hex(0xe6ecff);
@@ -139,6 +176,9 @@ impl Hud {
         if let Some(lines) = &self.help {
             draw_help(c, lines);
         }
+        if let Some(ch) = &self.cheats {
+            draw_cheats(c, ch);
+        }
         if let Some(t) = &self.toast {
             let w = font::text_width(&t.text);
             font::draw_outlined(c, (c.w - w) / 2, 6, &t.text, hex(0xffffff), hex(0x1b1942));
@@ -162,6 +202,45 @@ fn draw_stats(c: &mut Canvas, st: &Stats) {
     let by = y + font::LINE_H;
     c.rect(x + w - bar_w - 1, by - 1, bar_w + 2, 4, outline);
     c.rect(x + w - bar_w, by, fill, 2, if st.done >= st.goal { hex(0x7dff9b) } else { hex(0xffb03a) });
+}
+
+fn draw_cheats(c: &mut Canvas, ch: &Cheats) {
+    let lh = font::LINE_H - 2;
+    let key_w = ch.rows.iter().map(|(k, _)| font::text_width(k)).max().unwrap_or(0);
+    let mut lines = ch.rows.len() as i32;
+    let mut w = ch.rows.iter().map(|(_, a)| key_w + 10 + font::text_width(a)).max().unwrap_or(0);
+    if !ch.prefix.is_empty() {
+        lines += 1;
+        w = w.max(font::text_width(&ch.prefix));
+    }
+    let footer = font::wrap(&ch.footer, 140);
+    lines += footer.len() as i32;
+    w = w.max(footer.iter().map(|l| font::text_width(l)).max().unwrap_or(0)) + 12;
+    let h = lines * lh + 8;
+    // Open toward the middle of the screen from the orb.
+    let (ax, ay) = (ch.anchor.0 as i32, ch.anchor.1 as i32);
+    let x = if ax > c.w / 2 { ax - w - 10 } else { ax + 10 };
+    let y = if ay > c.h / 2 { ay - h } else { ay - 4 };
+    let (x, y) = (x.clamp(2, (c.w - w - 2).max(2)), y.clamp(2, (c.h - h - 2).max(2)));
+    panel(c, x, y, w, h);
+    let mut yy = y + 3;
+    if !ch.prefix.is_empty() {
+        font::draw(c, x + 6, yy - 2, &ch.prefix, hex(0xffd64a));
+        yy += lh;
+    }
+    for (k, action) in &ch.rows {
+        // Pixel key cap.
+        let kw = font::text_width(k) + 4;
+        c.rect(x + 6, yy, kw, lh - 1, hex(0x2a1650));
+        c.rect(x + 6, yy + lh - 2, kw, 1, hex(0xb46cff));
+        font::draw(c, x + 8, yy - 3, k, hex(0xffffff));
+        font::draw(c, x + 12 + key_w, yy - 3, action, INK);
+        yy += lh;
+    }
+    for l in footer {
+        font::draw(c, x + 6, yy - 3, &l, DIM);
+        yy += lh;
+    }
 }
 
 fn draw_help(c: &mut Canvas, lines: &[String]) {
@@ -239,7 +318,7 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     let toks = tokens(cap);
     let lines = layout(&toks, inner);
     let lh = font::LINE_H - 1;
-    let mut rows = 1 + lines.len() as i32;
+    let mut rows = 1 + lines.len() as i32 + i32::from(cap.listen.is_some());
     let meaning_lines = if cap.meaning.is_empty() { vec![] } else { font::wrap(&format!("= {}", cap.meaning), inner) };
     rows += meaning_lines.len() as i32;
     let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&format!("Ouvi: \"{h}\""), inner)).unwrap_or_default();
@@ -276,6 +355,10 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
         }
     }
     y += lh;
+    if let Some(m) = &cap.listen {
+        draw_meter(c, px + 6, y + 3, pw - 12, m, time);
+        y += lh;
+    }
 
     for line in &lines {
         let mut x = px + 6;
@@ -303,6 +386,36 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     }
     if !cap.footer.is_empty() {
         font::draw(c, px + 6, y, &cap.footer, hex(0x6e74b8));
+    }
+}
+
+/// 12-segment mic meter; then either "falando" or the thinking countdown bar.
+fn draw_meter(c: &mut Canvas, x: i32, y: i32, w: i32, m: &Meter, time: f32) {
+    const SEGS: i32 = 12;
+    // Speech RMS lives around 0.02–0.3: a square-root curve makes quiet voices visible.
+    let lit = ((m.level.sqrt() * 2.2).clamp(0.0, 1.0) * SEGS as f32).round() as i32;
+    for i in 0..SEGS {
+        let col = if i >= lit {
+            hex(0x1d2a5a)
+        } else if i < 7 {
+            hex(0x7dff9b)
+        } else if i < 10 {
+            hex(0xffd64a)
+        } else {
+            hex(0xff6b6b)
+        };
+        c.rect(x + i * 4, y + 1, 3, 5, col);
+    }
+    let tx = x + SEGS * 4 + 6;
+    if m.speaking {
+        let dots = ".".repeat(1 + (time * 3.0) as usize % 3);
+        font::draw(c, tx, y - 3, &format!("falando{dots}"), hex(0x7dff9b));
+    } else {
+        let bar_w = (w - (tx - x) - 30).max(10);
+        let fill = if m.think_total > 0.0 { (bar_w as f32 * m.think_left / m.think_total).round() as i32 } else { 0 };
+        c.rect(tx, y + 2, bar_w, 3, hex(0x1d2a5a));
+        c.rect(tx, y + 2, fill, 3, hex(0x9be8ff));
+        font::draw(c, tx + bar_w + 4, y - 3, &format!("{}s", m.think_left.ceil() as i32), hex(0x9be8ff));
     }
 }
 
@@ -371,6 +484,7 @@ mod tests {
             heard: None,
             footer: String::new(),
             tag: "social · A1 · repita".into(),
+            listen: None,
         }
     }
 
@@ -406,6 +520,32 @@ mod tests {
         let lines = layout(&t, 80);
         assert!(lines.len() > 2);
         assert_eq!(lines.iter().map(Vec::len).sum::<usize>(), t.len());
+    }
+
+    #[test]
+    fn cheat_sheet_shares_the_common_prefix() {
+        let ch = Cheats::from_hotkeys((10.0, 10.0), &[("Ctrl+Alt+M", "praticar"), ("Ctrl+Alt+K", "painel")], "");
+        assert_eq!(ch.prefix, "Ctrl+Alt +");
+        assert_eq!(ch.rows, vec![("M".to_string(), "praticar".to_string()), ("K".to_string(), "painel".to_string())]);
+        let mixed = Cheats::from_hotkeys((0.0, 0.0), &[("Ctrl+M", "a"), ("Alt+K", "b")], "");
+        assert!(mixed.prefix.is_empty());
+        assert_eq!(mixed.rows[1].0, "Alt+K");
+    }
+
+    #[test]
+    fn cheat_sheet_opens_toward_the_screen_middle_and_stays_on_screen() {
+        for anchor in [(310.0, 10.0), (10.0, 170.0)] {
+            let hud = Hud {
+                cheats: Some(Cheats::from_hotkeys(anchor, &[("Ctrl+Alt+M", "praticar")], "clique direito: pausar")),
+                ..Default::default()
+            };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 180, 0.0);
+            let total = c.opaque_in(0, 0, 320, 180);
+            assert!(total > 0);
+            let far = if anchor.0 > 160.0 { c.opaque_in(0, 0, 80, 180) } else { c.opaque_in(240, 0, 80, 180) };
+            assert_eq!(far, 0, "opens from the orb's side, never across the whole screen");
+        }
     }
 
     #[test]

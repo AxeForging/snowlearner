@@ -1,6 +1,6 @@
 # snowlearner — working notes
 
-Pixel-art desktop language-practice app (Rust). Specs: `docs/specs/` (001 MVP, 002 fight/lessons/orb).
+Pixel-art desktop language-practice app (Rust). Specs: `docs/specs/` (001 MVP, 002 fight/lessons/orb, 003 audio/voices/listening).
 
 ## Layout — one domain per directory, one concept per file
 
@@ -13,12 +13,14 @@ src/
                      machine (pure), menu.rs = control panel (pure), platform.rs = session decisions
   scene/             pure seeded simulation; one file per actor/element
                      (mage, pyro = fire mage, warrior, mobs, friends, fire, ice, snow, frost,
-                     vortex = black hole + orb, backdrop, hud, rng)
+                     vortex = black hole + orb, hand = magic hand, backdrop, hud, rng)
   render/            canvas.rs (CPU pixels), font.rs (bitmap font), gpu.rs (wgpu present), png_out.rs
-  speech/            tts.rs, worker.rs (thread), matcher.rs, endpoint.rs, resample.rs;
-                     mic.rs + stt.rs only with the `stt` feature
+  speech/            voices.rs (SpeechEngine trait + system/http/command engines), tts.rs (OS
+                     voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs;
+                     audio.rs with `audio`; mic.rs + stt.rs with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs
-  control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts)
+  control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts),
+                     modkeys.rs (global Ctrl+Alt state where the OS allows)
   config/            settings.rs, level.rs (commitment), paths.rs
   store/             history.rs (SQLite)
 decks/<lang>.toml    hand-curated built-in decks (embedded with include_str!)
@@ -40,11 +42,13 @@ New actors go in `scene/<actor>.rs`; new platform integrations in the matching d
 - Never pass user text through a shell (see `speech/tts.rs` tests).
 - Balance: one correct answer melts only `Pace::melt_fraction`; nothing melts snow for free.
 - New lessons must be real situations (topic + pt-BR situation + meaning), never drills.
+- New TTS engines implement `speech::voices::SpeechEngine` and register in `Voice::new` — nothing else.
+- README clips are generated (`scripts/render-docs.sh`); don't hand-edit images.
 
 ## Commands
 
 ```sh
-make test / make lint / make test-speech / make snapshot
+make test / make lint / make test-speech / scripts/render-docs.sh
 cargo run -- --mode window        # run from source
 cargo run -- doctor
 ```

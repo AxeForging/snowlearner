@@ -14,7 +14,8 @@ use crate::learn::deck::Deck;
 use crate::render::canvas::Canvas;
 use crate::render::gpu::Gpu;
 use crate::scene::Scene;
-use crate::speech::worker::{Speech, SpeechEvent, VoiceSettings};
+use crate::scene::hud::Cheats;
+use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
 use crate::store::history::History;
 use anyhow::{Context, Result};
 use lesson::{Input, Lesson, Options};
@@ -33,6 +34,8 @@ const FPS: f32 = 30.0;
 /// Window mode keeps at least this many art pixels on screen.
 const WINDOW_VIRTUAL: (u32, u32) = (320, 180);
 const MENU_SCALE: u32 = 3;
+/// Job ids at or above this belong to the panel's mic/voice tests, not lessons.
+const TEST_IDS: u64 = 1 << 40;
 /// Orb window size in art pixels.
 const ORB_ART: i32 = 22;
 
@@ -72,19 +75,11 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
     })?;
 
     let speech_proxy = proxy.clone();
-    let speech = Speech::start(
-        VoiceSettings {
-            native_voice: settings.voice_native.clone(),
-            learning_voice: settings.voice_learning.clone(),
-            native_lang: settings.native.clone(),
-            model: paths.model_file(&settings.model),
-        },
-        move |ev| {
-            let _ = speech_proxy.send_event(UserEvent::Speech(ev));
-        },
-    );
-    if speech.tts.is_none() {
-        eprintln!("No text-to-speech engine found; captions will still show. Run `snowlearner doctor`.");
+    let speech = Speech::start(VoiceSettings::from(&settings, &paths), move |ev| {
+        let _ = speech_proxy.send_event(UserEvent::Speech(ev));
+    });
+    if !speech.tts_ok {
+        eprintln!("Voice engine unavailable ({}); captions will still show. Run `snowlearner doctor`.", speech.tts);
     }
     if !speech.can_listen {
         eprintln!(
@@ -96,6 +91,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         (settings.hotkey_challenge.as_str(), Command::Challenge),
         (settings.hotkey_summary.as_str(), Command::Summary),
         (settings.hotkey_menu.as_str(), Command::Menu),
+        (settings.hotkey_grab.as_str(), Command::Grab),
     ];
     let hotkeys = if session.global_hotkeys() {
         match Hotkeys::register(&bindings) {
@@ -152,6 +148,11 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         orb_cursor: (0.0, 0.0),
         overlay_origin: (0, 0),
         save_orb_at: None,
+        orb_hover: false,
+        mods_held: false,
+        hand_until: None,
+        hand_on: false,
+        test_id: TEST_IDS,
         cursor: (0.0, 0.0),
         last: Instant::now(),
         next_frame: Instant::now(),
@@ -222,6 +223,13 @@ struct App {
     /// Top-left of the overlay window in screen pixels (maps the orb to the scene).
     overlay_origin: (i32, i32),
     save_orb_at: Option<Instant>,
+    /// Why the cheat sheet is up: hovering the orb and/or Ctrl+Alt held.
+    orb_hover: bool,
+    mods_held: bool,
+    /// Magic hand requested by `snowlearner grab` until this moment.
+    hand_until: Option<Instant>,
+    hand_on: bool,
+    test_id: u64,
     last: Instant,
     next_frame: Instant,
 }
@@ -290,6 +298,12 @@ impl App {
             Command::Dismiss => self.input(Input::Dismiss),
             Command::Menu => self.want_menu = true,
             Command::Pause => self.toggle_pause(),
+            Command::Grab => {
+                self.hand_until = match self.hand_until {
+                    Some(_) => None,
+                    None => Some(Instant::now() + Duration::from_secs(15)),
+                };
+            }
             Command::Quit => el.exit(),
         }
     }
@@ -390,6 +404,8 @@ impl App {
             Item::Language => match Deck::load(&self.settings.learning, &self.paths.decks_dir()) {
                 Ok(deck) => {
                     self.menu.topics = deck.topics();
+                    self.menu.voices_learning =
+                        self.settings.voice().voices(&self.settings.learning).unwrap_or_default();
                     self.settings.topic.clear();
                     self.lesson.set_options(|o| o.topic = None, scene);
                     self.lesson.set_deck(deck, scene);
@@ -420,6 +436,14 @@ impl App {
                 self.lesson.set_options(|o| o.daily_goal = g, scene);
             }
             Item::Mode => scene.hud.toast("Modo de tela muda ao reiniciar o Snowlearner", 3.0),
+            Item::Mic | Item::Speaker | Item::Engine | Item::VoiceNative | Item::VoiceLearning => {
+                self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
+                if item == Item::Engine {
+                    let desc = self.settings.voice().describe();
+                    scene.hud.toast(format!("Voz: {desc}"), 3.0);
+                    self.refresh_audio_lists();
+                }
+            }
             _ => {}
         }
     }
@@ -437,9 +461,124 @@ impl App {
                 self.input(Input::Summary);
             }
             Action::TogglePause => self.toggle_pause(),
+            Action::TestMic => {
+                self.test_id += 1;
+                self.menu.meter = Some(0.0);
+                self.menu.test_result = "Ouvindo... fale uma frase em voz alta.".into();
+                self.speech.send(Job::MicTest { id: self.test_id, lang: self.settings.learning.clone() });
+            }
+            Action::TestVoices => {
+                self.test_id += 1;
+                self.menu.test_result = "Tocando as duas vozes...".into();
+                let sample = match self.settings.learning.as_str() {
+                    "es" => "¡Hola! Esta es la voz en español.",
+                    _ => "Hello! This is the English voice.",
+                };
+                let parts = vec![
+                    Utterance {
+                        text: "Olá! Esta é a voz em português.".into(),
+                        lang: self.settings.native.clone(),
+                        slow: false,
+                    },
+                    Utterance { text: sample.into(), lang: self.settings.learning.clone(), slow: true },
+                ];
+                self.speech.send(Job::Speak { id: self.test_id, parts });
+            }
             Action::Quit => el.exit(),
             Action::Close => self.menu_win = None,
         }
+    }
+
+    /// Device and voice lists for the ÁUDIO tab (voices depend on the engine).
+    fn refresh_audio_lists(&mut self) {
+        #[cfg(feature = "audio")]
+        {
+            self.menu.mics = crate::speech::audio::input_names();
+            self.menu.speakers = crate::speech::audio::output_names();
+        }
+        // The panel cycles with ←/→: keep the lists short (the CLI shows everything).
+        let voice = self.settings.voice();
+        let short = |mut v: Vec<String>| {
+            v.truncate(40);
+            v
+        };
+        self.menu.voices_native = short(voice.voices(&self.settings.native).unwrap_or_default());
+        self.menu.voices_learning = short(voice.voices(&self.settings.learning).unwrap_or_default());
+    }
+
+    /// Results of the panel's mic/voice tests (not lesson events).
+    fn test_event(&mut self, ev: SpeechEvent) {
+        if ev.id() != self.test_id {
+            return;
+        }
+        match ev {
+            SpeechEvent::Level { level, .. } => self.menu.meter = Some(level),
+            SpeechEvent::Thinking { .. } => self.menu.test_result = "Analisando...".into(),
+            SpeechEvent::Heard { text, .. } => {
+                self.menu.meter = None;
+                self.menu.test_result = format!("✓ Ouvi: \"{text}\"");
+            }
+            SpeechEvent::NoSpeech { .. } => {
+                self.menu.meter = None;
+                self.menu.test_result = "Não ouvi nada. Confira o microfone escolhido e o volume.".into();
+            }
+            SpeechEvent::Failed { error, .. } => {
+                self.menu.meter = None;
+                self.menu.test_result = format!("Erro: {error}");
+            }
+            SpeechEvent::Spoken { .. } => {
+                self.menu.test_result = "✓ Vozes tocadas. Troque em Voz pt-BR / Voz do idioma.".into()
+            }
+            SpeechEvent::Part { .. } => {}
+        }
+    }
+
+    /// Magic hand: on while Ctrl+Alt is held, for 15 s after `grab`, or while
+    /// someone is being carried. The overlay only takes clicks while it's on.
+    fn update_hand(&mut self) {
+        if self.hand_until.is_some_and(|t| Instant::now() >= t) {
+            self.hand_until = None;
+        }
+        let holding = self.scene.as_ref().is_some_and(|s| s.holding().is_some());
+        let want = self.mods_held || self.hand_until.is_some() || holding;
+        if want == self.hand_on {
+            return;
+        }
+        self.hand_on = want;
+        if let Some(main) = &self.main {
+            if self.resolved.overlay {
+                let _ = main.window.set_cursor_hittest(want);
+            }
+            main.window.set_cursor_visible(!want);
+        }
+        if let Some(scene) = &mut self.scene {
+            scene.set_hand(want);
+            if want {
+                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
+                scene.hand_move((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
+            }
+        }
+    }
+
+    /// Shows or hides the shortcut sheet next to the orb.
+    fn update_cheats(&mut self) {
+        let want = self.orb_hover || self.mods_held;
+        let Some(scene) = &mut self.scene else { return };
+        if !want {
+            scene.hud.cheats = None;
+            return;
+        }
+        if scene.hud.cheats.is_some() {
+            return;
+        }
+        let keys = [
+            (self.settings.hotkey_challenge.as_str(), "praticar / terminei"),
+            (self.settings.hotkey_menu.as_str(), "painel"),
+            (self.settings.hotkey_summary.as_str(), "resumo do dia"),
+            (self.settings.hotkey_grab.as_str(), "mão mágica"),
+        ];
+        scene.hud.cheats =
+            Some(Cheats::from_hotkeys(scene.hole, &keys, "Orbe: clique pratica · Ctrl+clique painel · direito pausa"));
     }
 
     fn open_menu(&mut self, el: &ActiveEventLoop) {
@@ -447,6 +586,7 @@ impl App {
             m.window.focus_window();
             return;
         }
+        self.refresh_audio_lists();
         let size = PhysicalSize::new(menu::WIDTH as u32 * MENU_SCALE, menu::HEIGHT as u32 * MENU_SCALE);
         let attrs = Window::default_attributes()
             .with_title("Snowlearner · Painel")
@@ -546,6 +686,7 @@ fn menu_key(key: &Key) -> Option<menu::Key> {
         Key::Named(NamedKey::ArrowRight) => menu::Key::Right,
         Key::Named(NamedKey::Enter | NamedKey::Space) => menu::Key::Enter,
         Key::Named(NamedKey::Escape) => menu::Key::Esc,
+        Key::Named(NamedKey::Tab) => menu::Key::Tab,
         _ => return None,
     })
 }
@@ -610,6 +751,8 @@ impl ApplicationHandler<UserEvent> for App {
         if is_orb {
             match event {
                 WindowEvent::RedrawRequested => self.draw_orb(),
+                WindowEvent::CursorEntered { .. } => self.orb_hover = true,
+                WindowEvent::CursorLeft { .. } => self.orb_hover = false,
                 WindowEvent::CursorMoved { position, .. } => {
                     self.orb_cursor = (position.x, position.y);
                     if let Some((px, py)) = self.orb_press {
@@ -678,7 +821,33 @@ impl ApplicationHandler<UserEvent> for App {
                 self.fit(size.width, size.height);
             }
             WindowEvent::RedrawRequested => self.frame(),
-            WindowEvent::CursorMoved { position, .. } => self.cursor = (position.x, position.y),
+            WindowEvent::CursorMoved { position, .. } => {
+                self.cursor = (position.x, position.y);
+                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
+                let (x, y) = ((position.x / scale) as f32, (position.y / scale) as f32);
+                self.orb_hover = self.scene.as_ref().is_some_and(|sc| sc.orb_at(x, y));
+                if self.hand_on
+                    && let Some(scene) = &mut self.scene
+                {
+                    scene.hand_move(x, y);
+                }
+            }
+            WindowEvent::ModifiersChanged(m) => {
+                let st = m.state();
+                self.mods_held = st.control_key() && st.alt_key();
+            }
+            WindowEvent::MouseInput { state: ElementState::Released, button: MouseButton::Left, .. } => {
+                if let Some(scene) = &mut self.scene {
+                    scene.release();
+                }
+            }
+            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } if self.hand_on => {
+                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
+                let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
+                if let Some(scene) = &mut self.scene {
+                    scene.grab_at(x, y);
+                }
+            }
             WindowEvent::MouseInput { state: ElementState::Pressed, button, .. } => {
                 let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
                 let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
@@ -705,6 +874,7 @@ impl ApplicationHandler<UserEvent> for App {
     fn user_event(&mut self, el: &ActiveEventLoop, event: UserEvent) {
         match event {
             UserEvent::Ipc(cmd) => self.command(cmd, el),
+            UserEvent::Speech(ev) if ev.id() >= TEST_IDS => self.test_event(ev),
             UserEvent::Speech(ev) => self.input(Input::Speech(ev)),
         }
     }
@@ -717,6 +887,13 @@ impl ApplicationHandler<UserEvent> for App {
         if std::mem::take(&mut self.want_menu) {
             self.open_menu(el);
         }
+        if self.resolved.overlay
+            && let Some(held) = crate::control::modkeys::ctrl_alt_held()
+        {
+            self.mods_held = held;
+        }
+        self.update_cheats();
+        self.update_hand();
         if self.save_orb_at.is_some_and(|t| Instant::now() >= t) {
             self.save_orb_at = None;
             if let Err(e) = self.settings.save(&self.paths.config_file()) {
