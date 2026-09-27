@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Neutral "someone at work" backdrop for the overlay clip (scripts/render-docs.sh).
+     Fictional code, no real project, no network: rendered by headless Chromium. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: #1e1f26; color: #d7dae0;
+    font: 15px/1.55 "DejaVu Sans Mono", "Menlo", monospace; overflow: hidden; }
+  .bar { display: flex; gap: 2px; background: #16171d; padding: 6px 10px 0; font: 13px sans-serif; }
+  .tab { padding: 6px 14px; border-radius: 6px 6px 0 0; color: #8a8fa3; background: #1a1b22; }
+  .tab.on { color: #e6e8ef; background: #1e1f26; }
+  .main { display: flex; height: calc(100% - 34px); }
+  .side { width: 180px; background: #191a20; padding: 12px; font: 13px sans-serif; color: #8a8fa3; }
+  .side div { padding: 3px 0; } .side .on { color: #e6e8ef; }
+  pre { margin: 0; padding: 14px 18px; counter-reset: l; }
+  .k { color: #c792ea; } .s { color: #c3e88d; } .f { color: #82aaff; } .c { color: #676e95; } .n { color: #f78c6c; }
+</style>
+</head>
+<body>
+<div class="bar"><span class="tab on">invoice.ts</span><span class="tab">report.md</span><span class="tab">api.test.ts</span></div>
+<div class="main">
+<div class="side">
+  <div>▾ billing</div><div>&nbsp;&nbsp;api.ts</div><div class="on">&nbsp;&nbsp;invoice.ts</div><div>&nbsp;&nbsp;tax.ts</div>
+  <div>▸ reports</div><div>▸ tests</div><div>README.md</div>
+</div>
+<pre><span class="c">// Totals for the quarterly report (fictional sample).</span>
+<span class="k">export function</span> <span class="f">invoiceTotal</span>(items: Item[], rate = <span class="n">0.12</span>) {
+  <span class="k">const</span> subtotal = items.<span class="f">reduce</span>((sum, i) =&gt; sum + i.price * i.qty, <span class="n">0</span>);
+  <span class="k">const</span> tax = <span class="f">round</span>(subtotal * rate);
+  <span class="k">return</span> { subtotal, tax, total: subtotal + tax };
+}
+
+<span class="k">export async function</span> <span class="f">sendReport</span>(month: <span class="k">string</span>) {
+  <span class="k">const</span> rows = <span class="k">await</span> db.<span class="f">invoices</span>({ month, status: <span class="s">"paid"</span> });
+  <span class="k">if</span> (rows.length === <span class="n">0</span>) <span class="k">return</span> log.<span class="f">info</span>(<span class="s">"nothing to send"</span>);
+  <span class="k">const</span> body = <span class="f">render</span>(<span class="s">"quarterly"</span>, rows.<span class="f">map</span>((r) =&gt; <span class="f">invoiceTotal</span>(r.items)));
+  <span class="k">await</span> mail.<span class="f">send</span>({ to: <span class="s">"finance@example.com"</span>, body });
+}
+</pre>
+</div>
+</div>
+</body>
+</html>

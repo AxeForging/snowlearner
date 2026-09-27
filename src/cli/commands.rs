@@ -19,7 +19,11 @@ pub fn dispatch(cli: Cli) -> Result<()> {
     let paths = Paths::resolve()?;
     let settings = load_settings(&paths, &cli.run)?;
     match cli.command.unwrap_or(Cmd::Run) {
-        Cmd::Run => crate::app::run(settings, paths, cli.run.level),
+        Cmd::Run => {
+            crate::control::console::release_own_console();
+            crate::app::run(settings, paths, cli.run.level)
+        }
+        Cmd::Setup { lang, no_model } => setup(settings, &paths, lang.as_deref(), no_model),
         Cmd::Say => remote(&settings, Command::Challenge),
         Cmd::Summary => remote(&settings, Command::Summary),
         Cmd::Quit => remote(&settings, Command::Quit),
@@ -27,6 +31,8 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Cmd::Shortcuts { action } => shortcuts(&settings, action),
         Cmd::Pause => remote(&settings, Command::Pause),
         Cmd::Grab => remote(&settings, Command::Grab),
+        Cmd::Progress { print: false } if remote(&settings, Command::Progress).is_ok() => Ok(()),
+        Cmd::Progress { .. } => progress(&settings, &paths),
         Cmd::Report { date, speak } => report(&settings, &paths, date.as_deref(), speak),
         Cmd::Decks => decks(&settings, &paths),
         Cmd::Config { action: ConfigAction::Init { force } } => {
@@ -89,12 +95,7 @@ fn shortcuts(settings: &Settings, action: ShortcutAction) -> Result<()> {
     match action {
         ShortcutAction::Install => {
             let exe = std::env::current_exe()?.canonicalize()?.display().to_string();
-            let list = [
-                gnome::Shortcut { id: "say", name: "Snowlearner: praticar", keys: settings.hotkey_challenge.clone() },
-                gnome::Shortcut { id: "summary", name: "Snowlearner: resumo", keys: settings.hotkey_summary.clone() },
-                gnome::Shortcut { id: "menu", name: "Snowlearner: painel", keys: settings.hotkey_menu.clone() },
-                gnome::Shortcut { id: "grab", name: "Snowlearner: mão mágica", keys: settings.hotkey_grab.clone() },
-            ];
+            let list = shortcut_list(settings);
             gnome::install(&exe, &list)?;
             for s in &list {
                 println!("  {:<12} → {exe} {}", s.keys, s.id);
@@ -103,6 +104,66 @@ fn shortcuts(settings: &Settings, action: ShortcutAction) -> Result<()> {
         }
         ShortcutAction::Remove => println!("removed {} snowlearner shortcut(s)", gnome::remove()?),
     }
+    Ok(())
+}
+
+fn shortcut_list(settings: &Settings) -> Vec<gnome::Shortcut> {
+    vec![
+        gnome::Shortcut { id: "say", name: "Snowlearner: praticar", keys: settings.hotkey_challenge.clone() },
+        gnome::Shortcut { id: "summary", name: "Snowlearner: resumo", keys: settings.hotkey_summary.clone() },
+        gnome::Shortcut { id: "menu", name: "Snowlearner: painel", keys: settings.hotkey_menu.clone() },
+        gnome::Shortcut { id: "grab", name: "Snowlearner: mão mágica", keys: settings.hotkey_grab.clone() },
+        gnome::Shortcut { id: "progress", name: "Snowlearner: progresso", keys: settings.hotkey_progress.clone() },
+    ]
+}
+
+/// Everything a first start needs, each step idempotent and non-fatal: a
+/// missing network or desktop feature is reported, not an abort.
+fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, no_model: bool) -> Result<()> {
+    let file = paths.config_file();
+    if let Some(lang) = lang {
+        Deck::load(lang, &paths.decks_dir()).with_context(|| format!("--lang {lang}"))?;
+        settings.learning = lang.to_string();
+    }
+    if lang.is_some() || !file.exists() {
+        settings.save(&file)?;
+        println!("✓ configuração    {} (aprendendo: {})", file.display(), settings.learning);
+    } else {
+        println!("✓ configuração    {} (mantida)", file.display());
+    }
+
+    if no_model || !cfg!(feature = "stt") {
+        println!("- reconhecimento  pulado: você confirma as frases com {}", settings.hotkey_challenge);
+    } else if let Err(e) = download_model(paths, &settings.model) {
+        println!("! reconhecimento  não baixou ({e:#}); tente de novo: snowlearner model download");
+    } else {
+        println!("✓ reconhecimento  modelo {} pronto (offline)", settings.model);
+    }
+
+    let exe = std::env::current_exe()?.canonicalize()?.display().to_string();
+    if gnome::available() {
+        match gnome::install(&exe, &shortcut_list(&settings)) {
+            Ok(()) => println!(
+                "✓ atalhos         GNOME: {} praticar, {} progresso",
+                settings.hotkey_challenge, settings.hotkey_progress
+            ),
+            Err(e) => println!("! atalhos         não registrados ({e:#})"),
+        }
+    } else if platform::Session::detect().global_hotkeys() {
+        println!("✓ atalhos         {} praticar, {} progresso", settings.hotkey_challenge, settings.hotkey_progress);
+    } else {
+        println!("! atalhos         configure no seu desktop: `snowlearner doctor` mostra como");
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    match crate::control::launcher::applications_dir().map(|d| crate::control::launcher::install(&exe, &d)) {
+        Some(Ok(f)) => println!("✓ menu de apps    {}", f.display()),
+        Some(Err(e)) => println!("! menu de apps    {e:#}"),
+        None => {}
+    }
+
+    println!("\nPronto! Abra o Snowlearner pelo menu de apps ou rode: snowlearner");
+    println!("Você começa pelas primeiras palavras; veja seu progresso com {}.", settings.hotkey_progress);
     Ok(())
 }
 
@@ -227,6 +288,16 @@ fn report(settings: &Settings, paths: &Paths, date: Option<&str>, speak: bool) -
     Ok(())
 }
 
+fn progress(settings: &Settings, paths: &Paths) -> Result<()> {
+    let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
+    let history = History::open(&paths.db_file())?;
+    let stats = history.stats(&deck.language, Local::now().date_naive())?;
+    let selection = deck.selection(settings.topic_filter().as_deref(), &settings.max_level);
+    let report = crate::learn::progress::progress(&deck.phrases, &selection, &stats);
+    print!("{}", report.render_text(&deck.language_name));
+    Ok(())
+}
+
 fn decks(settings: &Settings, paths: &Paths) -> Result<()> {
     let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
     println!("{} [{} → {}] {} phrases", deck.title, deck.native, deck.language, deck.phrases.len());
@@ -302,8 +373,8 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
         ok(hk),
         if hk {
             format!(
-                "{} practice · {} recap · {} panel",
-                settings.hotkey_challenge, settings.hotkey_summary, settings.hotkey_menu
+                "{} practice · {} recap · {} panel · {} progress",
+                settings.hotkey_challenge, settings.hotkey_summary, settings.hotkey_menu, settings.hotkey_progress
             )
         } else {
             "not available here — see below".into()
@@ -359,6 +430,7 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
             (settings.hotkey_summary.as_str(), Command::Summary),
             (settings.hotkey_menu.as_str(), Command::Menu),
             (settings.hotkey_grab.as_str(), Command::Grab),
+            (settings.hotkey_progress.as_str(), Command::Progress),
             ("(any key)", Command::Pause),
         ];
         println!("\n{}", platform::shortcut_help(&exe, &bindings));

@@ -1,9 +1,18 @@
 # snowlearner
 
-A pixel-art frost mage lives on your desktop and slowly freezes your screen.
-The only way to fight back: **speak the language you're learning.**
+A pixel-art frost mage lives on your desktop and slowly freezes your screen — right over
+whatever you're working on. Snow piles up, frost creeps in from the edges. The only way to
+win your screen back: **speak the language you're learning.** Every answer you get right
+melts some of it; ignore him and it only gets worse.
 
-![a lesson: the frost mage asks, you answer, the fire mage strikes](docs/img/lesson.webp)
+![overlay mode: the frost mage over a code editor, a lesson, the fire mage melts the ice](docs/img/overlay.webp)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.sh | sh
+```
+
+That's it: it installs, downloads the offline speech model and registers the shortcuts.
+Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [Install](#install).
 
 - 🧙 The **frost mage** patrols the bottom of the screen throwing ice, calls **icicle rain**,
   and summons **snowmen** and **penguins** that burst frost onto the screen edges. He asks the
@@ -12,9 +21,14 @@ The only way to fight back: **speak the language you're learning.**
   fireball melts part of the ice. Three in a row call the **sun**.
 - ⚔️ A **warrior** tries to survive: builds *fogueiras*, sword-fights frost slimes and bats,
   gives you tips (false friends, pronunciation traps) — and freezes solid if you ignore him.
-- 🗣️ Lessons are **real situations** (meetings, travel, restaurant, doctor, phone, small talk…):
-  new phrases you hear and repeat, known ones you say **from memory**. Missed phrases come back
-  until you get them; a recognizer slip of a letter or two doesn't count against you.
+- 🪜 You start from **zero**: first single words (*hello, water, thanks*), then short
+  expressions (*good morning, the check please*), and only then full phrases — easy (A1) to
+  harder (B2). A few new items at a time; learning one opens the next, and it tells you so.
+- 🗣️ Everything is a **real situation** (meetings, travel, restaurant, doctor, phone, small
+  talk…): new items you hear and repeat, known ones you say **from memory**. Missed ones come
+  back until you get them; a recognizer slip of a letter or two doesn't count against you.
+- 📈 **Progress** (`Ctrl+Alt+P`): what you already know, what you're learning now and what
+  comes next, per stage and per topic.
 - 🎙️ It listens like a patient teacher: thinking time before you start, room to hesitate
   mid-sentence, a live mic meter, and your hotkey to say "done".
 - 🔊 Voices: your OS's own, or **Kokoro** / any OpenAI-compatible TTS server, or any command
@@ -25,9 +39,9 @@ The only way to fight back: **speak the language you're learning.**
   or the warrior (shy) up and drop them in the snow.
 - 🌙 At the end of the day it shows and **reads back** everything you practiced.
 
-| Icicle rain, summons, mobs | Pause = black hole |
-|---|---|
-| ![fight](docs/img/fight.webp) | ![black hole](docs/img/blackhole.webp) |
+| A lesson (window mode) | Icicle rain, summons, mobs | Pause = black hole |
+|---|---|---|
+| ![lesson](docs/img/lesson.webp) | ![fight](docs/img/fight.webp) | ![black hole](docs/img/blackhole.webp) |
 
 No cloud, no LLM required: recognition is whisper.cpp running offline.
 **No GPU needed**: everything is drawn on the CPU and blitted to the window, redrawing only
@@ -36,14 +50,31 @@ speech model adds ~150 MB during a lesson and is freed 2 minutes after).
 
 ## Install
 
+**Linux (x86_64) and macOS (Apple Silicon):**
+
 ```sh
-cargo install --path .                # or: cargo build --release
-snowlearner model download            # ~142 MB offline speech model (once)
-snowlearner shortcuts install         # GNOME/Wayland: registers the hotkeys
-snowlearner doctor                    # what works on this machine, and how to fix the rest
-snowlearner --mode overlay            # start (Linux Wayland defaults to a window)
+curl -fsSL https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.sh | sh -s -- --lang es   # Spanish
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.ps1 | iex
+```
+
+The installer downloads the latest [release](https://github.com/AxeForging/snowlearner/releases),
+checks its SHA-256, puts `snowlearner` in `~/.local/bin` (Windows: your user programs + PATH +
+Start menu) and runs `snowlearner setup`, which is safe to run again any time:
+
+- writes the config (`--lang en|es`), downloads the ~142 MB offline speech model (`--no-model` skips it),
+- registers the shortcuts on GNOME, adds Snowlearner to the app menu (Linux).
+
+Then start it from the app menu or with `snowlearner`. `snowlearner doctor` tells you what works
+on your machine and how to fix the rest. Linux needs a voice installed for the app to talk
+(`speech-dispatcher` or `espeak-ng`, present on most desktops). No GPU required.
+
+**From source:** `cargo install --git https://github.com/AxeForging/snowlearner`, then `snowlearner setup`.
 Build dependencies: Rust ≥ 1.85, CMake and a C/C++ compiler (for whisper.cpp).
 Linux also needs ALSA and libclang headers (`dnf install alsa-lib-devel clang-devel` /
 `apt install libasound2-dev libclang-dev`) and, at runtime, `speech-dispatcher` or `espeak-ng`.
@@ -56,7 +87,8 @@ none (hotkey confirms your answer, CPU-only drawing). `SNOWLEARNER_RENDERER=cpu|
 | Action | Hotkey / mouse | Command |
 |---|---|---|
 | Practice a phrase · "I'm done talking" · next | `Ctrl+Alt+M` · click the orb | `snowlearner say` |
-| Control panel (game + audio tabs) | `Ctrl+Alt+K` · Ctrl+click the orb | `snowlearner menu` |
+| Control panel (game, audio, progress tabs) | `Ctrl+Alt+K` · Ctrl+click the orb | `snowlearner menu` |
+| Your progress: known · learning · next | `Ctrl+Alt+P` | `snowlearner progress` (`--print` in the terminal) |
 | Magic hand (15 s) | hold `Ctrl+Alt` · `Ctrl+Alt+G` | `snowlearner grab` |
 | Pause (black hole) / resume | right-click the orb · `P` | `snowlearner pause` |
 | Today's recap | `Ctrl+Alt+J` · `S` | `snowlearner summary` |
@@ -102,13 +134,13 @@ relative to when you started. Stock whisper hallucinations ("Thank you for watch
 | | Windows | macOS | Linux X11 | Linux Wayland |
 |---|---|---|---|---|
 | Default display | transparent overlay | transparent overlay | transparent overlay | window (`--mode overlay` runs through XWayland) |
-| Global hotkeys | ✓ | ✓ | ✓ | `snowlearner shortcuts install` (GNOME) or bind `snowlearner say/menu/summary/grab` |
+| Global hotkeys | ✓ | ✓ | ✓ | `snowlearner setup` registers them (GNOME), or bind `snowlearner say/menu/summary/grab/progress` |
 | Hold Ctrl+Alt (cheat sheet, hand) | ✓ | ✓ | ✓ | hover the orb / `Ctrl+Alt+G` |
 | Voice (system) | SAPI via PowerShell | `say` | `spd-say` / `espeak-ng` | same |
 | Recognition | whisper.cpp | whisper.cpp | whisper.cpp | whisper.cpp |
 
-Tested hands-on on Fedora 42 (GNOME Wayland); Windows and macOS build and pass tests in CI
-(manual dispatch: `gh workflow run ci`).
+Tested hands-on on Fedora 42 (GNOME Wayland); Windows and macOS binaries are built by the
+release workflow on every `v*` tag (CI itself runs on Linux: `gh workflow run ci`).
 
 ## Configure
 
@@ -156,7 +188,8 @@ meaning = "Vamos marcar uma reunião"
 tip = "Schedule: 'skédjul' no americano."
 ```
 
-The built-in decks combine hand-written phrases with the Lexicaster curriculum
+The built-in decks combine hand-written phrases, the first words and expressions
+(`decks/<lang>.basics.toml`) and the Lexicaster curriculum
 (`node scripts/port-lexicaster.mjs ../learn-lang-game` regenerates `decks/*.lexicaster.toml`).
 
 ## Develop

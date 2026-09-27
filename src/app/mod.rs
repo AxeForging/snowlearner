@@ -92,6 +92,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         (settings.hotkey_summary.as_str(), Command::Summary),
         (settings.hotkey_menu.as_str(), Command::Menu),
         (settings.hotkey_grab.as_str(), Command::Grab),
+        (settings.hotkey_progress.as_str(), Command::Progress),
     ];
     let hotkeys = if session.global_hotkeys() {
         match Hotkeys::register(&bindings) {
@@ -142,6 +143,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         menu,
         menu_win: None,
         want_menu: false,
+        progress_at: Instant::now(),
         modifiers: Modifiers::default(),
         orb: None,
         orb_press: None,
@@ -214,6 +216,8 @@ struct App {
     menu_win: Option<Surface>,
     /// Open the panel on the next loop turn (needs the ActiveEventLoop).
     want_menu: bool,
+    /// When the PROGRESSO numbers were last read from the history.
+    progress_at: Instant,
     cursor: (f64, f64),
     modifiers: Modifiers,
     /// The draggable magic orb (overlay mode; window mode draws it in-scene).
@@ -297,6 +301,11 @@ impl App {
             Command::Summary => self.input(Input::Summary),
             Command::Dismiss => self.input(Input::Dismiss),
             Command::Menu => self.want_menu = true,
+            Command::Progress => {
+                self.menu.show(menu::Tab::Progress);
+                self.menu.progress = None; // fresh numbers
+                self.want_menu = true;
+            }
             Command::Pause => self.toggle_pause(),
             Command::Grab => {
                 self.hand_until = match self.hand_until {
@@ -576,6 +585,7 @@ impl App {
             (self.settings.hotkey_menu.as_str(), "painel"),
             (self.settings.hotkey_summary.as_str(), "resumo do dia"),
             (self.settings.hotkey_grab.as_str(), "mão mágica"),
+            (self.settings.hotkey_progress.as_str(), "progresso"),
         ];
         scene.hud.cheats =
             Some(Cheats::from_hotkeys(scene.hole, &keys, "Orbe: clique pratica · Ctrl+clique painel · direito pausa"));
@@ -625,6 +635,14 @@ impl App {
 
     fn draw_menu(&mut self) {
         let time = self.scene.as_ref().map(|s| s.time).unwrap_or(0.0);
+        // Progress reads the history: refresh on open and every few seconds, not every frame.
+        if self.menu_win.is_some()
+            && self.menu.tab == menu::Tab::Progress
+            && (self.menu.progress.is_none() || self.progress_at.elapsed() > Duration::from_secs(3))
+        {
+            self.menu.progress = Some(self.lesson.progress());
+            self.progress_at = Instant::now();
+        }
         self.menu.status = format!(
             "Hoje: {}/{}  ·  combo x{}",
             self.lesson.done_today(),

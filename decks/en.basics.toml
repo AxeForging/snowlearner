@@ -1,0 +1,652 @@
+# Hand-curated beginner deck: first words, then short chunks. Real situations only.
+language = "en"
+native = "pt-BR"
+language_name = "inglês"
+title = "Primeiros passos"
+
+# ---------------------------------------------------------------- first words
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você entra numa loja e o atendente olha pra você."
+say = "Hello."
+meaning = "Olá."
+accept = ["Hi"]
+tip = "'Hello' soa como 'relôu'. O 'h' é aspirado, como um 'r' suave."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você sai da padaria e acena para o caixa."
+say = "Bye."
+meaning = "Tchau."
+accept = ["Goodbye", "Bye-bye"]
+tip = "'Bye' soa como 'bái'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "O recepcionista pergunta se você tem reserva, e você tem."
+say = "Yes."
+meaning = "Sim."
+accept = ["Yeah", "Yep"]
+tip = "'Yes' soa como 'iés', com o 's' bem sibilado."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O vendedor pergunta se você quer mais alguma coisa, e você não quer."
+say = "No."
+meaning = "Não."
+accept = ["Nope"]
+tip = "'No' soa como 'nôu', não como 'nó'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom oferece mais café e você aceita com educação."
+say = "Please."
+meaning = "Por favor."
+tip = "'Please' soa como 'plíiz', com o 'i' longo."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Um desconhecido segura a porta pra você passar."
+say = "Thanks."
+meaning = "Obrigado."
+accept = ["Thank you", "Thanks a lot"]
+tip = "O 'th' é com a língua entre os dentes: 'thanks', não 'fenks'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você esbarra em alguém sem querer na fila."
+say = "Sorry."
+meaning = "Desculpa."
+accept = ["I'm sorry", "Sorry about that"]
+tip = "'Sorry' soa como 'sóri'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "No restaurante, o garçom pergunta o que você quer beber."
+say = "Water."
+meaning = "Água."
+accept = ["Water, please"]
+tip = "'Water' soa como 'uóter' (nos EUA, quase 'uórer')."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "No café da manhã do hotel, perguntam se você quer café ou chá."
+say = "Coffee."
+meaning = "Café."
+accept = ["Coffee, please"]
+tip = "'Coffee' soa como 'cófi', com a força no começo."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Depois do almoço, perguntam se você quer café ou chá, e você quer chá."
+say = "Tea."
+meaning = "Chá."
+accept = ["Tea, please"]
+tip = "'Tea' soa como 'tí', com o 'i' longo."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "No bar, o atendente pergunta o que você vai tomar."
+say = "Beer."
+meaning = "Cerveja."
+accept = ["A beer", "Beer, please"]
+tip = "'Beer' soa como 'bír'. Cuidado para não falar 'bear' (urso)."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você está apertado no aeroporto e só consegue perguntar o essencial."
+say = "Bathroom?"
+meaning = "Banheiro?"
+accept = ["Restroom?", "Toilet?"]
+tip = "Nos EUA se diz 'bathroom' ou 'restroom'; no Reino Unido, 'toilet'."
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você caiu na rua e não consegue levantar sozinho."
+say = "Help!"
+meaning = "Socorro!"
+accept = ["Help me!"]
+tip = "'Help' soa como 'rélp'. O 'l' é bem curtinho."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O táxi está passando do seu destino e você precisa que ele pare."
+say = "Stop!"
+meaning = "Pare!"
+accept = ["Stop here!"]
+tip = "Não coloque 'i' no começo: é 'stóp', não 'istópi'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Seu amigo vai entrar no ônibus e você ainda está pegando a mochila."
+say = "Wait!"
+meaning = "Espera!"
+accept = ["Wait for me!"]
+tip = "'Wait' soa como 'uêit'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O motorista do aplicativo pergunta pra que lado virar na esquina."
+say = "Left."
+meaning = "Esquerda."
+tip = "'Left' soa como 'léft', com o 't' curtinho no fim."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O motorista pergunta de novo, e agora é para o outro lado."
+say = "Right."
+meaning = "Direita."
+tip = "'Right' soa como 'ráit'. Também quer dizer 'certo'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O mecânico pergunta quando você precisa do carro, e é pra hoje mesmo."
+say = "Today."
+meaning = "Hoje."
+tip = "'Today' soa como 'tudêi', com a força no final."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Perguntam quando você vai voltar pra buscar o conserto."
+say = "Tomorrow."
+meaning = "Amanhã."
+tip = "'Tomorrow' soa como 'tumórou'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Um colega pergunta quando é a festa, e é hoje à noite."
+say = "Tonight."
+meaning = "Hoje à noite."
+tip = "'Tonight' soa como 'tunáit'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "O médico pergunta quando a dor começou."
+say = "Yesterday."
+meaning = "Ontem."
+tip = "'Yesterday' soa como 'iésterdei'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Na bilheteria do metrô, perguntam quantos bilhetes você quer, e é só pra você."
+say = "One."
+meaning = "Um."
+accept = ["Just one", "One, please"]
+tip = "'One' soa como 'uân'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você está com um amigo e o garçom pergunta quantos cafés."
+say = "Two."
+meaning = "Dois."
+accept = ["Two, please"]
+tip = "'Two' soa como 'tú', com o 'u' longo. Igual a 'to' e 'too'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Na feira, o vendedor pergunta quantas maçãs você quer."
+say = "Three."
+meaning = "Três."
+accept = ["Three, please"]
+tip = "'Three' tem 'th': língua entre os dentes, 'thríi'. Não é 'tri' nem 'fri'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No elevador do hotel, alguém pergunta pra qual andar você vai."
+say = "Four."
+meaning = "Quatro."
+accept = ["Four, please"]
+tip = "'Four' soa como 'fór'."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Na banca, você pergunta o preço e precisa confirmar que é cinco dólares."
+say = "Five?"
+meaning = "Cinco?"
+accept = ["Five dollars?"]
+tip = "'Five' soa como 'fáiv', com o 'v' vibrando no lábio."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "A atendente falou rápido demais e você não pegou o nome da rua."
+say = "Again?"
+meaning = "De novo?"
+accept = ["Again, please?", "Sorry, again?"]
+tip = "'Again' soa como 'aguén'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Alguém diz que o ponto de ônibus fica perto, mas você não vê nada."
+say = "Where?"
+meaning = "Onde?"
+tip = "'Where' soa como 'uér'. O 'h' não se pronuncia."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom chega com o prato e não sabe onde colocar."
+say = "Here."
+meaning = "Aqui."
+accept = ["Right here", "Over here"]
+tip = "'Here' soa como 'rír'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O porteiro pergunta quando você quer o táxi, e é pra já."
+say = "Now."
+meaning = "Agora."
+accept = ["Right now"]
+tip = "'Now' soa como 'náu'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Seu amigo liga querendo conversar, mas você está no mercado."
+say = "Later."
+meaning = "Mais tarde."
+accept = ["Later, okay?"]
+tip = "'Later' soa como 'lêiter' (nos EUA, quase 'lêirer')."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O caixa pergunta se vai ser no cartão ou em dinheiro, e você tem dinheiro."
+say = "Cash."
+meaning = "Dinheiro."
+accept = ["In cash", "Cash, please"]
+tip = "'Cash' soa como 'késh', com o 'a' bem aberto."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O caixa pergunta como você vai pagar, e é no cartão."
+say = "Card."
+meaning = "Cartão."
+accept = ["By card", "Credit card", "Debit card"]
+tip = "'Card' soa como 'cárd'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Na cafeteria, perguntam se o seu chá é quente ou gelado."
+say = "Hot."
+meaning = "Quente."
+tip = "'Hot' soa como 'rót', com o 'h' aspirado."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Perguntam se você quer a água gelada ou natural, e você quer gelada."
+say = "Cold."
+meaning = "Gelada."
+accept = ["Cold, please"]
+tip = "'Cold' soa como 'côuld'. Não confunda com 'called'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Na cafeteria, perguntam o tamanho do copo e você quer o menor."
+say = "Small."
+meaning = "Pequeno."
+accept = ["Small, please"]
+tip = "'Small' soa como 'smól'. Não coloque 'i' antes do 's'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Agora você está com muito sono e quer o maior café possível."
+say = "Large."
+meaning = "Grande."
+accept = ["Large, please"]
+tip = "'Large' soa como 'lárdj'. Não é 'larga'!"
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você entra no táxi e o motorista pergunta pra onde vai."
+say = "Airport."
+meaning = "Aeroporto."
+accept = ["The airport", "Airport, please"]
+tip = "'Airport' soa como 'érport'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Perguntam se você vai pro aeroporto ou pro centro, e você vai pro centro."
+say = "Downtown."
+meaning = "Centro."
+accept = ["Downtown, please", "City center"]
+tip = "'Downtown' soa como 'dáuntáun'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Todo mundo levanta o copo pra brindar no jantar."
+say = "Cheers!"
+meaning = "Saúde!"
+tip = "'Cheers' soa como 'tchírz'. No Reino Unido também quer dizer 'valeu'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Um amigo pergunta se pode sentar do seu lado."
+say = "Sure."
+meaning = "Claro."
+accept = ["Sure thing", "Of course"]
+tip = "'Sure' soa como 'shúr'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Te convidam pra uma festa, mas você ainda não sabe se vai."
+say = "Maybe."
+meaning = "Talvez."
+tip = "'Maybe' soa como 'mêibi'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No avião, a comissária pergunta se você quer frango ou massa."
+say = "Chicken."
+meaning = "Frango."
+accept = ["Chicken, please"]
+tip = "'Chicken' soa como 'tchíken'. Não confunda com 'kitchen' (cozinha)."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No check-in, perguntam se você prefere janela ou corredor, e você quer o corredor."
+say = "Aisle."
+meaning = "Corredor."
+accept = ["Aisle, please", "An aisle seat"]
+tip = "'Aisle' soa como 'áil'. O 's' é mudo!"
+
+# ---------------------------------------------------------------- short chunks
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você chega no trabalho às oito e cumprimenta o porteiro."
+say = "Good morning."
+meaning = "Bom dia."
+accept = ["Morning"]
+tip = "Vale até o meio-dia. Depois disso é 'good afternoon'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você entra numa loja às três da tarde e cumprimenta a vendedora."
+say = "Good afternoon."
+meaning = "Boa tarde."
+accept = ["Afternoon"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você chega no restaurante às oito da noite e cumprimenta a hostess."
+say = "Good evening."
+meaning = "Boa noite."
+accept = ["Evening"]
+tip = "'Good evening' é para chegar. 'Good night' é só para se despedir."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você vai dormir e se despede das pessoas na sala do hostel."
+say = "Good night."
+meaning = "Boa noite."
+accept = ["Night", "Night night"]
+tip = "Só se usa 'good night' na despedida, nunca para cumprimentar."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você precisa passar por uma pessoa parada no corredor do mercado."
+say = "Excuse me."
+meaning = "Com licença."
+accept = ["Excuse me, please"]
+tip = "'Excuse me' soa como 'ekskiúz mi'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Vocês terminaram de jantar e querem pagar."
+say = "The check, please."
+meaning = "A conta, por favor."
+accept = ["Check, please", "The bill, please", "Bill, please"]
+tip = "Nos EUA se diz 'check'; no Reino Unido, 'bill'."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Na feira, você aponta para um pote de mel sem preço."
+say = "How much?"
+meaning = "Quanto?"
+accept = ["How much is this?"]
+tip = "'How much' soa como 'ráu match'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você acabou de sentar no restaurante e precisa lavar as mãos."
+say = "Where's the bathroom?"
+meaning = "Onde fica o banheiro?"
+accept = ["Where is the bathroom?", "Where's the restroom?", "Where is the restroom?"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Você sai do curso e se despede dos colegas que vai ver no dia seguinte."
+say = "See you tomorrow!"
+meaning = "Até amanhã!"
+accept = ["See ya tomorrow"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom oferece suco, refrigerante e vinho, mas você só quer água."
+say = "Just water, please."
+meaning = "Só água, por favor."
+accept = ["Just water", "Only water, please"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você chega no balcão da cafeteria com um amigo."
+say = "Two coffees, please."
+meaning = "Dois cafés, por favor."
+accept = ["Two coffees"]
+tip = "Plural: 'coffees', com o 's' no fim."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Um colega diz que adora pizza, e você também."
+say = "Me too."
+meaning = "Eu também."
+accept = ["Same here"]
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você está no meio de uma cidade desconhecida e para alguém na rua."
+say = "I'm lost."
+meaning = "Estou perdido."
+accept = ["I am lost", "I'm a bit lost"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "O atendente explica o caminho rápido demais pra você."
+say = "Slowly, please."
+meaning = "Devagar, por favor."
+accept = ["More slowly, please", "Slower, please"]
+tip = "'Slowly' soa como 'slôuli'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "A cerveja acabou e você chama o garçom pra pedir outra."
+say = "One more, please."
+meaning = "Mais uma, por favor."
+accept = ["Another one, please", "One more"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O caixa vai colocar suas duas coisinhas numa sacola, mas você não precisa."
+say = "No bag, thanks."
+meaning = "Sem sacola, obrigado."
+accept = ["No bag, thank you", "I don't need a bag"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Alguém acabou de roubar a bolsa de uma senhora na sua frente."
+say = "Call the police!"
+meaning = "Chama a polícia!"
+tip = "'Police' soa como 'polícs', com a força no 'lí'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Seu amigo pergunta se você quer parar pra comer."
+say = "I'm hungry."
+meaning = "Estou com fome."
+accept = ["I am hungry", "I'm so hungry"]
+tip = "'Hungry' (fome) soa como 'rângri'. Não confunda com 'angry' (bravo)."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Depois de um dia inteiro andando, seu amigo quer sair de novo."
+say = "I'm tired."
+meaning = "Estou cansado."
+accept = ["I am tired", "I'm so tired"]
+tip = "'Tired' soa como 'táierd'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "O show acabou e você não acha por onde sair do estádio."
+say = "Where's the exit?"
+meaning = "Onde fica a saída?"
+accept = ["Where is the exit?"]
+tip = "'Exit' soa como 'éksit' ou 'égzit'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Um turista pergunta o caminho do museu, que fica em frente."
+say = "Straight ahead."
+meaning = "Sempre reto."
+accept = ["Go straight ahead", "Straight on"]
+tip = "'Straight' soa como 'strêit'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Na padaria, você não sabe o nome do pão e aponta pra ele."
+say = "This one, please."
+meaning = "Esse aqui, por favor."
+accept = ["This one", "That one, please"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Você entrega o dinheiro para o caixa."
+say = "Here you go."
+meaning = "Aqui está."
+accept = ["Here you are", "There you go"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "O atendente pede seu passaporte e você precisa procurar na mochila."
+say = "One moment, please."
+meaning = "Um momento, por favor."
+accept = ["Just a moment", "One moment", "Just a second"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você pede um refrigerante, mas está com dor de garganta."
+say = "No ice, please."
+meaning = "Sem gelo, por favor."
+accept = ["No ice", "Without ice, please"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Sua amiga vai fazer uma entrevista de emprego amanhã."
+say = "Good luck!"
+meaning = "Boa sorte!"
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "É aniversário de um colega e ele chega no escritório."
+say = "Happy birthday!"
+meaning = "Feliz aniversário!"
+
+[[phrase]]
+topic = "saúde e social"
+level = "A2"
+situation = "Um vizinho pergunta se pode deixar um pacote com você."
+say = "Of course."
+meaning = "Claro."
+accept = ["Sure, of course"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A2"
+situation = "Você se despede de um amigo que vai viajar."
+say = "Take care!"
+meaning = "Se cuida!"
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "O Uber chegou e seus amigos ainda estão enrolando na porta."
+say = "Let's go!"
+meaning = "Vamos!"
+accept = ["Come on, let's go"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "Na lanchonete, perguntam se é pra comer aqui ou pra viagem."
+say = "To go, please."
+meaning = "Pra viagem, por favor."
+accept = ["To go", "Takeaway, please"]
+tip = "Nos EUA se diz 'to go'; no Reino Unido, 'takeaway'."

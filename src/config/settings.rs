@@ -39,6 +39,8 @@ pub struct Settings {
     pub hotkey_menu: String,
     /// Magic hand for 15 s (holding Ctrl+Alt does it too where the OS allows).
     pub hotkey_grab: String,
+    /// Opens the panel on PROGRESSO: what you know and what comes next.
+    pub hotkey_progress: String,
     /// Where the magic orb sits on screen (overlay mode); negative = top-right corner.
     pub orb_x: i32,
     pub orb_y: i32,
@@ -87,6 +89,7 @@ impl Default for Settings {
             hotkey_summary: "Ctrl+Alt+J".into(),
             hotkey_menu: "Ctrl+Alt+K".into(),
             hotkey_grab: "Ctrl+Alt+G".into(),
+            hotkey_progress: "Ctrl+Alt+P".into(),
             orb_x: -1,
             orb_y: -1,
             summary_time: "21:00".into(),

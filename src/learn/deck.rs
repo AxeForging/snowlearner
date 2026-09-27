@@ -9,11 +9,26 @@ use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use std::path::Path;
 
-/// Built-in decks per language: hand-curated first, then the phrases ported
-/// from Lexicaster (`scripts/port-lexicaster.mjs`). Duplicates keep the first.
+/// Built-in decks per language: hand-curated phrases, the first words and
+/// chunks (`<lang>.basics.toml`), then the phrases ported from Lexicaster
+/// (`scripts/port-lexicaster.mjs`). Duplicates keep the first.
 const BUILTIN: &[(&str, &[&str])] = &[
-    ("en", &[include_str!("../../decks/en.toml"), include_str!("../../decks/en.lexicaster.toml")]),
-    ("es", &[include_str!("../../decks/es.toml"), include_str!("../../decks/es.lexicaster.toml")]),
+    (
+        "en",
+        &[
+            include_str!("../../decks/en.toml"),
+            include_str!("../../decks/en.basics.toml"),
+            include_str!("../../decks/en.lexicaster.toml"),
+        ],
+    ),
+    (
+        "es",
+        &[
+            include_str!("../../decks/es.toml"),
+            include_str!("../../decks/es.basics.toml"),
+            include_str!("../../decks/es.lexicaster.toml"),
+        ],
+    ),
 ];
 
 pub const LEVELS: &[&str] = &["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -360,6 +375,19 @@ mod tests {
         assert_eq!(d.selection(None, "A2"), vec![0, 2], "unleveled phrases are always in");
         assert_eq!(d.selection(Some("viagem"), "C2"), vec![0, 1]);
         assert!(d.selection(Some("nada"), "C2").is_empty());
+    }
+
+    #[test]
+    fn builtin_decks_start_from_single_words_and_short_chunks() {
+        use crate::learn::path::Stage;
+        for lang in Deck::builtin_languages() {
+            let d = Deck::builtin(lang).unwrap();
+            let count = |st: Stage| d.phrases.iter().filter(|p| Stage::of(p) == st).count();
+            assert!(count(Stage::Words) >= 40, "{lang}: {} first words", count(Stage::Words));
+            assert!(count(Stage::Chunks) >= 40, "{lang}: {} short chunks", count(Stage::Chunks));
+            let first = crate::learn::path::ordered(&d.phrases, &d.selection(None, "C2"))[0];
+            assert_eq!(Stage::of(&d.phrases[first]), Stage::Words, "{lang} path starts with a word");
+        }
     }
 
     #[test]

@@ -1,0 +1,70 @@
+name: release
+
+# Builds every OS only when a version is tagged (`git tag v0.1.0 && git push --tags`);
+# regular CI stays Linux-only to save runner minutes.
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  # Portable whisper.cpp (AVX2/FMA baseline) instead of -march=native of the runner.
+  GGML_NATIVE: "OFF"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # 22.04 → glibc 2.35: runs on most Linux desktops from 2022 on.
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, archive: tar.gz }
+          - { os: macos-14, target: aarch64-apple-darwin, archive: tar.gz }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev
+      - run: cargo build --release --locked
+      - name: package
+        shell: bash
+        run: |
+          name=snowlearner-${{ matrix.target }}
+          mkdir "$name"
+          cp README.md LICENSE "$name"/
+          if [ "${{ matrix.archive }}" = zip ]; then
+            cp target/release/snowlearner.exe "$name"/
+            7z a "$name.zip" "$name" >/dev/null
+            file="$name.zip"
+          else
+            cp target/release/snowlearner "$name"/
+            tar -czf "$name.tar.gz" "$name"
+            file="$name.tar.gz"
+          fi
+          if command -v sha256sum >/dev/null; then sha256sum "$file" > "$file.sha256"; else shasum -a 256 "$file" > "$file.sha256"; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: snowlearner-${{ matrix.target }}.*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/* \
+            --title "snowlearner ${{ github.ref_name }}" \
+            --notes "Instale com um comando: veja o README. Linux x86_64, macOS (Apple Silicon) e Windows x86_64." \
+            --verify-tag

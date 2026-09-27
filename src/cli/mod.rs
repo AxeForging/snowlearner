@@ -37,6 +37,15 @@ pub struct RunArgs {
 pub enum Cmd {
     /// Start the app (default).
     Run,
+    /// One-time setup, safe to repeat: config, speech model, shortcuts, app launcher.
+    Setup {
+        /// Language to learn: en or es (default: keep the current one, English at first).
+        #[arg(long)]
+        lang: Option<String>,
+        /// Skip the ~142 MB speech model (you'll confirm phrases with the hotkey).
+        #[arg(long)]
+        no_model: bool,
+    },
     /// Ask the running app for a phrase challenge (bind this to a desktop shortcut on Wayland).
     Say,
     /// Show the end-of-day recap in the running app.
@@ -52,6 +61,13 @@ pub enum Cmd {
     Pause,
     /// Magic hand for 15 s: drag the mage or the warrior around (Ctrl+Alt+G).
     Grab,
+    /// Your progress: words → expressions → phrases (opens the panel, or prints it
+    /// when the app isn't running).
+    Progress {
+        /// Print it here instead of opening the panel.
+        #[arg(long)]
+        print: bool,
+    },
     /// Close the running app.
     Quit,
     /// Print what you practiced on a day (works without the app running).

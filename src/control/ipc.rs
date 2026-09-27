@@ -20,6 +20,8 @@ pub enum Command {
     /// holding Ctrl+Alt can't be detected, e.g. Wayland).
     Grab,
     Quit,
+    /// Open the control panel on the PROGRESSO tab.
+    Progress,
 }
 
 impl Command {
@@ -32,6 +34,7 @@ impl Command {
             "pause" => Some(Command::Pause),
             "grab" => Some(Command::Grab),
             "quit" => Some(Command::Quit),
+            "progress" => Some(Command::Progress),
             _ => None,
         }
     }
@@ -45,6 +48,7 @@ impl Command {
             Command::Pause => "pause",
             Command::Grab => "grab",
             Command::Quit => "quit",
+            Command::Progress => "progress",
         }
     }
 }

@@ -202,3 +202,103 @@ fn model_download_rejects_unknown_sizes_without_touching_the_network() {
     assert!(!o.status.success());
     assert!(stderr(&o).contains("unknown model"));
 }
+
+#[test]
+fn progress_without_the_app_prints_a_path_that_starts_with_words() {
+    let home = Home::new();
+    home.config(&format!("ipc_port = {}\n", free_port()));
+    let o = home.run(&["progress"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let out = stdout(&o);
+    assert!(out.contains("Progresso em inglês: 0 de "), "{out}");
+    assert!(out.contains("Etapa atual: palavras"), "{out}");
+    assert!(out.contains("Aprendendo agora:"), "{out}");
+}
+
+#[test]
+fn progress_counts_a_word_as_known_after_two_successes() {
+    let home = Home::new();
+    home.config(&format!("ipc_port = {}\n", free_port()));
+    let h = home.history();
+    for ok in [true, true, false] {
+        let say = if ok { "Water." } else { "Hello." };
+        h.record(&Attempt {
+            at: Local::now(),
+            language: "en".into(),
+            say: say.into(),
+            meaning: "m".into(),
+            heard: say.into(),
+            score: if ok { 1.0 } else { 0.1 },
+            success: ok,
+        })
+        .unwrap();
+    }
+    let out = stdout(&home.run(&["progress", "--print"]));
+    assert!(out.contains("Progresso em inglês: 1 de "), "{out}");
+    assert!(out.contains(", 1 aprendendo"), "the missed word is still being learned: {out}");
+    assert!(!out.contains("Aprendendo agora:\n  Water."), "known words leave the learning list: {out}");
+}
+
+#[test]
+fn progress_opens_the_panel_of_a_running_instance() {
+    let home = Home::new();
+    let (tx, rx) = mpsc::channel();
+    let addr = ipc::serve(0, move |c| tx.send(c).unwrap()).unwrap();
+    home.config(&format!("ipc_port = {}\n", addr.port()));
+    let o = home.run(&["progress"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), Command::Progress);
+    assert!(stdout(&o).is_empty(), "the panel shows it, not the terminal");
+}
+
+impl Home {
+    /// `setup` without touching the real desktop: no GNOME, launcher in the temp home.
+    fn setup(&self, args: &[&str]) -> Output {
+        Proc::new(env!("CARGO_BIN_EXE_snowlearner"))
+            .arg("setup")
+            .args(args)
+            .env("SNOWLEARNER_HOME", self.dir.path())
+            .env("XDG_DATA_HOME", self.dir.path().join("xdg"))
+            .env_remove("XDG_CURRENT_DESKTOP")
+            .output()
+            .expect("running snowlearner setup")
+    }
+}
+
+#[test]
+fn setup_writes_the_config_with_the_chosen_language_and_a_launcher() {
+    let home = Home::new();
+    let o = home.setup(&["--lang", "es", "--no-model"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let config = std::fs::read_to_string(home.dir.path().join("config/config.toml")).unwrap();
+    assert!(config.contains("learning = \"es\""), "{config}");
+    let out = stdout(&o);
+    assert!(out.contains("Pronto!"), "{out}");
+    assert!(out.contains("reconhecimento  pulado"), "{out}");
+    if cfg!(all(unix, not(target_os = "macos"))) {
+        let entry = std::fs::read_to_string(home.dir.path().join("xdg/applications/snowlearner.desktop")).unwrap();
+        assert!(entry.contains(env!("CARGO_BIN_EXE_snowlearner").rsplit('/').next().unwrap()), "{entry}");
+    }
+    let progress = stdout(&home.run(&["progress", "--print"]));
+    assert!(progress.contains("espanhol"), "setup's language is used afterwards: {progress}");
+}
+
+#[test]
+fn setup_again_keeps_the_existing_config() {
+    let home = Home::new();
+    home.config("learning = \"es\"\ndaily_goal = 7\n");
+    let o = home.setup(&["--no-model"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    assert!(stdout(&o).contains("(mantida)"));
+    let config = std::fs::read_to_string(home.dir.path().join("config/config.toml")).unwrap();
+    assert_eq!(config, "learning = \"es\"\ndaily_goal = 7\n", "user edits untouched");
+}
+
+#[test]
+fn setup_rejects_an_unknown_language_before_changing_anything() {
+    let home = Home::new();
+    let o = home.setup(&["--lang", "klingon", "--no-model"]);
+    assert!(!o.status.success());
+    assert!(stderr(&o).contains("klingon"), "{}", stderr(&o));
+    assert!(!home.dir.path().join("config/config.toml").exists());
+}

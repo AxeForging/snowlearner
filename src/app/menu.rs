@@ -1,12 +1,15 @@
 //! The control panel ("Painel"): a small pixel window to change settings live
-//! and trigger actions, in two tabs — JOGO (game) and ÁUDIO (mic, voices).
+//! and trigger actions, in three tabs — JOGO (game), ÁUDIO (mic, voices) and
+//! PROGRESSO (what you know, what you're learning, what comes next).
 //! Pure state + drawing; the app owns the window.
 //! Keys: ↑/↓ choose, ←/→ change, Enter act, Tab switch tab, Esc close. Mouse: click.
 
 use crate::config::level::Commitment;
 use crate::config::settings::{Settings, WindowMode};
 use crate::learn::deck::LEVELS;
+use crate::learn::path::Stage;
 use crate::learn::picker::Practice;
+use crate::learn::progress::{Progress, Tally};
 use crate::render::canvas::{Canvas, Rgba, hex};
 use crate::render::font;
 use crate::speech::voices::TtsEngine;
@@ -44,7 +47,10 @@ pub enum Item {
 pub enum Tab {
     Game,
     Audio,
+    Progress,
 }
+
+const TABS: [(Tab, &str); 3] = [(Tab::Game, "JOGO"), (Tab::Audio, "ÁUDIO"), (Tab::Progress, "PROGRESSO")];
 
 pub const GAME: &[Item] = &[
     Item::Language,
@@ -105,6 +111,8 @@ pub struct Menu {
     pub test_result: String,
     /// Line shown at the bottom ("Hoje: 4/10 · combo x2").
     pub status: String,
+    /// What the PROGRESSO tab shows (the app refreshes it).
+    pub progress: Option<Progress>,
 }
 
 fn cycle<T: PartialEq + Clone>(options: &[T], current: &T, forward: bool) -> T {
@@ -126,6 +134,27 @@ fn shorten(s: &str, max: usize) -> String {
     if s.chars().count() <= max { s.to_string() } else { format!("{}…", s.chars().take(max - 1).collect::<String>()) }
 }
 
+/// Shortens `text` with "…" until it fits `max` pixels.
+fn fit(text: &str, max: i32) -> String {
+    let mut out = text.to_string();
+    while font::text_width(&out) > max && out.chars().count() > 1 {
+        out = format!("{}…", out.chars().take(out.chars().count() - 2).collect::<String>());
+    }
+    out
+}
+
+/// Known (green), learning (yellow), not started (dark).
+fn meter(c: &mut Canvas, x: i32, y: i32, w: i32, t: Tally) {
+    c.rect(x, y, w, 5, hex(0x1d2a5a));
+    if t.total == 0 {
+        return;
+    }
+    let known = (t.known * w as usize / t.total) as i32;
+    let learning = ((t.known + t.learning) * w as usize / t.total) as i32 - known;
+    c.rect(x, y, known, 5, hex(0x7dff9b));
+    c.rect(x + known, y, learning, 5, hex(0xffd64a));
+}
+
 impl Menu {
     pub fn new(languages: Vec<String>, topics: Vec<String>) -> Menu {
         Menu {
@@ -141,6 +170,7 @@ impl Menu {
             meter: None,
             test_result: String::new(),
             status: String::new(),
+            progress: None,
         }
     }
 
@@ -148,6 +178,7 @@ impl Menu {
         match self.tab {
             Tab::Game => GAME,
             Tab::Audio => AUDIO,
+            Tab::Progress => &[],
         }
     }
 
@@ -156,7 +187,12 @@ impl Menu {
     }
 
     pub fn switch_tab(&mut self) {
-        self.tab = if self.tab == Tab::Game { Tab::Audio } else { Tab::Game };
+        let i = TABS.iter().position(|(t, _)| *t == self.tab).unwrap_or(0);
+        self.show(TABS[(i + 1) % TABS.len()].0);
+    }
+
+    pub fn show(&mut self, tab: Tab) {
+        self.tab = tab;
         self.sel = 0;
     }
 
@@ -221,6 +257,8 @@ impl Menu {
     pub fn key(&mut self, key: Key, s: &mut Settings) -> Action {
         let n = self.items().len();
         match key {
+            // PROGRESSO has nothing to select.
+            Key::Up | Key::Down | Key::Left | Key::Right | Key::Enter if n == 0 => Action::None,
             Key::Up => {
                 self.sel = (self.sel + n - 1) % n;
                 Action::None
@@ -246,9 +284,9 @@ impl Menu {
             return Action::None;
         }
         if (TABS_Y..TABS_Y + ROW_H).contains(&y) {
-            let want = if x < WIDTH / 2 { Tab::Game } else { Tab::Audio };
+            let want = TABS[(x * TABS.len() as i32 / WIDTH) as usize].0;
             if want != self.tab {
-                self.switch_tab();
+                self.show(want);
             }
             return Action::None;
         }
@@ -322,6 +360,44 @@ impl Menu {
         }
     }
 
+    fn draw_progress(&self, c: &mut Canvas, ink: Rgba, dim: Rgba, accent: Rgba) {
+        let gold = hex(0xffd64a);
+        let Some(p) = &self.progress else {
+            font::draw(c, 6, TOP - 2, "Carregando...", dim);
+            return;
+        };
+        let o = p.overall;
+        let pct = if o.total == 0 { 0 } else { o.known * 100 / o.total };
+        let head = format!("Sabe {} de {} ({pct}%) · aprendendo {}", o.known, o.total, o.learning);
+        font::draw(c, 6, TOP - 2, &fit(&head, WIDTH - 12), ink);
+        for (k, (stage, t)) in p.stages.iter().enumerate() {
+            let y = TOP + (k as i32 + 1) * ROW_H;
+            let here = p.current == Some(*stage);
+            if here {
+                font::draw(c, 3, y - 2, ">", gold);
+            }
+            font::draw(c, 10, y - 2, Stage::label_pt(*stage), if here { gold } else { ink });
+            meter(c, 76, y + 3, 100, *t);
+            let n = format!("{}/{}", t.known, t.total);
+            font::draw(c, WIDTH - font::text_width(&n) - 6, y - 2, &n, accent);
+        }
+        let mut y = TOP + 4 * ROW_H + 2;
+        if p.learning.is_empty() && p.next_up.is_empty() {
+            font::draw(c, 6, y - 2, "Você já sabe tudo desta seleção!", gold);
+            return;
+        }
+        font::draw(c, 6, y - 2, "Aprendendo agora:", dim);
+        for it in p.learning.iter().take(4) {
+            y += ROW_H - 1;
+            font::draw(c, 10, y - 2, &fit(&format!("{} = {}", it.say, it.meaning), WIDTH - 16), ink);
+        }
+        if !p.next_up.is_empty() {
+            y += ROW_H + 1;
+            let next: Vec<&str> = p.next_up.iter().map(|i| i.say.as_str()).collect();
+            font::draw(c, 6, y - 2, &fit(&format!("Depois: {}", next.join(" · ")), WIDTH - 12), dim);
+        }
+    }
+
     pub fn draw(&self, c: &mut Canvas, s: &Settings, time: f32) {
         let (bg, ink, dim, accent, sel_bg): (Rgba, Rgba, Rgba, Rgba, Rgba) =
             (hex(0x0e0c2c), hex(0xe6ecff), hex(0x8f96d8), hex(0x9be8ff), hex(0x2a5a9a));
@@ -331,15 +407,21 @@ impl Menu {
             c.set(x, c.h - 1, hex(0x4ea2d8));
         }
         font::draw(c, 6, 1, "SNOWLEARNER · PAINEL", hex(0xffd64a));
-        for (i, (tab, name)) in [(Tab::Game, "JOGO"), (Tab::Audio, "ÁUDIO")].iter().enumerate() {
-            let x0 = i as i32 * WIDTH / 2;
+        let tab_w = WIDTH / TABS.len() as i32;
+        for (i, (tab, name)) in TABS.iter().enumerate() {
+            let x0 = i as i32 * tab_w;
             let on = *tab == self.tab;
-            c.rect(x0 + 2, TABS_Y, WIDTH / 2 - 4, ROW_H, if on { hex(0x2a1650) } else { hex(0x151233) });
+            c.rect(x0 + 2, TABS_Y, tab_w - 4, ROW_H, if on { hex(0x2a1650) } else { hex(0x151233) });
             if on {
-                c.rect(x0 + 2, TABS_Y + ROW_H - 1, WIDTH / 2 - 4, 1, hex(0xb46cff));
+                c.rect(x0 + 2, TABS_Y + ROW_H - 1, tab_w - 4, 1, hex(0xb46cff));
             }
             let tw = font::text_width(name);
-            font::draw(c, x0 + (WIDTH / 2 - tw) / 2, TABS_Y - 2, name, if on { hex(0xffffff) } else { dim });
+            font::draw(c, x0 + (tab_w - tw) / 2, TABS_Y - 2, name, if on { hex(0xffffff) } else { dim });
+        }
+        if self.tab == Tab::Progress {
+            self.draw_progress(c, ink, dim, accent);
+            font::draw(c, 6, c.h - 13, "Tab: aba  Esc: fechar", dim);
+            return;
         }
         for (i, item) in self.items().iter().enumerate() {
             let y = TOP + i as i32 * ROW_H;
@@ -419,15 +501,57 @@ mod tests {
     }
 
     #[test]
-    fn tab_switches_to_audio_and_back() {
+    fn tab_cycles_game_audio_progress_and_back() {
         let mut m = menu();
         let mut s = Settings::default();
         m.key(Key::Tab, &mut s);
         assert_eq!(m.item(), Item::Mic);
         m.key(Key::Tab, &mut s);
+        assert_eq!(m.tab, Tab::Progress);
+        m.key(Key::Tab, &mut s);
         assert_eq!(m.item(), Item::Language);
-        assert_eq!(m.click(WIDTH - 10, TABS_Y + 3, &mut s), Action::None);
+        assert_eq!(m.click(WIDTH / 2, TABS_Y + 3, &mut s), Action::None);
         assert_eq!(m.tab, Tab::Audio, "clicking the tab header switches");
+        m.click(WIDTH - 10, TABS_Y + 3, &mut s);
+        assert_eq!(m.tab, Tab::Progress);
+    }
+
+    #[test]
+    fn the_progress_tab_has_nothing_to_select_and_never_panics() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        m.show(Tab::Progress);
+        for k in [Key::Up, Key::Down, Key::Left, Key::Right, Key::Enter] {
+            assert_eq!(m.key(k, &mut s), Action::None);
+        }
+        assert_eq!(m.click(50, TOP + 20, &mut s), Action::None);
+        assert_eq!(m.key(Key::Esc, &mut s), Action::Close);
+    }
+
+    #[test]
+    fn the_progress_tab_draws_stages_items_and_long_text_fits() {
+        use crate::learn::deck::Phrase;
+        use crate::learn::progress::progress;
+        let long = "Could you please walk me through the whole deployment process again?";
+        let phrases: Vec<Phrase> = ["Água.", "Hello.", "Good morning.", long]
+            .iter()
+            .map(|s| Phrase { level: Some("A1".into()), ..Phrase::new(s, "significado bem comprido demais") })
+            .collect();
+        let s = Settings::default();
+        let mut m = menu();
+        m.show(Tab::Progress);
+        for p in [
+            None,
+            Some(progress(&phrases, &[0, 1, 2, 3], &Default::default())),
+            Some(progress(&phrases, &[], &Default::default())),
+        ] {
+            m.progress = p;
+            let mut c = Canvas::new(WIDTH, HEIGHT);
+            m.draw(&mut c, &s, 0.0);
+            assert_eq!(c.opaque_in(0, 0, WIDTH, HEIGHT), (WIDTH * HEIGHT) as usize);
+        }
+        assert!(font::text_width(&fit(long, 100)) <= 100);
+        assert!(font::supports(&fit(long, 100)));
     }
 
     #[test]
@@ -517,7 +641,7 @@ mod tests {
             assert!(font::supports(Menu::label(*item)), "{item:?}");
             assert!(font::supports(&m.value(*item, &s)), "{item:?}");
         }
-        for tab in [Tab::Game, Tab::Audio] {
+        for tab in [Tab::Game, Tab::Audio, Tab::Progress] {
             m.tab = tab;
             let mut c = Canvas::new(WIDTH, HEIGHT);
             m.draw(&mut c, &s, 0.0);

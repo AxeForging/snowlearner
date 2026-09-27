@@ -5,6 +5,7 @@
 
 use crate::learn::cue::Segment;
 use crate::learn::deck::{Deck, Phrase};
+use crate::learn::path;
 use crate::learn::picker::{self, Mode, Practice};
 use crate::scene::Scene;
 use crate::scene::hud::{Caption, Meter, Stats, Status, SummaryLine, SummaryPanel};
@@ -172,6 +173,12 @@ impl Lesson {
         self.refresh_stats(scene);
     }
 
+    /// What you know, are learning and comes next, for the current filters.
+    pub fn progress(&self) -> crate::learn::progress::Progress {
+        let stats = self.history.stats(&self.deck.language, Local::now().date_naive()).unwrap_or_default();
+        crate::learn::progress::progress(&self.deck.phrases, &self.selection(), &stats)
+    }
+
     /// Phrases currently in rotation (topic + level filters).
     pub fn selection(&self) -> Vec<usize> {
         self.deck.selection(self.opts.topic.as_deref(), &self.opts.max_level)
@@ -248,10 +255,7 @@ impl Lesson {
             Mode::Repeat => "repita",
             Mode::Recall => "de memória",
         };
-        match &p.level {
-            Some(l) => format!("{} · {l} · {mode}", p.topic),
-            None => format!("{} · {mode}", p.topic),
-        }
+        format!("{} · {} · {mode}", path::Stage::of(p).singular_pt(), p.topic)
     }
 
     fn refresh_stats(&self, scene: &mut Scene) {
@@ -341,8 +345,9 @@ impl Lesson {
         let today = Local::now().date_naive();
         let stats = self.history.stats(&self.deck.language, today).unwrap_or_default();
         let roll = self.roll();
-        let selection = self.selection();
-        let Some(i) = picker::pick(&self.deck.phrases, &selection, &stats, self.last_phrase.as_deref(), roll) else {
+        // The path opens words first, then chunks, then phrases.
+        let open = path::unlocked(&self.deck.phrases, &self.selection(), &stats);
+        let Some(i) = picker::pick(&self.deck.phrases, &open, &stats, self.last_phrase.as_deref(), roll) else {
             scene.hud.toast("Nenhuma frase com esse tema/nível. Mude no menu.", 4.0);
             return;
         };
@@ -497,10 +502,40 @@ impl Lesson {
         }
     }
 
+    /// Tells the learner what they just learned and what the path opened.
+    fn path_news(&self, p: &Phrase, open_before: &[usize], scene: &mut Scene) {
+        let Ok(stats) = self.history.stats(&self.deck.language, Local::now().date_naive()) else { return };
+        if stats.get(&p.say).is_none_or(|s| s.successes_total != picker::RECALL_AFTER) {
+            return; // not the moment it became known
+        }
+        let opened: Vec<usize> = path::unlocked(&self.deck.phrases, &self.selection(), &stats)
+            .into_iter()
+            .filter(|i| !open_before.contains(i))
+            .collect();
+        let mut news = format!("Aprendeu: {}", p.say);
+        if let Some(&i) = opened.first() {
+            let next = &self.deck.phrases[i];
+            let stage = path::Stage::of(next);
+            let reached = open_before.iter().all(|&j| path::Stage::of(&self.deck.phrases[j]) < stage);
+            news = if reached {
+                format!("{} Primeira: {}", stage.welcome_pt(), next.say)
+            } else {
+                format!("{news} · Nova {}: {}", stage.singular_pt(), next.say)
+            };
+        }
+        scene.hud.toast(news, 5.0);
+    }
+
     fn finish_attempt(&mut self, phrase: usize, tries: u32, heard: &str, score: f32, passed: bool, scene: &mut Scene) {
         let p = self.phrase(phrase).clone();
         let State::Challenge { mode, .. } = self.state else { return };
         scene.set_listening(false);
+        let today = Local::now().date_naive();
+        let open_before = self
+            .history
+            .stats(&self.deck.language, today)
+            .map(|s| path::unlocked(&self.deck.phrases, &self.selection(), &s))
+            .unwrap_or_default();
         let _ = self.history.record(&Attempt {
             at: Local::now(),
             language: self.deck.language.clone(),
@@ -544,6 +579,7 @@ impl Lesson {
                 scene.sun();
                 scene.hud.toast(format!("COMBO x{}! O SOL APARECEU!", self.combo), 4.0);
             }
+            self.path_news(&p, &open_before, scene);
             if self.done_today >= self.opts.daily_goal && !self.goal_celebrated {
                 self.goal_celebrated = true;
                 scene.hud.toast(format!("META DO DIA: {} frases! Mandou bem!", self.opts.daily_goal), 5.0);
@@ -725,6 +761,13 @@ mod tests {
         fixture_with(options(can_listen))
     }
 
+    fn fixture_deck(src: &str) -> Fixture {
+        let mut f = fixture(true);
+        let deck = Deck::parse(src).unwrap();
+        f.lesson.set_deck(deck, &mut f.scene);
+        f
+    }
+
     fn morning() -> DateTime<Local> {
         Local.with_ymd_and_hms(2026, 9, 27, 10, 0, 0).unwrap()
     }
@@ -770,6 +813,71 @@ mod tests {
         fn finish(&mut self) {
             self.tick(RESULT_SECONDS + 0.2);
         }
+    }
+
+    #[test]
+    fn a_new_learner_is_asked_first_words_not_full_phrases() {
+        let item = |say: &str, level: &str| {
+            format!("[[phrase]]\nsay='{say}'\nmeaning='m'\nsituation='s'\ntopic='t'\nlevel='{level}'\n")
+        };
+        let mut src = "language='en'\nnative='pt-BR'\ntitle='t'\n".to_string();
+        for (say, level) in [("Could you repeat that please?", "A1"), ("Where is the train station?", "A1")] {
+            src += &item(say, level);
+        }
+        for w in ["Water.", "Hello.", "Coffee.", "Bye."] {
+            src += &item(w, "A1");
+        }
+        let mut f = fixture_deck(&src);
+        let mut asked = std::collections::HashSet::new();
+        for _ in 0..4 {
+            let say = f.answer(true);
+            assert_eq!(say.split_whitespace().count(), 1, "asked {say:?} before the first words");
+            asked.insert(say);
+            f.finish();
+        }
+        assert_eq!(asked.len(), 4, "every first word gets its turn");
+        // Knowing words (2 successes) opens the phrases, one per word learned.
+        let later: Vec<String> = (0..8)
+            .map(|_| {
+                let say = f.answer(true);
+                f.finish();
+                say
+            })
+            .collect();
+        assert!(later.iter().any(|s| s.split_whitespace().count() > 1), "phrases never opened: {later:?}");
+    }
+
+    /// Answers correctly until the path announces something; returns (word, toast).
+    fn first_path_news(items: &[&str]) -> (String, String) {
+        let mut src = "language='en'\nnative='pt-BR'\ntitle='t'\n".to_string();
+        for say in items {
+            src += &format!("[[phrase]]\nsay='{say}'\nmeaning='m'\nsituation='s'\ntopic='t'\nlevel='A1'\n");
+        }
+        let mut f = fixture_deck(&src);
+        let mut news = None;
+        for _ in 0..12 {
+            let say = f.answer(true);
+            assert!(f.scene.hud.caption.as_ref().unwrap().tag.starts_with("palavra · "), "stage in the caption");
+            let toast = f.scene.hud.toast.as_ref().map(|t| t.text.clone()).unwrap_or_default();
+            f.finish();
+            if toast.starts_with("Aprendeu") || toast.starts_with("Nova etapa") {
+                news = Some((say, toast));
+                break;
+            }
+        }
+        news.expect("a word became known within 12 answers")
+    }
+
+    #[test]
+    fn learning_a_word_says_so_and_names_the_word_it_opened() {
+        let (say, toast) = first_path_news(&["Hello.", "Bye.", "Yes.", "No.", "Please."]);
+        assert_eq!(toast, format!("Aprendeu: {say} · Nova palavra: Please."));
+    }
+
+    #[test]
+    fn finishing_the_words_announces_the_expressions_stage() {
+        let (_, toast) = first_path_news(&["Hello.", "Bye.", "Yes.", "No.", "Good morning."]);
+        assert_eq!(toast, "Nova etapa: expressões! Agora você junta palavras. Primeira: Good morning.");
     }
 
     #[test]

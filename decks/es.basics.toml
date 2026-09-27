@@ -1,0 +1,673 @@
+# Hand-curated beginner deck: first words, then short chunks. Real situations only.
+language = "es"
+native = "pt-BR"
+language_name = "espanhol"
+title = "Primeiros passos"
+
+# ---------------------------------------------------------------- first words
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você entra numa loja e o atendente olha pra você."
+say = "Hola."
+meaning = "Olá."
+tip = "O 'h' é mudo: soa como 'óla'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você sai da padaria e acena para o caixa."
+say = "Adiós."
+meaning = "Tchau."
+accept = ["Chao", "Chau", "Hasta luego"]
+tip = "Na América do Sul se ouve muito 'chao' ou 'chau'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "O recepcionista pergunta se você tem reserva, e você tem."
+say = "Sí."
+meaning = "Sim."
+tip = "Sem o 'm' do português: é só 'sí'."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O vendedor pergunta se você quer mais alguma coisa, e você não quer."
+say = "No."
+meaning = "Não."
+tip = "Soa como 'nô', sem o som nasal do 'não'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Um desconhecido segura a porta pra você passar."
+say = "Gracias."
+meaning = "Obrigado."
+tip = "Na Espanha o 'c' soa como 'th' do inglês; na América Latina, como 's'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você esbarra em alguém sem querer na fila."
+say = "Perdón."
+meaning = "Desculpa."
+accept = ["Perdona", "Perdone"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você quer chamar a atenção do vendedor que está de costas."
+say = "Disculpe."
+meaning = "Com licença."
+accept = ["Disculpa", "Perdone"]
+tip = "'Disculpe' é formal (usted); 'disculpa' é informal (tú)."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "No bar, o atendente pergunta o que você vai tomar."
+say = "Cerveza."
+meaning = "Cerveja."
+accept = ["Una cerveza", "Cerveza, por favor"]
+tip = "O 'z' soa como 's' na América Latina: 'sérvessa'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom pergunta se você quer algo no seu refrigerante."
+say = "Hielo."
+meaning = "Gelo."
+accept = ["Con hielo"]
+tip = "O 'h' é mudo: soa como 'iêlo'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "No café da manhã do hotel, perguntam o que você quer beber."
+say = "Jugo."
+meaning = "Suco."
+accept = ["Zumo", "Un jugo"]
+tip = "O 'j' é um 'r' forte de garganta: 'rrúgo'. Na Espanha se diz 'zumo'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "No mercado, a balconista pergunta o que falta na sua lista."
+say = "Leche."
+meaning = "Leite."
+tip = "Soa como 'létche'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "A garrafa de água chegou, mas não tem copo na mesa."
+say = "¿Un vaso?"
+meaning = "Um copo?"
+accept = ["Un vaso, por favor"]
+tip = "Falso amigo: 'vaso' é copo. Vaso de planta é 'maceta'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você derrubou molho na roupa e precisa de algo pra limpar."
+say = "Servilleta."
+meaning = "Guardanapo."
+accept = ["Una servilleta", "Servilleta, por favor"]
+tip = "O 'll' soa como 'j' ou 'lh', dependendo do país: 'servijêta'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Trouxeram a sopa, mas esqueceram de colocar algo pra você tomar."
+say = "Cuchara."
+meaning = "Colher."
+accept = ["Una cuchara", "Cuchara, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "Você pergunta ao amigo se a gorjeta já está incluída na conta."
+say = "¿Propina?"
+meaning = "Gorjeta?"
+accept = ["¿La propina?"]
+tip = "Falso amigo: 'propina' é gorjeta, não suborno (que é 'soborno')."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No avião, a comissária pergunta se você quer frango ou massa."
+say = "Pollo."
+meaning = "Frango."
+accept = ["Pollo, por favor"]
+tip = "O 'll' soa como 'j' ou 'lh': 'pôjo'. Não é 'polo'!"
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você caiu na rua e não consegue levantar sozinho."
+say = "¡Ayuda!"
+meaning = "Socorro!"
+accept = ["¡Socorro!", "¡Ayúdeme!"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Uma pessoa vai atravessar a rua sem ver o carro vindo."
+say = "¡Cuidado!"
+meaning = "Cuidado!"
+tip = "O 'd' entre vogais é bem suave, quase 'cuidáo'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O táxi está passando do seu destino e você precisa que ele pare."
+say = "¡Pare!"
+meaning = "Pare!"
+accept = ["¡Pare aquí!"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O ônibus vai fechar a porta e você ainda está descendo a escada."
+say = "¡Espere!"
+meaning = "Espere!"
+accept = ["¡Espera!"]
+tip = "'Espere' é formal (usted); 'espera' é informal (tú)."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O motorista do aplicativo pergunta pra que lado virar na esquina."
+say = "Izquierda."
+meaning = "Esquerda."
+accept = ["A la izquierda"]
+tip = "Soa como 'iss-kiérda'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O motorista pergunta de novo, e agora é para o outro lado."
+say = "Derecha."
+meaning = "Direita."
+accept = ["A la derecha"]
+tip = "Cuidado: 'derecho' (reto) é diferente de 'derecha' (direita)."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Perguntam se o hotel fica perto, mas ele fica do outro lado da cidade."
+say = "Lejos."
+meaning = "Longe."
+accept = ["Muy lejos"]
+tip = "O 'j' é um 'r' forte de garganta: 'lérros'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O mecânico pergunta quando você precisa do carro, e é pra hoje mesmo."
+say = "Hoy."
+meaning = "Hoje."
+tip = "O 'h' é mudo: soa como 'ói'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Perguntam quando você vai voltar pra buscar o conserto."
+say = "Mañana."
+meaning = "Amanhã."
+tip = "'Mañana' também é 'manhã': 'mañana por la mañana' é amanhã de manhã."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "O médico pergunta quando a dor começou."
+say = "Ayer."
+meaning = "Ontem."
+tip = "Soa como 'ajér' ou 'aiêr'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Na bilheteria do metrô, perguntam quantos bilhetes você quer, e é só pra você."
+say = "Uno."
+meaning = "Um."
+accept = ["Solo uno", "Uno, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você está com um amigo e o garçom pergunta quantos cafés."
+say = "Dos."
+meaning = "Dois."
+accept = ["Dos, por favor"]
+tip = "É 'dôs', sem o 'i' do português."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No elevador do hotel, alguém pergunta pra qual andar você vai."
+say = "Cuatro."
+meaning = "Quatro."
+accept = ["Al cuatro", "Cuatro, por favor"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Na banca, você pergunta o preço e precisa confirmar que são cinco pesos."
+say = "¿Cinco?"
+meaning = "Cinco?"
+accept = ["¿Cinco pesos?"]
+tip = "Na América Latina soa como 'sínco'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Alguém diz que o ponto de ônibus fica perto, mas você não vê nada."
+say = "¿Dónde?"
+meaning = "Onde?"
+tip = "Com acento na pergunta: '¿dónde?'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom chega com o prato e não sabe onde colocar."
+say = "Aquí."
+meaning = "Aqui."
+accept = ["Aquí, por favor"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O porteiro pergunta quando você quer o táxi, e é pra já."
+say = "Ahora."
+meaning = "Agora."
+accept = ["Ahora mismo"]
+tip = "O 'h' é mudo: 'aóra'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Seu amigo liga querendo conversar, mas você está no mercado."
+say = "Luego."
+meaning = "Depois."
+accept = ["Más tarde"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O caixa pergunta se vai ser no cartão ou em dinheiro, e você tem dinheiro."
+say = "Efectivo."
+meaning = "Dinheiro."
+accept = ["En efectivo"]
+tip = "Pagar 'en efectivo' é pagar em dinheiro vivo."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O caixa pergunta como você vai pagar, e é no cartão."
+say = "Tarjeta."
+meaning = "Cartão."
+accept = ["Con tarjeta"]
+tip = "O 'j' é um 'r' forte de garganta: 'tar-rrêta'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Na cafeteria, perguntam se você quer o leite quente ou frio."
+say = "Caliente."
+meaning = "Quente."
+tip = "Soa como 'kaliênte'. O contrário é 'frío'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No check-in, perguntam se você prefere janela ou corredor, e você quer o corredor."
+say = "Pasillo."
+meaning = "Corredor."
+accept = ["En el pasillo"]
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Agora, no outro voo, você quer ver a paisagem."
+say = "Ventanilla."
+meaning = "Janela."
+accept = ["En la ventanilla"]
+tip = "No avião e no ônibus é 'ventanilla'; na casa é 'ventana'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você chega no hotel à noite e pede pra pegar o que abre o seu quarto."
+say = "¿La llave?"
+meaning = "A chave?"
+accept = ["La llave, por favor"]
+tip = "O 'll' soa como 'j' ou 'lh': 'jáve'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No quarto do hotel faltou algo pra você se secar depois do banho."
+say = "Toalla."
+meaning = "Toalha."
+accept = ["Una toalla", "Toalla, por favor"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "No hostel, o recepcionista pergunta se falta algo na sua cama."
+say = "Almohada."
+meaning = "Travesseiro."
+accept = ["Una almohada"]
+tip = "O 'h' é mudo: 'almoáda'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Todo mundo levanta o copo pra brindar no jantar."
+say = "¡Salud!"
+meaning = "Saúde!"
+tip = "Também se diz '¡salud!' quando alguém espirra."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Te convidam pra uma festa, mas você ainda não sabe se vai."
+say = "Quizás."
+meaning = "Talvez."
+accept = ["Quizá", "Tal vez"]
+tip = "Soa como 'kissás'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O motorista está correndo demais e você está com medo."
+say = "¡Despacio!"
+meaning = "Devagar!"
+accept = ["Despacio, por favor"]
+tip = "Falso amigo: 'despacio' é devagar, não 'depressa'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Alguém se apresenta e você responde que é um prazer."
+say = "Encantado."
+meaning = "Prazer."
+accept = ["Encantada"]
+tip = "Homem diz 'encantado'; mulher diz 'encantada'."
+
+# ---------------------------------------------------------------- short chunks
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você chega no trabalho às oito e cumprimenta o porteiro."
+say = "Buenos días."
+meaning = "Bom dia."
+accept = ["Buen día"]
+tip = "No plural: 'buenos días'. Na Argentina se ouve 'buen día'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você entra numa loja às três da tarde e cumprimenta a vendedora."
+say = "Buenas tardes."
+meaning = "Boa tarde."
+accept = ["Buenas"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Você chega no restaurante às nove da noite e cumprimenta o garçom."
+say = "Buenas noches."
+meaning = "Boa noite."
+accept = ["Buenas"]
+tip = "Serve tanto para chegar quanto para se despedir."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom oferece mais pão e você aceita com educação."
+say = "Por favor."
+meaning = "Por favor."
+accept = ["Sí, por favor"]
+tip = "Soa quase igual ao português, mas o 'r' final é vibrado: 'por fabór'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Um colega conta que o cachorro dele morreu."
+say = "Lo siento."
+meaning = "Sinto muito."
+accept = ["Lo siento mucho"]
+tip = "'Lo siento' é para lamentar; 'perdón' é para pedir desculpa."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você está apertado no aeroporto e só consegue perguntar o essencial."
+say = "¿El baño?"
+meaning = "O banheiro?"
+accept = ["¿Y el baño?", "¿Los servicios?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Na feira, você aponta para um pote de mel sem preço."
+say = "¿Cuánto es?"
+meaning = "Quanto é?"
+accept = ["¿Cuánto vale?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "O garçom pergunta se você quer água com gás ou sem gás."
+say = "Agua sin gas."
+meaning = "Água sem gás."
+accept = ["Sin gas", "Agua natural"]
+tip = "É 'sin', não 'sem'. E 'con gas' é com gás."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você chega no balcão da cafeteria com um amigo."
+say = "Dos cafés."
+meaning = "Dois cafés."
+accept = ["Dos cafés, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "A cerveja acabou e você chama o garçom pra pedir mais uma."
+say = "Otra, por favor."
+meaning = "Outra, por favor."
+accept = ["Otra más", "Una más, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Você pede um refrigerante, mas está com dor de garganta."
+say = "Sin hielo."
+meaning = "Sem gelo."
+accept = ["Sin hielo, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Na lanchonete, perguntam se é pra comer aqui ou pra viagem."
+say = "Para llevar."
+meaning = "Pra viagem."
+accept = ["Para llevar, por favor"]
+tip = "Comer no local é 'para comer aquí'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Um colega pergunta quando é a festa, e é hoje à noite."
+say = "Esta noche."
+meaning = "Hoje à noite."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "A atendente falou rápido demais e você não pegou o nome da rua."
+say = "¿Otra vez?"
+meaning = "De novo?"
+accept = ["¿Otra vez, por favor?"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Você sai do curso e se despede dos colegas que vai ver no dia seguinte."
+say = "¡Hasta mañana!"
+meaning = "Até amanhã!"
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você está no meio de uma cidade desconhecida e para alguém na rua."
+say = "Estoy perdido."
+meaning = "Estou perdido."
+accept = ["Estoy perdida"]
+tip = "Mulher diz 'estoy perdida'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Seu amigo pergunta se você quer parar pra comer."
+say = "Tengo hambre."
+meaning = "Estou com fome."
+accept = ["Tengo mucha hambre"]
+tip = "Em espanhol você 'tem' fome: 'tengo hambre'. O 'h' é mudo."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Depois de um dia inteiro andando, seu amigo quer sair de novo."
+say = "Estoy cansado."
+meaning = "Estou cansado."
+accept = ["Estoy cansada", "Estoy muy cansado", "Estoy muy cansada"]
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "O show acabou e você não acha por onde sair do estádio."
+say = "¿La salida?"
+meaning = "A saída?"
+accept = ["¿Dónde está la salida?"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Um turista pergunta o caminho do museu, que fica em frente."
+say = "Todo recto."
+meaning = "Sempre reto."
+accept = ["Todo derecho", "Siga recto", "Siga derecho"]
+tip = "Na Espanha, 'todo recto'; em boa parte da América Latina, 'todo derecho'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Na padaria, você não sabe o nome do pão e aponta pra ele."
+say = "Este, por favor."
+meaning = "Esse, por favor."
+accept = ["Este", "Ese, por favor"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Você entrega o dinheiro para o caixa."
+say = "Aquí tiene."
+meaning = "Aqui está."
+accept = ["Aquí tienes", "Tome"]
+tip = "'Aquí tiene' é formal; 'aquí tienes' é informal."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "O atendente pede seu passaporte e você precisa procurar na mochila."
+say = "Un momento."
+meaning = "Um momento."
+accept = ["Un momento, por favor", "Un segundo"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Sua amiga vai fazer uma entrevista de emprego amanhã."
+say = "¡Buena suerte!"
+meaning = "Boa sorte!"
+accept = ["¡Mucha suerte!"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "É aniversário de um colega e ele chega no escritório."
+say = "¡Feliz cumpleaños!"
+meaning = "Feliz aniversário!"
+tip = "Falso amigo: 'aniversario' em espanhol é de casamento ou de data especial."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A2"
+situation = "Um vizinho pergunta se pode deixar um pacote com você."
+say = "Por supuesto."
+meaning = "Claro."
+accept = ["Claro", "Claro que sí"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Um colega diz que adora pizza, e você também."
+say = "Yo también."
+meaning = "Eu também."
+accept = ["A mí también"]
+tip = "Com 'gustar' se diz 'a mí también': 'me gusta' e 'a mí también'."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "O caixa vai colocar suas duas coisinhas numa sacola, mas você não precisa."
+say = "Sin bolsa, gracias."
+meaning = "Sem sacola, obrigado."
+accept = ["No necesito bolsa"]
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você entra no táxi e o motorista pergunta pra onde vai."
+say = "Al aeropuerto."
+meaning = "Pro aeroporto."
+accept = ["Al aeropuerto, por favor"]
+tip = "'A' + 'el' vira 'al'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "Um amigo diz que o jogo é amanhã, mas não fala o horário."
+say = "¿A qué hora?"
+meaning = "Que horas?"
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Alguém pergunta como você está, e você quer devolver a pergunta."
+say = "¿Y tú?"
+meaning = "E você?"
+accept = ["¿Y usted?"]
+tip = "Com desconhecidos mais velhos, use '¿y usted?'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Na feira, você vê uma fruta que nunca viu na vida."
+say = "¿Qué es esto?"
+meaning = "O que é isso?"
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "Seu amigo te chama da sala e você ainda está terminando de se arrumar."
+say = "¡Ya voy!"
+meaning = "Já vou!"

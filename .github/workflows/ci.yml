@@ -24,24 +24,20 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: make lint
 
+  # Linux only: free-tier minutes (macOS costs 10x, Windows 2x). The release
+  # workflow builds every OS, and only on `v*` tags.
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev espeak-ng
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev espeak-ng
       - uses: Swatinem/rust-cache@v2
         with:
           key: ggml-portable
       - run: cargo test
       - run: cargo test --no-default-features
-      - name: speech end-to-end (Linux)
-        if: runner.os == 'Linux'
+      - name: speech end-to-end
         run: |
           cargo run --quiet -- model download --name tiny
           SNOWLEARNER_TEST_MODEL=$HOME/.local/share/snowlearner/models/ggml-tiny.bin \
