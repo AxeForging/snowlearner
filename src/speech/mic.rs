@@ -5,6 +5,7 @@ use super::audio;
 use super::endpoint::{Endpointer, ListenPlan, Status};
 use super::highpass::HighPass;
 use super::resample::{WHISPER_RATE, resample, to_mono};
+use super::trace;
 use anyhow::{Context, Result, anyhow, bail};
 use cpal::traits::{DeviceTrait, StreamTrait};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -34,6 +35,8 @@ pub fn record(
     let rate = supported.sample_rate();
     let channels = supported.channels();
     let config = supported.config();
+    let name = device.description().map(|d| d.name().to_string()).unwrap_or_else(|_| "?".into());
+    trace::line(format_args!("mic {name:?}: {rate} Hz, {channels} ch, {:?}", supported.sample_format()));
     let (tx, rx) = mpsc::channel::<Vec<f32>>();
     let err_fn = |e| eprintln!("microphone stream error: {e}");
 
@@ -72,6 +75,7 @@ pub fn record(
     let mut mono = Vec::new();
     let deadline = Instant::now() + Duration::from_secs_f32(plan.max_total() + 1.0);
     let mut last_level = Instant::now();
+    let mut peak = 0f32;
     let heard = loop {
         if stop.swap(false, Ordering::SeqCst)
             && let Status::Done { speech } = endpoint.finish()
@@ -86,6 +90,7 @@ pub fn record(
         let mut m = to_mono(&chunk, channels);
         highpass.process(&mut m); // before measuring: some mics sit far from zero
         let status = endpoint.feed(&m);
+        peak = peak.max(endpoint.level());
         mono.extend(m);
         if last_level.elapsed() >= Duration::from_millis(66) {
             last_level = Instant::now();
@@ -99,6 +104,12 @@ pub fn record(
         }
     };
     drop(stream);
+    trace::line(format_args!(
+        "mic closed after {:.1} s: peak level {peak:.4}, speech gate {:.4}, speech {}",
+        mono.len() as f32 / rate as f32,
+        endpoint.threshold(),
+        if heard { "yes" } else { "no" }
+    ));
     on_level(0.0, false);
     Ok(Recording { samples: resample(&mono, rate, WHISPER_RATE), heard_speech: heard })
 }

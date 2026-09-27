@@ -5,6 +5,7 @@
 use super::endpoint::ListenPlan;
 #[cfg(feature = "stt")]
 use super::resident::Resident;
+use super::trace;
 use super::voices::{TtsEngine, Voice};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -177,14 +178,18 @@ impl Speech {
                         }
                         Job::StopListening => {}
                         Job::Speak { id, parts } => {
+                            let started = Instant::now();
                             for (index, p) in parts.iter().enumerate() {
                                 notify(SpeechEvent::Part { id, index });
+                                trace::line(format_args!("speak [{}] {:?}", p.lang, p.text));
                                 let v = if p.lang == cfg.native_lang { &cfg.native_voice } else { &cfg.learning_voice };
                                 if let Err(e) = voice.speak(&p.text, &p.lang, v, p.slow) {
+                                    trace::line(format_args!("speak failed: {e:#}"));
                                     notify(SpeechEvent::Failed { id, error: format!("{e:#}") });
                                     break;
                                 }
                             }
+                            trace::line(format_args!("spoken in {:.1} s", started.elapsed().as_secs_f32()));
                             notify(SpeechEvent::Spoken { id });
                         }
                         #[cfg(feature = "stt")]
@@ -233,13 +238,18 @@ fn listen(
     notify: &impl Fn(SpeechEvent),
 ) -> SpeechEvent {
     stop.store(false, Ordering::SeqCst);
+    trace::line(format_args!("listen [{lang}] think {:.1} s, expected {:.1} s", plan.think, plan.expected));
     let result = (|| -> anyhow::Result<Option<String>> {
         // Open the mic right away and load the model meanwhile: after an idle
         // release the load used to keep the mic closed while the prompt
         // already said "speak now", eating the start of a quick answer.
         let (rec, loaded) = std::thread::scope(|s| {
-            let loading = s
-                .spawn(|| recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load).map(|_| ()));
+            let loading = s.spawn(|| {
+                let started = Instant::now();
+                let loaded = recognizer.get_or_load(&cfg.model, started, super::stt::Recognizer::load).map(|_| ());
+                trace::line(format_args!("speech model ready in {:.1} s", started.elapsed().as_secs_f32()));
+                loaded
+            });
             let rec = super::mic::record(plan, &cfg.mic, stop, |level, speaking| {
                 notify(SpeechEvent::Level { id, level, speaking })
             });
@@ -251,12 +261,21 @@ fn listen(
             return Ok(None);
         }
         notify(SpeechEvent::Thinking { id });
+        let started = Instant::now();
         let model = recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
-        Ok(Some(model.transcribe(&rec.samples, lang)?))
+        let text = model.transcribe(&rec.samples, lang)?;
+        trace::line(format_args!("heard {text:?} (transcribed in {:.1} s)", started.elapsed().as_secs_f32()));
+        Ok(Some(text))
     })();
     match result {
         Ok(Some(text)) => SpeechEvent::Heard { id, text },
-        Ok(None) => SpeechEvent::NoSpeech { id },
-        Err(e) => SpeechEvent::Failed { id, error: format!("{e:#}") },
+        Ok(None) => {
+            trace::line(format_args!("no speech detected"));
+            SpeechEvent::NoSpeech { id }
+        }
+        Err(e) => {
+            trace::line(format_args!("listen failed: {e:#}"));
+            SpeechEvent::Failed { id, error: format!("{e:#}") }
+        }
     }
 }

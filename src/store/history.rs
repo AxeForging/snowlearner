@@ -33,11 +33,37 @@ pub struct History {
 }
 
 impl History {
+    /// Opens (or creates) the history. A damaged file is kept next to it as
+    /// `<name>.corrupt` and a fresh history starts, rather than the app not
+    /// starting at all.
     pub fn open(path: &Path) -> Result<History> {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
         }
+        match Self::open_intact(path) {
+            Err(e) if damaged(&e) => {
+                let aside = path.with_extension("sqlite3.corrupt");
+                for side in ["", "-wal", "-shm"] {
+                    let (mut from, mut to) = (path.as_os_str().to_owned(), aside.as_os_str().to_owned());
+                    from.push(side);
+                    to.push(side);
+                    if std::path::Path::new(&from).exists() {
+                        std::fs::rename(&from, &to).with_context(|| format!("moving aside {}", path.display()))?;
+                    }
+                }
+                eprintln!("History was damaged ({e:#}); kept it as {} and started a new one.", aside.display());
+                Self::open_intact(path)
+            }
+            opened => opened,
+        }
+    }
+
+    fn open_intact(path: &Path) -> Result<History> {
         let conn = Connection::open(path).with_context(|| format!("opening {}", path.display()))?;
+        let check: String = conn.query_row("PRAGMA quick_check", [], |r| r.get(0))?;
+        if check != "ok" {
+            return Err(Damaged(check).into());
+        }
         conn.execute_batch(
             "PRAGMA journal_mode=WAL;
              CREATE TABLE IF NOT EXISTS attempts (
@@ -129,6 +155,30 @@ impl History {
     }
 }
 
+/// `PRAGMA quick_check` found damage.
+#[derive(Debug)]
+struct Damaged(String);
+
+impl std::fmt::Display for Damaged {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "integrity check: {}", self.0)
+    }
+}
+
+impl std::error::Error for Damaged {}
+
+/// Only real damage moves the file aside — never a lock or a full disk.
+fn damaged(e: &anyhow::Error) -> bool {
+    use rusqlite::ErrorCode::{DatabaseCorrupt, NotADatabase};
+    e.chain().any(|c| {
+        c.is::<Damaged>()
+            || matches!(
+                c.downcast_ref::<rusqlite::Error>().and_then(rusqlite::Error::sqlite_error_code),
+                Some(DatabaseCorrupt | NotADatabase)
+            )
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -203,5 +253,43 @@ mod tests {
         }
         let h = History::open(&path).unwrap();
         assert_eq!(h.meta("last_summary").unwrap().as_deref(), Some("2026-09-27"));
+    }
+
+    #[test]
+    fn a_corrupted_history_is_set_aside_and_a_fresh_one_opens() {
+        // What stderr written into the file did on Windows: page 2 overwritten with log text.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("history.sqlite3");
+        History::open(&path).unwrap().record(&attempt(27, 10, "en", "Hello.", 1.0, true)).unwrap();
+        let mut bytes = std::fs::read(&path).unwrap();
+        let junk = b"Global hotkeys unavailable: could not register Ctrl+Alt+G (taken by another app?)\r\n";
+        for (i, b) in bytes[4096..8192].iter_mut().enumerate() {
+            *b = junk[i % junk.len()];
+        }
+        std::fs::write(&path, &bytes).unwrap();
+
+        let h = History::open(&path).expect("a broken history must not keep the app from starting");
+        h.record(&attempt(27, 11, "en", "Hi", 1.0, true)).unwrap();
+        assert_eq!(h.day_summary("en", at(27, 0).date_naive()).unwrap().len(), 1, "starts over");
+        assert_eq!(std::fs::read(dir.path().join("history.sqlite3.corrupt")).unwrap(), bytes, "old file kept as is");
+    }
+
+    #[test]
+    fn a_file_that_is_not_a_database_is_set_aside_too() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("history.sqlite3");
+        std::fs::write(&path, "Hotkey unavailable: Ctrl+Alt+G\r\n".repeat(200)).unwrap();
+        History::open(&path).unwrap().record(&attempt(27, 11, "en", "Hi", 1.0, true)).unwrap();
+        assert!(dir.path().join("history.sqlite3.corrupt").exists());
+    }
+
+    #[test]
+    fn a_healthy_history_is_never_moved() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("history.sqlite3");
+        History::open(&path).unwrap().record(&attempt(27, 10, "en", "Hello.", 1.0, true)).unwrap();
+        let h = History::open(&path).unwrap();
+        assert_eq!(h.day_summary("en", at(27, 0).date_naive()).unwrap().len(), 1);
+        assert!(!dir.path().join("history.sqlite3.corrupt").exists());
     }
 }

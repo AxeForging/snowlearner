@@ -20,7 +20,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
     let settings = load_settings(&paths, &cli.run)?;
     match cli.command.unwrap_or(Cmd::Run) {
         Cmd::Run => {
-            crate::control::console::release_own_console();
+            crate::control::console::release_own_console(&paths.log_file());
             crate::app::run(settings, paths, cli.run.level)
         }
         Cmd::Setup { lang, no_model } => setup(settings, &paths, lang.as_deref(), no_model),
@@ -46,6 +46,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
             println!("decks    {}", paths.decks_dir().display());
             println!("history  {}", paths.db_file().display());
             println!("models   {}", paths.models_dir().display());
+            println!("log      {}", paths.log_file().display());
             Ok(())
         }
         Cmd::Model { action: ModelAction::Download { name } } => {

@@ -144,7 +144,8 @@ impl Endpointer {
         sorted[((sorted.len() - 1) as f32 * FLOOR_PERCENTILE) as usize]
     }
 
-    fn threshold(&self) -> f32 {
+    /// Loudness a frame needs to count as speech (frozen once speech starts).
+    pub fn threshold(&self) -> f32 {
         self.gate.unwrap_or_else(|| (self.noise_floor().min(MAX_FLOOR) * SPEECH_OVER_FLOOR).max(MIN_THRESHOLD))
     }
 

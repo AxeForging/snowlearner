@@ -137,6 +137,21 @@ fn mac_voice_for(loc: &str, voices: &[(String, String)]) -> Option<String> {
         .map(|(n, _)| n.clone())
 }
 
+/// `program` as a child with no console window of its own. Without it,
+/// Windows pops a terminal up for every line read aloud once the app has
+/// let go of its console (started from the Start menu).
+pub fn command_no_window(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    #[allow(unused_mut)]
+    let mut cmd = Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 pub fn in_path(program: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     let exts: &[&str] = if cfg!(windows) { &[".exe", ".cmd", ""] } else { &[""] };
@@ -176,7 +191,7 @@ impl Tts {
     pub fn voices(&self, lang: &str) -> Vec<String> {
         let loc = locale(lang);
         let run = |prog: &str, args: &[&str]| {
-            Command::new(prog)
+            command_no_window(prog)
                 .args(args)
                 .output()
                 .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
@@ -211,7 +226,7 @@ impl Tts {
             bail!("no text-to-speech engine found (install speech-dispatcher or espeak-ng)");
         };
         let cmd = command(engine, text, lang, voice, slow, &self.mac_voices);
-        let status = Command::new(&cmd.program)
+        let status = command_no_window(&cmd.program)
             .args(&cmd.args)
             .envs(cmd.env.iter().map(|(k, v)| (k, v)))
             .stdout(std::process::Stdio::null())

@@ -3,6 +3,7 @@ pub mod highpass;
 pub mod matcher;
 pub mod resample;
 pub mod resident;
+pub mod trace;
 pub mod tts;
 pub mod voices;
 pub mod worker;

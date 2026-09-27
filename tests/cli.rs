@@ -86,6 +86,14 @@ fn config_init_writes_once_and_refuses_to_clobber() {
 }
 
 #[test]
+fn config_path_says_where_the_log_is() {
+    let home = Home::new();
+    let out = stdout(&home.run(&["config", "path"]));
+    let log = home.dir.path().join("data").join("snowlearner.log");
+    assert!(out.contains(&format!("log      {}", log.display())), "{out}");
+}
+
+#[test]
 fn invalid_config_is_reported_with_the_bad_key() {
     let home = Home::new();
     home.config("commitment = 'extreme'\n");
