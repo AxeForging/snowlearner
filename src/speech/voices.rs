@@ -116,13 +116,15 @@ impl Http {
             "voice": voice,
             "response_format": "wav",
             "speed": if slow { 0.85 } else { 1.0 },
-            "lang_code": locale(lang).split('-').next().unwrap_or("en"),
         });
         let url = format!("{}/audio/speech", self.base());
         let mut resp =
             with_agents(&url, |a| a.post(&url).header("Content-Type", "application/json").send(body.to_string()))
                 .with_context(|| format!("TTS server at {url} did not answer — is it running?"))?;
         let bytes = resp.body_mut().with_config().limit(50_000_000).read_to_vec()?;
+        if bytes.is_empty() {
+            bail!("TTS server at {url} answered with no audio for voice {voice:?} — its log says why");
+        }
         Ok(bytes)
     }
 
@@ -400,6 +402,13 @@ mod tests {
 
     /// A tiny local stand-in for Kokoro-FastAPI.
     fn fake_server(reply_voices: &'static str) -> (String, std::thread::JoinHandle<String>) {
+        fake_server_with(reply_voices, b"RIFFfake")
+    }
+
+    fn fake_server_with(
+        reply_voices: &'static str,
+        reply_audio: &'static [u8],
+    ) -> (String, std::thread::JoinHandle<String>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let url = format!("http://{}/v1", listener.local_addr().unwrap());
         let handle = std::thread::spawn(move || {
@@ -421,7 +430,7 @@ mod tests {
             let mut body = vec![0; len];
             reader.read_exact(&mut body).unwrap();
             let payload: Vec<u8> =
-                if head.starts_with("GET") { reply_voices.as_bytes().to_vec() } else { b"RIFFfake".to_vec() };
+                if head.starts_with("GET") { reply_voices.as_bytes().to_vec() } else { reply_audio.to_vec() };
             let resp = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", payload.len());
             s.write_all(resp.as_bytes()).unwrap();
             s.write_all(&payload).unwrap();
@@ -440,6 +449,18 @@ mod tests {
         assert!(req.starts_with("POST /v1/audio/speech"), "{req}");
         assert!(req.contains(r#""voice":"pf_dora""#) && req.contains(r#""input":"Olá""#), "{req}");
         assert!(req.contains(r#""response_format":"wav""#));
+        // Kokoro wants one-letter codes ("p", "a"): "pt"/"en" made it answer
+        // 200 with no audio. Left out, it takes the language from the voice.
+        assert!(!req.contains("lang_code"), "{req}");
+    }
+
+    #[test]
+    fn a_tts_server_answering_without_audio_says_so() {
+        let (url, server) = fake_server_with("", b"");
+        let h = Http { url, model: "kokoro".into() };
+        let err = format!("{:#}", h.synthesize("oi", "en", "af_heart", false).unwrap_err());
+        server.join().unwrap();
+        assert!(err.contains("no audio") && err.contains("log"), "{err}");
     }
 
     #[test]
