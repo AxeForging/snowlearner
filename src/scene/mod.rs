@@ -83,21 +83,21 @@ struct Flake {
     falling: bool,
 }
 
-/// Share of the flake pool falling on a clear screen; all of it once buried.
-const SNOWFALL_MIN: f32 = 0.1;
-/// At full snowfall, settling flakes add this share of the snow the mage's
-/// cubes add over the same time. Small: the cubes stay the main source.
-const SNOWFALL_SHARE_OF_CUBES: f32 = 0.2;
+/// Share of the flake pool falling on a clear screen: a few flakes, just
+/// enough to show it has started to snow.
+const SNOWFALL_MIN: f32 = 0.02;
+/// Never fewer flakes than this on a clear screen (small windows).
+const SNOWFALL_FLOOR: usize = 6;
 /// Spread of the heap a shattered cube leaves (`Snow::add`).
 const CUBE_SPREAD: f32 = 9.0;
-/// Spread of the heap one settled flake leaves.
-const FLAKE_SPREAD: f32 = 1.0;
 
-/// Flakes falling out of a pool of `pool` at freeze `level` (0 clear, 1 buried):
-/// a light fall on a clear screen, growing linearly to the whole pool.
+/// Flakes falling out of a pool of `pool` at freeze `level` (0 clear, 1
+/// buried): a few on a clear screen, growing slowly at first (quadratic)
+/// and reaching the whole pool once buried.
 fn snowfall(pool: usize, level: f32) -> usize {
-    let share = SNOWFALL_MIN + (1.0 - SNOWFALL_MIN) * level.clamp(0.0, 1.0);
-    ((pool as f32 * share).round() as usize).clamp(1.min(pool), pool)
+    let l = level.clamp(0.0, 1.0);
+    let share = SNOWFALL_MIN + (1.0 - SNOWFALL_MIN) * l * l;
+    ((pool as f32 * share).round() as usize).max(SNOWFALL_FLOOR).min(pool)
 }
 
 pub struct Scene {
@@ -120,9 +120,6 @@ pub struct Scene {
     particles: Vec<Particle>,
     friends: Vec<Friend>,
     flakes: Vec<Flake>,
-    /// Sum of the speeds of the flakes that land on the pile (px/s), for
-    /// sizing what each settled flake adds.
-    settling_speed: f32,
     backdrop: Option<Backdrop>,
     /// The fire mage, present only during lessons.
     pub pyro: Pyro,
@@ -166,13 +163,12 @@ impl Scene {
         let flakes: Vec<Flake> = (0..pool)
             .map(|i| Flake {
                 x: rng.range(0.0, w as f32),
-                y: rng.range(0.0, h as f32),
+                y: rng.range(0.0, h as f32 - 1.0),
                 speed: rng.range(5.0, 16.0),
                 phase: rng.range(0.0, 7.0),
                 falling: i < light,
             })
             .collect();
-        let settling_speed = flakes.iter().filter(|f| lands_on_pile(f, transparent)).map(|f| f.speed).sum();
         let mut s = Scene {
             w,
             h,
@@ -190,7 +186,6 @@ impl Scene {
             particles: Vec::new(),
             friends: Vec::new(),
             flakes,
-            settling_speed,
             backdrop: None,
             pyro: Pyro::default(),
             fireballs: Vec::new(),
@@ -826,21 +821,22 @@ impl Scene {
         self.particles.retain(Particle::alive);
         self.particles.truncate(4000);
 
-        let target = snowfall(self.flakes.len(), self.freeze_level());
-        // Flakes settle only while the mage is attacking, like his cubes.
-        let settle = !self.practicing && !self.paused && self.stun_t <= 0.0;
-        self.fall_flakes(dt, target, settle);
+        // The sky holds its snow while you practice, like the mage his cubes.
+        let target = if self.practicing || self.paused { 0 } else { snowfall(self.flakes.len(), self.freeze_level()) };
+        self.fall_flakes(dt, target);
     }
 
-    /// Moves the snowfall: `target` flakes of the pool in the air. New ones
-    /// enter at the top, surplus ones stop only once they land, so the
+    /// Moves the snowfall with `target` flakes of the pool in the air. New
+    /// ones enter at the top; surplus ones stop only once they land, so the
     /// snowfall thickens and thins without flakes popping in or out mid-air.
-    /// With `settle`, each landing adds a little snow where it lands.
-    fn fall_flakes(&mut self, dt: f32, target: usize, settle: bool) {
+    /// Every flake that lands on the pile stays there as one pixel of snow
+    /// (the pile is one height per column, so thousands of grains cost
+    /// nothing). Returns how many settled.
+    fn fall_flakes(&mut self, dt: f32, target: usize) -> usize {
         let w = self.w as f32;
-        let per_flake = self.snow_per_flake();
-        let (transparent, time) = (self.transparent, self.time);
+        let (transparent, time, h) = (self.transparent, self.time, self.h);
         let snow = &mut self.snow;
+        let mut settled = 0;
         for (i, f) in self.flakes.iter_mut().enumerate() {
             if !f.falling {
                 if i >= target {
@@ -848,32 +844,21 @@ impl Scene {
                 }
                 f.falling = true;
                 f.y = -1.0;
-                f.x = (f.phase * 997.0 + time * 31.0) % (w + 20.0);
+                f.x = (f.phase * 997.0 + time * 31.0).rem_euclid(w);
             }
             f.y += f.speed * dt;
-            f.x += ((time * 1.3 + f.phase).sin() * 5.0 - 4.0) * dt;
-            if f.x < -2.0 {
-                f.x = w + 1.0;
-            }
-            if f.y >= ground_at(snow, transparent, self.h, f.x) {
-                if settle && lands_on_pile(f, transparent) {
-                    snow.add(f.x, per_flake, FLAKE_SPREAD);
+            f.x = (f.x + ((time * 1.3 + f.phase).sin() * 5.0 - 4.0) * dt).rem_euclid(w);
+            let surface = ground_at(snow, transparent, h, f.x);
+            if f.y >= surface {
+                if lands_on_pile(f, transparent) && snow.add_grain(f.x) {
+                    settled += 1;
                 }
                 f.y = -1.0;
-                f.x = (f.phase * 997.0 + time * 31.0) % (w + 20.0);
+                f.x = (f.phase * 997.0 + time * 31.0).rem_euclid(w);
                 f.falling = i < target;
             }
         }
-    }
-
-    /// Snow one settled flake adds, sized so a full snowfall settles
-    /// `SNOWFALL_SHARE_OF_CUBES` of what the mage's cubes add per second.
-    /// `Snow::add(x, a, s)` leaves a heap of about a·s·√π column-pixels.
-    fn snow_per_flake(&self) -> f32 {
-        let root_pi = std::f32::consts::PI.sqrt();
-        let cubes = self.pace.snow_per_cube * CUBE_SPREAD * root_pi / self.pace.throw_every;
-        let landings = self.settling_speed / self.h as f32;
-        if landings <= 0.0 { 0.0 } else { SNOWFALL_SHARE_OF_CUBES * cubes / (landings * FLAKE_SPREAD * root_pi) }
+        settled
     }
 
     /// Somewhere across the screen, not right on top of the mage.
@@ -1478,13 +1463,15 @@ mod tests {
     }
 
     #[test]
-    fn snowfall_grows_linearly_from_a_tenth_of_the_pool_to_all_of_it() {
-        assert_eq!(snowfall(1000, 0.0), 100);
-        assert_eq!(snowfall(1000, 0.5), 550);
+    fn snowfall_starts_with_a_few_flakes_and_grows_slowly_then_to_the_whole_pool() {
+        assert_eq!(snowfall(1000, 0.0), 20, "2% on a clear screen");
+        assert_eq!(snowfall(100, 0.0), 6, "but never fewer than a handful");
+        assert_eq!(snowfall(1000, 0.25), 81, "still light a quarter of the way");
+        assert_eq!(snowfall(1000, 0.5), 265);
         assert_eq!(snowfall(1000, 1.0), 1000);
         assert_eq!(snowfall(1000, 7.0), 1000, "clamped");
-        assert_eq!(snowfall(1000, -1.0), 100, "clamped");
-        assert_eq!(snowfall(5, 0.0), 1, "never zero");
+        assert_eq!(snowfall(1000, -1.0), 20, "clamped");
+        assert_eq!(snowfall(4, 0.0), 4, "a tiny pool falls whole");
         let mut last = 0;
         for i in 0..=100 {
             let n = snowfall(777, i as f32 / 100.0);
@@ -1505,8 +1492,7 @@ mod tests {
     fn as_the_screen_freezes_new_flakes_enter_from_the_sky() {
         let mut s = Scene::new(480, 270, 2, Commitment::Chill.pace(), true);
         let before: Vec<bool> = s.flakes.iter().map(|f| f.falling).collect();
-        s.snow.dust(1000.0); // buried: freeze level 1
-        s.set_practicing(true); // keep the mage out of it
+        s.snow.dust(1000.0); // a full pile
         s.step(1.0 / 30.0);
         for (f, was) in s.flakes.iter().zip(before) {
             if f.falling && !was {
@@ -1523,7 +1509,6 @@ mod tests {
     #[test]
     fn melting_thins_the_snowfall_as_flakes_land_never_mid_air() {
         let mut s = Scene::new(480, 270, 3, Commitment::Chill.pace(), true);
-        s.set_practicing(true);
         s.snow.dust(1000.0);
         run(&mut s, 120.0);
         let full = falling(&s);
@@ -1534,32 +1519,48 @@ mod tests {
         assert!(on_curve(&s), "{} falling at level {}", falling(&s), s.freeze_level());
     }
 
-    #[test]
-    fn a_full_snowfall_settles_a_fifth_of_what_the_mage_throws() {
-        let pace = Commitment::Chill.pace();
-        let mut s = Scene::new(480, 270, 5, pace, true);
-        let all = s.flakes.len();
-        let total = |s: &Scene| s.snow.fill() * s.snow.width() as f32 * s.snow.cap();
-        let before = total(&s);
-        let seconds = 300.0;
-        let dt = 1.0 / 30.0;
-        for _ in 0..(seconds / dt) as i32 {
-            s.fall_flakes(dt, all, true);
-            s.time += dt;
-        }
-        let per_s = (total(&s) - before) / seconds;
-        let cubes_per_s = pace.snow_per_cube * CUBE_SPREAD * std::f32::consts::PI.sqrt() / pace.throw_every;
-        let ratio = per_s / cubes_per_s;
-        assert!((ratio - SNOWFALL_SHARE_OF_CUBES).abs() < 0.03, "flakes settle {ratio:.3} of the cubes' snow");
+    fn pile(s: &Scene) -> f32 {
+        s.snow.fill() * s.snow.width() as f32 * s.snow.cap()
     }
 
     #[test]
-    fn falling_snow_settles_nothing_while_you_practice() {
-        let mut s = Scene::new(480, 270, 6, Commitment::Relentless.pace(), true);
+    fn every_flake_that_lands_stays_as_one_pixel_of_snow() {
+        let mut s = Scene::new(480, 270, 5, Commitment::Chill.pace(), true);
         let all = s.flakes.len();
-        for _ in 0..3000 {
-            s.fall_flakes(1.0 / 30.0, all, false);
+        let before = pile(&s);
+        let mut landed = 0;
+        for _ in 0..(60 * 30) {
+            landed += s.fall_flakes(1.0 / 30.0, all);
+            s.time += 1.0 / 30.0;
         }
-        assert_eq!(s.snow.fill(), 0.0);
+        assert!(landed > 300, "enough landings to measure, got {landed}");
+        let added = pile(&s) - before;
+        assert!((added - landed as f32).abs() < 0.5, "{landed} grains landed, the pile grew {added}");
+    }
+
+    #[test]
+    fn flakes_stay_on_screen_until_they_land() {
+        let mut s = Scene::new(480, 270, 8, Commitment::Chill.pace(), true);
+        let all = s.flakes.len();
+        for _ in 0..(90 * 30) {
+            s.fall_flakes(1.0 / 30.0, all);
+            s.time += 1.0 / 30.0;
+            for f in s.flakes.iter().filter(|f| f.falling) {
+                assert!((0.0..s.w as f32).contains(&f.x), "flake left the screen sideways at x={}", f.x);
+                assert!(f.y <= s.h as f32, "flake fell through the floor at y={}", f.y);
+            }
+        }
+    }
+
+    #[test]
+    fn practicing_stops_new_flakes_but_those_in_the_air_still_land() {
+        let mut s = Scene::new(480, 270, 6, Commitment::Relentless.pace(), true);
+        let in_air = falling(&s);
+        s.set_practicing(true);
+        let before = pile(&s);
+        run(&mut s, 60.0);
+        assert_eq!(falling(&s), 0, "no new snowfall while you practice");
+        let added = pile(&s) - before;
+        assert!((added - in_air as f32).abs() < 0.5, "the {in_air} flakes in the air settled, pile grew {added}");
     }
 }
