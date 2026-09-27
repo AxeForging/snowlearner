@@ -127,9 +127,79 @@ pub fn is_hallucination(text: &str) -> bool {
     norm.is_empty() || HALLUCINATIONS.iter().any(|h| normalize(h).join(" ") == norm)
 }
 
+/// Number names (accent-folded) for the digits whisper writes instead of the
+/// word the learner said: English, Spanish, Portuguese.
+const NUMBER_WORDS: &[(&str, &[&str])] = &[
+    ("0", &["zero", "cero"]),
+    ("1", &["one", "uno", "una", "un", "um", "uma"]),
+    ("2", &["two", "dos", "dois", "duas"]),
+    ("3", &["three", "tres"]),
+    ("4", &["four", "cuatro", "quatro"]),
+    ("5", &["five", "cinco"]),
+    ("6", &["six", "seis"]),
+    ("7", &["seven", "siete", "sete"]),
+    ("8", &["eight", "ocho", "oito"]),
+    ("9", &["nine", "nueve", "nove"]),
+    ("10", &["ten", "diez", "dez"]),
+    ("11", &["eleven", "once", "onze"]),
+    ("12", &["twelve", "doce", "doze"]),
+    ("13", &["thirteen", "trece", "treze"]),
+    ("14", &["fourteen", "catorce", "catorze", "quatorze"]),
+    ("15", &["fifteen", "quince", "quinze"]),
+    ("16", &["sixteen", "dieciseis", "dezesseis"]),
+    ("17", &["seventeen", "diecisiete", "dezessete"]),
+    ("18", &["eighteen", "dieciocho", "dezoito"]),
+    ("19", &["nineteen", "diecinueve", "dezenove"]),
+    ("20", &["twenty", "veinte", "vinte"]),
+    ("30", &["thirty", "treinta", "trinta"]),
+    ("40", &["forty", "cuarenta", "quarenta"]),
+    ("50", &["fifty", "cincuenta", "cinquenta"]),
+    ("60", &["sixty", "sesenta", "sessenta"]),
+    ("70", &["seventy", "setenta"]),
+    ("80", &["eighty", "ochenta", "oitenta"]),
+    ("90", &["ninety", "noventa"]),
+];
+
+/// Reads the heard text the way the target is written: a digit becomes the
+/// target's number word ("3" → "three" when "three" is expected), and a word
+/// the recognizer split ("yes ter day") is joined back when that spells a
+/// target word exactly.
+fn align_to_target(target: &[String], heard: Vec<String>) -> Vec<String> {
+    let heard: Vec<String> = heard
+        .into_iter()
+        .map(|w| {
+            NUMBER_WORDS
+                .iter()
+                .find(|(digits, _)| *digits == w)
+                .and_then(|(_, names)| target.iter().find(|t| names.contains(&t.as_str())))
+                .cloned()
+                .unwrap_or(w)
+        })
+        .collect();
+    let mut out = Vec::with_capacity(heard.len());
+    let mut i = 0;
+    while i < heard.len() {
+        let joined = (2..=3).rev().filter(|n| i + n <= heard.len()).find_map(|n| {
+            let word = heard[i..i + n].concat();
+            target.contains(&word).then_some((word, n))
+        });
+        match joined {
+            Some((word, n)) if !target.contains(&heard[i]) => {
+                out.push(word);
+                i += n;
+            }
+            _ => {
+                out.push(heard[i].clone());
+                i += 1;
+            }
+        }
+    }
+    out
+}
+
 pub fn score(target: &str, heard: &str) -> MatchResult {
     let t = normalize(target);
-    let h = normalize(heard);
+    let h = align_to_target(&t, normalize(heard));
 
     // Per original target word: is it (approximately) in what was heard?
     let words = target
@@ -257,5 +327,25 @@ mod tests {
         assert!(score("Vamos", "vamos!").passed(PASS));
         assert!(score("Vamos", "bom, vamos lá").passed(PASS));
         assert!(!score("Vamos", "banana").passed(PASS));
+    }
+
+    #[test]
+    fn numbers_written_as_digits_count_as_the_spoken_word() {
+        // Whisper writes "3" / "20" for a number the learner said perfectly.
+        assert!(score("Three.", "3").passed(PASS));
+        assert!(score("Two coffees, please.", "2 coffees, please.").passed(PASS));
+        assert!(score("Tengo veinte años.", "tengo 20 años").passed(PASS));
+        assert!(score("¿Cinco?", "¿5?").passed(PASS));
+        assert!(score("Dois cafés.", "2 cafés").passed(PASS));
+        assert!(!score("Three.", "4").passed(PASS), "the wrong number is still wrong");
+        assert!(!score("Tengo veinte años.", "tengo 30 años").passed(PASS));
+    }
+
+    #[test]
+    fn a_word_the_recognizer_split_in_two_still_counts() {
+        // Seen from whisper on a clean "Yesterday.": "Yes,ter day."
+        assert!(score("Yesterday.", "Yes,ter day.").passed(PASS));
+        assert!(score("Good morning", "good mor ning").passed(PASS));
+        assert!(!score("Yesterday.", "Yes, today.").passed(PASS), "joining must not invent a match");
     }
 }

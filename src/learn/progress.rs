@@ -14,6 +14,11 @@ pub struct Tally {
 }
 
 impl Tally {
+    /// Share known, 0–100 (0 for an empty selection).
+    pub fn percent(self) -> usize {
+        (self.known * 100).checked_div(self.total).unwrap_or(0)
+    }
+
     fn add(&mut self, s: PhraseStats) {
         self.total += 1;
         if path::is_known(s) {
@@ -84,12 +89,11 @@ pub fn progress(phrases: &[Phrase], selection: &[usize], stats: &HashMap<String,
 impl Progress {
     /// Plain-text report for the terminal.
     pub fn render_text(&self, language_name: &str) -> String {
-        let pct = |t: Tally| if t.total == 0 { 0 } else { t.known * 100 / t.total };
         let mut out = format!(
             "Progresso em {language_name}: {} de {} sabidas ({}%), {} aprendendo\n",
             self.overall.known,
             self.overall.total,
-            pct(self.overall),
+            self.overall.percent(),
             self.overall.learning
         );
         out += &match self.current {

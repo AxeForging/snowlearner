@@ -37,33 +37,48 @@ impl ListenPlan {
 
     /// Worst-case total time the mic may stay open.
     pub fn max_total(&self) -> f32 {
-        GUARD_S + self.think + self.cap() + 1.0
+        GUARD_S + self.think + LATE_ONSET_GRACE_S + self.cap() + 1.0
     }
 }
 
 const FRAMES_PER_S: usize = 50; // 20 ms frames
 const GUARD_S: f32 = 0.25;
-const CALIBRATION_FRAMES: usize = 15;
+/// The noise floor is a low percentile of the recent frames (guard included):
+/// the quiet moments around words, never the words themselves.
+const FLOOR_WINDOW_S: f32 = 6.0;
+const FLOOR_PERCENTILE: f32 = 0.2;
+/// Speech is this many times louder than the floor (≈ +9.5 dB).
+const SPEECH_OVER_FLOOR: f32 = 3.0;
 /// Absolute floor so a silent room with a noise-free mic still needs real speech.
 const MIN_THRESHOLD: f32 = 0.012;
 /// A noise floor above this is probably speech, not a fan: don't go deaf.
 const MAX_FLOOR: f32 = 0.03;
+/// Speech starts when this many of the last `ONSET_WINDOW` frames are loud
+/// (60 ms of voice within 100 ms), so a word that dips on a consonant counts.
 const SPEECH_FRAMES_TO_START: usize = 3;
+const ONSET_WINDOW: usize = 5;
+/// A burst already under way when listening starts (the learner answered the
+/// instant the voice stopped) is judged once the quiet after it shows the real
+/// floor — if it is word-sized. Longer leading noise is the room, not an answer.
+const OPENING_BURST_MAX_S: f32 = 1.5;
+/// A word that begins as thinking time runs out may finish.
+const LATE_ONSET_GRACE_S: f32 = 0.5;
 const HESITATION_S: f32 = 1.8;
 const END_PAUSE_S: f32 = 0.8;
 
 pub struct Endpointer {
     frame_len: usize,
     frame: Vec<f32>,
-    frames_seen: usize,
+    /// RMS of every frame since the mic opened (guard included).
+    history: Vec<f32>,
     guard: usize,
-    calibration: Vec<f32>,
-    noise_floor: Option<f32>,
-    onset: usize,
+    /// Threshold frozen when speech starts.
+    gate: Option<f32>,
     started_at: Option<usize>,
+    last_loud: usize,
     spoken: usize,
-    silence: usize,
     think: usize,
+    grace: usize,
     expected: usize,
     cap: usize,
     level: f32,
@@ -79,15 +94,14 @@ impl Endpointer {
         Self {
             frame_len: (sample_rate as usize / FRAMES_PER_S).max(1),
             frame: Vec::new(),
-            frames_seen: 0,
+            history: Vec::new(),
             guard: frames(GUARD_S),
-            calibration: Vec::with_capacity(CALIBRATION_FRAMES),
-            noise_floor: None,
-            onset: 0,
+            gate: None,
             started_at: None,
+            last_loud: 0,
             spoken: 0,
-            silence: 0,
             think: frames(plan.think),
+            grace: frames(LATE_ONSET_GRACE_S),
             expected: frames(plan.expected),
             cap: frames(plan.cap()),
             level: 0.0,
@@ -112,14 +126,26 @@ impl Endpointer {
     /// Ends the turn now (learner pressed "done").
     pub fn finish(&mut self) -> Status {
         if self.status == Status::Listening {
+            if !self.started() {
+                self.detect_onset();
+            }
             self.status = Status::Done { speech: self.started() };
         }
         self.status
     }
 
+    fn noise_floor(&self) -> f32 {
+        let recent = &self.history[self.history.len().saturating_sub(frames(FLOOR_WINDOW_S))..];
+        if recent.is_empty() {
+            return 0.0;
+        }
+        let mut sorted = recent.to_vec();
+        sorted.sort_by(f32::total_cmp);
+        sorted[((sorted.len() - 1) as f32 * FLOOR_PERCENTILE) as usize]
+    }
+
     fn threshold(&self) -> f32 {
-        let floor = self.noise_floor.unwrap_or_else(|| self.calibration.iter().copied().fold(f32::MAX, f32::min));
-        (floor.min(MAX_FLOOR) * 3.0).max(MIN_THRESHOLD)
+        self.gate.unwrap_or_else(|| (self.noise_floor().min(MAX_FLOOR) * SPEECH_OVER_FLOOR).max(MIN_THRESHOLD))
     }
 
     pub fn feed(&mut self, samples: &[f32]) -> Status {
@@ -137,54 +163,65 @@ impl Endpointer {
         self.status
     }
 
-    fn on_frame(&mut self, rms: f32) {
-        self.frames_seen += 1;
-        self.level = rms;
-        if self.frames_seen <= self.guard {
+    /// Looks for the start of speech against the current floor: in the last
+    /// few frames, or in a word-sized burst that was already going when the
+    /// mic opened (only now does the quiet after it reveal the real floor).
+    fn detect_onset(&mut self) {
+        let n = self.history.len();
+        if n <= self.guard {
             return;
         }
-        if self.noise_floor.is_none() {
-            self.calibration.push(rms);
-            if self.calibration.len() >= CALIBRATION_FRAMES {
-                // The quietest moments are the room, not the voice.
-                let mut sorted = self.calibration.clone();
-                sorted.sort_by(f32::total_cmp);
-                self.noise_floor = Some(sorted[sorted.len() / 5]);
-            }
+        let gate = self.threshold();
+        let loud = |i: usize| self.history[i] > gate;
+        let recent = n.saturating_sub(ONSET_WINDOW).max(self.guard);
+        let start = if (recent..n).filter(|&i| loud(i)).count() >= SPEECH_FRAMES_TO_START {
+            (recent..n).find(|&i| loud(i))
+        } else {
+            let burst = (self.guard..n).take_while(|&i| loud(i)).count();
+            let ended = self.guard + burst < n;
+            (ended && (SPEECH_FRAMES_TO_START..=frames(OPENING_BURST_MAX_S)).contains(&burst)).then_some(self.guard)
+        };
+        if let Some(start) = start {
+            self.gate = Some(gate);
+            self.started_at = Some(start);
+            self.spoken = (start..n).filter(|&i| loud(i)).count();
+            self.last_loud = (start..n).rev().find(|&i| loud(i)).unwrap_or(start);
         }
-        let loud = rms > self.threshold();
-        let now = self.frames_seen - self.guard;
+    }
 
+    fn on_frame(&mut self, rms: f32) {
+        self.history.push(rms);
+        self.level = rms;
+        let n = self.history.len();
+        if n <= self.guard {
+            return;
+        }
+        let now = n - self.guard;
         match self.started_at {
             None => {
-                if loud {
-                    self.onset += 1;
-                    if self.onset >= SPEECH_FRAMES_TO_START {
-                        self.started_at = Some(now);
-                        self.spoken = self.onset;
+                self.detect_onset();
+                if !self.started() && now >= self.think {
+                    let gate = self.threshold();
+                    let voice_now =
+                        self.history[n.saturating_sub(ONSET_WINDOW).max(self.guard)..].iter().any(|&r| r > gate);
+                    if !voice_now || now >= self.think + self.grace {
+                        self.status = Status::Done { speech: false };
                     }
-                } else {
-                    self.onset = 0;
-                    if let Some(f) = &mut self.noise_floor {
-                        *f = *f * 0.98 + rms * 0.02; // follow a changing room
-                    }
-                }
-                if self.started_at.is_none() && now >= self.think {
-                    self.status = Status::Done { speech: false };
                 }
             }
-            Some(start) => {
-                if loud {
+            Some(_) => {
+                if rms > self.threshold() {
                     self.spoken += 1;
-                    self.silence = 0;
-                } else {
-                    self.silence += 1;
+                    self.last_loud = n - 1;
                 }
-                let said_enough = self.spoken as f32 >= self.expected as f32 * 0.6;
-                let allowed = frames(if said_enough { END_PAUSE_S } else { HESITATION_S });
-                if self.silence >= allowed || now - start >= self.cap {
-                    self.status = Status::Done { speech: true };
-                }
+            }
+        }
+        if let Some(start) = self.started_at {
+            let silence = n - 1 - self.last_loud;
+            let said_enough = self.spoken as f32 >= self.expected as f32 * 0.6;
+            let allowed = frames(if said_enough { END_PAUSE_S } else { HESITATION_S });
+            if silence >= allowed || n - start >= self.cap {
+                self.status = Status::Done { speech: true };
             }
         }
     }
@@ -206,6 +243,131 @@ mod tests {
 
     fn short() -> ListenPlan {
         ListenPlan::for_phrase(2, false)
+    }
+
+    /// Room noise: deterministic white noise at the given RMS.
+    fn room(seconds: f32, rms: f32) -> Vec<f32> {
+        let mut x: u32 = 0x9e37_79b9;
+        (0..(seconds * RATE as f32) as usize)
+            .map(|_| {
+                x ^= x << 13;
+                x ^= x >> 17;
+                x ^= x << 5;
+                (x as f32 / u32::MAX as f32 * 2.0 - 1.0) * rms * 3f32.sqrt()
+            })
+            .collect()
+    }
+
+    /// A voiced, word-like burst (150 Hz with harmonics, 40 ms fade in/out) at
+    /// roughly the given RMS.
+    fn word(seconds: f32, rms: f32) -> Vec<f32> {
+        let n = (seconds * RATE as f32) as usize;
+        let fade = ((0.04 * RATE as f32) as usize).min(n / 8).max(1);
+        (0..n)
+            .map(|i| {
+                let t = i as f32 / RATE as f32;
+                let voice =
+                    (1..=4).map(|h| (std::f32::consts::TAU * 150.0 * h as f32 * t).sin() / h as f32).sum::<f32>();
+                let env = (i.min(n - 1 - i) as f32 / fade as f32).min(1.0);
+                voice * env * rms / 0.85
+            })
+            .collect()
+    }
+
+    fn cat(parts: &[Vec<f32>]) -> Vec<f32> {
+        parts.concat()
+    }
+
+    /// Feeds `samples` in 10 ms chunks (like a mic callback) and returns the
+    /// status plus whether "falando" was lit while the samples were playing.
+    fn play(e: &mut Endpointer, samples: &[f32]) -> Status {
+        let mut status = e.status();
+        for chunk in samples.chunks(160) {
+            status = e.feed(chunk);
+        }
+        status
+    }
+
+    const NOISE: f32 = 0.003;
+
+    #[test]
+    fn a_short_word_said_right_away_is_heard() {
+        // "Yes." starting 100 ms after the mic opens: inside the echo guard
+        // and all over the calibration window.
+        let mut e = Endpointer::new(RATE, ListenPlan::for_phrase(1, false));
+        play(&mut e, &cat(&[room(0.1, NOISE), word(0.4, 0.05)]));
+        assert!(e.started(), "\"falando\" should light while the word is said");
+        assert_eq!(play(&mut e, &room(4.0, NOISE)), Status::Done { speech: true });
+    }
+
+    #[test]
+    fn a_word_already_underway_when_the_mic_opens_is_heard() {
+        // The learner answered the moment the voice stopped; the mic opened late.
+        let mut e = Endpointer::new(RATE, ListenPlan::for_phrase(1, false));
+        play(&mut e, &word(0.6, 0.05));
+        assert_eq!(play(&mut e, &room(4.0, NOISE)), Status::Done { speech: true });
+    }
+
+    #[test]
+    fn humming_before_answering_does_not_make_it_deaf() {
+        // "hmmm…" just under the gate for a few seconds, then a normal-volume word.
+        let mut e = Endpointer::new(RATE, ListenPlan::for_phrase(1, true));
+        play(&mut e, &cat(&[room(1.0, NOISE), room(3.0, 0.011)]));
+        assert!(!e.started(), "a hum is not the answer");
+        play(&mut e, &word(0.5, 0.03));
+        assert!(e.started(), "the word after the hum must be heard");
+    }
+
+    #[test]
+    fn a_word_whose_loudness_flickers_near_the_gate_is_heard() {
+        // Near the gate a real word dips below it every few frames (consonants).
+        let mut e = Endpointer::new(RATE, short());
+        play(&mut e, &room(0.8, NOISE));
+        let mut flicker = Vec::new();
+        for _ in 0..8 {
+            flicker.extend(word(0.04, 0.03));
+            flicker.extend(room(0.02, NOISE));
+        }
+        play(&mut e, &flicker);
+        assert!(e.started());
+    }
+
+    #[test]
+    fn a_word_started_as_thinking_time_runs_out_is_heard() {
+        let plan = ListenPlan { think: 3.0, expected: 1.05 };
+        let mut e = Endpointer::new(RATE, plan);
+        // guard 0.25 s + 2.98 s: the word begins 20 ms before time is up.
+        assert_eq!(play(&mut e, &room(0.25 + 2.98, NOISE)), Status::Listening);
+        play(&mut e, &word(0.4, 0.05));
+        assert_eq!(play(&mut e, &room(4.0, NOISE)), Status::Done { speech: true });
+    }
+
+    #[test]
+    fn a_quiet_voice_on_a_quiet_mic_is_heard() {
+        // Laptop mic at conversation distance: room ~0.002, voice ~0.02 RMS.
+        let mut e = Endpointer::new(RATE, ListenPlan::for_phrase(1, false));
+        play(&mut e, &room(1.0, 0.002));
+        play(&mut e, &word(0.4, 0.02));
+        assert!(e.started());
+    }
+
+    #[test]
+    fn noise_that_stops_is_not_mistaken_for_speech_afterwards() {
+        // A fan that switches off must not turn its past noise into an "answer".
+        let mut e = Endpointer::new(RATE, ListenPlan { think: 10.0, expected: 1.05 });
+        play(&mut e, &room(2.0, 0.02));
+        play(&mut e, &room(2.0, 0.001));
+        assert!(!e.started(), "the fan was the room, not an answer");
+        play(&mut e, &word(0.5, 0.05));
+        assert!(e.started(), "the answer after it is still heard");
+        assert_eq!(play(&mut e, &room(3.0, 0.001)), Status::Done { speech: true });
+    }
+
+    #[test]
+    fn finishing_by_hand_right_after_a_quick_answer_counts_it() {
+        let mut e = Endpointer::new(RATE, ListenPlan::for_phrase(1, false));
+        play(&mut e, &cat(&[word(0.5, 0.05), room(0.2, NOISE)]));
+        assert_eq!(e.finish(), Status::Done { speech: true });
     }
 
     #[test]

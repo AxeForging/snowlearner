@@ -35,12 +35,7 @@ impl Recognizer {
         params.set_print_realtime(false);
         params.set_print_special(false);
         params.set_print_timestamps(false);
-        // Whisper needs at least ~1 s of audio; pad short answers with silence.
-        let mut audio = samples.to_vec();
-        if audio.len() < 16_000 + 1_600 {
-            audio.resize(16_000 + 1_600, 0.0);
-        }
-        state.full(params, &audio).context("speech recognition failed")?;
+        state.full(params, &prepare(samples)).context("speech recognition failed")?;
         let text: String = state
             .as_iter()
             .filter_map(|seg| seg.to_str_lossy().ok().map(|s| s.into_owned()))
@@ -48,6 +43,23 @@ impl Recognizer {
             .join(" ");
         Ok(clean(&text))
     }
+}
+
+/// Silence put before the answer. A word that starts right at the first
+/// sample (the learner answered instantly) is misheard without it: "Sorry."
+/// came back as "I'll read.", "Good morning." as "go tomorrow again."
+pub const LEAD_IN: usize = 16_000 * 3 / 10;
+/// Whisper needs at least ~1 s of audio; short answers are padded with silence.
+pub const MIN_SAMPLES: usize = 16_000 + 1_600;
+
+/// The audio whisper gets: a silent lead-in, the answer, silence up to the minimum.
+pub fn prepare(samples: &[f32]) -> Vec<f32> {
+    let mut audio = vec![0.0; LEAD_IN];
+    audio.extend_from_slice(samples);
+    if audio.len() < MIN_SAMPLES {
+        audio.resize(MIN_SAMPLES, 0.0);
+    }
+    audio
 }
 
 /// Drops whisper's non-speech annotations like "[BLANK_AUDIO]" or "(music)".
@@ -74,6 +86,18 @@ mod tests {
         assert_eq!(clean(" [BLANK_AUDIO] "), "");
         assert_eq!(clean(" I'm hungry. (laughs)  "), "I'm hungry.");
         assert_eq!(clean("Tengo  frío"), "Tengo frío");
+    }
+
+    #[test]
+    fn the_answer_gets_a_silent_lead_in_and_a_minimum_length() {
+        let word = vec![0.5; 8_000];
+        let audio = prepare(&word);
+        assert!(audio[..LEAD_IN].iter().all(|&s| s == 0.0), "silence first");
+        assert_eq!(&audio[LEAD_IN..LEAD_IN + word.len()], word.as_slice(), "then the answer, untouched");
+        assert_eq!(audio.len(), MIN_SAMPLES);
+        let long = vec![0.1; 48_000];
+        assert_eq!(prepare(&long).len(), LEAD_IN + long.len(), "long answers are not cut");
+        assert_eq!(prepare(&[]).len(), MIN_SAMPLES);
     }
 
     #[test]

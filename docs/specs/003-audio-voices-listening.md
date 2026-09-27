@@ -11,7 +11,11 @@ Status: approved in chat (2026-09-27).
 ## Listening (endpointer v2)
 - **Echo guard**: ignore the first 250 ms after the mic opens (tail of the TTS voice).
 - **Thinking time** before you start: repeat 6 s, recall 10 s (countdown shown).
-- **Calibration** from the quietest frames (not the first ones), so starting to talk
+- **Calibration** (revised 2026-09-27): the floor is the 20th percentile of the last 6 s
+  (guard included) and is frozen once speech starts; onset = 3 loud frames within 5; a
+  word-sized burst (≤ 1.5 s) already going when the mic opens counts once the quiet after it
+  shows the real floor; a word begun as thinking time ends gets 0.5 s of grace.
+- *(original)* **Calibration** from the quietest frames (not the first ones), so starting to talk
   instantly doesn't make it deaf; the noise floor keeps adapting while you're quiet.
 - **Adaptive pause**: expected duration ≈ 0.45 s/word + 0.6 s. Until you've spoken
   ~60% of that, a pause may last 1.8 s ("I'm… hungry"); after, 0.8 s ends the turn.

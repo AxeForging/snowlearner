@@ -234,10 +234,19 @@ fn listen(
 ) -> SpeechEvent {
     stop.store(false, Ordering::SeqCst);
     let result = (|| -> anyhow::Result<Option<String>> {
-        recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
-        let rec = super::mic::record(plan, &cfg.mic, stop, |level, speaking| {
-            notify(SpeechEvent::Level { id, level, speaking })
-        })?;
+        // Open the mic right away and load the model meanwhile: after an idle
+        // release the load used to keep the mic closed while the prompt
+        // already said "speak now", eating the start of a quick answer.
+        let (rec, loaded) = std::thread::scope(|s| {
+            let loading = s
+                .spawn(|| recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load).map(|_| ()));
+            let rec = super::mic::record(plan, &cfg.mic, stop, |level, speaking| {
+                notify(SpeechEvent::Level { id, level, speaking })
+            });
+            (rec, loading.join())
+        });
+        let rec = rec?;
+        loaded.map_err(|_| anyhow::anyhow!("loading the speech model crashed"))??;
         if !rec.heard_speech {
             return Ok(None);
         }

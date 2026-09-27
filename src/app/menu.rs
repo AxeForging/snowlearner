@@ -367,8 +367,7 @@ impl Menu {
             return;
         };
         let o = p.overall;
-        let pct = if o.total == 0 { 0 } else { o.known * 100 / o.total };
-        let head = format!("Sabe {} de {} ({pct}%) · aprendendo {}", o.known, o.total, o.learning);
+        let head = format!("Sabe {} de {} ({}%) · aprendendo {}", o.known, o.total, o.percent(), o.learning);
         font::draw(c, 6, TOP - 2, &fit(&head, WIDTH - 12), ink);
         for (k, (stage, t)) in p.stages.iter().enumerate() {
             let y = TOP + (k as i32 + 1) * ROW_H;

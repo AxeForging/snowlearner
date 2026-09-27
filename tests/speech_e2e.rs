@@ -51,3 +51,58 @@ fn saying_a_different_phrase_is_rejected() {
     let heard = recognizer().transcribe(&synth("Good night everyone", "en-us", dir.path()), "en").unwrap();
     assert!(!matcher::score("I'm hungry", &heard).passed(0.72), "heard {heard:?}");
 }
+
+/// The recording as the mic hands it over when the learner answers the instant
+/// listening starts: the word right at sample 0, then the room until the pause
+/// ends the turn.
+fn answered_instantly(text: &str, dir: &Path) -> Vec<f32> {
+    let voice = synth(text, "en-us", dir);
+    let start = voice.iter().position(|s| s.abs() > 0.01).unwrap_or(0);
+    let end = voice.iter().rposition(|s| s.abs() > 0.01).unwrap_or(voice.len() - 1);
+    let mut x: u32 = 0x2545_f491;
+    let mut room = move || {
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        (x as f32 / u32::MAX as f32 * 2.0 - 1.0) * 0.005
+    };
+    let mut rec: Vec<f32> = voice[start..=end].iter().map(|s| s * 0.3 + room()).collect();
+    rec.extend((0..WHISPER_RATE as usize * 18 / 10).map(|_| room()));
+    rec
+}
+
+#[test]
+#[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
+fn a_single_word_said_the_instant_listening_starts_is_recognized() {
+    // Without a lead-in whisper heard "Sorry." as "I'll read." and
+    // "Good morning." as "go tomorrow again."
+    let dir = tempfile::tempdir().unwrap();
+    let r = recognizer();
+    for phrase in ["Sorry.", "Good morning."] {
+        let heard = r.transcribe(&answered_instantly(phrase, dir.path()), "en").unwrap();
+        assert!(matcher::score(phrase, &heard).passed(0.72), "{phrase:?} was heard as {heard:?}");
+    }
+}
+
+#[test]
+#[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
+fn a_word_through_a_hissy_48khz_mic_is_recognized() {
+    // Mic hiss above 8 kHz folded into the speech band by a plain linear
+    // resampler turned "Please." into "Clean.".
+    let dir = tempfile::tempdir().unwrap();
+    let voice = synth("Please.", "en-us", dir.path());
+    let level = (voice.iter().map(|v| v * v).sum::<f32>() / voice.len() as f32).sqrt();
+    let at_48k = resample(&voice, WHISPER_RATE, 48_000);
+    let mut x: u32 = 0x1234_5679;
+    let mut hiss = move || {
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        (x as f32 / u32::MAX as f32 * 2.0 - 1.0) * 0.0173 // ≈ 0.01 RMS
+    };
+    let mut mic: Vec<f32> = (0..24_000).map(|_| hiss()).collect();
+    mic.extend(at_48k.iter().map(|v| v * 0.05 / level + hiss()));
+    mic.extend((0..48_000).map(|_| hiss()));
+    let heard = recognizer().transcribe(&resample(&mic, 48_000, WHISPER_RATE), "en").unwrap();
+    assert!(matcher::score("Please.", &heard).passed(0.72), "heard {heard:?}");
+}
