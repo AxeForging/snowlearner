@@ -14,7 +14,7 @@ audio = ["dep:cpal", "dep:hound"]
 # phrases are confirmed with the hotkey instead of the mic.
 stt = ["audio", "dep:whisper-rs"]
 # GPU presentation (wgpu), used only for see-through windows the CPU path can't
-# show (native Wayland/macOS/Windows). Without it everything draws on the CPU.
+# show (native Wayland/macOS). Without it everything draws on the CPU.
 gpu = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
 
 [dependencies]

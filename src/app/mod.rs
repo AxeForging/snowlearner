@@ -96,7 +96,12 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
     ];
     let hotkeys = if session.global_hotkeys() {
         match Hotkeys::register(&bindings) {
-            Ok(h) => Some(h),
+            Ok(h) => {
+                for why in &h.taken {
+                    eprintln!("Hotkey unavailable: {why}");
+                }
+                Some(h)
+            }
             Err(e) => {
                 eprintln!("Global hotkeys unavailable: {e:#}");
                 None

@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn see_through_windows_stay_on_the_cpu_where_it_shows_alpha() {
-        // X11, including the Wayland overlay that runs through XWayland.
+        // X11 (including the Wayland overlay that runs through XWayland) and Windows.
         assert_eq!(plan(true, true, true, None), vec![C, G]);
     }
 

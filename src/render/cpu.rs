@@ -1,6 +1,7 @@
 //! Presents the CPU canvas with no GPU at all: softbuffer blits a shared-memory
 //! image to the window, and the nearest-neighbour upscale happens here. Shows
-//! per-pixel alpha where the window system takes it straight (X11 32-bit visuals).
+//! per-pixel alpha where the window system takes it straight (X11 32-bit visuals,
+//! Windows with DWM blur-behind).
 
 use super::canvas::Canvas;
 use super::damage::{self, Damage};
@@ -67,11 +68,16 @@ impl Cpu {
     }
 }
 
-/// Whether a softbuffer window can show per-pixel transparency: only X11
-/// (32-bit visual, premultiplied ARGB). Wayland, macOS and Windows get XRGB.
+/// Whether a softbuffer window can show per-pixel transparency: X11 (32-bit
+/// visual, premultiplied ARGB) and Windows, where winit's `with_transparent`
+/// turns on DWM blur-behind and DWM then takes the alpha our 32-bit blit
+/// carries. Wayland and macOS get XRGB.
 pub fn cpu_shows_alpha(window: &Window) -> bool {
     use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
-    matches!(window.window_handle().map(|h| h.as_raw()), Ok(RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_)))
+    matches!(
+        window.window_handle().map(|h| h.as_raw()),
+        Ok(RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_) | RawWindowHandle::Win32(_))
+    )
 }
 
 /// Premultiplied `0xAARRGGBB`, the layout softbuffer (and X11 ARGB visuals) use.

@@ -79,7 +79,7 @@ Build dependencies: Rust ≥ 1.85, CMake and a C/C++ compiler (for whisper.cpp).
 Linux also needs ALSA and libclang headers (`dnf install alsa-lib-devel clang-devel` /
 `apt install libasound2-dev libclang-dev`) and, at runtime, `speech-dispatcher` or `espeak-ng`.
 Feature flags: `stt` (default: mic + recognition), `audio` (devices + playback only),
-`gpu` (default: only used for see-through windows on native Wayland/macOS/Windows),
+`gpu` (default: only used for see-through windows on native Wayland/macOS),
 none (hotkey confirms your answer, CPU-only drawing). `SNOWLEARNER_RENDERER=cpu|gpu` forces one.
 
 ## Use

@@ -15,19 +15,16 @@ pub fn parse(spec: &str) -> Result<HotKey> {
 pub struct Hotkeys {
     _manager: GlobalHotKeyManager,
     bindings: Vec<(u32, Command)>,
+    /// Why each hotkey that could not be registered is missing.
+    pub taken: Vec<String>,
 }
 
 impl Hotkeys {
     /// Must be called on the main thread (macOS requirement).
     pub fn register(specs: &[(&str, Command)]) -> Result<Hotkeys> {
         let manager = GlobalHotKeyManager::new().context("global hotkeys unavailable on this desktop")?;
-        let mut bindings = Vec::new();
-        for &(spec, cmd) in specs {
-            let hk = parse(spec)?;
-            manager.register(hk).with_context(|| format!("could not register {spec} (taken by another app?)"))?;
-            bindings.push((hk.id(), cmd));
-        }
-        Ok(Hotkeys { _manager: manager, bindings })
+        let (bindings, taken) = register_each(specs, |hk| Ok(manager.register(hk)?));
+        Ok(Hotkeys { _manager: manager, bindings, taken })
     }
 
     /// Drains pending key presses.
@@ -42,6 +39,26 @@ impl Hotkeys {
         }
         out
     }
+}
+
+/// Registers each hotkey on its own: one taken by another app (or mistyped)
+/// loses only itself, not the menu key the click-through overlay depends on.
+fn register_each(
+    specs: &[(&str, Command)],
+    mut register: impl FnMut(HotKey) -> Result<()>,
+) -> (Vec<(u32, Command)>, Vec<String>) {
+    let mut bindings = Vec::new();
+    let mut taken = Vec::new();
+    for &(spec, cmd) in specs {
+        match parse(spec).and_then(|hk| {
+            register(hk).with_context(|| format!("could not register {spec} (taken by another app?)"))?;
+            Ok(hk)
+        }) {
+            Ok(hk) => bindings.push((hk.id(), cmd)),
+            Err(e) => taken.push(format!("{e:#}")),
+        }
+    }
+    (bindings, taken)
 }
 
 #[cfg(test)]
@@ -59,5 +76,24 @@ mod tests {
     fn garbage_hotkeys_are_rejected_with_the_spec_in_the_message() {
         let err = format!("{:#}", parse("Ctrl+Banana").unwrap_err());
         assert!(err.contains("Ctrl+Banana"));
+    }
+
+    #[test]
+    fn a_hotkey_taken_by_another_app_only_loses_itself() {
+        let specs = [
+            ("Ctrl+Alt+M", Command::Challenge),
+            ("Ctrl+Alt+G", Command::Grab),
+            ("Ctrl+Banana", Command::Summary),
+            ("Ctrl+Alt+K", Command::Menu),
+        ];
+        let g = parse("Ctrl+Alt+G").unwrap().id();
+        let (bound, taken) = register_each(&specs, |hk| {
+            if hk.id() == g { Err(anyhow::anyhow!("HotKey already registered")) } else { Ok(()) }
+        });
+        let cmds: Vec<Command> = bound.iter().map(|(_, c)| *c).collect();
+        assert_eq!(cmds, vec![Command::Challenge, Command::Menu]);
+        assert_eq!(taken.len(), 2);
+        assert!(taken[0].contains("Ctrl+Alt+G") && taken[0].contains("already registered"), "{taken:?}");
+        assert!(taken[1].contains("Ctrl+Banana"), "{taken:?}");
     }
 }
