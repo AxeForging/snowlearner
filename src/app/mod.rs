@@ -26,7 +26,7 @@ use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, Modifiers, MouseButton, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId, WindowLevel};
 
@@ -54,6 +54,40 @@ const HELP: &[&str] = &[
 enum UserEvent {
     Ipc(Command),
     Speech(SpeechEvent),
+    /// Device and voice lists for the panel, loaded off the UI thread.
+    AudioLists(u64, Box<AudioLists>),
+}
+
+/// What the ÁUDIO tab cycles through. Loading it can be slow (a TTS server
+/// to ask, PowerShell to start, many audio devices), so it never runs on the
+/// UI thread.
+#[derive(Debug)]
+struct AudioLists {
+    mics: Vec<String>,
+    speakers: Vec<String>,
+    voices_native: Vec<String>,
+    voices_learning: Vec<String>,
+}
+
+impl AudioLists {
+    fn load(settings: &Settings) -> AudioLists {
+        let voice = settings.voice();
+        // The panel cycles with ←/→: keep the lists short (the CLI shows everything).
+        let short = |mut v: Vec<String>| {
+            v.truncate(40);
+            v
+        };
+        #[cfg(feature = "audio")]
+        let (mics, speakers) = (crate::speech::audio::input_names(), crate::speech::audio::output_names());
+        #[cfg(not(feature = "audio"))]
+        let (mics, speakers) = (Vec::new(), Vec::new());
+        AudioLists {
+            mics,
+            speakers,
+            voices_native: short(voice.voices(&settings.native).unwrap_or_default()),
+            voices_learning: short(voice.voices(&settings.learning).unwrap_or_default()),
+        }
+    }
 }
 
 pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Result<()> {
@@ -141,6 +175,8 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
     let lesson = Lesson::new(deck, opts, history);
 
     let mut app = App {
+        proxy: proxy.clone(),
+        lists_gen: 0,
         settings,
         paths,
         resolved,
@@ -213,6 +249,9 @@ struct Surface {
 }
 
 struct App {
+    proxy: EventLoopProxy<UserEvent>,
+    /// Latest panel list request; older answers are dropped.
+    lists_gen: u64,
     settings: Settings,
     paths: Paths,
     resolved: Resolved,
@@ -418,13 +457,14 @@ impl App {
         if let Err(e) = self.settings.save(&self.paths.config_file()) {
             eprintln!("could not save settings: {e:#}");
         }
+        if item == Item::Language {
+            self.refresh_audio_lists(); // the learning voices follow the language
+        }
         let Some(scene) = &mut self.scene else { return };
         match item {
             Item::Language => match Deck::load(&self.settings.learning, &self.paths.decks_dir()) {
                 Ok(deck) => {
                     self.menu.topics = deck.topics();
-                    self.menu.voices_learning =
-                        self.settings.voice().voices(&self.settings.learning).unwrap_or_default();
                     self.settings.topic.clear();
                     self.lesson.set_options(|o| o.topic = None, scene);
                     self.lesson.set_deck(deck, scene);
@@ -508,21 +548,20 @@ impl App {
         }
     }
 
-    /// Device and voice lists for the ÁUDIO tab (voices depend on the engine).
+    /// Reloads the ÁUDIO tab lists (voices depend on the engine and language)
+    /// in the background; the panel shows what it had until they arrive.
     fn refresh_audio_lists(&mut self) {
-        #[cfg(feature = "audio")]
-        {
-            self.menu.mics = crate::speech::audio::input_names();
-            self.menu.speakers = crate::speech::audio::output_names();
+        self.lists_gen += 1;
+        let (id, settings, proxy) = (self.lists_gen, self.settings.clone(), self.proxy.clone());
+        let spawned = std::thread::Builder::new().name("audio-lists".into()).spawn(move || {
+            let started = Instant::now();
+            let lists = AudioLists::load(&settings);
+            crate::speech::trace::line(format_args!("panel lists in {:.1} s", started.elapsed().as_secs_f32()));
+            let _ = proxy.send_event(UserEvent::AudioLists(id, Box::new(lists)));
+        });
+        if let Err(e) = spawned {
+            eprintln!("could not load the panel lists: {e}");
         }
-        // The panel cycles with ←/→: keep the lists short (the CLI shows everything).
-        let voice = self.settings.voice();
-        let short = |mut v: Vec<String>| {
-            v.truncate(40);
-            v
-        };
-        self.menu.voices_native = short(voice.voices(&self.settings.native).unwrap_or_default());
-        self.menu.voices_learning = short(voice.voices(&self.settings.learning).unwrap_or_default());
     }
 
     /// Results of the panel's mic/voice tests (not lesson events).
@@ -915,6 +954,16 @@ impl ApplicationHandler<UserEvent> for App {
             UserEvent::Ipc(cmd) => self.command(cmd, el),
             UserEvent::Speech(ev) if ev.id() >= TEST_IDS => self.test_event(ev),
             UserEvent::Speech(ev) => self.input(Input::Speech(ev)),
+            UserEvent::AudioLists(id, lists) if id == self.lists_gen => {
+                let AudioLists { mics, speakers, voices_native, voices_learning } = *lists;
+                (self.menu.mics, self.menu.speakers) = (mics, speakers);
+                (self.menu.voices_native, self.menu.voices_learning) = (voices_native, voices_learning);
+                if let Some(m) = &mut self.menu_win {
+                    m.screen.invalidate();
+                    m.window.request_redraw();
+                }
+            }
+            UserEvent::AudioLists(..) => {}
         }
     }
 

@@ -119,20 +119,60 @@ impl Http {
             "lang_code": locale(lang).split('-').next().unwrap_or("en"),
         });
         let url = format!("{}/audio/speech", self.base());
-        let mut resp = ureq::post(&url)
-            .header("Content-Type", "application/json")
-            .send(body.to_string())
-            .with_context(|| format!("TTS server at {url} did not answer — is it running?"))?;
+        let mut resp =
+            with_agents(&url, |a| a.post(&url).header("Content-Type", "application/json").send(body.to_string()))
+                .with_context(|| format!("TTS server at {url} did not answer — is it running?"))?;
         let bytes = resp.body_mut().with_config().limit(50_000_000).read_to_vec()?;
         Ok(bytes)
     }
 
     pub fn voices(&self, lang: &str) -> Result<Vec<String>> {
         let url = format!("{}/audio/voices", self.base());
-        let mut resp = ureq::get(&url).call().with_context(|| format!("listing voices at {url}"))?;
+        let mut resp = with_agents(&url, |a| a.get(&url).call()).with_context(|| format!("listing voices at {url}"))?;
         let body = resp.body_mut().read_to_string()?;
         Ok(filter_kokoro(parse_voice_list(&body)?, lang))
     }
+}
+
+/// Longest wait for a TTS server to accept the connection; ureq alone waits
+/// for the OS timeout (21 s on Windows) on each address that never answers.
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// `localhost` resolves to `::1` first, but local TTS servers (Docker, WSL)
+/// often listen on IPv4 only, and on Windows `::1` then hangs for 21 s
+/// instead of refusing. Such URLs try IPv4 first.
+fn ipv4_first(url: &str) -> bool {
+    let rest = url.split_once("://").map_or(url, |(_, r)| r);
+    let authority = rest.split('/').next().unwrap_or(rest);
+    let host = authority.rsplit_once(':').map_or(authority, |(h, _)| h);
+    host.eq_ignore_ascii_case("localhost")
+}
+
+/// Sends through shared agents (they keep connections open between lines),
+/// moving to the next one only when connecting failed, so a server on IPv6
+/// loopback alone still answers after the IPv4 try.
+fn with_agents<T>(url: &str, mut send: impl FnMut(&ureq::Agent) -> Result<T, ureq::Error>) -> Result<T, ureq::Error> {
+    use std::sync::OnceLock;
+    use ureq::config::IpFamily;
+    static ANY: OnceLock<ureq::Agent> = OnceLock::new();
+    static IPV4: OnceLock<ureq::Agent> = OnceLock::new();
+    let make =
+        |family| ureq::Agent::config_builder().timeout_connect(Some(CONNECT_TIMEOUT)).ip_family(family).build().into();
+    let any = ANY.get_or_init(|| make(IpFamily::Any));
+    let agents = if ipv4_first(url) { vec![IPV4.get_or_init(|| make(IpFamily::Ipv4Only)), any] } else { vec![any] };
+    let mut last = None;
+    for agent in agents {
+        match send(agent) {
+            Err(
+                e @ (ureq::Error::Io(_)
+                | ureq::Error::ConnectionFailed
+                | ureq::Error::HostNotFound
+                | ureq::Error::Timeout(_)),
+            ) => last = Some(e),
+            done => return done,
+        }
+    }
+    Err(last.unwrap_or(ureq::Error::ConnectionFailed))
 }
 
 /// What an engine produced for one utterance.
@@ -406,6 +446,47 @@ mod tests {
     fn http_engine_lists_voices_for_a_language() {
         let (url, server) = fake_server(r#"{"voices":["af_heart","pf_dora","ef_dora"]}"#);
         let h = Http { url, model: "kokoro".into() };
+        assert_eq!(h.voices("es").unwrap(), vec!["ef_dora"]);
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn localhost_tries_ipv4_first_and_literal_addresses_are_left_alone() {
+        assert!(ipv4_first("http://localhost:8880/v1"));
+        assert!(ipv4_first("https://LocalHost/v1"));
+        assert!(ipv4_first("http://localhost"));
+        assert!(!ipv4_first("http://127.0.0.1:8880/v1"));
+        assert!(!ipv4_first("http://[::1]:8880/v1"));
+        assert!(!ipv4_first("http://kokoro.lan:8880/v1"));
+        assert!(!ipv4_first("http://localhost.example.com/v1"));
+    }
+
+    #[test]
+    fn a_server_on_ipv4_loopback_answers_under_localhost() {
+        let (url, server) = fake_server(r#"{"voices":["af_heart","pf_dora"]}"#);
+        let h = Http { url: url.replace("127.0.0.1", "localhost"), model: "kokoro".into() };
+        assert_eq!(h.voices("pt-BR").unwrap(), vec!["pf_dora"]);
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn a_server_only_on_ipv6_loopback_still_answers_under_localhost() {
+        use std::net::ToSocketAddrs;
+        let v6_localhost = ("localhost", 1).to_socket_addrs().is_ok_and(|mut a| a.any(|a| a.is_ipv6()));
+        let Ok(listener) = TcpListener::bind("[::1]:0") else { return };
+        if !v6_localhost {
+            return; // this host's `localhost` never means ::1
+        }
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            let (mut s, _) = listener.accept().unwrap();
+            let mut reader = BufReader::new(s.try_clone().unwrap());
+            let mut line = String::new();
+            while reader.read_line(&mut line).unwrap() > 0 && !line.ends_with("\r\n\r\n") {}
+            let body = r#"{"voices":["ef_dora"]}"#;
+            write!(s, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
+        });
+        let h = Http { url: format!("http://localhost:{port}/v1"), model: "kokoro".into() };
         assert_eq!(h.voices("es").unwrap(), vec!["ef_dora"]);
         server.join().unwrap();
     }
