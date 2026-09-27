@@ -2,6 +2,8 @@
 //! rejected so typos surface instead of being silently ignored.
 
 use super::level::Commitment;
+use crate::learn::deck::LEVELS;
+use crate::learn::picker::Practice;
 use anyhow::{Context, Result, bail};
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
@@ -32,6 +34,11 @@ pub struct Settings {
     pub pixel_scale: u32,
     pub hotkey_challenge: String,
     pub hotkey_summary: String,
+    /// Opens the control panel (settings, pause, practice now).
+    pub hotkey_menu: String,
+    /// Where the magic orb sits on screen (overlay mode); negative = top-right corner.
+    pub orb_x: i32,
+    pub orb_y: i32,
     /// Local time ("HH:MM") for the automatic end-of-day recap.
     pub summary_time: String,
     /// 0..1 similarity needed for a phrase to count.
@@ -43,6 +50,14 @@ pub struct Settings {
     /// Optional TTS voice names; empty = pick by language.
     pub voice_native: String,
     pub voice_learning: String,
+    /// auto (repeat new phrases, recall known ones) | repeat | recall.
+    pub practice: Practice,
+    /// Only practice this topic; empty = all topics.
+    pub topic: String,
+    /// Highest CEFR level to practice: A1 A2 B1 B2 C1 C2.
+    pub max_level: String,
+    /// Phrases per day you aim for.
+    pub daily_goal: u32,
 }
 
 impl Default for Settings {
@@ -55,6 +70,9 @@ impl Default for Settings {
             pixel_scale: 4,
             hotkey_challenge: "Ctrl+Alt+M".into(),
             hotkey_summary: "Ctrl+Alt+J".into(),
+            hotkey_menu: "Ctrl+Alt+K".into(),
+            orb_x: -1,
+            orb_y: -1,
             summary_time: "21:00".into(),
             match_threshold: 0.72,
             ipc_port: 47821,
@@ -62,11 +80,21 @@ impl Default for Settings {
             listen_seconds: 7.0,
             voice_native: String::new(),
             voice_learning: String::new(),
+            practice: Practice::Auto,
+            topic: String::new(),
+            max_level: "B2".into(),
+            daily_goal: 10,
         }
     }
 }
 
 pub const MODELS: &[&str] = &["tiny", "base", "small"];
+
+const HEADER: &str = "# snowlearner config (also editable live: `snowlearner menu`)\n\
+    # learning: deck to practice (\"en\", \"es\" or a custom decks/<name>.toml)\n\
+    # commitment: chill | steady | committed | relentless\n\
+    # mode: auto | window | overlay    practice: auto | repeat | recall\n\
+    # topic: \"\" for all, or e.g. \"trabalho\"    max_level: A1..C2\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -96,7 +124,30 @@ impl Settings {
         if !MODELS.contains(&self.model.as_str()) {
             bail!("`model` must be one of {MODELS:?}, got {:?}", self.model);
         }
+        if !LEVELS.contains(&self.max_level.as_str()) {
+            bail!("`max_level` must be one of {LEVELS:?}, got {:?}", self.max_level);
+        }
+        if !(1..=200).contains(&self.daily_goal) {
+            bail!("`daily_goal` must be 1..=200, got {}", self.daily_goal);
+        }
         self.summary_at()?;
+        Ok(())
+    }
+
+    /// Topic filter as an option (empty string = every topic).
+    pub fn topic_filter(&self) -> Option<String> {
+        let t = self.topic.trim().to_lowercase();
+        (!t.is_empty()).then_some(t)
+    }
+
+    /// Persists the current settings (used by the in-app menu).
+    pub fn save(&self, path: &Path) -> Result<()> {
+        self.validate()?;
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        let body = toml::to_string_pretty(self)?;
+        std::fs::write(path, format!("{HEADER}{body}"))?;
         Ok(())
     }
 
@@ -114,11 +165,7 @@ impl Settings {
             std::fs::create_dir_all(dir)?;
         }
         let body = toml::to_string_pretty(&Settings::default())?;
-        let header = "# snowlearner config\n\
-            # learning: deck to practice (\"en\", \"es\" or a custom decks/<name>.toml)\n\
-            # commitment: chill | steady | committed | relentless\n\
-            # mode: auto | window | overlay\n\n";
-        std::fs::write(path, format!("{header}{body}"))?;
+        std::fs::write(path, format!("{HEADER}{body}"))?;
         Ok(())
     }
 }
@@ -156,11 +203,31 @@ mod tests {
             ("model = 'huge'", "model"),
             ("listen_seconds = 1.0", "listen_seconds"),
             ("learning = ''", "learning"),
+            ("max_level = 'Z1'", "max_level"),
+            ("daily_goal = 0", "daily_goal"),
         ] {
             std::fs::write(&p, src).unwrap();
             let err = format!("{:#}", Settings::load(&p).unwrap_err());
             assert!(err.contains(key), "{src} → {err}");
         }
+    }
+
+    #[test]
+    fn save_round_trips_menu_changes() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        let mut s = Settings {
+            learning: "es".into(),
+            commitment: Commitment::Committed,
+            topic: "trabalho".into(),
+            practice: Practice::Recall,
+            ..Default::default()
+        };
+        s.save(&p).unwrap();
+        assert_eq!(Settings::load(&p).unwrap(), s);
+        assert_eq!(s.topic_filter().as_deref(), Some("trabalho"));
+        s.max_level = "nope".into();
+        assert!(s.save(&p).is_err(), "never persist an invalid config");
     }
 
     #[test]

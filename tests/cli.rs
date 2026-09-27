@@ -61,10 +61,10 @@ fn decks_lists_english_by_default_and_spanish_on_request() {
     let home = Home::new();
     let en = home.run(&["decks"]);
     assert!(en.status.success(), "{}", stderr(&en));
-    assert!(stdout(&en).contains("I'm hungry"));
-    assert!(stdout(&en).contains("Estou com fome"));
+    assert!(stdout(&en).contains("Sorry, you're on mute"));
+    assert!(stdout(&en).contains("Desculpa, você está no mudo"));
     let es = home.run(&["decks", "--learning", "es"]);
-    assert!(stdout(&es).contains("Tengo hambre"));
+    assert!(stdout(&es).contains("¿Puedes compartir tu pantalla?"));
 }
 
 #[test]

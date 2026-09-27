@@ -25,8 +25,13 @@ pub struct Pace {
     pub ask_every: f32,
     /// Mage walking speed in virtual px/s.
     pub walk_speed: f32,
-    /// Share of snow + frost removed by one correct phrase.
+    /// Share of snow + frost one correct phrase melts (the fire mage's fireball).
+    /// Deliberately small: digging out takes a real practice session.
     pub melt_fraction: f32,
+    /// Time between icicle rains (icicles fall from the top of the screen).
+    pub icicles_every: f32,
+    /// Time between frost mob waves attacking the warrior.
+    pub mobs_every: f32,
 }
 
 impl Commitment {
@@ -35,34 +40,42 @@ impl Commitment {
             Commitment::Chill => Pace {
                 throw_every: 9.0,
                 snow_per_cube: 3.0,
-                summon_every: 600.0,
+                summon_every: 240.0,
                 ask_every: 1800.0,
                 walk_speed: 6.0,
-                melt_fraction: 0.6,
+                melt_fraction: 0.25,
+                icicles_every: 300.0,
+                mobs_every: 200.0,
             },
             Commitment::Steady => Pace {
                 throw_every: 5.0,
                 snow_per_cube: 4.0,
-                summon_every: 300.0,
+                summon_every: 120.0,
                 ask_every: 1200.0,
                 walk_speed: 9.0,
-                melt_fraction: 0.45,
+                melt_fraction: 0.18,
+                icicles_every: 180.0,
+                mobs_every: 110.0,
             },
             Commitment::Committed => Pace {
                 throw_every: 3.0,
                 snow_per_cube: 5.0,
-                summon_every: 180.0,
+                summon_every: 75.0,
                 ask_every: 720.0,
                 walk_speed: 12.0,
-                melt_fraction: 0.35,
+                melt_fraction: 0.14,
+                icicles_every: 110.0,
+                mobs_every: 70.0,
             },
             Commitment::Relentless => Pace {
                 throw_every: 1.6,
                 snow_per_cube: 6.0,
-                summon_every: 90.0,
+                summon_every: 45.0,
                 ask_every: 360.0,
                 walk_speed: 16.0,
-                melt_fraction: 0.3,
+                melt_fraction: 0.12,
+                icicles_every: 70.0,
+                mobs_every: 45.0,
             },
         }
     }
@@ -93,6 +106,8 @@ mod tests {
             assert!(hard.summon_every < easy.summon_every, "{:?}", pair);
             assert!(hard.ask_every < easy.ask_every, "{:?}", pair);
             assert!(hard.melt_fraction < easy.melt_fraction, "{:?}", pair);
+            assert!(hard.icicles_every < easy.icicles_every, "{:?}", pair);
+            assert!(hard.mobs_every < easy.mobs_every, "{:?}", pair);
         }
     }
 
@@ -100,7 +115,7 @@ mod tests {
     fn every_level_can_be_dug_out_of() {
         for level in ORDER {
             let p = level.pace();
-            assert!(p.melt_fraction > 0.0 && p.melt_fraction <= 1.0);
+            assert!(p.melt_fraction > 0.05 && p.melt_fraction <= 0.3, "one answer must never clear the screen");
             assert!(p.throw_every > 0.5);
         }
     }

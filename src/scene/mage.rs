@@ -17,7 +17,7 @@ const PAL: &[(char, Rgba)] = &[
     ('K', hex(0x3a2718)),
 ];
 
-const BODY: &[&str] = &[
+pub(crate) const BODY: &[&str] = &[
     "...Hh",
     "....HH",
     "....HHh",
@@ -40,7 +40,7 @@ const BODY: &[&str] = &[
     "..RRRRRRTRRRRRrr",
     ".TTTTTTTTTTTTTTT",
 ];
-const FEET: [&str; 3] = ["....KK.....KK", ".....KK..KK..", "...KK......KK"];
+pub(crate) const FEET: [&str; 3] = ["....KK.....KK", ".....KK..KK..", "...KK......KK"];
 
 pub const WIDTH: i32 = 16;
 pub const HEIGHT: i32 = 22;
@@ -74,6 +74,7 @@ pub struct Mage {
     blink: f32,
     next_blink: f32,
     pub volley: bool,
+    pub bubble: Option<super::warrior::Bubble>,
 }
 
 const CHARGE: f32 = 0.7;
@@ -90,7 +91,17 @@ fn lerp2(a: (f32, f32), b: (f32, f32), t: f32) -> (f32, f32) {
 
 impl Mage {
     pub fn new(x: f32) -> Self {
-        Mage { x, dir: 1.0, act: Act::Walk, t: 0.0, walk_t: 0.0, blink: 0.0, next_blink: 2.0, volley: false }
+        Mage {
+            x,
+            dir: 1.0,
+            act: Act::Walk,
+            t: 0.0,
+            walk_t: 0.0,
+            blink: 0.0,
+            next_blink: 2.0,
+            volley: false,
+            bubble: None,
+        }
     }
 
     fn set(&mut self, act: Act) {
@@ -123,6 +134,10 @@ impl Mage {
         }
     }
 
+    pub fn say(&mut self, text: impl Into<String>, seconds: f32) {
+        self.bubble = Some(super::warrior::Bubble { text: text.into(), left: seconds });
+    }
+
     pub fn stagger(&mut self) {
         self.set(Act::Stagger);
     }
@@ -130,6 +145,12 @@ impl Mage {
     /// Advances animation and walking. `min_x..max_x` is the patrol range.
     pub fn step(&mut self, dt: f32, speed: f32, min_x: f32, max_x: f32, blink_roll: f32) -> Option<Event> {
         self.t += dt;
+        if let Some(b) = &mut self.bubble {
+            b.left -= dt;
+            if b.left <= 0.0 {
+                self.bubble = None;
+            }
+        }
         self.next_blink -= dt;
         self.blink -= dt;
         if self.next_blink < 0.0 {

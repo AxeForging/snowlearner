@@ -96,11 +96,22 @@ impl History {
 
     pub fn stats(&self, language: &str, today: NaiveDate) -> Result<HashMap<String, PhraseStats>> {
         let mut stmt = self.conn.prepare(
-            "SELECT say, SUM(CASE WHEN day = ?2 THEN success ELSE 0 END), SUM(success)
-             FROM attempts WHERE language = ?1 GROUP BY say",
+            "SELECT a.say,
+                    SUM(CASE WHEN a.day = ?2 THEN a.success ELSE 0 END),
+                    SUM(a.success),
+                    (SELECT b.success FROM attempts b
+                      WHERE b.language = ?1 AND b.say = a.say ORDER BY b.id DESC LIMIT 1)
+             FROM attempts a WHERE a.language = ?1 GROUP BY a.say",
         )?;
         let rows = stmt.query_map(params![language, today.to_string()], |r| {
-            Ok((r.get::<_, String>(0)?, PhraseStats { successes_today: r.get(1)?, successes_total: r.get(2)? }))
+            Ok((
+                r.get::<_, String>(0)?,
+                PhraseStats {
+                    successes_today: r.get(1)?,
+                    successes_total: r.get(2)?,
+                    last_failed: !r.get::<_, bool>(3)?,
+                },
+            ))
         })?;
         Ok(rows.collect::<Result<_, _>>()?)
     }
@@ -175,7 +186,9 @@ mod tests {
         h.record(&attempt(27, 9, "en", "Hi", 1.0, true)).unwrap();
         h.record(&attempt(27, 10, "en", "Hi", 0.1, false)).unwrap();
         let s = h.stats("en", at(27, 0).date_naive()).unwrap();
-        assert_eq!(s["Hi"], PhraseStats { successes_today: 1, successes_total: 2 });
+        assert_eq!(s["Hi"], PhraseStats { successes_today: 1, successes_total: 2, last_failed: true });
+        h.record(&attempt(27, 11, "en", "Hi", 1.0, true)).unwrap();
+        assert!(!h.stats("en", at(27, 0).date_naive()).unwrap()["Hi"].last_failed, "fixed by the latest try");
     }
 
     #[test]

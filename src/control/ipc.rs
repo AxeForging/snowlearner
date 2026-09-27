@@ -12,6 +12,10 @@ pub enum Command {
     Challenge,
     Summary,
     Dismiss,
+    /// Open the control panel window.
+    Menu,
+    /// Pause/resume the frost mage (meetings, focus time).
+    Pause,
     Quit,
 }
 
@@ -21,6 +25,8 @@ impl Command {
             "challenge" | "say" => Some(Command::Challenge),
             "summary" => Some(Command::Summary),
             "dismiss" => Some(Command::Dismiss),
+            "menu" => Some(Command::Menu),
+            "pause" => Some(Command::Pause),
             "quit" => Some(Command::Quit),
             _ => None,
         }
@@ -31,6 +37,8 @@ impl Command {
             Command::Challenge => "challenge",
             Command::Summary => "summary",
             Command::Dismiss => "dismiss",
+            Command::Menu => "menu",
+            Command::Pause => "pause",
             Command::Quit => "quit",
         }
     }
@@ -91,7 +99,7 @@ mod tests {
     fn commands_round_trip_to_the_running_instance() {
         let (tx, rx) = mpsc::channel();
         let addr = serve(0, move |c| tx.send(c).unwrap()).unwrap();
-        for cmd in [Command::Challenge, Command::Summary, Command::Quit] {
+        for cmd in [Command::Challenge, Command::Summary, Command::Menu, Command::Pause, Command::Quit] {
             send(addr.port(), cmd).unwrap();
             assert_eq!(rx.recv_timeout(Duration::from_secs(2)).unwrap(), cmd);
         }

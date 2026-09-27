@@ -70,10 +70,18 @@ pub enum Act {
     Warm,
     Frozen,
     Cheer,
+    /// Sword out, going after a mob.
+    Fight,
 }
 
 pub enum Event {
-    FireLit { x: f32 },
+    FireLit {
+        x: f32,
+    },
+    /// Sword swing landing around `x`.
+    Strike {
+        x: f32,
+    },
 }
 
 pub struct Bubble {
@@ -91,13 +99,29 @@ pub struct Warrior {
     walk_t: f32,
     target: f32,
     pub bubble: Option<Bubble>,
+    /// Center x of the mob he should fight, set by the scene each frame.
+    pub foe: Option<f32>,
+    swing_cd: f32,
+    swing_t: f32,
 }
 
 const BUILD_TIME: f32 = 2.5;
 
 impl Warrior {
     pub fn new(x: f32) -> Self {
-        Warrior { x, dir: -1.0, act: Act::Wander, t: 0.0, warmth: 1.0, walk_t: 0.0, target: x, bubble: None }
+        Warrior {
+            x,
+            dir: -1.0,
+            act: Act::Wander,
+            t: 0.0,
+            warmth: 1.0,
+            walk_t: 0.0,
+            target: x,
+            bubble: None,
+            foe: None,
+            swing_cd: 0.0,
+            swing_t: 0.0,
+        }
     }
 
     fn set(&mut self, act: Act) {
@@ -144,7 +168,32 @@ impl Warrior {
             }
         }
 
+        self.swing_cd -= dt;
+        self.swing_t = (self.swing_t - dt).max(0.0);
+        if self.foe.is_some() && matches!(self.act, Act::Wander | Act::Warm) {
+            self.set(Act::Fight);
+        }
         match self.act {
+            Act::Fight => {
+                let Some(foe) = self.foe else {
+                    self.set(Act::Wander);
+                    return None;
+                };
+                let center = self.x + WIDTH as f32 / 2.0;
+                let dx = foe - center;
+                self.dir = if dx >= 0.0 { 1.0 } else { -1.0 };
+                if dx.abs() > 9.0 {
+                    self.x = (self.x + self.dir * 12.0 * dt).clamp(min_x, max_x);
+                    self.walk_t += dt;
+                    None
+                } else if self.swing_cd <= 0.0 {
+                    self.swing_cd = 0.6;
+                    self.swing_t = 0.25;
+                    Some(Event::Strike { x: center + self.dir * 8.0 })
+                } else {
+                    None
+                }
+            }
             Act::Wander => {
                 if near_fire && self.warmth < 0.95 {
                     self.set(Act::Warm);
@@ -194,6 +243,28 @@ impl Warrior {
         c.sprite(UPPER, pal, x, body_top, flip);
         c.sprite(legs, pal, x, body_top + UPPER.len() as i32, flip);
 
+        if self.act == Act::Fight {
+            // Sword: raised between swings, slashing forward on a strike.
+            let hand_x = if flip { x + 1 } else { x + WIDTH - 2 };
+            let hand_y = body_top + 9;
+            let dir = if flip { -1 } else { 1 };
+            let (blade, hilt) = (hex(0xdfe6f0), hex(0xffd64a));
+            c.set(hand_x, hand_y, hilt);
+            if self.swing_t > 0.0 {
+                for k in 1..=7 {
+                    c.set(hand_x + dir * k, hand_y, blade);
+                }
+                for k in 0..5 {
+                    c.set(hand_x + dir * (3 + k), hand_y - 4 + k, hex(0x9be8ff));
+                }
+            } else {
+                for k in 1..=6 {
+                    c.set(hand_x, hand_y - k, blade);
+                }
+                c.set(hand_x - 1, hand_y - 1, hilt);
+                c.set(hand_x + 1, hand_y - 1, hilt);
+            }
+        }
         if self.act == Act::Build && (time * 8.0) as i32 % 2 == 0 {
             let sx = if flip { x - 3 } else { x + WIDTH + 2 };
             c.set(sx, feet_y as i32 - 3, hex(0xffd64a));
@@ -307,8 +378,9 @@ mod tests {
         let events = run(&mut w, 3.0, 0.0, false);
         let lit: Vec<f32> = events
             .iter()
-            .map(|e| match e {
-                Event::FireLit { x } => *x,
+            .filter_map(|e| match e {
+                Event::FireLit { x } => Some(*x),
+                Event::Strike { .. } => None,
             })
             .collect();
         assert_eq!(lit.len(), 1);
@@ -325,6 +397,18 @@ mod tests {
         w.warm_burst();
         assert_eq!(w.act, Act::Cheer);
         assert_eq!(w.warmth, 1.0);
+    }
+
+    #[test]
+    fn draws_his_sword_goes_to_the_foe_and_strikes_repeatedly() {
+        let mut w = Warrior::new(100.0);
+        w.foe = Some(160.0);
+        let strikes = run(&mut w, 8.0, 0.0, false).iter().filter(|e| matches!(e, Event::Strike { .. })).count();
+        assert!(w.x > 130.0, "walked to the mob");
+        assert!(strikes >= 5, "strikes {strikes}");
+        w.foe = None;
+        run(&mut w, 0.2, 0.0, false);
+        assert_eq!(w.act, Act::Wander, "sheathes the sword when the fight is over");
     }
 
     #[test]

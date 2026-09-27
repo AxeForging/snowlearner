@@ -9,8 +9,11 @@ pub mod frost;
 pub mod hud;
 pub mod ice;
 pub mod mage;
+pub mod mobs;
+pub mod pyro;
 pub mod rng;
 pub mod snow;
+pub mod vortex;
 pub mod warrior;
 
 use crate::config::level::Pace;
@@ -20,14 +23,55 @@ use fire::Fire;
 use friends::Friend;
 use frost::{Edge, Frost};
 use hud::Hud;
-use ice::{Cube, Kind, Particle};
+use ice::{Cube, Icicle, Kind, Particle};
 use mage::Mage;
+use mobs::Mob;
+use pyro::Pyro;
 use rng::Rng;
 use snow::Snow;
 use warrior::Warrior;
 
+/// Radius of the in-scene orb (window mode), art pixels.
+pub const ORB_R: f32 = 6.0;
+
 const ICE_COLORS: [u32; 4] = [0xffffff, 0xc8f4ff, 0x8ad8f5, 0x4ea2d8];
 const GRAVITY: f32 = 130.0;
+
+/// Seconds the sun shines after a combo.
+pub const SUN_SECONDS: f32 = 8.0;
+/// Extra share of snow the sun melts on arrival (never everything).
+pub const SUN_MELT: f32 = 0.35;
+
+/// The fire mage's fireball, carrying how much it will melt on impact.
+struct Fireball {
+    x: f32,
+    y: f32,
+    vx: f32,
+    vy: f32,
+    age: f32,
+    flight: f32,
+    power: f32,
+}
+
+/// What the frost mage's summon ritual is for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Skill {
+    Friend,
+    IcicleRain,
+}
+
+/// What a click in window mode touched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Poke {
+    /// The magic orb (window mode): click = practice, Ctrl+click = panel.
+    Orb,
+    Mage,
+    Warrior,
+    Fire,
+    Friend,
+    Snow,
+    Nothing,
+}
 
 struct Flake {
     x: f32,
@@ -57,6 +101,27 @@ pub struct Scene {
     friends: Vec<Friend>,
     flakes: Vec<Flake>,
     backdrop: Option<Backdrop>,
+    /// The fire mage, present only during lessons.
+    pub pyro: Pyro,
+    fireballs: Vec<Fireball>,
+    pending_power: Vec<f32>,
+    icicles: Vec<Icicle>,
+    mobs: Vec<Mob>,
+    next_mobs: f32,
+    skill: Skill,
+    next_icicles: f32,
+    /// Seconds of sunshine left.
+    sun_t: f32,
+    /// The frost mage can't throw while stunned (after the sun).
+    stun_t: f32,
+    pokes: u32,
+    paused: bool,
+    /// Pause black-hole animation state.
+    vortex: vortex::Phase,
+    /// Where the black hole (the orb) is, in art coordinates.
+    pub hole: (f32, f32),
+    /// Draw the orb inside the scene (window mode; overlay has its own orb window).
+    pub show_orb: bool,
     practicing: bool,
     throws: u32,
     next_throw: f32,
@@ -94,10 +159,25 @@ impl Scene {
             friends: Vec::new(),
             flakes,
             backdrop: None,
+            pyro: Pyro::default(),
+            fireballs: Vec::new(),
+            pending_power: Vec::new(),
+            icicles: Vec::new(),
+            mobs: Vec::new(),
+            next_mobs: 40.0_f32.min(pace.mobs_every),
+            skill: Skill::Friend,
+            next_icicles: pace.icicles_every * 0.4,
+            sun_t: 0.0,
+            stun_t: 0.0,
+            pokes: 0,
+            paused: false,
+            vortex: vortex::Phase::Open,
+            hole: (w as f32 - 14.0, 14.0),
+            show_orb: false,
             practicing: false,
             throws: 0,
             next_throw: 1.5,
-            next_summon: pace.summon_every * 0.5,
+            next_summon: 25.0_f32.min(pace.summon_every),
             next_tip: 12.0,
             rng,
         };
@@ -147,49 +227,216 @@ impl Scene {
 
     // ---- events from the lesson controller ----
 
-    /// You are practicing: the mage stops to watch, the warrior cheers you on.
+    /// A lesson is on: the frost mage stops to watch, the fire mage teleports
+    /// in on the other side, the warrior cheers you on.
     pub fn set_practicing(&mut self, on: bool) {
         if on && !self.practicing {
             self.warrior.say("Vai lá, você consegue!", 3.0);
+            let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
+            let w = self.w as f32;
+            let x = if mx < w / 2.0 { w * 0.72 } else { w * 0.18 };
+            self.pyro.arrive(x.min(w - mage::WIDTH as f32 - 2.0), mx);
+        }
+        if !on {
+            self.pyro.leave();
+            self.pyro.focus(false);
         }
         self.practicing = on;
-        self.mage.watch(on);
+        self.mage.watch(on || self.paused);
     }
 
-    /// A correct phrase: melt snow and frost, stagger the mage, warm the warrior.
-    pub fn celebrate(&mut self) {
-        let f = self.pace.melt_fraction;
+    /// Pause (meetings, focus time): the frost mage stops casting.
+    /// Pause (meetings, focus time): everything trembles and is sucked into the
+    /// orb's black hole; resuming spits it all back out, exactly as it was.
+    pub fn set_paused(&mut self, on: bool) {
+        if on == self.paused {
+            return;
+        }
+        self.paused = on;
+        self.mage.watch(on || self.practicing);
+        self.vortex = if on { vortex::Phase::Closing(0.0) } else { vortex::Phase::Opening(0.0) };
+        if on {
+            self.mage.say("Nããão! O buraco negro!", 1.5);
+        }
+    }
+
+    /// Fully swallowed (nothing of the world on screen).
+    pub fn swallowed(&self) -> bool {
+        self.vortex == vortex::Phase::Closed
+    }
+
+    /// In-scene orb position when `show_orb` (window mode).
+    pub fn orb_at(&self, x: f32, y: f32) -> bool {
+        self.show_orb && ((x - self.hole.0).powi(2) + (y - self.hole.1).powi(2)).sqrt() <= ORB_R + 2.0
+    }
+
+    pub fn paused(&self) -> bool {
+        self.paused
+    }
+
+    /// The learner is speaking: the fire mage charges his fireball.
+    pub fn set_listening(&mut self, on: bool) {
+        self.pyro.focus(on);
+    }
+
+    /// A correct phrase: the fire mage casts. The melt (`pace.melt_fraction`
+    /// × `power`) happens when the fireball hits the frost mage.
+    pub fn celebrate(&mut self, power: f32) {
+        self.pyro.focus(false);
+        let melt = self.pace.melt_fraction * power;
+        if self.pyro.visible() {
+            self.pending_power.push(melt);
+            self.pyro.cast();
+        } else {
+            let (x, y) = (self.mage.x + mage::WIDTH as f32 / 2.0, self.feet_y(self.mage.x) - 12.0);
+            self.impact(x, y, melt);
+        }
+    }
+
+    /// A wrong answer: the fireball fizzles and the frost mage fires back.
+    pub fn miss(&mut self) {
+        self.pyro.focus(false);
+        self.pyro.fizzle();
+        self.mage.start_throw(false);
+    }
+
+    fn impact(&mut self, x: f32, y: f32, melt: f32) {
         let gy = self.ground_y();
-        for (x, hgt) in self.snow.melt(f) {
-            let y = gy - hgt;
+        for (px, hgt) in self.snow.melt(melt) {
+            let py = gy - hgt;
             for _ in 0..2 {
                 let (vx, vy, life) =
                     (self.rng.range(-8.0, 8.0), self.rng.range(-35.0, -15.0), self.rng.range(0.6, 1.4));
-                self.particles.push(Particle::new(Kind::Steam, x, y, vx, vy, life, hex(0xc9d3e8)));
+                self.particles.push(Particle::new(Kind::Steam, px, py, vx, vy, life, hex(0xc9d3e8)));
             }
         }
-        self.frost.melt(f);
-        for _ in 0..40 {
-            let x = self.rng.range(0.0, self.w as f32);
-            let (vx, vy, life) = (self.rng.range(-10.0, 10.0), self.rng.range(-70.0, -30.0), self.rng.range(0.6, 1.3));
-            let col = hex(*self.rng.pick(&[0xfff4b0, 0xffc13d, 0xff7a2a]));
-            self.particles.push(Particle::new(Kind::Ember, x, gy - 2.0, vx, vy, life, col));
+        self.frost.melt(melt);
+        self.snow.thaw(x, 24.0, 40.0, 0.25);
+        for i in 0..40 {
+            let a = self.rng.range(0.0, std::f32::consts::TAU);
+            let sp = self.rng.range(20.0, 90.0);
+            let col = hex([0xfff4b0, 0xffc13d, 0xff7a2a, 0xd93a2a][i % 4]);
+            let life = self.rng.range(0.4, 1.0);
+            self.particles.push(Particle::new(Kind::Ember, x, y, a.cos() * sp, a.sin() * sp, life, col));
         }
-        self.mage.stagger();
+        let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
+        if (mx - x).abs() < 30.0 {
+            self.mage.stagger();
+        }
         self.warrior.warm_burst();
         self.warrior.say("Que calor bom! Valeu!", 3.0);
+    }
+
+    /// Combo reward: the sun shines for a while, melting a big chunk (never
+    /// all of it) and stunning the frost mage.
+    pub fn sun(&mut self) {
+        self.sun_t = SUN_SECONDS;
+        self.stun_t = SUN_SECONDS * 2.5;
+        self.snow.melt(SUN_MELT);
+        self.frost.melt(SUN_MELT * 1.5);
+        self.mage.say("Aaah! O sol!!", 3.0);
+        self.warrior.say("Que solzão!", 3.0);
+    }
+
+    pub fn sun_active(&self) -> bool {
+        self.sun_t > 0.0
+    }
+
+    pub fn mage_say(&mut self, text: impl Into<String>, seconds: f32) {
+        self.mage.say(text, seconds);
+    }
+
+    pub fn mage_bubble(&self) -> Option<&str> {
+        self.mage.bubble.as_ref().map(|b| b.text.as_str())
+    }
+
+    /// Window-mode click at art coordinates. Pure fun: nothing here melts snow
+    /// for free — that stays the job of speaking.
+    pub fn poke(&mut self, x: f32, y: f32) -> Poke {
+        let hit = |ox: f32, oy_feet: f32, w: i32, h: i32| {
+            x >= ox - 2.0 && x <= ox + w as f32 + 2.0 && y >= oy_feet - h as f32 - 2.0 && y <= oy_feet + 2.0
+        };
+        if self.orb_at(x, y) {
+            return Poke::Orb;
+        }
+        let mx = self.mage.x;
+        if hit(mx, self.feet_y(mx + 8.0), mage::WIDTH, mage::HEIGHT + 6) {
+            self.pokes += 1;
+            let lines = ["Ei! Não me cutuque!", "Mais neve pra você!", "Fale uma frase, se tiver coragem!"];
+            let line = lines[self.pokes as usize % lines.len()];
+            self.mage.say(line, 2.0);
+            self.mage.start_throw(self.pokes % 3 == 0);
+            return Poke::Mage;
+        }
+        let wx = self.warrior.x;
+        if hit(wx, self.feet_y(wx + 6.0), warrior::WIDTH, warrior::HEIGHT + 6) {
+            if self.warrior.act != warrior::Act::Frozen {
+                let tip = if self.tips.is_empty() {
+                    "Oi! Aperte o atalho e fale comigo!".to_string()
+                } else {
+                    self.rng.pick(&self.tips).clone()
+                };
+                self.warrior.say(tip, 6.0);
+            }
+            return Poke::Warrior;
+        }
+        let ground = self.ground_y();
+        if let Some(fire) = self.fires.iter_mut().find(|f| (f.x - x).abs() < 8.0 && (ground - y) < 40.0) {
+            fire.life = (fire.life + 5.0).min(fire::LIFETIME);
+            let fx = fire.x;
+            for _ in 0..12 {
+                let (vx, vy) = (self.rng.range(-20.0, 20.0), self.rng.range(-60.0, -20.0));
+                self.particles.push(Particle::new(Kind::Ember, fx, y, vx, vy, 0.8, hex(0xffc13d)));
+            }
+            return Poke::Fire;
+        }
+        let friend_hit = self.friends.iter().position(|f| {
+            let fy = self.ground_y() - self.snow.height_at(f.x + f.kind.width() as f32 / 2.0);
+            x >= f.x && x <= f.x + f.kind.width() as f32 && y >= fy - f.kind.height() as f32 && y <= fy
+        });
+        if let Some(i) = friend_hit {
+            let f = self.friends.remove(i);
+            self.burst_snow(f.x + f.kind.width() as f32 / 2.0, 20);
+            return Poke::Friend;
+        }
+        if y >= self.feet_y(x) - 1.0 {
+            for _ in 0..8 {
+                let (vx, vy) = (self.rng.range(-30.0, 30.0), self.rng.range(-50.0, -15.0));
+                self.particles.push(Particle::new(Kind::Shard, x, y, vx, vy, 0.8, hex(0xffffff)));
+            }
+            return Poke::Snow;
+        }
+        Poke::Nothing
     }
 
     pub fn step(&mut self, dt: f32) {
         self.time += dt;
         self.hud.step(dt);
+        self.vortex = self.vortex.step(dt);
+        if self.vortex != vortex::Phase::Open {
+            return; // the world is frozen inside the black hole
+        }
         let (w, h) = (self.w as f32, self.h as f32);
 
-        if !self.practicing {
+        self.sun_t = (self.sun_t - dt).max(0.0);
+        self.stun_t = (self.stun_t - dt).max(0.0);
+        if self.sun_t > 0.0 {
+            self.snow.melt(0.04 * dt);
+        }
+        if !self.practicing && !self.paused && self.stun_t <= 0.0 {
             self.next_throw -= dt;
             self.next_summon -= dt;
-            if self.next_summon <= 0.0 && !self.mage.busy() {
-                self.mage.start_summon();
+            self.next_icicles -= dt;
+            self.next_mobs -= dt;
+            if self.next_mobs <= 0.0 {
+                self.spawn_mobs();
+                self.next_mobs = self.pace.mobs_every * self.rng.range(0.8, 1.2);
+            }
+            if self.next_icicles <= 0.0 && !self.mage.busy() {
+                self.cast_skill(Skill::IcicleRain);
+                self.next_icicles = self.pace.icicles_every * self.rng.range(0.8, 1.2);
+            } else if self.next_summon <= 0.0 && !self.mage.busy() {
+                self.cast_skill(Skill::Friend);
                 self.next_summon = self.pace.summon_every * self.rng.range(0.8, 1.2);
             } else if self.next_throw <= 0.0 && !self.mage.busy() {
                 self.throws += 1;
@@ -210,6 +457,14 @@ impl Scene {
                     let ty = self.feet_y(tx);
                     let flight = 0.6 + (tx - hx).abs() / w * 0.9 + i as f32 * 0.12;
                     self.cubes.push(Cube::aimed(hx, hy - 4.0, tx, ty, flight, GRAVITY));
+                }
+            }
+            Some(mage::Event::Summoned) if self.skill == Skill::IcicleRain => {
+                let n = (w / 18.0).clamp(8.0, 40.0) as usize;
+                for _ in 0..n {
+                    let x = self.rng.range(2.0, w - 6.0);
+                    let delay = self.rng.range(0.4, 1.8);
+                    self.icicles.push(Icicle::new(x, delay));
                 }
             }
             Some(mage::Event::Summoned) => {
@@ -236,6 +491,60 @@ impl Scene {
                 0.25,
                 col,
             ));
+        }
+
+        // Fire mage and his fireballs.
+        let pyro_feet = self.feet_y(self.pyro.x + mage::WIDTH as f32 / 2.0);
+        if let Some(pyro::Event::Release { x, y }) = self.pyro.step(dt, pyro_feet) {
+            let power =
+                if self.pending_power.is_empty() { self.pace.melt_fraction } else { self.pending_power.remove(0) };
+            let tx = self.mage.x + mage::WIDTH as f32 / 2.0;
+            let ty = self.feet_y(tx) - 12.0;
+            let flight = 0.5 + (tx - x).abs() / w * 0.6;
+            let g = 60.0;
+            self.fireballs.push(Fireball {
+                x,
+                y,
+                vx: (tx - x) / flight,
+                vy: (ty - y - 0.5 * g * flight * flight) / flight,
+                age: 0.0,
+                flight,
+                power,
+            });
+        }
+        let mut hits = Vec::new();
+        for (i, fb) in self.fireballs.iter_mut().enumerate() {
+            fb.age += dt;
+            fb.x += fb.vx * dt;
+            fb.vy += 60.0 * dt;
+            fb.y += fb.vy * dt;
+            if self.rng.chance(0.9) {
+                let col = hex(*self.rng.pick(&[0xfff4b0, 0xffc13d, 0xff7a2a]));
+                let (vx, vy) = (self.rng.range(-10.0, 10.0), self.rng.range(-20.0, 5.0));
+                self.particles.push(Particle::new(Kind::Ember, fb.x, fb.y, vx, vy, 0.4, col));
+            }
+            if fb.age >= fb.flight {
+                hits.push(i);
+            }
+        }
+        for i in hits.into_iter().rev() {
+            let fb = self.fireballs.remove(i);
+            self.impact(fb.x, fb.y, fb.power);
+        }
+
+        // Icicle rain.
+        let mut fallen = Vec::new();
+        for (i, ic) in self.icicles.iter_mut().enumerate() {
+            ic.step(dt);
+            let (tx, ty) = ic.tip();
+            if ty >= ground_at(&self.snow, self.transparent, self.h, tx) - 1.0 || ty > h + 10.0 {
+                fallen.push(i);
+            }
+        }
+        for i in fallen.into_iter().rev() {
+            let ic = self.icicles.remove(i);
+            let (x, y) = ic.tip();
+            self.shatter_small(x, y);
         }
 
         // Cubes in flight.
@@ -301,10 +610,35 @@ impl Scene {
             self.warrior.say("Brrr... vou acender uma fogueira!", 3.0);
         }
         let roll = self.rng.f32();
-        if let Some(warrior::Event::FireLit { x }) =
-            self.warrior.step(dt, freeze, near_fire, 4.0, w - warrior::WIDTH as f32 - 4.0, roll)
-        {
-            self.fires.push(Fire::new(x.clamp(6.0, w - 6.0)));
+        let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        self.warrior.foe = if self.warrior.act == warrior::Act::Frozen {
+            None
+        } else {
+            self.mobs
+                .iter()
+                .filter(|m| m.fighting() && (m.center() - wc).abs() < 110.0)
+                .min_by(|a, b| (a.center() - wc).abs().total_cmp(&(b.center() - wc).abs()))
+                .map(Mob::center)
+        };
+        match self.warrior.step(dt, freeze, near_fire, 4.0, w - warrior::WIDTH as f32 - 4.0, roll) {
+            Some(warrior::Event::FireLit { x }) => self.fires.push(Fire::new(x.clamp(6.0, w - 6.0))),
+            Some(warrior::Event::Strike { x }) => self.strike(x),
+            None => {}
+        }
+        let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let frozen = self.warrior.act == warrior::Act::Frozen;
+        let mut bites = 0;
+        for m in &mut self.mobs {
+            if let Some(mobs::Event::Bite) = m.step(dt, wc) {
+                bites += 1;
+            }
+        }
+        self.mobs.retain(Mob::present);
+        if bites > 0 && !frozen {
+            self.warrior.warmth = (self.warrior.warmth - 0.06 * bites as f32).max(0.01);
+            if self.rng.chance(0.4) {
+                self.warrior.say("Ai! Que frio!", 1.2);
+            }
         }
         self.next_tip -= dt;
         if self.next_tip <= 0.0
@@ -378,6 +712,89 @@ impl Scene {
         }
     }
 
+    pub fn mobs_out(&self) -> usize {
+        self.mobs.iter().filter(|m| m.fighting()).count()
+    }
+
+    /// A wave of 1–3 frost mobs from the edge farther from the warrior.
+    pub fn spawn_mobs(&mut self) {
+        let w = self.w as f32;
+        let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let n = 1 + (self.rng.f32() * 3.0) as usize;
+        for i in 0..n {
+            if self.mobs.len() >= 5 {
+                break;
+            }
+            let kind = if self.rng.chance(0.6) { mobs::Kind::Slime } else { mobs::Kind::Bat };
+            let x = if wc > w / 2.0 { -10.0 - i as f32 * 14.0 } else { w + 2.0 + i as f32 * 14.0 };
+            self.mobs.push(Mob::new(kind, x));
+        }
+        self.warrior.say("Monstros de gelo! Deixa comigo!", 2.5);
+    }
+
+    fn strike(&mut self, x: f32) {
+        let Some(m) = self.mobs.iter_mut().filter(|m| m.fighting()).find(|m| (m.center() - x).abs() < 10.0) else {
+            return;
+        };
+        let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let mc = m.center();
+        if m.hit(wc) {
+            self.warrior.warmth = (self.warrior.warmth + 0.08).min(1.0);
+            let y = self.feet_y(mc) - 6.0;
+            for i in 0..14 {
+                let (vx, vy) = (self.rng.range(-25.0, 25.0), self.rng.range(-50.0, -15.0));
+                let col = hex([0xfff4b0, 0xffc13d, 0xff7a2a][i % 3]);
+                self.particles.push(Particle::new(Kind::Ember, mc, y, vx, vy, 0.8, col));
+            }
+            if self.rng.chance(0.5) {
+                self.warrior.say("Toma!", 1.0);
+            }
+        } else {
+            let y = self.feet_y(mc) - 5.0;
+            for _ in 0..4 {
+                let (vx, vy) = (self.rng.range(-30.0, 30.0), self.rng.range(-40.0, -10.0));
+                self.particles.push(Particle::new(Kind::Spark, mc, y, vx, vy, 0.3, hex(0xffffff)));
+            }
+        }
+    }
+
+    /// Starts the frost mage's summon ritual for a skill.
+    pub fn cast_skill(&mut self, skill: Skill) {
+        if self.mage.busy() {
+            return;
+        }
+        self.skill = skill;
+        self.mage.start_summon();
+        let line = match skill {
+            Skill::Friend => "Venham, amigos do gelo!",
+            Skill::IcicleRain => "Chuva de gelo!",
+        };
+        self.mage.say(line, 2.0);
+    }
+
+    pub fn icicles_falling(&self) -> usize {
+        self.icicles.len()
+    }
+
+    pub fn friends_out(&self) -> usize {
+        self.friends.len()
+    }
+
+    /// An icicle hit: less snow than a cube, but many of them.
+    fn shatter_small(&mut self, x: f32, y: f32) {
+        let x = x.clamp(0.0, self.w as f32 - 1.0);
+        self.snow.add(x, self.pace.snow_per_cube * 0.5, 4.0);
+        for i in 0..5 {
+            let (vx, vy, life) = (self.rng.range(-40.0, 40.0), self.rng.range(-60.0, -15.0), self.rng.range(0.4, 0.9));
+            self.particles.push(Particle::new(Kind::Shard, x, y - 1.0, vx, vy, life, hex(ICE_COLORS[i % 4])));
+        }
+        let wx = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        if (wx - x).abs() < 6.0 && self.warrior.act != warrior::Act::Frozen {
+            self.warrior.warmth = (self.warrior.warmth - 0.05).max(0.01);
+            self.warrior.say("Ai! Pingente!", 1.2);
+        }
+    }
+
     fn burst_snow(&mut self, x: f32, n: usize) {
         let y = self.feet_y(x);
         for i in 0..n {
@@ -428,6 +845,36 @@ impl Scene {
             c.clear(CLEAR);
         }
         let gy = self.ground_y();
+        if self.vortex == vortex::Phase::Open {
+            self.draw_world(c);
+        } else {
+            let (k, swirl, tremble) = self.vortex.params();
+            let mut world = Canvas::new(c.w, c.h);
+            self.draw_world(&mut world);
+            if tremble > 0 && k >= 1.0 {
+                let t = (self.time * 40.0) as i32;
+                c.blit(&world, (t % 3 - 1) * tremble, ((t / 3) % 3 - 1) * tremble);
+            } else {
+                let mut warped = Canvas::new(c.w, c.h);
+                vortex::warp(&world, &mut warped, self.hole, k, swirl);
+                c.blit(&warped, 0, 0);
+            }
+            let size = 4.0 + (1.0 - k) * 12.0;
+            if !(self.transparent && self.vortex == vortex::Phase::Closed) {
+                vortex::draw_hole(c, self.hole, size, self.time);
+            }
+        }
+        if self.show_orb && self.vortex == vortex::Phase::Open {
+            vortex::draw_orb(c, self.hole, ORB_R, self.time, false);
+        } else if self.show_orb && self.vortex == vortex::Phase::Closed {
+            vortex::draw_orb(c, self.hole, ORB_R, self.time, true);
+        }
+        self.hud.draw(c, gy as i32, self.time);
+    }
+
+    /// Everything that lives in the world (not the landscape, not the HUD).
+    fn draw_world(&self, c: &mut Canvas) {
+        let gy = self.ground_y();
         self.snow.draw(c, gy as i32, self.time, self.transparent);
         for fire in &self.fires {
             fire.draw(c, self.feet_y(fire.x), self.time);
@@ -437,20 +884,67 @@ impl Scene {
         }
         let wx = self.warrior.x + warrior::WIDTH as f32 / 2.0;
         self.warrior.draw(c, self.feet_y(wx), self.time);
+        for m in &self.mobs {
+            m.draw(c, self.feet_y(m.center()), self.time);
+        }
         let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
         self.mage.draw(c, self.feet_y(mx), self.time);
+        let px = self.pyro.x + mage::WIDTH as f32 / 2.0;
+        self.pyro.draw(c, self.feet_y(px), self.time);
+        for fb in &self.fireballs {
+            c.glow(fb.x, fb.y, 6.0, 0.8, hex(0xff7a2a));
+            c.rect(fb.x.round() as i32 - 2, fb.y.round() as i32 - 2, 4, 4, hex(0xffc13d));
+            c.rect(fb.x.round() as i32 - 1, fb.y.round() as i32 - 1, 2, 2, hex(0xfff4b0));
+        }
         for cube in &self.cubes {
             cube.draw(c);
+        }
+        for ic in &self.icicles {
+            ic.draw(c, self.time);
         }
         for p in &self.particles {
             p.draw(c);
         }
         self.frost.draw(c);
+        if self.sun_t > 0.0 {
+            draw_sun(c, self.time, (self.sun_t / 1.0).min(1.0));
+        }
         let near_flakes = self.flakes.iter().filter(|f| f.speed >= 9.0 || self.backdrop.is_none());
         for f in near_flakes {
             c.dot(f.x, f.y, if f.speed > 13.0 { hex(0xffffff) } else { hex(0xc9d0f2) });
         }
-        self.hud.draw(c, gy as i32, self.time);
+        if let Some(b) = &self.mage.bubble {
+            let top = self.feet_y(mx) as i32 - mage::HEIGHT - 8;
+            warrior::draw_bubble(c, mx as i32, top, &b.text);
+        }
+    }
+}
+
+fn ground_at(snow: &Snow, transparent: bool, h: i32, x: f32) -> f32 {
+    let g = if transparent { h as f32 } else { (h - GROUND_BAND) as f32 };
+    g - snow.height_at(x)
+}
+
+/// Big pixel sun at the top center; `fade` 0..1 near the end.
+fn draw_sun(c: &mut Canvas, time: f32, fade: f32) {
+    let (cx, cy, r) = (c.w as f32 / 2.0, (c.h as f32 * 0.16).max(14.0), (c.h as f32 * 0.07).max(7.0));
+    c.glow(cx, cy, r * 3.0, 0.45 * fade, hex(0xffe08a));
+    for k in 0..12 {
+        let a = k as f32 / 12.0 * std::f32::consts::TAU + time * 0.4;
+        for d in 0..(r * 0.8) as i32 {
+            let dd = r * 1.3 + d as f32;
+            if fade > crate::render::canvas::bayer((cx + a.cos() * dd) as i32, (cy + a.sin() * dd) as i32) {
+                c.dot(cx + a.cos() * dd, cy + a.sin() * dd, hex(0xffc13d));
+            }
+        }
+    }
+    for y in (cy - r) as i32..=(cy + r) as i32 {
+        for x in (cx - r) as i32..=(cx + r) as i32 {
+            let d = ((x as f32 - cx).powi(2) + (y as f32 - cy).powi(2)).sqrt();
+            if d <= r && fade > crate::render::canvas::bayer(x, y) * 0.5 {
+                c.set(x, y, if d < r * 0.6 { hex(0xfff4b0) } else { hex(0xffd64a) });
+            }
+        }
     }
 }
 
@@ -501,11 +995,158 @@ mod tests {
         run(&mut s, 150.0);
         let (snow, frost) = (s.snow.fill(), s.frost.coverage());
         assert!(frost > 0.0, "friends should have frosted the edges");
-        s.celebrate();
+        s.celebrate(1.0);
         let melt = Commitment::Relentless.pace().melt_fraction;
         assert!(s.snow.fill() <= snow * (1.0 - melt) + 1e-4);
         assert!(s.frost.coverage() <= frost * (1.0 - melt) + 1e-4);
-        assert_eq!(s.mage.act, mage::Act::Stagger);
+        assert!(s.snow.fill() > 0.0, "one answer never clears everything");
+    }
+
+    #[test]
+    fn during_a_lesson_the_fire_mage_melts_on_impact_not_instantly() {
+        let mut s = Scene::new(240, 135, 2, Commitment::Relentless.pace(), true);
+        run(&mut s, 150.0);
+        s.set_practicing(true);
+        run(&mut s, 1.0);
+        assert!(s.pyro.visible());
+        let before = s.snow.fill();
+        s.celebrate(1.0);
+        assert!((s.snow.fill() - before).abs() < 1e-3, "nothing melts until the fireball lands");
+        let mut staggered = false;
+        for _ in 0..90 {
+            s.step(1.0 / 30.0);
+            staggered |= s.mage.act == mage::Act::Stagger;
+        }
+        assert!(s.snow.fill() < before, "fireball landed");
+        assert!(s.snow.fill() > before * 0.5, "one answer melts only a portion");
+        assert!(staggered, "the frost mage takes the hit");
+        s.set_practicing(false);
+        run(&mut s, 1.0);
+        assert!(!s.pyro.visible(), "the fire mage leaves after the lesson");
+    }
+
+    #[test]
+    fn a_miss_fizzles_and_the_frost_mage_fires_back() {
+        let mut s = Scene::new(240, 135, 3, Commitment::Steady.pace(), true);
+        s.set_practicing(true);
+        run(&mut s, 1.0);
+        s.miss();
+        run(&mut s, 1.2);
+        assert!(s.cubes_in_flight() > 0 || s.snow.fill() > 0.0);
+    }
+
+    #[test]
+    fn the_sun_melts_a_big_chunk_but_not_everything_and_stuns_the_mage() {
+        let mut s = Scene::new(240, 135, 4, Commitment::Relentless.pace(), true);
+        run(&mut s, 150.0);
+        let before = s.snow.fill();
+        s.sun();
+        assert!(s.sun_active());
+        assert!(s.snow.fill() < before * 0.7 && s.snow.fill() > 0.0);
+        let after_sun = s.snow.fill();
+        run(&mut s, 10.0);
+        assert!(s.snow.fill() <= after_sun + 1e-3, "stunned mage adds no snow");
+        assert!(!s.sun_active());
+    }
+
+    #[test]
+    fn clicking_characters_makes_them_react_without_free_melting() {
+        let mut s = Scene::new(240, 135, 5, Commitment::Steady.pace(), false);
+        s.tips = vec!["Dica de teste".into()];
+        run(&mut s, 3.0);
+        let fill = s.snow.fill();
+        let mx = s.mage.x + 8.0;
+        assert_eq!(s.poke(mx, s.feet_y(mx) - 10.0), Poke::Mage);
+        assert!(s.mage_bubble().is_some());
+        let wx = s.warrior.x + 6.0;
+        assert_eq!(s.poke(wx, s.feet_y(wx) - 8.0), Poke::Warrior);
+        assert_eq!(s.warrior.bubble.as_ref().unwrap().text, "Dica de teste");
+        assert_eq!(s.poke(120.0, 5.0), Poke::Nothing);
+        assert!(s.snow.fill() >= fill - 1e-3);
+    }
+
+    #[test]
+    fn friends_show_up_early_and_come_and_go() {
+        let mut s = Scene::new(240, 135, 8, Commitment::Steady.pace(), true);
+        let mut seen = false;
+        for _ in 0..(40 * 30) {
+            s.step(1.0 / 30.0);
+            seen |= s.friends_out() > 0;
+        }
+        assert!(seen, "a friend should be summoned within the first ~30s");
+        run(&mut s, 10.0);
+        assert_eq!(s.friends_out(), 0, "summons are temporary");
+    }
+
+    #[test]
+    fn icicle_rain_falls_from_the_top_and_adds_snow() {
+        let mut s = Scene::new(240, 135, 9, Commitment::Steady.pace(), true);
+        s.cast_skill(Skill::IcicleRain);
+        assert_eq!(s.mage_bubble(), Some("Chuva de gelo!"));
+        let before = s.snow.fill();
+        let mut peak = 0;
+        for _ in 0..(2 * 30) {
+            s.step(1.0 / 30.0);
+            peak = peak.max(s.icicles_falling());
+        }
+        assert!(peak >= 8);
+        run(&mut s, 4.0);
+        assert_eq!(s.icicles_falling(), 0);
+        assert!(s.snow.fill() > before);
+    }
+
+    #[test]
+    fn the_warrior_fights_off_a_mob_wave() {
+        let mut s = Scene::new(240, 135, 10, Commitment::Chill.pace(), true);
+        s.spawn_mobs();
+        assert!(s.mobs_out() >= 1);
+        let mut fought = false;
+        for _ in 0..(40 * 30) {
+            s.step(1.0 / 30.0);
+            fought |= s.warrior.act == warrior::Act::Fight;
+        }
+        assert!(fought);
+        assert_eq!(s.mobs_out(), 0, "all mobs defeated");
+        assert_ne!(s.warrior.act, warrior::Act::Frozen);
+    }
+
+    #[test]
+    fn pausing_swallows_the_world_and_resuming_returns_it_unchanged() {
+        let mut s = Scene::new(240, 135, 11, Commitment::Relentless.pace(), true);
+        run(&mut s, 60.0);
+        let snow = s.snow.fill();
+        let mut before = Canvas::new(240, 135);
+        s.draw(&mut before);
+        s.set_paused(true);
+        run(&mut s, 3.0);
+        assert!(s.swallowed());
+        let mut during = Canvas::new(240, 135);
+        s.draw(&mut during);
+        assert!(during.opaque_in(0, 0, 240, 135) < before.opaque_in(0, 0, 240, 135) / 10, "screen is clean");
+        run(&mut s, 120.0);
+        assert!((s.snow.fill() - snow).abs() < 1e-6, "nothing happens while paused");
+        s.set_paused(false);
+        run(&mut s, 0.6);
+        assert!(!s.swallowed());
+        run(&mut s, 1.0);
+        let mut after = Canvas::new(240, 135);
+        s.draw(&mut after);
+        assert!(after.opaque_in(0, 0, 240, 135) > before.opaque_in(0, 0, 240, 135) / 2, "everything came back");
+        run(&mut s, 30.0);
+        assert!(s.snow.fill() >= snow, "the mage is back at work");
+    }
+
+    #[test]
+    fn window_mode_orb_is_clickable_and_shows_the_hole_when_paused() {
+        let mut s = Scene::new(240, 135, 12, Commitment::Steady.pace(), false);
+        s.show_orb = true;
+        s.hole = (12.0, 12.0);
+        assert_eq!(s.poke(12.0, 12.0), Poke::Orb);
+        s.set_paused(true);
+        run(&mut s, 3.0);
+        let mut c = Canvas::new(240, 135);
+        s.draw(&mut c);
+        assert_eq!(c.get(12, 12), Some(hex(0x05030d)), "black hole in the orb");
     }
 
     #[test]

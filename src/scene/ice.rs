@@ -55,6 +55,42 @@ impl Cube {
     }
 }
 
+const ICICLE: &[&str] = &["WLCD", "WLCD", ".LCD", ".LC.", ".LC.", "..C.", "..C.", "..L."];
+
+/// An icicle from the frost mage's icicle rain: hangs and shakes at the top
+/// of the screen for `delay` seconds, then drops.
+pub struct Icicle {
+    pub x: f32,
+    pub y: f32,
+    pub vy: f32,
+    pub delay: f32,
+}
+
+impl Icicle {
+    pub fn new(x: f32, delay: f32) -> Self {
+        Icicle { x, y: 0.0, vy: 0.0, delay }
+    }
+
+    pub fn step(&mut self, dt: f32) {
+        if self.delay > 0.0 {
+            self.delay -= dt;
+            return;
+        }
+        self.vy += 260.0 * dt;
+        self.y += self.vy * dt;
+    }
+
+    /// Tip position (bottom of the sprite).
+    pub fn tip(&self) -> (f32, f32) {
+        (self.x + 2.0, self.y + ICICLE.len() as f32)
+    }
+
+    pub fn draw(&self, c: &mut Canvas, time: f32) {
+        let shake = if self.delay > 0.0 { ((time * 40.0 + self.x).sin() * 1.0).round() as i32 } else { 0 };
+        c.sprite(ICICLE, ICE_PAL, self.x.round() as i32 + shake, self.y.round() as i32, false);
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     /// Ice fragment; bounces on the snow.
@@ -155,6 +191,17 @@ mod tests {
         }
         assert!((cube.x - 150.0).abs() < 0.5, "x {}", cube.x);
         assert!((cube.y - 80.0).abs() < 1.5, "y {}", cube.y);
+    }
+
+    #[test]
+    fn icicles_hang_first_then_fall() {
+        let mut i = Icicle::new(10.0, 0.5);
+        i.step(0.4);
+        assert_eq!(i.y, 0.0, "still hanging");
+        for _ in 0..30 {
+            i.step(1.0 / 30.0);
+        }
+        assert!(i.y > 20.0);
     }
 
     #[test]

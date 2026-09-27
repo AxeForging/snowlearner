@@ -1,133 +1,345 @@
 language = "es"
 native = "pt-BR"
-title = "Español del día a día"
-default_cue = "Repita comigo: {}"
+language_name = "espanhol"
+title = "Espanhol pra vida real"
+
+# ---------------------------------------------------------------- tips
+
+[[tip]]
+text = "Falso amigo: 'embarazada' é GRÁVIDA, não envergonhada (avergonzada)."
+[[tip]]
+text = "Falso amigo: 'exquisito' é delicioso, elogio! Não é esquisito."
+[[tip]]
+text = "Falso amigo: 'oficina' é escritório. Oficina mecânica é 'taller'."
+[[tip]]
+text = "Falso amigo: 'polvo' é poeira. O animal é 'pulpo'."
+[[tip]]
+text = "Falso amigo: 'rato' é um momento. O bicho é 'ratón'."
+[[tip]]
+text = "Falso amigo: 'apellido' é sobrenome, não apelido (apodo)."
+[[tip]]
+text = "Falso amigo: 'propina' é gorjeta. Não é crime!"
+[[tip]]
+text = "Falso amigo: 'cena' é jantar. A cena do filme é 'escena'."
+[[tip]]
+text = "Pronúncia: o 'j' e o 'g' antes de e/i soam como um 'rr' forte: 'jamón'."
+[[tip]]
+text = "Pronúncia: 'll' e 'y' soam parecido com 'j' ou 'i': 'calle' = 'caje'."
+[[tip]]
+text = "Pronúncia: não nasalize! 'Pan' não é 'pão': fale o 'n' no fim."
+[[tip]]
+text = "Pronúncia: o 'z' e o 'c' (antes de e/i) viram 'th' na Espanha e 's' na América."
+[[tip]]
+text = "Em espanhol se 'tem' fome e frio: tengo hambre, tengo frío."
+[[tip]]
+text = "'Usted' é o formal. Use com pessoas mais velhas e no trabalho."
+[[tip]]
+text = "No clima usa-se 'hace': hace frío, hace calor, hace sol."
+
+# ---------------------------------------------------------------- trabajo
 
 [[phrase]]
-say = "Tengo hambre"
-meaning = "Estou com fome"
-cue = "Para dizer que estou com fome, devo dizer: {}"
-tip = "Em espanhol se 'tem' fome: tengo hambre. O 'h' é mudo."
+topic = "trabalho"
+situation = "O colega está falando, mas está no mudo."
+say = "Perdón, estás en silencio"
+meaning = "Desculpa, você está no mudo"
+accept = ["Estás en silencio", "Tienes el micrófono apagado"]
 
 [[phrase]]
-say = "Tengo frío"
-meaning = "Estou com frio"
-cue = "O guerreiro está congelando! Diga que está com frio: {}"
+topic = "trabalho"
+situation = "Você quer ver o que o colega está mostrando."
+say = "¿Puedes compartir tu pantalla?"
+meaning = "Pode compartilhar sua tela?"
+accept = ["¿Podrías compartir tu pantalla?"]
 
 [[phrase]]
-say = "Buenos días"
-meaning = "Bom dia"
-cue = "De manhã, para cumprimentar alguém: {}"
+topic = "trabalho"
+situation = "Você vai se atrasar para a reunião."
+say = "Voy a llegar unos minutos tarde"
+meaning = "Vou chegar alguns minutos atrasado"
 
 [[phrase]]
-say = "¿Cómo estás?"
-meaning = "Como você está?"
-cue = "Para perguntar como a pessoa está: {}"
+topic = "trabalho"
+situation = "Precisa confirmar antes de responder."
+say = "Déjame revisarlo y te aviso"
+meaning = "Deixa eu revisar e te aviso"
+accept = ["Lo reviso y te aviso"]
 
 [[phrase]]
-say = "Mucho gusto"
-meaning = "Muito prazer"
-cue = "Quando conhece alguém novo: {}"
+topic = "trabalho"
+situation = "Não entendeu a explicação."
+say = "¿Me lo puedes explicar paso a paso?"
+meaning = "Você pode me explicar passo a passo?"
 
 [[phrase]]
-say = "Muchas gracias"
-meaning = "Muito obrigado"
-cue = "Para agradecer muito: {}"
+topic = "trabalho"
+situation = "Perguntam o prazo de uma tarefa."
+say = "¿Cuál es la fecha de entrega?"
+meaning = "Qual é o prazo de entrega?"
 
 [[phrase]]
+topic = "trabalho"
+situation = "A reunião precisa ser adiada."
+say = "¿Podemos pasarlo para mañana?"
+meaning = "Podemos passar isso pra amanhã?"
+accept = ["¿Lo podemos pasar para mañana?"]
+
+[[phrase]]
+topic = "trabalho"
+situation = "Você concorda com a ideia."
+say = "Tiene sentido"
+meaning = "Faz sentido"
+
+[[phrase]]
+topic = "trabalho"
+situation = "Achou um problema sério em produção."
+say = "Creo que hay un error en producción"
+meaning = "Acho que tem um erro em produção"
+
+[[phrase]]
+topic = "trabalho"
+situation = "Vai mandar um resumo depois da reunião."
+say = "Te mando un correo con el resumen"
+meaning = "Te mando um email com o resumo"
+tip = "Email em espanhol é 'correo' (ou 'mail' na conversa)."
+
+[[phrase]]
+topic = "trabalho"
+situation = "Quer saber se o áudio está bom."
+say = "¿Me escuchas bien?"
+meaning = "Você está me ouvindo bem?"
+accept = ["¿Me oyes bien?"]
+
+[[phrase]]
+topic = "trabalho"
+situation = "Discorda, mas com educação."
+say = "Entiendo, pero no estoy seguro de que funcione"
+meaning = "Entendo, mas não tenho certeza de que funcione"
+
+# ---------------------------------------------------------------- viaje
+
+[[phrase]]
+topic = "viagem"
+situation = "Você chegou no hotel."
+say = "Tengo una reserva a mi nombre"
+meaning = "Tenho uma reserva no meu nome"
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber se o café da manhã está incluso."
+say = "¿El desayuno está incluido?"
+meaning = "O café da manhã está incluso?"
+accept = ["¿Está incluido el desayuno?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Sua mala não apareceu."
+say = "Mi maleta no llegó"
+meaning = "Minha mala não chegou"
+
+[[phrase]]
+topic = "viagem"
+situation = "Está perdido procurando o metrô."
+say = "¿Cómo llego a la estación de metro?"
+meaning = "Como eu chego na estação de metrô?"
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber quanto tempo leva até o centro."
+say = "¿Cuánto se tarda en llegar al centro?"
+meaning = "Quanto tempo leva pra chegar no centro?"
+accept = ["¿Cuánto tiempo se tarda al centro?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Na imigração, perguntam o motivo da viagem."
+say = "Estoy de vacaciones"
+meaning = "Estou de férias"
+accept = ["Vengo de vacaciones"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer um táxi pra ir ao aeroporto."
+say = "¿Me puede pedir un taxi al aeropuerto?"
+meaning = "Pode me chamar um táxi pro aeroporto?"
+
+# ---------------------------------------------------------------- restaurante
+
+[[phrase]]
+topic = "restaurante"
+situation = "Terminou de comer e quer pagar."
 say = "La cuenta, por favor"
 meaning = "A conta, por favor"
-cue = "No restaurante, para pedir a conta: {}"
+accept = ["¿Me trae la cuenta, por favor?"]
 
 [[phrase]]
-say = "¿Dónde está el baño?"
-meaning = "Onde fica o banheiro?"
-cue = "Para perguntar onde fica o banheiro: {}"
-tip = "Baño com 'ñ' soa como o nosso 'nh': banho."
+topic = "restaurante"
+situation = "Quer levar a comida."
+say = "¿Me lo pone para llevar?"
+meaning = "Pode embalar pra viagem?"
+accept = ["Para llevar, por favor"]
 
 [[phrase]]
-say = "No entiendo"
-meaning = "Não entendo"
-cue = "Quando não entender algo, diga: {}"
+topic = "restaurante"
+situation = "Tem alergia a nozes."
+say = "Soy alérgico a los frutos secos"
+meaning = "Sou alérgico a nozes e castanhas"
 
 [[phrase]]
-say = "¿Puedes repetir, por favor?"
-meaning = "Você pode repetir, por favor?"
-cue = "Para pedir que repitam: {}"
+topic = "restaurante"
+situation = "Não sabe o que pedir."
+say = "¿Qué me recomienda?"
+meaning = "O que você me recomenda?"
+accept = ["¿Qué me recomiendas?"]
 
 [[phrase]]
-say = "Estoy aprendiendo español"
-meaning = "Estou aprendendo espanhol"
-cue = "Conte que está aprendendo espanhol: {}"
+topic = "restaurante"
+situation = "Chegou com um amigo."
+say = "Una mesa para dos, por favor"
+meaning = "Uma mesa pra dois, por favor"
 
 [[phrase]]
-say = "¿Qué hora es?"
-meaning = "Que horas são?"
-cue = "Para perguntar as horas: {}"
+topic = "restaurante"
+situation = "Quer saber se aceitam cartão."
+say = "¿Aceptan tarjeta?"
+meaning = "Vocês aceitam cartão?"
+accept = ["¿Se puede pagar con tarjeta?"]
+
+# ---------------------------------------------------------------- compras
 
 [[phrase]]
-say = "Hace mucho frío hoy"
-meaning = "Está muito frio hoje"
-cue = "Olhe pela janela congelada e diga: {}"
-tip = "Para o clima, o espanhol usa 'hace': hace frío, hace calor."
+topic = "compras"
+situation = "O vendedor oferece ajuda, mas você só está olhando."
+say = "Solo estoy mirando, gracias"
+meaning = "Só estou olhando, obrigado"
 
 [[phrase]]
-say = "Necesito ayuda"
-meaning = "Preciso de ajuda"
-cue = "Se precisar de ajuda: {}"
+topic = "compras"
+situation = "Quer provar uma roupa."
+say = "¿Me lo puedo probar?"
+meaning = "Posso experimentar?"
+accept = ["¿Puedo probármelo?"]
 
 [[phrase]]
-say = "¿Cuánto cuesta?"
-meaning = "Quanto custa?"
-cue = "Numa loja, para perguntar o preço: {}"
+topic = "compras"
+situation = "Precisa de outro tamanho."
+say = "¿Lo tiene en una talla más grande?"
+meaning = "Tem num tamanho maior?"
+tip = "Tamanho de roupa é 'talla'; de sapato, 'número'."
 
 [[phrase]]
-say = "Quisiera un café"
-meaning = "Eu gostaria de um café"
-cue = "Na cafeteria, peça um café com educação: {}"
+topic = "compras"
+situation = "Quer devolver um produto."
+say = "Quiero devolver esto"
+meaning = "Quero devolver isso"
+
+# ---------------------------------------------------------------- salud
 
 [[phrase]]
-say = "Hasta mañana"
-meaning = "Até amanhã"
-cue = "Para se despedir até amanhã: {}"
+topic = "saúde"
+situation = "Você não está bem."
+say = "Necesito ver a un médico"
+meaning = "Preciso ver um médico"
 
 [[phrase]]
-say = "Estoy cansado"
-meaning = "Estou cansado"
-cue = "Para dizer que está cansado: {}"
+topic = "saúde"
+situation = "Mostre onde dói."
+say = "Me duele aquí"
+meaning = "Dói aqui"
 
 [[phrase]]
-say = "Vamos"
-meaning = "Vamos"
-cue = "Para chamar alguém para ir: {}"
+topic = "saúde"
+situation = "Na farmácia, dor de cabeça."
+say = "¿Tiene algo para el dolor de cabeza?"
+meaning = "Tem algo pra dor de cabeça?"
 
 [[phrase]]
-say = "Estoy de acuerdo"
-meaning = "Concordo"
-cue = "Numa reunião, para concordar: {}"
+topic = "saúde"
+situation = "Conte desde quando está mal."
+say = "Me siento mal desde ayer"
+meaning = "Estou me sentindo mal desde ontem"
+
+# ---------------------------------------------------------------- social
 
 [[phrase]]
-say = "Perdón"
-meaning = "Com licença / desculpa"
-cue = "Para pedir licença ou desculpas: {}"
+topic = "social"
+situation = "Perguntam de onde você é."
+say = "Soy de Brasil"
+meaning = "Sou do Brasil"
 
 [[phrase]]
-say = "¿Qué significa esto?"
-meaning = "O que isso significa?"
-cue = "Para perguntar o significado de algo: {}"
+topic = "social"
+situation = "Quer saber com o que a pessoa trabalha."
+say = "¿A qué te dedicas?"
+meaning = "Com o que você trabalha?"
+tip = "Muito mais natural que '¿Cuál es tu trabajo?'."
 
 [[phrase]]
+topic = "social"
+situation = "A pessoa fala rápido demais."
+say = "¿Puedes hablar más despacio?"
+meaning = "Você pode falar mais devagar?"
+accept = ["¿Podrías hablar más despacio?", "Más despacio, por favor"]
+
+[[phrase]]
+topic = "social"
+situation = "Não sabe uma palavra."
+say = "¿Cómo se dice esto en español?"
+meaning = "Como se diz isso em espanhol?"
+
+[[phrase]]
+topic = "social"
+situation = "Alguém pede desculpas por algo pequeno."
+say = "No pasa nada"
+meaning = "Não tem problema"
+accept = ["No te preocupes"]
+
+[[phrase]]
+topic = "social"
+situation = "Um amigo pergunta se você está chegando."
 say = "Ya voy en camino"
 meaning = "Já estou a caminho"
-cue = "Avise que está chegando: {}"
+accept = ["Voy en camino"]
 
 [[phrase]]
-say = "Que tengas un buen día"
-meaning = "Tenha um bom dia"
-cue = "Para desejar um bom dia a alguém: {}"
+topic = "social"
+situation = "Está indo embora da festa."
+say = "Me encantó verte"
+meaning = "Adorei te ver"
+accept = ["Qué bueno verte"]
+
+# ---------------------------------------------------------------- teléfono
 
 [[phrase]]
-say = "El fuego está caliente"
-meaning = "O fogo está quente"
-cue = "O guerreiro acendeu uma fogueira! Diga que ela está quente: {}"
-tip = "Cuidado: 'caliente' é quente. 'Calor' é o calor do clima."
+topic = "telefone"
+situation = "A pessoa que você procura não está."
+say = "¿Puedo dejar un mensaje?"
+meaning = "Posso deixar um recado?"
+
+[[phrase]]
+topic = "telefone"
+situation = "Ligou pro número errado."
+say = "Perdón, creo que me equivoqué de número"
+meaning = "Desculpa, acho que liguei errado"
+
+# ---------------------------------------------------------------- emergencia
+
+[[phrase]]
+topic = "emergência"
+situation = "Aconteceu um acidente."
+say = "Llame a una ambulancia, por favor"
+meaning = "Chame uma ambulância, por favor"
+accept = ["Llamen a una ambulancia"]
+
+[[phrase]]
+topic = "emergência"
+situation = "Perdeu o passaporte."
+say = "Perdí mi pasaporte"
+meaning = "Perdi meu passaporte"
+
+[[phrase]]
+topic = "emergência"
+situation = "Precisa de ajuda na rua."
+say = "¿Me puede ayudar, por favor?"
+meaning = "Pode me ajudar, por favor?"
+accept = ["¿Me puedes ayudar?", "Ayúdeme, por favor"]

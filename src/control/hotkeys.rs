@@ -19,10 +19,10 @@ pub struct Hotkeys {
 
 impl Hotkeys {
     /// Must be called on the main thread (macOS requirement).
-    pub fn register(challenge: &str, summary: &str) -> Result<Hotkeys> {
+    pub fn register(specs: &[(&str, Command)]) -> Result<Hotkeys> {
         let manager = GlobalHotKeyManager::new().context("global hotkeys unavailable on this desktop")?;
         let mut bindings = Vec::new();
-        for (spec, cmd) in [(challenge, Command::Challenge), (summary, Command::Summary)] {
+        for &(spec, cmd) in specs {
             let hk = parse(spec)?;
             manager.register(hk).with_context(|| format!("could not register {spec} (taken by another app?)"))?;
             bindings.push((hk.id(), cmd));

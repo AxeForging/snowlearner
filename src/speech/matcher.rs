@@ -23,8 +23,20 @@ pub struct MatchResult {
 }
 
 impl MatchResult {
+    /// Passes on overall similarity, or when every target word was heard
+    /// (each allowed a small slip) — recognition noise must not fail a learner
+    /// who said it right.
+    ///
+    /// A phrase that is merely *similar* (score ≥ threshold) must still have at
+    /// least 3 of every 4 words right, so "I'm angry" never passes for
+    /// "I'm hungry" just because the letters look alike.
     pub fn passed(&self, threshold: f32) -> bool {
-        self.score >= threshold
+        if self.words.is_empty() {
+            return false;
+        }
+        let hits = self.words.iter().filter(|w| w.hit).count() as f32;
+        let ratio = hits / self.words.len() as f32;
+        ratio >= 1.0 || (self.score >= threshold && ratio >= 0.75)
     }
 }
 
@@ -67,8 +79,32 @@ pub fn normalize(text: &str) -> Vec<String> {
     out
 }
 
+/// Same word, allowing 1 slip in words of 3–6 letters and 2 in longer ones
+/// (recognizer slips like "hungre", "repeet", "tomorow") — but not enough to
+/// turn "hungry" into "angry".
 fn similar(a: &str, b: &str) -> bool {
-    a == b || normalized_levenshtein(a, b) >= 0.75
+    if a == b {
+        return true;
+    }
+    let len = a.chars().count().max(b.chars().count());
+    let allowed = if len <= 2 {
+        0
+    } else if len <= 6 {
+        1
+    } else {
+        2
+    };
+    strsim::levenshtein(a, b) <= allowed
+}
+
+/// Best score over several accepted answers; returns it with the answer's index.
+pub fn score_any(answers: &[&str], heard: &str) -> (MatchResult, usize) {
+    answers
+        .iter()
+        .enumerate()
+        .map(|(i, a)| (score(a, heard), i))
+        .max_by(|a, b| a.0.score.total_cmp(&b.0.score))
+        .unwrap_or_else(|| (score("", heard), 0))
 }
 
 pub fn score(target: &str, heard: &str) -> MatchResult {
@@ -149,10 +185,42 @@ mod tests {
     }
 
     #[test]
+    fn any_accepted_variant_can_win() {
+        let (m, i) = score_any(&["Could you repeat that?", "Can you repeat that?"], "can you repeat that");
+        assert!((m.score - 1.0).abs() < 1e-6);
+        assert_eq!(i, 1);
+        let (m, _) = score_any(&["Could you repeat that?"], "pizza");
+        assert!(!m.passed(PASS));
+    }
+
+    #[test]
     fn empty_or_silent_input_scores_zero() {
         assert_eq!(score("Hello", "").score, 0.0);
         assert_eq!(score("Hello", " ... ").score, 0.0);
         assert!(score("Hello", "").words.iter().all(|w| !w.hit));
+    }
+
+    #[test]
+    fn one_or_two_letter_slips_per_word_still_count() {
+        for heard in ["I'm hungre", "Could you repeet that", "see you tomorow", "cant you repeat that"] {
+            let target = match heard {
+                "I'm hungre" => "I'm hungry",
+                "see you tomorow" => "See you tomorrow",
+                _ => "Could you repeat that?",
+            };
+            let r = score(target, heard);
+            assert!(r.passed(PASS), "{heard:?} vs {target:?}: {}", r.score);
+        }
+    }
+
+    #[test]
+    fn slips_do_not_turn_different_words_into_matches() {
+        let r = score("Good morning", "good night");
+        assert!(!r.passed(PASS));
+        assert!(!r.words[1].hit, "night is not morning");
+        assert!(!score("I'm hungry", "I'm angry").passed(PASS), "angry is a different word");
+        // Two-letter words must match exactly: "no" is not "so".
+        assert!(!score("no", "so").passed(PASS));
     }
 
     #[test]

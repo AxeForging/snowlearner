@@ -73,15 +73,23 @@ pub fn resolve(mode: WindowMode, session: Session, xwayland: bool) -> Resolved {
     }
 }
 
-/// How to get a hotkey on desktops where the app cannot grab one itself.
-pub fn shortcut_help(exe: &str, hotkey: &str, summary_hotkey: &str) -> String {
-    format!(
-        "Wayland apps can't register global hotkeys. Bind desktop shortcuts instead:\n\
-         \x20 GNOME: Settings → Keyboard → Custom Shortcuts → add\n\
-         \x20   \"{exe} say\"      ({hotkey})\n\
-         \x20   \"{exe} summary\"  ({summary_hotkey})\n\
-         \x20 KDE: System Settings → Shortcuts → Custom Shortcuts, same commands."
-    )
+/// How to get hotkeys on desktops where the app cannot grab them itself.
+pub fn shortcut_help(exe: &str, bindings: &[(&str, crate::control::ipc::Command)]) -> String {
+    let mut out = String::from(
+        "Wayland apps can't register global hotkeys. Bind desktop shortcuts instead\n\
+         (GNOME: Settings → Keyboard → Custom Shortcuts; KDE: Shortcuts → Custom Shortcuts):\n",
+    );
+    for (key, cmd) in bindings {
+        let sub = match cmd {
+            crate::control::ipc::Command::Challenge => "say",
+            other => other.as_str(),
+        };
+        out.push_str(&format!("    {key:<12} → \"{exe} {sub}\"\n"));
+    }
+    if crate::control::gnome::available() {
+        out.push_str("  …or just run: snowlearner shortcuts install\n");
+    }
+    out.trim_end().to_string()
 }
 
 #[cfg(test)]
@@ -116,6 +124,15 @@ mod tests {
         for s in [Session::Windows, Session::MacOs, Session::X11, Session::Wayland] {
             assert!(!resolve(WindowMode::Window, s, true).overlay);
         }
+    }
+
+    #[test]
+    fn shortcut_help_lists_one_command_per_binding() {
+        use crate::control::ipc::Command;
+        let help =
+            shortcut_help("/bin/snowlearner", &[("Ctrl+Alt+M", Command::Challenge), ("Ctrl+Alt+K", Command::Menu)]);
+        assert!(help.contains("Ctrl+Alt+M") && help.contains("\"/bin/snowlearner say\""));
+        assert!(help.contains("\"/bin/snowlearner menu\""));
     }
 
     #[test]

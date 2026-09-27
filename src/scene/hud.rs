@@ -53,6 +53,16 @@ pub struct Caption {
     pub feedback: Option<Vec<WordHit>>,
     pub heard: Option<String>,
     pub footer: String,
+    /// Small right-aligned header label: "trabalho · A2 · de memória".
+    pub tag: String,
+}
+
+/// Progress corner: today's count against the goal, combo, language/topic.
+pub struct Stats {
+    pub done: u32,
+    pub goal: u32,
+    pub combo: u32,
+    pub label: String,
 }
 
 pub struct SummaryLine {
@@ -78,6 +88,9 @@ pub struct Hud {
     pub caption: Option<Caption>,
     pub summary: Option<SummaryPanel>,
     pub toast: Option<Toast>,
+    pub stats: Option<Stats>,
+    /// Key/mouse cheat sheet (window mode, `H`).
+    pub help: Option<Vec<String>>,
 }
 
 const INK: Rgba = hex(0xe6ecff);
@@ -120,10 +133,46 @@ impl Hud {
         if let Some(s) = &self.summary {
             draw_summary(c, s, time);
         }
+        if let Some(st) = &self.stats {
+            draw_stats(c, st);
+        }
+        if let Some(lines) = &self.help {
+            draw_help(c, lines);
+        }
         if let Some(t) = &self.toast {
             let w = font::text_width(&t.text);
             font::draw_outlined(c, (c.w - w) / 2, 6, &t.text, hex(0xffffff), hex(0x1b1942));
         }
+    }
+}
+
+fn draw_stats(c: &mut Canvas, st: &Stats) {
+    let outline = hex(0x1b1942);
+    let goal = format!("{}/{}", st.done, st.goal);
+    let mut text = format!("{} · {goal}", st.label);
+    if st.combo >= 2 {
+        text.push_str(&format!(" · x{}", st.combo));
+    }
+    let w = font::text_width(&text);
+    let (x, y) = (c.w - w - 6, 4 + font::LINE_H);
+    font::draw_outlined(c, x, y, &text, hex(0xe6ecff), outline);
+    // Goal bar under the text.
+    let bar_w = w.min(60);
+    let fill = (bar_w as u32 * st.done.min(st.goal)).checked_div(st.goal).map_or(bar_w, |f| f as i32);
+    let by = y + font::LINE_H;
+    c.rect(x + w - bar_w - 1, by - 1, bar_w + 2, 4, outline);
+    c.rect(x + w - bar_w, by, fill, 2, if st.done >= st.goal { hex(0x7dff9b) } else { hex(0xffb03a) });
+}
+
+fn draw_help(c: &mut Canvas, lines: &[String]) {
+    let lh = font::LINE_H - 1;
+    let w = lines.iter().map(|l| font::text_width(l)).max().unwrap_or(0) + 12;
+    let h = lines.len() as i32 * lh + 8;
+    let (x, y) = (6, (c.h - h) / 2);
+    panel(c, x, y, w.min(c.w - 12), h);
+    for (i, l) in lines.iter().enumerate() {
+        let col = if i == 0 { hex(0xffd64a) } else { INK };
+        font::draw(c, x + 6, y + 3 + i as i32 * lh, l, col);
     }
 }
 
@@ -201,7 +250,8 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     let ph = rows * lh + 8;
     let px = (c.w - pw) / 2;
     // Upper part of the screen: clear of the characters and their speech bubbles.
-    let py = (c.h / 8).min(ground_y - ph - 50).max(4);
+    // Below the progress corner, above the characters and their bubbles.
+    let py = (c.h / 8).max(2 * font::LINE_H + 8).min(ground_y - ph - 50).max(4);
     panel(c, px, py, pw, ph);
 
     // Header: icon + status.
@@ -219,6 +269,12 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
         label.push_str(&".".repeat(1 + (time * 3.0) as usize % 3));
     }
     font::draw(c, px + 14, y, &label, icon_c);
+    if !cap.tag.is_empty() {
+        let tw = font::text_width(&cap.tag);
+        if 14 + font::text_width(&label) + 12 + tw < pw {
+            font::draw(c, px + pw - tw - 6, y, &cap.tag, hex(0x6e74b8));
+        }
+    }
     y += lh;
 
     for line in &lines {
@@ -314,6 +370,7 @@ mod tests {
             feedback,
             heard: None,
             footer: String::new(),
+            tag: "social · A1 · repita".into(),
         }
     }
 
@@ -349,6 +406,19 @@ mod tests {
         let lines = layout(&t, 80);
         assert!(lines.len() > 2);
         assert_eq!(lines.iter().map(Vec::len).sum::<usize>(), t.len());
+    }
+
+    #[test]
+    fn stats_corner_shows_goal_progress_and_combo() {
+        let mut hud =
+            Hud { stats: Some(Stats { done: 3, goal: 10, combo: 0, label: "EN".into() }), ..Default::default() };
+        let mut plain = Canvas::new(200, 60);
+        hud.draw(&mut plain, 60, 0.0);
+        hud.stats.as_mut().unwrap().combo = 4;
+        let mut combo = Canvas::new(200, 60);
+        hud.draw(&mut combo, 60, 0.0);
+        assert!(plain.opaque_in(100, 0, 100, 40) > 0);
+        assert!(combo.opaque_in(0, 0, 200, 60) > plain.opaque_in(0, 0, 200, 60), "combo adds 'x4'");
     }
 
     #[test]

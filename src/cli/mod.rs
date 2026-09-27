@@ -41,6 +41,15 @@ pub enum Cmd {
     Say,
     /// Show the end-of-day recap in the running app.
     Summary,
+    /// Open the control panel in the running app.
+    Menu,
+    /// Register desktop shortcuts for the hotkeys (GNOME; needed on Wayland).
+    Shortcuts {
+        #[command(subcommand)]
+        action: ShortcutAction,
+    },
+    /// Pause / resume the frost mage in the running app.
+    Pause,
     /// Close the running app.
     Quit,
     /// Print what you practiced on a day (works without the app running).
@@ -99,6 +108,14 @@ pub enum ConfigAction {
     },
     /// Print where config, decks, history and models live.
     Path,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ShortcutAction {
+    /// Add the snowlearner shortcuts to GNOME (keeps your other shortcuts).
+    Install,
+    /// Remove the snowlearner shortcuts.
+    Remove,
 }
 
 #[derive(Subcommand, Debug)]

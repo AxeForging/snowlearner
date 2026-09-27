@@ -1,9 +1,10 @@
 //! Subcommand implementations.
 
-use super::{Cli, Cmd, ConfigAction, ModelAction, RunArgs};
+use super::{Cli, Cmd, ConfigAction, ModelAction, RunArgs, ShortcutAction};
 use crate::app::platform::{self, Session};
 use crate::config::paths::Paths;
 use crate::config::settings::{MODELS, Settings};
+use crate::control::gnome;
 use crate::control::ipc::{self, Command};
 use crate::learn::deck::Deck;
 use crate::render::{canvas::Canvas, png_out};
@@ -23,6 +24,9 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Cmd::Say => remote(&settings, Command::Challenge),
         Cmd::Summary => remote(&settings, Command::Summary),
         Cmd::Quit => remote(&settings, Command::Quit),
+        Cmd::Menu => remote(&settings, Command::Menu),
+        Cmd::Shortcuts { action } => shortcuts(&settings, action),
+        Cmd::Pause => remote(&settings, Command::Pause),
         Cmd::Report { date, speak } => report(&settings, &paths, date.as_deref(), speak),
         Cmd::Decks => decks(&settings, &paths),
         Cmd::Config { action: ConfigAction::Init { force } } => {
@@ -70,6 +74,32 @@ fn load_settings(paths: &Paths, run: &RunArgs) -> Result<Settings> {
 
 fn remote(settings: &Settings, cmd: Command) -> Result<()> {
     ipc::send(settings.ipc_port, cmd)
+}
+
+fn shortcuts(settings: &Settings, action: ShortcutAction) -> Result<()> {
+    if !gnome::available() {
+        bail!(
+            "automatic shortcuts are only supported on GNOME; bind these commands in your desktop's keyboard settings: {} say / summary / menu",
+            std::env::current_exe()?.display()
+        );
+    }
+    match action {
+        ShortcutAction::Install => {
+            let exe = std::env::current_exe()?.canonicalize()?.display().to_string();
+            let list = [
+                gnome::Shortcut { id: "say", name: "Snowlearner: praticar", keys: settings.hotkey_challenge.clone() },
+                gnome::Shortcut { id: "summary", name: "Snowlearner: resumo", keys: settings.hotkey_summary.clone() },
+                gnome::Shortcut { id: "menu", name: "Snowlearner: painel", keys: settings.hotkey_menu.clone() },
+            ];
+            gnome::install(&exe, &list)?;
+            for s in &list {
+                println!("  {:<12} → {exe} {}", s.keys, s.id);
+            }
+            println!("GNOME shortcuts installed (remove with `snowlearner shortcuts remove`).");
+        }
+        ShortcutAction::Remove => println!("removed {} snowlearner shortcut(s)", gnome::remove()?),
+    }
+    Ok(())
 }
 
 fn parse_day(date: Option<&str>) -> Result<NaiveDate> {
@@ -180,7 +210,10 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
         "{}hotkeys       {}",
         ok(hk),
         if hk {
-            format!("{} / {}", settings.hotkey_challenge, settings.hotkey_summary)
+            format!(
+                "{} practice · {} recap · {} panel",
+                settings.hotkey_challenge, settings.hotkey_summary, settings.hotkey_menu
+            )
         } else {
             "not available here — see below".into()
         }
@@ -230,7 +263,13 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
     println!("{}commitment    {:?} ({})", ok(true), settings.commitment, settings.commitment.label_pt());
     if !hk {
         let exe = std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "snowlearner".into());
-        println!("\n{}", platform::shortcut_help(&exe, &settings.hotkey_challenge, &settings.hotkey_summary));
+        let bindings = [
+            (settings.hotkey_challenge.as_str(), Command::Challenge),
+            (settings.hotkey_summary.as_str(), Command::Summary),
+            (settings.hotkey_menu.as_str(), Command::Menu),
+            ("(any key)", Command::Pause),
+        ];
+        println!("\n{}", platform::shortcut_help(&exe, &bindings));
     }
     Ok(())
 }
@@ -272,6 +311,7 @@ fn snapshot(
             feedback: None,
             heard: None,
             footer: String::new(),
+            tag: format!("{} · repita", p.topic),
         });
     }
     let mut canvas = Canvas::new(width, height);

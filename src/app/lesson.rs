@@ -1,23 +1,30 @@
 //! The lesson flow, independent of windows and audio devices:
-//! hotkey → cue read aloud → listen → score → melt (or retry) → record,
-//! plus the nudges and the end-of-day recap. It drives the scene and asks the
-//! app to run speech jobs through `Output`.
+//! the mage poses a challenge → cue read aloud → listen → score → melt (or
+//! retry) → record; plus combos, the daily goal, nudges and the end-of-day
+//! recap. It drives the scene and asks the app to run speech jobs.
 
 use crate::learn::cue::Segment;
 use crate::learn::deck::{Deck, Phrase};
-use crate::learn::picker;
+use crate::learn::picker::{self, Mode, Practice};
 use crate::scene::Scene;
-use crate::scene::hud::{Caption, Status, SummaryLine, SummaryPanel};
-use crate::speech::matcher;
+use crate::scene::hud::{Caption, Stats, Status, SummaryLine, SummaryPanel};
+use crate::speech::matcher::{self, WordHit};
 use crate::speech::worker::{Job, SpeechEvent, Utterance};
 use crate::store::history::{Attempt, History};
 use chrono::{DateTime, Local, NaiveTime};
 
 pub const MAX_TRIES: u32 = 3;
+/// Correct answers in a row that call the sun.
+pub const SUN_COMBO: u32 = 3;
 const RESULT_SECONDS: f32 = 3.5;
 const RETRY_PAUSE: f32 = 1.6;
 const SUMMARY_LINGER: f32 = 8.0;
 const LAST_SUMMARY_KEY: &str = "last_summary_day";
+
+const MAGE_ASK_REPEAT: &[&str] = &["Repita, se for capaz!", "Hah! Diga isso!", "Vamos ver essa pronúncia!"];
+const MAGE_ASK_RECALL: &[&str] = &["Duvido que lembre essa!", "Sem cola agora!", "Essa você já viu. E aí?"];
+const MAGE_LAUGH: &[&str] = &["Hahaha! Errou!", "Mais neve pra você!", "Quase... mas não!"];
+const MAGE_GROAN: &[&str] = &["Argh! Não!", "Impossível!", "Grrr... sorte!"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Input {
@@ -34,6 +41,7 @@ pub enum Input {
     },
 }
 
+#[derive(Debug, Clone)]
 pub struct Options {
     pub native: String,
     pub threshold: f32,
@@ -44,6 +52,12 @@ pub struct Options {
     pub summary_at: NaiveTime,
     /// Seconds idle before the warrior nudges you (from the commitment level).
     pub ask_every: f32,
+    pub practice: Practice,
+    /// Only practice this topic (None = all).
+    pub topic: Option<String>,
+    /// Highest CEFR level to practice.
+    pub max_level: String,
+    pub daily_goal: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -51,13 +65,13 @@ enum Stage {
     Speaking,
     Listening,
     Confirm,
-    Result { passed: bool, until: f32 },
+    Result { until: f32 },
     RetryPause { until: f32 },
 }
 
 enum State {
     Idle,
-    Challenge { phrase: usize, stage: Stage, tries: u32, job: u64 },
+    Challenge { phrase: usize, mode: Mode, stage: Stage, tries: u32, job: u64 },
     Summary { job: u64, lines: usize, close_at: Option<f32> },
 }
 
@@ -71,11 +85,20 @@ pub struct Lesson {
     next_job: u64,
     last_phrase: Option<String>,
     roll: u32,
+    combo: u32,
+    done_today: u32,
+    goal_celebrated: bool,
 }
 
 impl Lesson {
     pub fn new(deck: Deck, opts: Options, history: History) -> Lesson {
+        let today = Local::now().date_naive();
+        let done_today = history
+            .day_summary(&deck.language, today)
+            .map(|rows| rows.iter().filter(|r| r.successes > 0).count() as u32)
+            .unwrap_or(0);
         Lesson {
+            goal_celebrated: done_today >= opts.daily_goal,
             deck,
             opts,
             history,
@@ -85,7 +108,55 @@ impl Lesson {
             next_job: 1,
             last_phrase: None,
             roll: 7,
+            combo: 0,
+            done_today,
         }
+    }
+
+    /// Puts tips and the progress corner on a fresh scene.
+    pub fn attach(&self, scene: &mut Scene) {
+        scene.tips = self.tips();
+        self.refresh_stats(scene);
+    }
+
+    pub fn deck(&self) -> &Deck {
+        &self.deck
+    }
+
+    pub fn options(&self) -> &Options {
+        &self.opts
+    }
+
+    /// Switches language (deck) live. Cancels whatever is on screen.
+    pub fn set_deck(&mut self, deck: Deck, scene: &mut Scene) {
+        self.close(scene);
+        let today = Local::now().date_naive();
+        self.done_today = self
+            .history
+            .day_summary(&deck.language, today)
+            .map(|rows| rows.iter().filter(|r| r.successes > 0).count() as u32)
+            .unwrap_or(0);
+        self.goal_celebrated = self.done_today >= self.opts.daily_goal;
+        if self.opts.topic.as_ref().is_some_and(|t| !deck.topics().contains(t)) {
+            self.opts.topic = None;
+        }
+        self.deck = deck;
+        self.last_phrase = None;
+        self.combo = 0;
+        scene.tips = self.tips();
+        self.refresh_stats(scene);
+    }
+
+    pub fn set_options(&mut self, f: impl FnOnce(&mut Options), scene: &mut Scene) {
+        f(&mut self.opts);
+        self.goal_celebrated = self.done_today >= self.opts.daily_goal;
+        scene.tips = self.tips();
+        self.refresh_stats(scene);
+    }
+
+    /// Phrases currently in rotation (topic + level filters).
+    pub fn selection(&self) -> Vec<usize> {
+        self.deck.selection(self.opts.topic.as_deref(), &self.opts.max_level)
     }
 
     /// Warrior tips built from the hotkeys and the deck.
@@ -95,20 +166,27 @@ impl Lesson {
             format!("Aperte {hk} e fale uma frase pra me esquentar!"),
             format!("Se a neve subir demais eu congelo! {hk} e fale!"),
             format!("No fim do dia eu leio tudo o que você praticou ({}).", self.opts.summary_hotkey),
+            format!("Acerte {SUN_COMBO} seguidas e o sol aparece!"),
         ];
-        for p in &self.deck.phrases {
-            if let Some(t) = &p.tip {
+        tips.extend(self.deck.tips.iter().cloned());
+        for &i in self.selection().iter().take(80) {
+            if let Some(t) = &self.deck.phrases[i].tip {
                 tips.push(format!("Dica: {t}"));
             }
-        }
-        for p in self.deck.phrases.iter().take(6) {
-            tips.push(format!("Sabia? \"{}\" = {}", p.say, p.meaning));
         }
         tips
     }
 
     pub fn is_idle(&self) -> bool {
         matches!(self.state, State::Idle)
+    }
+
+    pub fn combo(&self) -> u32 {
+        self.combo
+    }
+
+    pub fn done_today(&self) -> u32 {
+        self.done_today
     }
 
     fn job_id(&mut self) -> u64 {
@@ -121,18 +199,54 @@ impl Lesson {
         ((self.roll >> 8) % 1000) as f32 / 1000.0
     }
 
+    fn line(&mut self, lines: &[&str]) -> String {
+        let r = self.roll();
+        lines[((r * lines.len() as f32) as usize).min(lines.len() - 1)].to_string()
+    }
+
     fn phrase(&self, i: usize) -> &Phrase {
         &self.deck.phrases[i]
     }
 
-    fn cue_parts(&self, p: &Phrase) -> Vec<Utterance> {
-        p.cue
+    fn parts(&self, segments: &[Segment]) -> Vec<Utterance> {
+        segments
             .iter()
             .map(|s| match s {
                 Segment::Native(t) => Utterance { text: t.clone(), lang: self.opts.native.clone(), slow: false },
                 Segment::Target(t) => Utterance { text: t.clone(), lang: self.deck.language.clone(), slow: true },
             })
             .collect()
+    }
+
+    fn cue_for(&self, p: &Phrase, mode: Mode) -> Vec<Segment> {
+        match mode {
+            Mode::Repeat => p.cue.clone(),
+            Mode::Recall => p.recall_cue(&self.deck.language_name),
+        }
+    }
+
+    fn tag(&self, p: &Phrase, mode: Mode) -> String {
+        let mode = match mode {
+            Mode::Repeat => "repita",
+            Mode::Recall => "de memória",
+        };
+        match &p.level {
+            Some(l) => format!("{} · {l} · {mode}", p.topic),
+            None => format!("{} · {mode}", p.topic),
+        }
+    }
+
+    fn refresh_stats(&self, scene: &mut Scene) {
+        scene.hud.stats = Some(Stats {
+            done: self.done_today,
+            goal: self.opts.daily_goal,
+            combo: self.combo,
+            label: format!(
+                "{} · {}",
+                self.deck.language.to_uppercase(),
+                self.opts.topic.clone().unwrap_or_else(|| "todos os temas".into())
+            ),
+        });
     }
 
     pub fn handle(&mut self, input: Input, scene: &mut Scene) -> Vec<Job> {
@@ -143,7 +257,7 @@ impl Lesson {
             Input::Summary => {
                 if !matches!(self.state, State::Summary { .. }) {
                     self.close(scene);
-                    self.start_summary(now_or_default(), scene, &mut jobs);
+                    self.start_summary(Local::now(), scene, &mut jobs);
                 }
             }
             Input::Dismiss => self.close(scene),
@@ -171,29 +285,41 @@ impl Lesson {
         let today = Local::now().date_naive();
         let stats = self.history.stats(&self.deck.language, today).unwrap_or_default();
         let roll = self.roll();
-        let Some(i) = picker::pick(&self.deck.phrases, &stats, self.last_phrase.as_deref(), roll) else { return };
-        self.last_phrase = Some(self.phrase(i).say.clone());
-        let job = self.job_id();
+        let selection = self.selection();
+        let Some(i) = picker::pick(&self.deck.phrases, &selection, &stats, self.last_phrase.as_deref(), roll) else {
+            scene.hud.toast("Nenhuma frase com esse tema/nível. Mude no menu.", 4.0);
+            return;
+        };
         let p = self.phrase(i).clone();
-        self.state = State::Challenge { phrase: i, stage: Stage::Speaking, tries: 0, job };
+        let mode = picker::mode_for(self.opts.practice, stats.get(&p.say).copied().unwrap_or_default());
+        self.last_phrase = Some(p.say.clone());
+        let job = self.job_id();
+        self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job };
         self.idle_for = 0.0;
         scene.set_practicing(true);
+        let ask = self.line(if mode == Mode::Recall { MAGE_ASK_RECALL } else { MAGE_ASK_REPEAT });
+        scene.mage_say(ask, 3.0);
         scene.hud.summary = None;
+        let cue = self.cue_for(&p, mode);
         scene.hud.caption = Some(Caption {
-            segments: p.cue.clone(),
+            segments: cue.clone(),
             say: p.say.clone(),
             active: None,
-            meaning: p.meaning.clone(),
+            meaning: if mode == Mode::Repeat { p.meaning.clone() } else { String::new() },
             status: Status::Speaking,
             feedback: None,
             heard: None,
             footer: String::new(),
+            tag: self.tag(&p, mode),
         });
-        jobs.push(Job::Speak { id: job, parts: self.cue_parts(&p) });
+        jobs.push(Job::Speak { id: job, parts: self.parts(&cue) });
     }
 
     fn after_cue(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
         let State::Challenge { stage, job, .. } = &mut self.state else { return };
+        if self.opts.can_listen {
+            scene.set_listening(true);
+        }
         let cap = scene.hud.caption.as_mut();
         if self.opts.can_listen {
             *stage = Stage::Listening;
@@ -264,11 +390,17 @@ impl Lesson {
             }
             (State::Challenge { phrase, stage: Stage::Listening, tries, .. }, SpeechEvent::Heard { text, .. }) => {
                 let (phrase, tries) = (*phrase, *tries);
-                let say = self.phrase(phrase).say.clone();
-                let m = matcher::score(&say, &text);
+                let p = self.phrase(phrase).clone();
+                let (m, _) = matcher::score_any(&p.answers(), &text);
                 let passed = m.passed(self.opts.threshold);
+                // Feedback is shown on the preferred phrase; an accepted variant lights it all green.
+                let words = if passed {
+                    p.say.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
+                } else {
+                    matcher::score(&p.say, &text).words
+                };
                 if let Some(c) = &mut scene.hud.caption {
-                    c.feedback = Some(m.words.clone());
+                    c.feedback = Some(words);
                     c.heard = Some(text.clone());
                 }
                 self.finish_attempt(phrase, tries, &text, m.score, passed, scene);
@@ -295,6 +427,8 @@ impl Lesson {
 
     fn finish_attempt(&mut self, phrase: usize, tries: u32, heard: &str, score: f32, passed: bool, scene: &mut Scene) {
         let p = self.phrase(phrase).clone();
+        let State::Challenge { mode, .. } = self.state else { return };
+        scene.set_listening(false);
         let _ = self.history.record(&Attempt {
             at: Local::now(),
             language: self.deck.language.clone(),
@@ -305,26 +439,62 @@ impl Lesson {
             success: passed,
         });
         let tries = tries + 1;
-        let State::Challenge { stage, tries: t, .. } = &mut self.state else { return };
-        *t = tries;
-        if passed {
-            *stage = Stage::Result { passed: true, until: self.clock + RESULT_SECONDS };
-            scene.celebrate();
+        let (stage, footer) = if passed {
+            (Stage::Result { until: self.clock + RESULT_SECONDS }, format!("{}: próxima frase", self.opts.hotkey))
         } else if tries < MAX_TRIES {
-            *stage = Stage::RetryPause { until: self.clock + RETRY_PAUSE };
+            let hint = if mode == Mode::Recall { "Era assim: ouça e repita..." } else { "Ouça de novo..." };
+            (Stage::RetryPause { until: self.clock + RETRY_PAUSE }, format!("Tentativa {tries}/{MAX_TRIES}. {hint}"))
         } else {
-            *stage = Stage::Result { passed: false, until: self.clock + RESULT_SECONDS };
+            (Stage::Result { until: self.clock + RESULT_SECONDS }, "Tudo bem, vamos praticar outra depois!".into())
+        };
+        if let State::Challenge { stage: s, tries: t, .. } = &mut self.state {
+            *s = stage;
+            *t = tries;
         }
+
+        if passed {
+            let first_today = self
+                .history
+                .stats(&self.deck.language, Local::now().date_naive())
+                .ok()
+                .and_then(|s| s.get(&p.say).copied())
+                .is_some_and(|s| s.successes_today == 1);
+            if first_today {
+                self.done_today += 1;
+            }
+            self.combo += 1;
+            // Remembering from scratch is worth more than repeating.
+            let power = if mode == Mode::Recall && tries == 1 { 1.5 } else { 1.0 };
+            scene.celebrate(power);
+            let groan = self.line(MAGE_GROAN);
+            scene.mage_say(groan, 3.5);
+            if self.combo >= SUN_COMBO && self.combo % SUN_COMBO == 0 {
+                scene.sun();
+                scene.hud.toast(format!("COMBO x{}! O SOL APARECEU!", self.combo), 4.0);
+            }
+            if self.done_today >= self.opts.daily_goal && !self.goal_celebrated {
+                self.goal_celebrated = true;
+                scene.hud.toast(format!("META DO DIA: {} frases! Mandou bem!", self.opts.daily_goal), 5.0);
+                scene.warrior.say("Meta do dia batida! Tô quentinho!", 5.0);
+            }
+        } else {
+            let laugh = self.line(MAGE_LAUGH);
+            scene.miss();
+            scene.mage_say(laugh, 3.5);
+            if tries >= MAX_TRIES {
+                self.combo = 0;
+            }
+        }
+        self.refresh_stats(scene);
         if let Some(c) = &mut scene.hud.caption {
             c.active = None;
             c.status = if passed { Status::Passed } else { Status::Failed };
-            c.footer = if passed {
-                format!("{}: próxima frase", self.opts.hotkey)
-            } else if tries < MAX_TRIES {
-                format!("Tentativa {tries}/{MAX_TRIES}. Ouça de novo...")
-            } else {
-                "Tudo bem, vamos praticar outra depois!".into()
-            };
+            c.footer = footer;
+            if !passed && mode == Mode::Recall {
+                // Reveal the answer so the retry becomes a repeat.
+                c.segments = p.cue.clone();
+                c.meaning = p.meaning.clone();
+            }
         }
     }
 
@@ -335,28 +505,28 @@ impl Lesson {
                 self.idle_for += dt;
                 if self.idle_for >= self.opts.ask_every {
                     self.idle_for = 0.0;
+                    scene.mage_say("Ninguém vai me enfrentar? Hahaha!", 4.0);
                     scene.warrior.say(format!("Hora de praticar! Aperte {}", self.opts.hotkey), 6.0);
-                    scene
-                        .hud
-                        .toast(format!("O mago está vencendo... {} para lançar uma frase!", self.opts.hotkey), 5.0);
+                    scene.hud.toast(format!("O mago está vencendo... {} para enfrentar!", self.opts.hotkey), 5.0);
                 }
                 self.maybe_auto_summary(now, scene, jobs);
             }
-            State::Challenge { stage: Stage::Result { until, .. }, .. } if self.clock >= until => self.close(scene),
-            State::Challenge { phrase, stage: Stage::RetryPause { until }, job, tries } if self.clock >= until => {
-                // Replay just the target phrase, then listen again.
+            State::Challenge { stage: Stage::Result { until }, .. } if self.clock >= until => self.close(scene),
+            State::Challenge { phrase, stage: Stage::RetryPause { until }, tries, .. } if self.clock >= until => {
+                // Replay just the target phrase (recall turns into repeat), then listen again.
                 let p = self.phrase(phrase).clone();
-                let job2 = self.job_id();
-                let _ = job;
-                self.state = State::Challenge { phrase, stage: Stage::Speaking, tries, job: job2 };
+                let job = self.job_id();
+                self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job };
+                let tag = self.tag(&p, Mode::Repeat);
                 if let Some(c) = &mut scene.hud.caption {
                     c.status = Status::Speaking;
                     c.feedback = None;
                     c.heard = None;
+                    c.tag = tag;
                     c.active = p.cue.iter().position(|s| matches!(s, Segment::Target(t) if *t == p.say));
                 }
                 let part = Utterance { text: p.say.clone(), lang: self.deck.language.clone(), slow: true };
-                jobs.push(Job::Speak { id: job2, parts: vec![part] });
+                jobs.push(Job::Speak { id: job, parts: vec![part] });
             }
             State::Summary { close_at: Some(t), .. } if self.clock >= t => self.close(scene),
             _ => {}
@@ -402,7 +572,7 @@ impl Lesson {
                 .map(|r| SummaryLine { say: r.say.clone(), meaning: r.meaning.clone(), ok: r.successes > 0 })
                 .collect(),
             active: None,
-            footer: format!("{} de {} frases acertadas", learned.len(), rows.len()),
+            footer: format!("{} de {} frases acertadas · meta {}", learned.len(), rows.len(), self.opts.daily_goal),
         });
         self.state = State::Summary { job, lines: rows.len(), close_at: None };
         scene.set_practicing(true);
@@ -418,10 +588,6 @@ impl Lesson {
     }
 }
 
-fn now_or_default() -> DateTime<Local> {
-    Local::now()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -434,16 +600,14 @@ mod tests {
         scene: Scene,
     }
 
-    fn fixture(can_listen: bool) -> Fixture {
-        let dir = tempfile::tempdir().unwrap();
-        let history = History::open(&dir.path().join("h.sqlite3")).unwrap();
-        let deck = Deck::parse(
-            "language='en'\nnative='pt-BR'\ntitle='t'\n\
-             [[phrase]]\nsay=\"I'm hungry\"\nmeaning='Estou com fome'\ncue='Para dizer que estou com fome: {}'\n\
-             [[phrase]]\nsay='Good morning'\nmeaning='Bom dia'\ncue='De manhã: {}'",
-        )
-        .unwrap();
-        let opts = Options {
+    const DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
+         [[tip]]\ntext='Falso amigo: actually'\n\
+         [[phrase]]\nsay=\"I'm hungry\"\nmeaning='Estou com fome'\nsituation='Na hora do almoço.'\ntopic='comida'\nlevel='A1'\n\
+         [[phrase]]\nsay='Could you repeat that?'\naccept=['Can you repeat that?']\nmeaning='Pode repetir?'\nsituation='Na call.'\ntopic='trabalho'\nlevel='A2'\n\
+         [[phrase]]\nsay='Let us negotiate the contract'\nmeaning='Vamos negociar o contrato'\nsituation='Reunião.'\ntopic='trabalho'\nlevel='B2'";
+
+    fn options(can_listen: bool) -> Options {
+        Options {
             native: "pt-BR".into(),
             threshold: 0.72,
             can_listen,
@@ -452,12 +616,26 @@ mod tests {
             summary_hotkey: "Ctrl+Alt+J".into(),
             summary_at: NaiveTime::from_hms_opt(21, 0, 0).unwrap(),
             ask_every: 60.0,
-        };
+            practice: Practice::Repeat,
+            topic: None,
+            max_level: "B1".into(),
+            daily_goal: 2,
+        }
+    }
+
+    fn fixture_with(opts: Options) -> Fixture {
+        let dir = tempfile::tempdir().unwrap();
+        let history = History::open(&dir.path().join("h.sqlite3")).unwrap();
+        let deck = Deck::parse(DECK).unwrap();
         let mut scene = Scene::new(240, 135, 1, Commitment::Relentless.pace(), true);
         for _ in 0..(120 * 30) {
             scene.step(1.0 / 30.0); // let snow pile up so melting is observable
         }
         Fixture { _dir: dir, lesson: Lesson::new(deck, opts, history), scene }
+    }
+
+    fn fixture(can_listen: bool) -> Fixture {
+        fixture_with(options(can_listen))
     }
 
     fn morning() -> DateTime<Local> {
@@ -486,6 +664,25 @@ mod tests {
         fn current_say(&self) -> String {
             self.scene.hud.caption.as_ref().unwrap().say.clone()
         }
+        /// Starts a challenge and answers it (correctly or not). Returns the phrase.
+        fn answer(&mut self, correct: bool) -> String {
+            let (id, _) = Fixture::speak_job(&self.send(Input::Primary));
+            self.send(Input::Speech(SpeechEvent::Spoken { id }));
+            let say = self.current_say();
+            let text = if correct { say.clone() } else { "banana split".into() };
+            self.send(Input::Speech(SpeechEvent::Heard { id, text }));
+            self.settle();
+            say
+        }
+        /// Lets fireballs fly and land.
+        fn settle(&mut self) {
+            for _ in 0..75 {
+                self.scene.step(1.0 / 30.0);
+            }
+        }
+        fn finish(&mut self) {
+            self.tick(RESULT_SECONDS + 0.2);
+        }
     }
 
     #[test]
@@ -499,6 +696,21 @@ mod tests {
         assert!(!parts[0].slow);
         assert_eq!((parts[1].text.as_str(), parts[1].lang.as_str(), parts[1].slow), (say.as_str(), "en", true));
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Speaking);
+    }
+
+    #[test]
+    fn the_mage_poses_the_challenge_and_reacts_to_answers() {
+        let mut f = fixture(true);
+        f.send(Input::Primary);
+        assert!(f.scene.mage_bubble().is_some(), "the mage asks");
+        f.send(Input::Dismiss);
+        f.answer(false);
+        let laugh = f.scene.mage_bubble().unwrap().to_string();
+        assert!(MAGE_LAUGH.contains(&laugh.as_str()), "{laugh}");
+        f.tick(RETRY_PAUSE + 0.2);
+        f.send(Input::Dismiss);
+        f.answer(true);
+        assert!(MAGE_GROAN.contains(&f.scene.mage_bubble().unwrap()));
     }
 
     #[test]
@@ -521,22 +733,35 @@ mod tests {
         let say = f.current_say();
         f.send(Input::Speech(SpeechEvent::Heard { id, text: format!("hmm, é... {say}") }));
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Passed);
+        f.settle();
         assert!(f.scene.snow.fill() < snow_before);
-        let today = Local::now().date_naive();
-        let s = f.lesson.history.day_summary("en", today).unwrap();
+        assert!(f.scene.snow.fill() > 0.0, "one answer never clears the screen");
+        let s = f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap();
         assert_eq!((s[0].say.as_str(), s[0].successes), (say.as_str(), 1));
-        f.tick(RESULT_SECONDS + 0.2);
+        f.finish();
         assert!(f.lesson.is_idle());
         assert!(f.scene.hud.caption.is_none());
     }
 
     #[test]
+    fn an_accepted_variant_counts_and_lights_every_word_green() {
+        let mut o = options(true);
+        o.topic = Some("trabalho".into());
+        let mut f = fixture_with(o);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        assert_eq!(f.current_say(), "Could you repeat that?");
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Can you repeat that?".into() }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.status, Status::Passed);
+        assert!(cap.feedback.as_ref().unwrap().iter().all(|w| w.hit));
+    }
+
+    #[test]
     fn wrong_answer_shows_feedback_and_replays_only_the_target() {
         let mut f = fixture(true);
-        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
-        f.send(Input::Speech(SpeechEvent::Spoken { id }));
         let snow_before = f.scene.snow.fill();
-        f.send(Input::Speech(SpeechEvent::Heard { id, text: "banana split".into() }));
+        f.answer(false);
         let cap = f.scene.hud.caption.as_ref().unwrap();
         assert_eq!(cap.status, Status::Failed);
         assert!(cap.feedback.as_ref().unwrap().iter().all(|w| !w.hit));
@@ -546,6 +771,105 @@ mod tests {
         let (_, parts) = Fixture::speak_job(&jobs);
         assert_eq!(parts.len(), 1);
         assert_eq!(parts[0].text, f.current_say());
+    }
+
+    #[test]
+    fn recall_mode_hides_the_answer_and_reveals_it_after_a_miss() {
+        let mut o = options(true);
+        o.practice = Practice::Recall;
+        let mut f = fixture_with(o);
+        let (id, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        let say = f.current_say();
+        assert!(parts.iter().all(|p| p.lang == "pt-BR"), "recall reads only Portuguese");
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert!(cap.segments.iter().all(|s| !s.is_target()));
+        assert!(!cap.segments.iter().any(|s| s.text().contains(&say)), "answer must stay hidden");
+        assert!(cap.tag.contains("memória"));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "no idea".into() }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert!(cap.segments.iter().any(|s| s.is_target() && s.text() == say), "revealed after the miss");
+        let (_, retry) = Fixture::speak_job(&f.tick(RETRY_PAUSE + 0.2));
+        assert_eq!(retry[0].text, say);
+    }
+
+    #[test]
+    fn recall_on_first_try_melts_more_than_repeat() {
+        let run = |practice: Practice| {
+            let mut o = options(true);
+            o.practice = practice;
+            let mut f = fixture_with(o);
+            let before = f.scene.snow.fill();
+            f.answer(true);
+            before - f.scene.snow.fill()
+        };
+        assert!(run(Practice::Recall) > run(Practice::Repeat));
+    }
+
+    #[test]
+    fn topic_and_level_filters_limit_what_is_asked() {
+        let mut o = options(true);
+        o.max_level = "A1".into();
+        let mut f = fixture_with(o);
+        for _ in 0..4 {
+            f.send(Input::Primary);
+            assert_eq!(f.current_say(), "I'm hungry");
+            f.send(Input::Dismiss);
+        }
+        let mut o = options(true);
+        o.topic = Some("nada".into());
+        let mut f = fixture_with(o);
+        assert!(f.send(Input::Primary).is_empty());
+        assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("menu"));
+    }
+
+    #[test]
+    fn a_streak_of_correct_answers_calls_the_sun_and_a_miss_streak_breaks_it() {
+        let mut f = fixture(true);
+        for _ in 0..SUN_COMBO {
+            f.answer(true);
+            f.finish();
+        }
+        assert_eq!(f.lesson.combo(), SUN_COMBO);
+        assert!(f.scene.sun_active());
+        let (mut id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        for attempt in 1..=MAX_TRIES {
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+            if attempt < MAX_TRIES {
+                id = Fixture::speak_job(&f.tick(RETRY_PAUSE + 0.2)).0;
+            }
+        }
+        assert_eq!(f.lesson.combo(), 0);
+    }
+
+    #[test]
+    fn daily_goal_progress_is_shown_and_celebrated_once() {
+        let mut f = fixture(true);
+        f.lesson.attach(&mut f.scene);
+        let st = f.scene.hud.stats.as_ref().unwrap();
+        assert_eq!((st.done, st.goal), (0, 2));
+        f.answer(true);
+        f.finish();
+        assert_eq!(f.scene.hud.stats.as_ref().unwrap().done, 1);
+        f.answer(true);
+        assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("META"));
+        f.finish();
+        f.scene.hud.toast = None;
+        f.answer(true);
+        let toast = f.scene.hud.toast.as_ref().map(|t| t.text.clone()).unwrap_or_default();
+        assert!(!toast.contains("META"), "celebrated only once");
+    }
+
+    #[test]
+    fn repeating_a_phrase_today_does_not_count_twice_for_the_goal() {
+        let mut o = options(true);
+        o.max_level = "A1".into(); // only one phrase available
+        let mut f = fixture_with(o);
+        f.answer(true);
+        f.finish();
+        f.answer(true);
+        assert_eq!(f.lesson.done_today(), 1);
     }
 
     #[test]
@@ -560,7 +884,7 @@ mod tests {
             }
         }
         let say = f.current_say();
-        f.tick(RESULT_SECONDS + 0.2);
+        f.finish();
         assert!(f.lesson.is_idle());
         let s = f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap();
         let row = s.iter().find(|r| r.say == say).unwrap();
@@ -611,12 +935,22 @@ mod tests {
     }
 
     #[test]
+    fn switching_language_live_cancels_and_uses_the_new_deck() {
+        let mut f = fixture(true);
+        f.send(Input::Primary);
+        let mut es = Deck::builtin("es").unwrap();
+        es.phrases.truncate(3);
+        f.lesson.set_deck(es, &mut f.scene);
+        assert!(f.scene.hud.caption.is_none(), "old challenge closed");
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(parts.iter().any(|p| p.lang == "es"));
+        assert!(f.scene.hud.stats.as_ref().unwrap().label.starts_with("ES"));
+    }
+
+    #[test]
     fn summary_lists_todays_phrases_and_reads_them_back() {
         let mut f = fixture(true);
-        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
-        f.send(Input::Speech(SpeechEvent::Spoken { id }));
-        let say = f.current_say();
-        f.send(Input::Speech(SpeechEvent::Heard { id, text: say.clone() }));
+        let say = f.answer(true);
         let jobs = f.send(Input::Summary);
         let (sid, parts) = Fixture::speak_job(&jobs);
         assert_eq!(parts[0].lang, "pt-BR");
@@ -644,18 +978,19 @@ mod tests {
     }
 
     #[test]
-    fn idle_learner_gets_nudged_by_the_warrior() {
+    fn idle_learner_gets_taunted_by_the_mage_and_nudged() {
         let mut f = fixture(true);
-        f.scene.warrior.warm_burst(); // make sure he is not frozen and can talk
+        f.scene.warrior.warm_burst();
         f.tick(61.0);
         assert!(f.scene.hud.toast.is_some());
+        assert!(f.scene.mage_bubble().is_some());
     }
 
     #[test]
-    fn tips_mention_the_hotkey_and_deck_content() {
+    fn tips_include_hotkeys_general_deck_tips_and_phrase_tips() {
         let f = fixture(true);
         let tips = f.lesson.tips();
         assert!(tips.iter().any(|t| t.contains("Ctrl+Alt+M")));
-        assert!(tips.iter().any(|t| t.contains("Estou com fome")));
+        assert!(tips.iter().any(|t| t.contains("Falso amigo")));
     }
 }
