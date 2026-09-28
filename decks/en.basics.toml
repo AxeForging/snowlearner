@@ -465,7 +465,7 @@ accept = ["Where is the bathroom?", "Where's the restroom?", "Where is the restr
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Você sai do curso e se despede dos colegas que vai ver no dia seguinte."
 say = "See you tomorrow!"
 meaning = "Até amanhã!"
@@ -591,7 +591,7 @@ accept = ["Here you are", "There you go"]
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A2"
+level = "PRE-A1"
 situation = "O atendente pede seu passaporte e você precisa procurar na mochila."
 say = "One moment, please."
 meaning = "Um momento, por favor."
@@ -651,7 +651,7 @@ meaning = "Pra viagem, por favor."
 accept = ["To go", "Takeaway, please"]
 tip = "Nos EUA se diz 'to go'; no Reino Unido, 'takeaway'."
 
-# ---------------------------------------------------------------- pre-A1: numbers, colors, family, days
+# ---------------------------------------------------------------- pre-A1: numbers, days, okay
 
 [[phrase]]
 topic = "rotina e transporte"
@@ -689,85 +689,6 @@ say = "Ten."
 meaning = "Dez."
 
 [[phrase]]
-topic = "compras"
-level = "PRE-A1"
-situation = "Na loja, a vendedora pergunta de que cor você quer a camiseta: vermelha."
-say = "Red."
-meaning = "Vermelha."
-
-[[phrase]]
-topic = "viagem"
-level = "PRE-A1"
-situation = "No guarda-volumes, o funcionário pergunta a cor da sua mala: azul."
-say = "Blue."
-meaning = "Azul."
-
-[[phrase]]
-topic = "rotina e transporte"
-level = "PRE-A1"
-situation = "No estacionamento, o manobrista pergunta a cor do seu carro: preto."
-say = "Black."
-meaning = "Preto."
-
-[[phrase]]
-topic = "restaurante"
-level = "PRE-A1"
-situation = "O garçom pergunta se você quer vinho tinto ou branco: branco."
-say = "White."
-meaning = "Branco."
-
-[[phrase]]
-topic = "rotina e transporte"
-level = "PRE-A1"
-situation = "Chegam dois táxis e o motorista pergunta qual é o seu: o verde."
-say = "Green."
-meaning = "Verde."
-
-[[phrase]]
-topic = "primeiros contatos"
-level = "PRE-A1"
-situation = "Um colega vê a foto no seu celular e pergunta quem é a mulher: sua mãe."
-say = "My mom."
-meaning = "Minha mãe."
-accept = ["My mother", "My mum"]
-
-[[phrase]]
-topic = "primeiros contatos"
-level = "PRE-A1"
-situation = "Na saída do curso, perguntam quem vem te buscar: seu pai."
-say = "My dad."
-meaning = "Meu pai."
-accept = ["My father"]
-
-[[phrase]]
-topic = "primeiros contatos"
-level = "PRE-A1"
-situation = "Na recepção, perguntam quem é o menino com você: seu filho."
-say = "My son."
-meaning = "Meu filho."
-
-[[phrase]]
-topic = "primeiros contatos"
-level = "PRE-A1"
-situation = "Na recepção, perguntam quem é a menina com você: sua filha."
-say = "My daughter."
-meaning = "Minha filha."
-
-[[phrase]]
-topic = "viagem"
-level = "PRE-A1"
-situation = "No check-in do hotel, perguntam quem mais vai ficar no quarto: sua esposa."
-say = "My wife."
-meaning = "Minha esposa."
-
-[[phrase]]
-topic = "viagem"
-level = "PRE-A1"
-situation = "No check-in do hotel, perguntam quem mais vai ficar no quarto: seu marido."
-say = "My husband."
-meaning = "Meu marido."
-
-[[phrase]]
 topic = "saúde e social"
 level = "PRE-A1"
 situation = "O dentista pergunta que dia você pode voltar: segunda-feira."
@@ -788,3 +709,85 @@ situation = "O taxista confirma o endereço que você mostrou e você concorda."
 say = "Okay."
 meaning = "Tá bom."
 accept = ["OK", "Alright", "All right"]
+
+# ---------------------------------------------------------------- pre-A1: at work
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Um colega vê você saindo com o notebook e pergunta aonde você vai: pra reunião."
+say = "Meeting."
+meaning = "Reunião."
+accept = ["A meeting"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "O cliente pergunta como pode te mandar o contrato: por e-mail."
+say = "Email."
+meaning = "E-mail."
+accept = ["By email", "E-mail"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Meio-dia, um colega pergunta aonde todo mundo foi: almoçar."
+say = "Lunch."
+meaning = "Almoço."
+accept = ["At lunch"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "O chefe pergunta se o relatório já ficou pronto, e ficou."
+say = "Done."
+meaning = "Pronto, feito."
+accept = ["It's done", "Finished"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Antes de começar a call, perguntam se você está pronto."
+say = "Ready."
+meaning = "Pronto."
+accept = ["I'm ready"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Você entra na call das nove com o time todo."
+say = "Good morning, everyone."
+meaning = "Bom dia, pessoal."
+accept = ["Morning, everyone", "Good morning, all"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Primeiro dia no escritório, e o notebook está sem internet."
+say = "Wi-Fi password?"
+meaning = "A senha do Wi-Fi?"
+accept = ["WiFi password?", "Wifi password"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Na chamada, o gerente pergunta se você está ouvindo."
+say = "I'm here."
+meaning = "Estou aqui."
+accept = ["Here"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Perguntam se você consegue terminar a tarefa hoje."
+say = "Yes, I can."
+meaning = "Sim, consigo."
+accept = ["Yes, I can do it"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Um colega pergunta como falar com você mais tarde."
+say = "Call me."
+meaning = "Me liga."
+accept = ["Just call me"]
