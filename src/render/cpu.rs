@@ -73,11 +73,13 @@ impl Cpu {
 /// turns on DWM blur-behind and DWM then takes the alpha our 32-bit blit
 /// carries. Wayland and macOS get XRGB.
 pub fn cpu_shows_alpha(window: &Window) -> bool {
-    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
-    matches!(
-        window.window_handle().map(|h| h.as_raw()),
-        Ok(RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_) | RawWindowHandle::Win32(_))
-    )
+    use winit::raw_window_handle::HasWindowHandle;
+    window.window_handle().is_ok_and(|h| shows_alpha(&h.as_raw()))
+}
+
+fn shows_alpha(handle: &winit::raw_window_handle::RawWindowHandle) -> bool {
+    use winit::raw_window_handle::RawWindowHandle as H;
+    matches!(handle, H::Xlib(_) | H::Xcb(_) | H::Win32(_))
 }
 
 /// Premultiplied `0xAARRGGBB`, the layout softbuffer (and X11 ARGB visuals) use.
@@ -141,6 +143,21 @@ mod tests {
         let mut out = vec![0xdeadbeef; w * h];
         upscale(c, scale, &mut out, w, h);
         out
+    }
+
+    #[test]
+    fn x11_and_windows_windows_take_our_alpha_wayland_and_macos_do_not() {
+        use std::num::{NonZeroIsize, NonZeroU32};
+        use std::ptr::NonNull;
+        use winit::raw_window_handle::{
+            AppKitWindowHandle, RawWindowHandle as H, WaylandWindowHandle, Win32WindowHandle, XcbWindowHandle,
+            XlibWindowHandle,
+        };
+        assert!(shows_alpha(&H::Xlib(XlibWindowHandle::new(1))));
+        assert!(shows_alpha(&H::Xcb(XcbWindowHandle::new(NonZeroU32::new(1).unwrap()))));
+        assert!(shows_alpha(&H::Win32(Win32WindowHandle::new(NonZeroIsize::new(1).unwrap()))), "DWM blur-behind");
+        assert!(!shows_alpha(&H::Wayland(WaylandWindowHandle::new(NonNull::dangling()))));
+        assert!(!shows_alpha(&H::AppKit(AppKitWindowHandle::new(NonNull::dangling()))));
     }
 
     #[test]
