@@ -8,7 +8,7 @@ title = "Primeiros passos"
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você entra numa loja e o atendente olha pra você."
 say = "Hello."
 meaning = "Olá."
@@ -17,7 +17,7 @@ tip = "'Hello' soa como 'relôu'. O 'h' é aspirado, como um 'r' suave."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você sai da padaria e acena para o caixa."
 say = "Bye."
 meaning = "Tchau."
@@ -26,7 +26,7 @@ tip = "'Bye' soa como 'bái'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "O recepcionista pergunta se você tem reserva, e você tem."
 say = "Yes."
 meaning = "Sim."
@@ -35,7 +35,7 @@ tip = "'Yes' soa como 'iés', com o 's' bem sibilado."
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "O vendedor pergunta se você quer mais alguma coisa, e você não quer."
 say = "No."
 meaning = "Não."
@@ -44,7 +44,7 @@ tip = "'No' soa como 'nôu', não como 'nó'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "O garçom oferece mais café e você aceita com educação."
 say = "Please."
 meaning = "Por favor."
@@ -52,7 +52,7 @@ tip = "'Please' soa como 'plíiz', com o 'i' longo."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Um desconhecido segura a porta pra você passar."
 say = "Thanks."
 meaning = "Obrigado."
@@ -61,7 +61,7 @@ tip = "O 'th' é com a língua entre os dentes: 'thanks', não 'fenks'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você esbarra em alguém sem querer na fila."
 say = "Sorry."
 meaning = "Desculpa."
@@ -70,7 +70,7 @@ tip = "'Sorry' soa como 'sóri'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "No restaurante, o garçom pergunta o que você quer beber."
 say = "Water."
 meaning = "Água."
@@ -79,7 +79,7 @@ tip = "'Water' soa como 'uóter' (nos EUA, quase 'uórer')."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "No café da manhã do hotel, perguntam se você quer café ou chá."
 say = "Coffee."
 meaning = "Café."
@@ -88,7 +88,7 @@ tip = "'Coffee' soa como 'cófi', com a força no começo."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Depois do almoço, perguntam se você quer café ou chá, e você quer chá."
 say = "Tea."
 meaning = "Chá."
@@ -97,7 +97,7 @@ tip = "'Tea' soa como 'tí', com o 'i' longo."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "No bar, o atendente pergunta o que você vai tomar."
 say = "Beer."
 meaning = "Cerveja."
@@ -106,7 +106,7 @@ tip = "'Beer' soa como 'bír'. Cuidado para não falar 'bear' (urso)."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "Você está apertado no aeroporto e só consegue perguntar o essencial."
 say = "Bathroom?"
 meaning = "Banheiro?"
@@ -115,7 +115,7 @@ tip = "Nos EUA se diz 'bathroom' ou 'restroom'; no Reino Unido, 'toilet'."
 
 [[phrase]]
 topic = "emergência"
-level = "A1"
+level = "PRE-A1"
 situation = "Você caiu na rua e não consegue levantar sozinho."
 say = "Help!"
 meaning = "Socorro!"
@@ -124,7 +124,7 @@ tip = "'Help' soa como 'rélp'. O 'l' é bem curtinho."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O táxi está passando do seu destino e você precisa que ele pare."
 say = "Stop!"
 meaning = "Pare!"
@@ -133,7 +133,7 @@ tip = "Não coloque 'i' no começo: é 'stóp', não 'istópi'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "Seu amigo vai entrar no ônibus e você ainda está pegando a mochila."
 say = "Wait!"
 meaning = "Espera!"
@@ -142,7 +142,7 @@ tip = "'Wait' soa como 'uêit'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O motorista do aplicativo pergunta pra que lado virar na esquina."
 say = "Left."
 meaning = "Esquerda."
@@ -150,7 +150,7 @@ tip = "'Left' soa como 'léft', com o 't' curtinho no fim."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O motorista pergunta de novo, e agora é para o outro lado."
 say = "Right."
 meaning = "Direita."
@@ -158,7 +158,7 @@ tip = "'Right' soa como 'ráit'. Também quer dizer 'certo'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O mecânico pergunta quando você precisa do carro, e é pra hoje mesmo."
 say = "Today."
 meaning = "Hoje."
@@ -166,7 +166,7 @@ tip = "'Today' soa como 'tudêi', com a força no final."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "Perguntam quando você vai voltar pra buscar o conserto."
 say = "Tomorrow."
 meaning = "Amanhã."
@@ -190,7 +190,7 @@ tip = "'Yesterday' soa como 'iésterdei'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "Na bilheteria do metrô, perguntam quantos bilhetes você quer, e é só pra você."
 say = "One."
 meaning = "Um."
@@ -199,7 +199,7 @@ tip = "'One' soa como 'uân'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Você está com um amigo e o garçom pergunta quantos cafés."
 say = "Two."
 meaning = "Dois."
@@ -208,7 +208,7 @@ tip = "'Two' soa como 'tú', com o 'u' longo. Igual a 'to' e 'too'."
 
 [[phrase]]
 topic = "comida e compras"
-level = "A1"
+level = "PRE-A1"
 situation = "Na feira, o vendedor pergunta quantas maçãs você quer."
 say = "Three."
 meaning = "Três."
@@ -217,7 +217,7 @@ tip = "'Three' tem 'th': língua entre os dentes, 'thríi'. Não é 'tri' nem 'f
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "No elevador do hotel, alguém pergunta pra qual andar você vai."
 say = "Four."
 meaning = "Quatro."
@@ -226,7 +226,7 @@ tip = "'Four' soa como 'fór'."
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "Na banca, você pergunta o preço e precisa confirmar que é cinco dólares."
 say = "Five?"
 meaning = "Cinco?"
@@ -235,7 +235,7 @@ tip = "'Five' soa como 'fáiv', com o 'v' vibrando no lábio."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "A atendente falou rápido demais e você não pegou o nome da rua."
 say = "Again?"
 meaning = "De novo?"
@@ -244,7 +244,7 @@ tip = "'Again' soa como 'aguén'."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "Alguém diz que o ponto de ônibus fica perto, mas você não vê nada."
 say = "Where?"
 meaning = "Onde?"
@@ -252,7 +252,7 @@ tip = "'Where' soa como 'uér'. O 'h' não se pronuncia."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "O garçom chega com o prato e não sabe onde colocar."
 say = "Here."
 meaning = "Aqui."
@@ -261,7 +261,7 @@ tip = "'Here' soa como 'rír'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O porteiro pergunta quando você quer o táxi, e é pra já."
 say = "Now."
 meaning = "Agora."
@@ -297,7 +297,7 @@ tip = "'Card' soa como 'cárd'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Na cafeteria, perguntam se o seu chá é quente ou gelado."
 say = "Hot."
 meaning = "Quente."
@@ -305,7 +305,7 @@ tip = "'Hot' soa como 'rót', com o 'h' aspirado."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Perguntam se você quer a água gelada ou natural, e você quer gelada."
 say = "Cold."
 meaning = "Gelada."
@@ -314,7 +314,7 @@ tip = "'Cold' soa como 'côuld'. Não confunda com 'called'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Na cafeteria, perguntam o tamanho do copo e você quer o menor."
 say = "Small."
 meaning = "Pequeno."
@@ -323,7 +323,7 @@ tip = "'Small' soa como 'smól'. Não coloque 'i' antes do 's'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Agora você está com muito sono e quer o maior café possível."
 say = "Large."
 meaning = "Grande."
@@ -350,7 +350,7 @@ tip = "'Downtown' soa como 'dáuntáun'."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Todo mundo levanta o copo pra brindar no jantar."
 say = "Cheers!"
 meaning = "Saúde!"
@@ -358,7 +358,7 @@ tip = "'Cheers' soa como 'tchírz'. No Reino Unido também quer dizer 'valeu'."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Um amigo pergunta se pode sentar do seu lado."
 say = "Sure."
 meaning = "Claro."
@@ -367,7 +367,7 @@ tip = "'Sure' soa como 'shúr'."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Te convidam pra uma festa, mas você ainda não sabe se vai."
 say = "Maybe."
 meaning = "Talvez."
@@ -375,7 +375,7 @@ tip = "'Maybe' soa como 'mêibi'."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "No avião, a comissária pergunta se você quer frango ou massa."
 say = "Chicken."
 meaning = "Frango."
@@ -395,7 +395,7 @@ tip = "'Aisle' soa como 'áil'. O 's' é mudo!"
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você chega no trabalho às oito e cumprimenta o porteiro."
 say = "Good morning."
 meaning = "Bom dia."
@@ -404,7 +404,7 @@ tip = "Vale até o meio-dia. Depois disso é 'good afternoon'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você entra numa loja às três da tarde e cumprimenta a vendedora."
 say = "Good afternoon."
 meaning = "Boa tarde."
@@ -412,7 +412,7 @@ accept = ["Afternoon"]
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você chega no restaurante às oito da noite e cumprimenta a hostess."
 say = "Good evening."
 meaning = "Boa noite."
@@ -421,7 +421,7 @@ tip = "'Good evening' é para chegar. 'Good night' é só para se despedir."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você vai dormir e se despede das pessoas na sala do hostel."
 say = "Good night."
 meaning = "Boa noite."
@@ -430,7 +430,7 @@ tip = "Só se usa 'good night' na despedida, nunca para cumprimentar."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você precisa passar por uma pessoa parada no corredor do mercado."
 say = "Excuse me."
 meaning = "Com licença."
@@ -448,7 +448,7 @@ tip = "Nos EUA se diz 'check'; no Reino Unido, 'bill'."
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "Na feira, você aponta para um pote de mel sem preço."
 say = "How much?"
 meaning = "Quanto?"
@@ -490,7 +490,7 @@ tip = "Plural: 'coffees', com o 's' no fim."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Um colega diz que adora pizza, e você também."
 say = "Me too."
 meaning = "Eu também."
@@ -506,7 +506,7 @@ accept = ["I am lost", "I'm a bit lost"]
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "O atendente explica o caminho rápido demais pra você."
 say = "Slowly, please."
 meaning = "Devagar, por favor."
@@ -607,14 +607,14 @@ accept = ["No ice", "Without ice, please"]
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Sua amiga vai fazer uma entrevista de emprego amanhã."
 say = "Good luck!"
 meaning = "Boa sorte!"
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "É aniversário de um colega e ele chega no escritório."
 say = "Happy birthday!"
 meaning = "Feliz aniversário!"
@@ -636,7 +636,7 @@ meaning = "Se cuida!"
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "O Uber chegou e seus amigos ainda estão enrolando na porta."
 say = "Let's go!"
 meaning = "Vamos!"
@@ -650,3 +650,141 @@ say = "To go, please."
 meaning = "Pra viagem, por favor."
 accept = ["To go", "Takeaway, please"]
 tip = "Nos EUA se diz 'to go'; no Reino Unido, 'takeaway'."
+
+# ---------------------------------------------------------------- pre-A1: numbers, colors, family, days
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "No elevador, alguém pergunta pra que andar você vai: o sexto."
+say = "Six."
+meaning = "Seis."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "A recepção do hotel pergunta a que horas você quer o café da manhã: às sete."
+say = "Seven."
+meaning = "Sete."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Na padaria, a atendente pergunta quantos pães você quer: oito."
+say = "Eight."
+meaning = "Oito."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "O médico pergunta, de zero a dez, quanto está doendo: nove."
+say = "Nine."
+meaning = "Nove."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Na feira, o vendedor pergunta quantas maçãs você quer: dez."
+say = "Ten."
+meaning = "Dez."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Na loja, a vendedora pergunta de que cor você quer a camiseta: vermelha."
+say = "Red."
+meaning = "Vermelha."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "No guarda-volumes, o funcionário pergunta a cor da sua mala: azul."
+say = "Blue."
+meaning = "Azul."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "No estacionamento, o manobrista pergunta a cor do seu carro: preto."
+say = "Black."
+meaning = "Preto."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "O garçom pergunta se você quer vinho tinto ou branco: branco."
+say = "White."
+meaning = "Branco."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "Chegam dois táxis e o motorista pergunta qual é o seu: o verde."
+say = "Green."
+meaning = "Verde."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Um colega vê a foto no seu celular e pergunta quem é a mulher: sua mãe."
+say = "My mom."
+meaning = "Minha mãe."
+accept = ["My mother", "My mum"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Na saída do curso, perguntam quem vem te buscar: seu pai."
+say = "My dad."
+meaning = "Meu pai."
+accept = ["My father"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Na recepção, perguntam quem é o menino com você: seu filho."
+say = "My son."
+meaning = "Meu filho."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Na recepção, perguntam quem é a menina com você: sua filha."
+say = "My daughter."
+meaning = "Minha filha."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "No check-in do hotel, perguntam quem mais vai ficar no quarto: sua esposa."
+say = "My wife."
+meaning = "Minha esposa."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "No check-in do hotel, perguntam quem mais vai ficar no quarto: seu marido."
+say = "My husband."
+meaning = "Meu marido."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "O dentista pergunta que dia você pode voltar: segunda-feira."
+say = "Monday."
+meaning = "Segunda-feira."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "Um colega pergunta quando é a festa: sexta-feira."
+say = "Friday."
+meaning = "Sexta-feira."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "O taxista confirma o endereço que você mostrou e você concorda."
+say = "Okay."
+meaning = "Tá bom."
+accept = ["OK", "Alright", "All right"]

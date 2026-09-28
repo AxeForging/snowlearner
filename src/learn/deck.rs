@@ -290,6 +290,21 @@ mod tests {
     }
 
     #[test]
+    fn builtin_decks_give_a_pre_a1_learner_words_and_set_expressions_only() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            let pre = deck.selection(None, PRE_A1);
+            assert!(pre.len() >= 60, "{lang}: only {} pre-A1 items", pre.len());
+            for &i in &pre {
+                let p = &deck.phrases[i];
+                assert_eq!(p.level.as_deref(), Some(PRE_A1), "{lang}: {:?} is not pre-A1", p.say);
+                assert!(p.say.split_whitespace().count() <= 3, "{lang}: {:?} is a full phrase", p.say);
+                assert!(crate::render::font::supports(&format!("{} {}", p.say, p.meaning)), "{lang}: {:?}", p.say);
+            }
+        }
+    }
+
+    #[test]
     fn builtin_decks_have_no_duplicate_phrases() {
         for lang in Deck::builtin_languages() {
             let deck = Deck::builtin(lang).unwrap();
