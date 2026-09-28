@@ -744,6 +744,12 @@ impl Lesson {
     }
 }
 
+/// Says a topic had nothing at the level (the HUD then shows "todos os
+/// temas"); short enough for a 320 px window.
+pub fn topic_dropped(topic: &str) -> String {
+    format!("Sem {topic} nesse nível.")
+}
+
 /// How the target language is read: slower for a pre-A1 learner.
 pub fn target_speed(max_level: &str) -> Speed {
     if max_level == PRE_A1 { Speed::Slower } else { Speed::Slow }
@@ -947,6 +953,18 @@ mod tests {
         assert!(tag.contains("memória"), "{tag}");
         assert!(parts.iter().all(|p| p.lang != "en" || p.speed == Speed::Slow));
         assert!(!passed, "the usual check from A1 up");
+    }
+
+    #[test]
+    fn the_dropped_topic_notice_fits_the_narrowest_screen_for_every_topic() {
+        for lang in Deck::builtin_languages() {
+            for topic in Deck::builtin(lang).unwrap().topics() {
+                let text = topic_dropped(&topic);
+                assert!(text.contains(&topic));
+                assert!(crate::render::font::text_width(&text) <= 316, "{text:?} overflows a 320 px window");
+                assert!(crate::render::font::supports(&text), "{text:?}");
+            }
+        }
     }
 
     #[test]

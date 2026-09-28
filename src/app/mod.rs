@@ -523,7 +523,7 @@ impl App {
             if let Err(e) = self.settings.save(&self.paths.config_file()) {
                 eprintln!("could not save settings: {e:#}");
             }
-            scene.hud.toast(format!("O tema {topic} não tem nada nesse nível: praticando todos os temas."), 6.0);
+            scene.hud.toast(crate::app::lesson::topic_dropped(&topic), 6.0);
         }
     }
 
