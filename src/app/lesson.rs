@@ -176,6 +176,22 @@ impl Lesson {
         self.refresh_stats(scene);
     }
 
+    /// Topics with something at the current level: what the panel offers.
+    pub fn topics(&self) -> Vec<String> {
+        self.deck.topics_at(&self.opts.max_level)
+    }
+
+    /// Drops a topic with nothing at the current level ("trabalho" at pre-A1)
+    /// and returns it, so the caller can say so and save the setting.
+    pub fn drop_empty_topic(&mut self, scene: &mut Scene) -> Option<String> {
+        let topic = self.opts.topic.clone()?;
+        if self.topics().contains(&topic) {
+            return None;
+        }
+        self.set_options(|o| o.topic = None, scene);
+        Some(topic)
+    }
+
     pub fn set_options(&mut self, f: impl FnOnce(&mut Options), scene: &mut Scene) {
         f(&mut self.opts);
         self.goal_celebrated = self.done_today >= self.opts.daily_goal;
@@ -931,6 +947,23 @@ mod tests {
         assert!(tag.contains("memória"), "{tag}");
         assert!(parts.iter().all(|p| p.lang != "en" || p.speed == Speed::Slow));
         assert!(!passed, "the usual check from A1 up");
+    }
+
+    #[test]
+    fn a_topic_with_nothing_at_the_level_is_dropped_and_named() {
+        let mut o = options(true);
+        o.topic = Some("trabalho".into());
+        o.max_level = "B2".into();
+        let mut f = fixture_with(o);
+        assert_eq!(f.lesson.drop_empty_topic(&mut f.scene), None, "trabalho has B2 phrases");
+        f.lesson.set_options(|o| o.max_level = PRE_A1.into(), &mut f.scene);
+        f.lesson.set_deck(Deck::parse(PRE_DECK).unwrap(), &mut f.scene);
+        f.lesson.set_options(|o| o.topic = Some("trabalho".into()), &mut f.scene);
+        assert_eq!(f.lesson.topics(), vec!["restaurante"], "the panel offers only what exists at pre-A1");
+        assert_eq!(f.lesson.drop_empty_topic(&mut f.scene).as_deref(), Some("trabalho"));
+        assert_eq!(f.lesson.options().topic, None);
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(!parts.is_empty(), "a lesson starts instead of 'Nenhuma frase com esse tema/nível'");
     }
 
     #[test]

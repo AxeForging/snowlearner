@@ -254,6 +254,18 @@ impl Deck {
     }
 
     /// Topics in first-seen order.
+    /// Topics with something to practice at `max_level`, in deck order.
+    pub fn topics_at(&self, max_level: &str) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for i in self.selection(None, max_level) {
+            let t = &self.phrases[i].topic;
+            if !out.contains(t) {
+                out.push(t.clone());
+            }
+        }
+        out
+    }
+
     pub fn topics(&self) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
         for p in &self.phrases {
@@ -401,6 +413,19 @@ mod tests {
             "neither A1 nor unleveled phrases for someone who knows nothing"
         );
         assert_eq!(d.selection(None, "A1"), vec![0, 1, 2], "A1 and up still take pre-A1 and unleveled phrases");
+    }
+
+    #[test]
+    fn topics_at_a_level_are_those_with_something_to_practice_there() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='a'\nmeaning='x'\ntopic='viagem'\nlevel='PRE-A1'\n\
+             [[phrase]]\nsay='b'\nmeaning='x'\ntopic='trabalho'\nlevel='B1'\n\
+             [[phrase]]\nsay='c'\nmeaning='x'\ntopic='compras'\nlevel='A1'"
+        ))
+        .unwrap();
+        assert_eq!(d.topics_at(PRE_A1), vec!["viagem"]);
+        assert_eq!(d.topics_at("A1"), vec!["viagem", "compras"]);
+        assert_eq!(d.topics_at("C2"), d.topics(), "every topic once nothing is filtered out");
     }
 
     #[test]
