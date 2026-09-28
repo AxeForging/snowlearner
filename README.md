@@ -139,7 +139,7 @@ relative to when you started. Stock whisper hallucinations ("Thank you for watch
 | Voice (system) | SAPI via PowerShell | `say` | `spd-say` / `espeak-ng` | same |
 | Recognition | whisper.cpp | whisper.cpp | whisper.cpp | whisper.cpp |
 
-Tested hands-on on Fedora 42 (GNOME Wayland); Windows and macOS binaries are built by the
+Tested hands-on on Fedora 42 (GNOME Wayland) and Windows 11; macOS binaries are built by the
 release workflow on every `v*` tag (CI itself runs on Linux: `gh workflow run ci`).
 
 ## Configure
