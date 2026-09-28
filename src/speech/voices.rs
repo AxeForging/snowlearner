@@ -23,6 +23,74 @@ pub enum TtsEngine {
 const KOKORO_PREFIX: &[(&str, &[char])] =
     &[("en", &['a', 'b']), ("es", &['e']), ("pt", &['p']), ("fr", &['f']), ("it", &['i']), ("ja", &['j'])];
 
+/// What a Kokoro voice id says about itself: `bf_emma` is British English
+/// (b), female (f), Emma. The letters are Kokoro's own naming scheme.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KokoroVoice {
+    id: String,
+    name: String,
+    female: bool,
+    /// Language (and accent), in pt-BR words.
+    language: &'static str,
+    /// Where the accent is from, only where one language has several (English).
+    region: Option<&'static str>,
+    /// `v0` voices: the first model's version of a voice.
+    old: bool,
+}
+
+/// Reads a Kokoro voice id; None for anything outside its naming scheme
+/// (system voices, mixes like `af_heart+af_bella`), which stay as they are.
+pub fn kokoro_voice(id: &str) -> Option<KokoroVoice> {
+    let mut chars = id.chars();
+    let (lang, gender, sep) = (chars.next()?, chars.next()?, chars.next()?);
+    let rest: String = chars.collect();
+    if sep != '_' || rest.is_empty() || !rest.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return None;
+    }
+    let female = match gender {
+        'f' => true,
+        'm' => false,
+        _ => return None,
+    };
+    let (language, region) = match lang {
+        'a' => ("inglês americano", Some("EUA")),
+        'b' => ("inglês britânico", Some("RU")),
+        'e' => ("espanhol", None),
+        'f' => ("francês", None),
+        'h' => ("hindi", None),
+        'i' => ("italiano", None),
+        'j' => ("japonês", None),
+        'p' => ("português do Brasil", None),
+        'z' => ("chinês mandarim", None),
+        _ => return None,
+    };
+    let (old, bare) = match rest.strip_prefix("v0") {
+        Some(n) if !n.is_empty() => (true, n.to_string()),
+        _ => (false, rest),
+    };
+    let mut name = bare.clone();
+    name[..1].make_ascii_uppercase();
+    Some(KokoroVoice { id: id.to_string(), name, female, language, region, old })
+}
+
+impl KokoroVoice {
+    /// For the panel row: `Heart · EUA`, `Isabella v0 · RU`, `Dora`.
+    pub fn short(&self) -> String {
+        let v0 = if self.old { " v0" } else { "" };
+        match self.region {
+            Some(r) => format!("{}{v0} · {r}", self.name),
+            None => format!("{}{v0}", self.name),
+        }
+    }
+
+    /// `Emma: voz feminina, inglês britânico (bf_emma)`.
+    pub fn describe(&self) -> String {
+        let gender = if self.female { "feminina" } else { "masculina" };
+        let old = if self.old { ", versão antiga" } else { "" };
+        format!("{}: voz {gender}, {}{old} ({})", self.name, self.language, self.id)
+    }
+}
+
 /// Sensible Kokoro voice when none is configured.
 pub fn kokoro_default(lang: &str) -> &'static str {
     match locale(lang).split('-').next().unwrap_or("") {
@@ -469,6 +537,46 @@ mod tests {
         let h = Http { url, model: "kokoro".into() };
         assert_eq!(h.voices("es").unwrap(), vec!["ef_dora"]);
         server.join().unwrap();
+    }
+
+    #[test]
+    fn kokoro_voice_names_say_language_accent_and_gender() {
+        let v = kokoro_voice("af_heart").unwrap();
+        assert_eq!(v.short(), "Heart · EUA");
+        assert_eq!(v.describe(), "Heart: voz feminina, inglês americano (af_heart)");
+        assert_eq!(kokoro_voice("bm_george").unwrap().short(), "George · RU");
+        assert_eq!(kokoro_voice("bf_v0isabella").unwrap().short(), "Isabella v0 · RU");
+        assert_eq!(kokoro_voice("bf_emma").unwrap().describe(), "Emma: voz feminina, inglês britânico (bf_emma)");
+        assert_eq!(kokoro_voice("pf_dora").unwrap().short(), "Dora", "one Portuguese: no region");
+        assert_eq!(kokoro_voice("pm_alex").unwrap().describe(), "Alex: voz masculina, português do Brasil (pm_alex)");
+        assert_eq!(kokoro_voice("em_santa").unwrap().describe(), "Santa: voz masculina, espanhol (em_santa)");
+        let old = kokoro_voice("af_v0bella").unwrap();
+        assert_eq!(old.short(), "Bella v0 · EUA");
+        assert_eq!(old.describe(), "Bella: voz feminina, inglês americano, versão antiga (af_v0bella)");
+    }
+
+    #[test]
+    fn names_outside_the_kokoro_scheme_are_not_guessed() {
+        for id in ["Microsoft Zira Desktop", "alloy", "af_heart+af_bella", "xf_nobody", "a_x", "af_", ""] {
+            assert!(kokoro_voice(id).is_none(), "{id:?}");
+        }
+    }
+
+    #[test]
+    fn every_voice_on_a_real_kokoro_server_gets_a_label_the_panel_can_draw() {
+        // GET /v1/audio/voices of Kokoro-FastAPI (the user's server, 2026-09-27).
+        let ids = "af_alloy af_aoede af_bella af_heart af_jadzia af_jessica af_kore af_nicole af_nova af_river \
+            af_sarah af_sky af_v0 af_v0bella af_v0irulan af_v0nicole af_v0sarah af_v0sky am_adam am_echo am_eric \
+            am_fenrir am_liam am_michael am_onyx am_puck am_santa am_v0adam am_v0gurney am_v0michael bf_alice \
+            bf_emma bf_lily bf_v0emma bf_v0isabella bm_daniel bm_fable bm_george bm_lewis bm_v0george bm_v0lewis \
+            ef_dora em_alex em_santa ff_siwis hf_alpha hf_beta hm_omega hm_psi if_sara im_nicola jf_alpha \
+            jf_gongitsune jf_nezumi jf_tebukuro jm_kumo pf_dora pm_alex pm_santa zf_xiaobei zf_xiaoni zf_xiaoxiao \
+            zf_xiaoyi zm_yunjian zm_yunxi zm_yunxia zm_yunyang";
+        for id in ids.split_whitespace() {
+            let v = kokoro_voice(id).unwrap_or_else(|| panic!("{id} has no label"));
+            assert!(crate::render::font::supports(&v.describe()), "{id}: {}", v.describe());
+            assert!(v.short().chars().count() <= 18, "{id}: {:?} too long for the panel row", v.short());
+        }
     }
 
     #[test]
