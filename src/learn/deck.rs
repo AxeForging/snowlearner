@@ -316,6 +316,45 @@ mod tests {
         }
     }
 
+    /// Topics that come back at every level, harder each time, the way a
+    /// language app's units recur from section to section.
+    const CORE_TOPICS: &[&str] =
+        &["primeiros contatos", "trabalho", "restaurante", "viagem", "compras", "saúde e social"];
+    /// Levels every core topic climbs through.
+    const LADDER: &[&str] = &[PRE_A1, "A1", "A2", "B1"];
+    /// Fewest items that make a rung.
+    const RUNG_MIN: usize = 3;
+    /// Rungs still missing in the built-in decks. Filling one means removing it
+    /// here: the test fails while a filled rung is still listed.
+    const LADDER_GAPS: &[(&str, &str)] = &[
+        ("primeiros contatos", "A2"),
+        ("primeiros contatos", "B1"),
+        ("restaurante", "A2"),
+        ("viagem", "A2"),
+        ("compras", "A2"),
+        ("compras", "B1"),
+        ("saúde e social", "B1"),
+    ];
+
+    #[test]
+    fn core_topics_climb_every_level_from_pre_a1_to_b1() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            for topic in CORE_TOPICS {
+                for level in LADDER {
+                    let n =
+                        deck.phrases.iter().filter(|p| p.topic == *topic && p.level.as_deref() == Some(level)).count();
+                    let pending = LADDER_GAPS.contains(&(topic, level));
+                    if pending {
+                        assert!(n < RUNG_MIN, "{lang}: {topic} {level} has {n} items now; take it off LADDER_GAPS");
+                    } else {
+                        assert!(n >= RUNG_MIN, "{lang}: {topic} {level} has {n} items, a rung needs {RUNG_MIN}");
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn builtin_decks_have_no_duplicate_phrases() {
         for lang in Deck::builtin_languages() {

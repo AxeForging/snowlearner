@@ -58,6 +58,8 @@ New actors go in `scene/<actor>.rs`; new platform integrations in the matching d
 - Beginners start at single words: new content goes through `learn/path.rs` ordering, never
   bypasses it (a beginner must not get full phrases first).
 - `PRE-A1` items: single words or set expressions (≤ 3 words), real situations like the rest.
+- Core topics climb every level, pre-A1 to B1 (≥ 3 items each); open rungs are listed in
+  `LADDER_GAPS` (deck tests) and only ever shrink.
 - New TTS engines implement `speech::voices::SpeechEngine` and register in `Voice::new` — nothing else.
 - README clips are generated (`scripts/render-docs.sh`); don't hand-edit images. The overlay clip
   uses `scripts/docs-backdrop.html` (fictional editor) — never a real screen capture.
