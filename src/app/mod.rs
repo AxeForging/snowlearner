@@ -5,6 +5,7 @@ pub mod lesson;
 pub mod menu;
 pub mod platform;
 
+use crate::app::lesson::target_speed;
 use crate::config::level::Commitment;
 use crate::config::paths::Paths;
 use crate::config::settings::Settings;
@@ -15,6 +16,7 @@ use crate::render::canvas::Canvas;
 use crate::render::screen::Screen;
 use crate::scene::Scene;
 use crate::scene::hud::Cheats;
+use crate::speech::tts::Speed;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
 use crate::store::history::History;
 use anyhow::{Context, Result};
@@ -537,9 +539,13 @@ impl App {
                     Utterance {
                         text: "Olá! Esta é a voz em português.".into(),
                         lang: self.settings.native.clone(),
-                        slow: false,
+                        speed: Speed::Normal,
                     },
-                    Utterance { text: sample.into(), lang: self.settings.learning.clone(), slow: true },
+                    Utterance {
+                        text: sample.into(),
+                        lang: self.settings.learning.clone(),
+                        speed: target_speed(&self.settings.max_level),
+                    },
                 ];
                 self.speech.send(Job::Speak { id: self.test_id, parts });
             }

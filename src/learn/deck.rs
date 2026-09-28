@@ -31,7 +31,10 @@ const BUILTIN: &[(&str, &[&str])] = &[
     ),
 ];
 
-pub const LEVELS: &[&str] = &["A1", "A2", "B1", "B2", "C1", "C2"];
+/// CEFR levels, easiest first. Pre-A1 (CEFR Companion Volume, 2020) is the
+/// learner who knows nothing yet: isolated words and set expressions.
+pub const LEVELS: &[&str] = &[PRE_A1, "A1", "A2", "B1", "B2", "C1", "C2"];
+pub const PRE_A1: &str = "PRE-A1";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -223,8 +226,12 @@ impl Deck {
         (0..self.phrases.len())
             .filter(|&i| {
                 let p = &self.phrases[i];
-                let level_ok =
-                    p.level.as_deref().and_then(|l| LEVELS.iter().position(|x| *x == l)).is_none_or(|l| l <= max);
+                // Unleveled phrases count at every level but pre-A1, where
+                // someone who knows nothing must not get full phrases.
+                let level_ok = match p.level.as_deref().and_then(|l| LEVELS.iter().position(|x| *x == l)) {
+                    Some(l) => l <= max,
+                    None => max_level != PRE_A1,
+                };
                 level_ok && topic.is_none_or(|t| p.topic == t)
             })
             .collect()
@@ -361,6 +368,24 @@ mod tests {
         assert_eq!(a.phrases.iter().map(|p| p.say.as_str()).collect::<Vec<_>>(), vec!["I'm hungry", "New one"]);
         assert_eq!(a.phrases[0].meaning, "x", "the first (curated) version wins");
         assert_eq!(a.tips, vec!["t"]);
+    }
+
+    #[test]
+    fn pre_a1_is_below_a1_and_keeps_beginners_to_their_own_items() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='Hello.'\nmeaning='x'\nlevel='pre-a1'\n\
+             [[phrase]]\nsay='Good morning.'\nmeaning='x'\nlevel='A1'\n\
+             [[phrase]]\nsay='Where is the station?'\nmeaning='x'"
+        ))
+        .unwrap();
+        assert_eq!(LEVELS[0], PRE_A1);
+        assert_eq!(d.phrases[0].level.as_deref(), Some(PRE_A1), "any case is read as PRE-A1");
+        assert_eq!(
+            d.selection(None, PRE_A1),
+            vec![0],
+            "neither A1 nor unleveled phrases for someone who knows nothing"
+        );
+        assert_eq!(d.selection(None, "A1"), vec![0, 1, 2], "A1 and up still take pre-A1 and unleveled phrases");
     }
 
     #[test]

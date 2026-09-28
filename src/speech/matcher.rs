@@ -79,10 +79,15 @@ pub fn normalize(text: &str) -> Vec<String> {
     out
 }
 
+/// Extra letter slips per word for a pre-A1 learner, who is still finding the
+/// sounds and says single words with no context to lean on.
+pub const BEGINNER_SLACK: usize = 1;
+
 /// Same word, allowing 1 slip in words of 3–6 letters and 2 in longer ones
 /// (recognizer slips like "hungre", "repeet", "tomorow") — but not enough to
-/// turn "hungry" into "angry".
-fn similar(a: &str, b: &str) -> bool {
+/// turn "hungry" into "angry". `slack` adds to that; words of one or two
+/// letters stay exact ("no" is not "so").
+fn similar(a: &str, b: &str, slack: usize) -> bool {
     if a == b {
         return true;
     }
@@ -90,19 +95,19 @@ fn similar(a: &str, b: &str) -> bool {
     let allowed = if len <= 2 {
         0
     } else if len <= 6 {
-        1
+        1 + slack
     } else {
-        2
+        2 + slack
     };
     strsim::levenshtein(a, b) <= allowed
 }
 
 /// Best score over several accepted answers; returns it with the answer's index.
-pub fn score_any(answers: &[&str], heard: &str) -> (MatchResult, usize) {
+pub fn score_any(answers: &[&str], heard: &str, slack: usize) -> (MatchResult, usize) {
     answers
         .iter()
         .enumerate()
-        .map(|(i, a)| (score(a, heard), i))
+        .map(|(i, a)| (score_lenient(a, heard, slack), i))
         .max_by(|a, b| a.0.score.total_cmp(&b.0.score))
         .unwrap_or_else(|| (score("", heard), 0))
 }
@@ -198,6 +203,11 @@ fn align_to_target(target: &[String], heard: Vec<String>) -> Vec<String> {
 }
 
 pub fn score(target: &str, heard: &str) -> MatchResult {
+    score_lenient(target, heard, 0)
+}
+
+/// `score` with `slack` extra slips per word (`BEGINNER_SLACK` at pre-A1).
+pub fn score_lenient(target: &str, heard: &str, slack: usize) -> MatchResult {
     let t = normalize(target);
     let h = align_to_target(&t, normalize(heard));
 
@@ -206,7 +216,7 @@ pub fn score(target: &str, heard: &str) -> MatchResult {
         .split_whitespace()
         .map(|orig| {
             let parts = normalize(orig);
-            let hit = !parts.is_empty() && parts.iter().all(|p| h.iter().any(|hw| similar(p, hw)));
+            let hit = !parts.is_empty() && parts.iter().all(|p| h.iter().any(|hw| similar(p, hw, slack)));
             WordHit { word: orig.to_string(), hit }
         })
         .collect();
@@ -276,10 +286,10 @@ mod tests {
 
     #[test]
     fn any_accepted_variant_can_win() {
-        let (m, i) = score_any(&["Could you repeat that?", "Can you repeat that?"], "can you repeat that");
+        let (m, i) = score_any(&["Could you repeat that?", "Can you repeat that?"], "can you repeat that", 0);
         assert!((m.score - 1.0).abs() < 1e-6);
         assert_eq!(i, 1);
-        let (m, _) = score_any(&["Could you repeat that?"], "pizza");
+        let (m, _) = score_any(&["Could you repeat that?"], "pizza", 0);
         assert!(!m.passed(PASS));
     }
 
@@ -310,6 +320,16 @@ mod tests {
             let r = score(target, heard);
             assert!(r.passed(PASS), "{heard:?} vs {target:?}: {}", r.score);
         }
+    }
+
+    #[test]
+    fn beginners_get_one_more_slip_per_word_but_short_words_stay_exact() {
+        assert!(!score("Thanks.", "tenks").passed(PASS), "two slips: too far for everyone else");
+        assert!(score_lenient("Thanks.", "tenks", BEGINNER_SLACK).passed(PASS), "fine for a pre-A1 learner");
+        assert!(score_lenient("Tomorrow.", "tumorou", BEGINNER_SLACK).passed(PASS));
+        assert!(!score_lenient("No.", "so", BEGINNER_SLACK).passed(PASS), "no and so mean different things");
+        assert!(!score_lenient("Thanks.", "banana", BEGINNER_SLACK).passed(PASS));
+        assert_eq!(score_lenient("Hello.", "hello", 0).score, score("Hello.", "hello").score);
     }
 
     #[test]

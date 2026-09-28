@@ -17,8 +17,8 @@ use std::time::Instant;
 pub struct Utterance {
     pub text: String,
     pub lang: String,
-    /// Target-language parts are read a little slower.
-    pub slow: bool,
+    /// Target-language parts are read slower (slower still at pre-A1).
+    pub speed: super::tts::Speed,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -183,7 +183,7 @@ impl Speech {
                                 notify(SpeechEvent::Part { id, index });
                                 trace::line(format_args!("speak [{}] {:?}", p.lang, p.text));
                                 let v = if p.lang == cfg.native_lang { &cfg.native_voice } else { &cfg.learning_voice };
-                                if let Err(e) = voice.speak(&p.text, &p.lang, v, p.slow) {
+                                if let Err(e) = voice.speak(&p.text, &p.lang, v, p.speed) {
                                     trace::line(format_args!("speak failed: {e:#}"));
                                     notify(SpeechEvent::Failed { id, error: format!("{e:#}") });
                                     break;

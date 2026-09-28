@@ -4,7 +4,7 @@
 //!   `POST {url}/audio/speech` returning WAV, played on the chosen speaker,
 //! - `command`: your own command (Piper, a script…), run without a shell.
 
-use super::tts::{Tts, command_no_window, locale};
+use super::tts::{Speed, Tts, command_no_window, locale};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -176,14 +176,18 @@ impl Http {
     }
 
     /// Asks the server for WAV audio of `text`.
-    pub fn synthesize(&self, text: &str, lang: &str, voice: &str, slow: bool) -> Result<Vec<u8>> {
+    pub fn synthesize(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<Vec<u8>> {
         let voice = if voice.is_empty() { kokoro_default(lang) } else { voice };
         let body = serde_json::json!({
             "model": self.model,
             "input": text,
             "voice": voice,
             "response_format": "wav",
-            "speed": if slow { 0.85 } else { 1.0 },
+            "speed": match speed {
+                Speed::Normal => 1.0,
+                Speed::Slow => 0.85,
+                Speed::Slower => 0.7,
+            },
         });
         let url = format!("{}/audio/speech", self.base());
         let mut resp =
@@ -263,8 +267,8 @@ pub trait SpeechEngine: Send {
     fn available(&self) -> bool;
     /// Voice names for a language (empty = the engine picks by language).
     fn voices(&self, lang: &str) -> Result<Vec<String>>;
-    /// Synthesize (or directly speak) `text`. `slow` = the learner's target language.
-    fn speak(&self, text: &str, lang: &str, voice: &str, slow: bool) -> Result<Audio>;
+    /// Synthesize (or directly speak) `text` at `speed`.
+    fn speak(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<Audio>;
 }
 
 impl SpeechEngine for Tts {
@@ -277,8 +281,8 @@ impl SpeechEngine for Tts {
     fn voices(&self, lang: &str) -> Result<Vec<String>> {
         Ok(Tts::voices(self, lang))
     }
-    fn speak(&self, text: &str, lang: &str, voice: &str, slow: bool) -> Result<Audio> {
-        Tts::speak(self, text, lang, voice, slow)?;
+    fn speak(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<Audio> {
+        Tts::speak(self, text, lang, voice, speed)?;
         Ok(Audio::Played)
     }
 }
@@ -293,8 +297,8 @@ impl SpeechEngine for Http {
     fn voices(&self, lang: &str) -> Result<Vec<String>> {
         Http::voices(self, lang)
     }
-    fn speak(&self, text: &str, lang: &str, voice: &str, slow: bool) -> Result<Audio> {
-        Ok(Audio::Wav(self.synthesize(text, lang, voice, slow)?))
+    fn speak(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<Audio> {
+        Ok(Audio::Wav(self.synthesize(text, lang, voice, speed)?))
     }
 }
 
@@ -313,7 +317,7 @@ impl SpeechEngine for CommandEngine {
     fn voices(&self, _lang: &str) -> Result<Vec<String>> {
         Ok(Vec::new())
     }
-    fn speak(&self, text: &str, lang: &str, voice: &str, _slow: bool) -> Result<Audio> {
+    fn speak(&self, text: &str, lang: &str, voice: &str, _speed: Speed) -> Result<Audio> {
         let Some((prog, rest)) = self.args.split_first() else { bail!("`tts_command` is empty") };
         let out = tempfile_dir().join(format!("snowlearner-tts-{}.wav", std::process::id()));
         let out_s = out.to_string_lossy().to_string();
@@ -372,8 +376,8 @@ impl Voice {
     }
 
     /// Speaks and blocks until done.
-    pub fn speak(&self, text: &str, lang: &str, voice: &str, slow: bool) -> Result<()> {
-        match self.engine.speak(text, lang, voice, slow)? {
+    pub fn speak(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<()> {
+        match self.engine.speak(text, lang, voice, speed)? {
             Audio::Played => Ok(()),
             Audio::Wav(wav) => self.play(&wav),
         }
@@ -446,7 +450,7 @@ mod tests {
         fn voices(&self, lang: &str) -> Result<Vec<String>> {
             Ok(vec![format!("{lang}-voice")])
         }
-        fn speak(&self, _: &str, _: &str, _: &str, _: bool) -> Result<Audio> {
+        fn speak(&self, _: &str, _: &str, _: &str, _: Speed) -> Result<Audio> {
             Ok(Audio::Played)
         }
     }
@@ -456,7 +460,7 @@ mod tests {
         let v = Voice { engine: Box::new(Fake), speaker: String::new() };
         assert_eq!(v.describe(), "fake");
         assert_eq!(v.voices("es").unwrap(), vec!["es-voice"]);
-        v.speak("hola", "es", "", false).unwrap();
+        v.speak("hola", "es", "", Speed::Normal).unwrap();
     }
 
     #[test]
@@ -464,7 +468,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let out = dir.path().join("got.txt");
         let v = Voice::new(TtsEngine::Command, "", "", &format!("tee {}", out.display()), "");
-        v.speak("Olá mundo", "pt-BR", "", false).unwrap();
+        v.speak("Olá mundo", "pt-BR", "", Speed::Normal).unwrap();
         assert_eq!(std::fs::read_to_string(&out).unwrap(), "Olá mundo");
     }
 
@@ -511,12 +515,13 @@ mod tests {
     fn http_engine_posts_an_openai_style_request_with_the_kokoro_voice() {
         let (url, server) = fake_server("");
         let h = Http { url, model: "kokoro".into() };
-        let wav = h.synthesize("Olá", "pt-BR", "", true).unwrap();
+        let wav = h.synthesize("Olá", "pt-BR", "", Speed::Slower).unwrap();
         assert_eq!(wav, b"RIFFfake");
         let req = server.join().unwrap();
         assert!(req.starts_with("POST /v1/audio/speech"), "{req}");
         assert!(req.contains(r#""voice":"pf_dora""#) && req.contains(r#""input":"Olá""#), "{req}");
         assert!(req.contains(r#""response_format":"wav""#));
+        assert!(req.contains(r#""speed":0.7"#), "beginner pace: {req}");
         // Kokoro wants one-letter codes ("p", "a"): "pt"/"en" made it answer
         // 200 with no audio. Left out, it takes the language from the voice.
         assert!(!req.contains("lang_code"), "{req}");
@@ -526,7 +531,7 @@ mod tests {
     fn a_tts_server_answering_without_audio_says_so() {
         let (url, server) = fake_server_with("", b"");
         let h = Http { url, model: "kokoro".into() };
-        let err = format!("{:#}", h.synthesize("oi", "en", "af_heart", false).unwrap_err());
+        let err = format!("{:#}", h.synthesize("oi", "en", "af_heart", Speed::Normal).unwrap_err());
         server.join().unwrap();
         assert!(err.contains("no audio") && err.contains("log"), "{err}");
     }
@@ -624,7 +629,7 @@ mod tests {
     fn a_dead_tts_server_gives_an_actionable_error() {
         let port = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
         let h = Http { url: format!("http://127.0.0.1:{port}/v1"), model: "kokoro".into() };
-        let err = format!("{:#}", h.synthesize("oi", "pt-BR", "", false).unwrap_err());
+        let err = format!("{:#}", h.synthesize("oi", "pt-BR", "", Speed::Normal).unwrap_err());
         assert!(err.contains("is it running"), "{err}");
     }
 }

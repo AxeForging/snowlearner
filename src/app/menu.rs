@@ -6,7 +6,7 @@
 
 use crate::config::level::Commitment;
 use crate::config::settings::{Settings, WindowMode};
-use crate::learn::deck::LEVELS;
+use crate::learn::deck::{LEVELS, PRE_A1};
 use crate::learn::path::Stage;
 use crate::learn::picker::Practice;
 use crate::learn::progress::{Progress, Tally};
@@ -402,6 +402,7 @@ impl Menu {
             },
             Item::Commitment => s.commitment.label_pt().into(),
             Item::Topic => auto(&s.topic, "todos"),
+            Item::Level if s.max_level == PRE_A1 => "pré-A1 · iniciante".into(),
             Item::Level => format!("até {}", s.max_level),
             Item::Practice => match s.practice {
                 Practice::Auto => "automático".into(),
@@ -834,6 +835,19 @@ mod tests {
         select(&mut m, Item::VoiceLearning);
         assert_eq!(m.value(Item::VoiceLearning, &s), "Microsoft Zira Desk…");
         assert_eq!(m.voice_note(&s), None, "nothing to decode outside Kokoro");
+    }
+
+    #[test]
+    fn the_level_starts_at_pre_a1_and_says_it_is_for_beginners() {
+        let mut m = menu();
+        let mut s = Settings { max_level: "A1".into(), ..Default::default() };
+        select(&mut m, Item::Level);
+        m.key(Key::Left, &mut s);
+        assert_eq!(s.max_level, "PRE-A1");
+        assert_eq!(m.value(Item::Level, &s), "pré-A1 · iniciante");
+        m.key(Key::Right, &mut s);
+        assert_eq!(m.value(Item::Level, &s), "até A1");
+        s.validate().unwrap();
     }
 
     #[test]
