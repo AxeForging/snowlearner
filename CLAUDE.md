@@ -20,11 +20,13 @@ src/
   speech/            voices.rs (SpeechEngine trait + system/http/command engines), tts.rs (OS
                      voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs,
                      highpass.rs (DC/rumble removal before measuring),
-                     resident.rs (loads the whisper model on demand, frees it when idle);
+                     resident.rs (loads the whisper model on demand, frees it when idle),
+                     trace.rs (timestamped speech steps in the log);
                      audio.rs with `audio`; mic.rs + stt.rs with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs, path.rs (words → chunks →
                      phrases, unlock window), progress.rs (known/learning/next per stage & topic)
   control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts),
+                     console.rs (Windows: frees the console, logs to snowlearner.log),
                      launcher.rs (Linux app-menu entry),
                      modkeys.rs (global Ctrl+Alt state where the OS allows)
   config/            settings.rs, level.rs (commitment), paths.rs
