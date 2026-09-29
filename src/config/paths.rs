@@ -36,6 +36,11 @@ impl Paths {
         self.data_dir.join("history.sqlite3")
     }
 
+    /// stdout/stderr of an app started without a terminal (see `control::console`).
+    pub fn log_file(&self) -> PathBuf {
+        self.data_dir.join("snowlearner.log")
+    }
+
     pub fn models_dir(&self) -> PathBuf {
         self.data_dir.join("models")
     }

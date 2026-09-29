@@ -4,11 +4,11 @@
 //!   `POST {url}/audio/speech` returning WAV, played on the chosen speaker,
 //! - `command`: your own command (Piper, a script…), run without a shell.
 
-use super::tts::{Tts, locale};
+use super::tts::{Tts, command_no_window, locale};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "lowercase")]
@@ -209,7 +209,7 @@ impl SpeechEngine for CommandEngine {
         let out_s = out.to_string_lossy().to_string();
         let wants_out = self.args.iter().any(|a| a.contains("{out}"));
         let text_in_args = self.args.iter().any(|a| a.contains("{text}"));
-        let mut cmd = Command::new(fill(std::slice::from_ref(prog), text, lang, voice, &out_s).remove(0));
+        let mut cmd = command_no_window(fill(std::slice::from_ref(prog), text, lang, voice, &out_s).remove(0));
         cmd.args(fill(rest, text, lang, voice, &out_s)).stdout(Stdio::null()).stderr(Stdio::null());
         if !text_in_args {
             cmd.stdin(Stdio::piped());

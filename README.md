@@ -71,7 +71,8 @@ Start menu) and runs `snowlearner setup`, which is safe to run again any time:
 - registers the shortcuts on GNOME, adds Snowlearner to the app menu (Linux).
 
 Then start it from the app menu or with `snowlearner`. `snowlearner doctor` tells you what works
-on your machine and how to fix the rest. Linux needs a voice installed for the app to talk
+on your machine and how to fix the rest; started from the menu, the app logs to `snowlearner.log`
+(`snowlearner config path`). Linux needs a voice installed for the app to talk
 (`speech-dispatcher` or `espeak-ng`, present on most desktops). No GPU required.
 
 **From source:** `cargo install --git https://github.com/AxeForging/snowlearner`, then `snowlearner setup`.
