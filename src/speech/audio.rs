@@ -58,9 +58,40 @@ pub fn output(name: &str) -> Result<cpal::Device> {
     host.default_output_device().context("no speaker found")
 }
 
+/// Streaming TTS servers (Kokoro-FastAPI) send the header before they know
+/// the length and write 0xFFFFFFFF as the RIFF and data sizes. A data size
+/// that overruns what arrived becomes what arrived (whole sample frames).
+fn with_real_sizes(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+    let u32_at = |i: usize| bytes.get(i..i + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize);
+    if bytes.get(0..4) != Some(b"RIFF") || bytes.get(8..12) != Some(b"WAVE") {
+        return bytes.into();
+    }
+    let (mut i, mut align) = (12usize, 1usize);
+    while let Some(size) = u32_at(i + 4) {
+        let body = i + 8;
+        match &bytes[i..i + 4] {
+            b"fmt " => {
+                align = bytes.get(body + 12..body + 14).map_or(1, |b| u16::from_le_bytes([b[0], b[1]])).max(1) as usize
+            }
+            b"data" if size > bytes.len() - body => {
+                let real = (bytes.len() - body) / align * align;
+                let mut fixed = bytes[..body + real].to_vec();
+                fixed[i + 4..i + 8].copy_from_slice(&(real as u32).to_le_bytes());
+                let riff = fixed.len() as u32 - 8;
+                fixed[4..8].copy_from_slice(&riff.to_le_bytes());
+                return fixed.into();
+            }
+            _ => {}
+        }
+        i = body + size + (size & 1);
+    }
+    bytes.into()
+}
+
 /// WAV bytes → mono f32 samples + sample rate.
 pub fn decode_wav(bytes: &[u8]) -> Result<(Vec<f32>, u32)> {
-    let mut r = hound::WavReader::new(std::io::Cursor::new(bytes)).context("not a WAV file")?;
+    let bytes = with_real_sizes(bytes);
+    let mut r = hound::WavReader::new(std::io::Cursor::new(&bytes[..])).context("not a WAV file")?;
     let spec = r.spec();
     let raw: Vec<f32> = match spec.sample_format {
         hound::SampleFormat::Float => r.samples::<f32>().collect::<Result<_, _>>()?,
@@ -156,6 +187,36 @@ mod tests {
         assert_eq!(rate, 24_000);
         assert_eq!(mono.len(), 2);
         assert!((mono[0] - 0.25).abs() < 1e-3 && (mono[1] + 0.25).abs() < 1e-3);
+    }
+
+    /// What Kokoro-FastAPI streams: sizes unknown when the header went out,
+    /// so RIFF and data lengths are 0xFFFFFFFF, with a LIST chunk in between.
+    fn streamed(samples: &[i16]) -> Vec<u8> {
+        let plain = wav(samples, 24_000, 1);
+        let data_at = plain.windows(4).position(|w| w == b"data").unwrap();
+        let mut out = plain[..data_at].to_vec();
+        out[4..8].copy_from_slice(&u32::MAX.to_le_bytes());
+        out.extend_from_slice(b"LIST\x04\x00\x00\x00INFO");
+        out.extend_from_slice(b"data");
+        out.extend_from_slice(&u32::MAX.to_le_bytes());
+        out.extend_from_slice(&plain[data_at + 8..]);
+        out
+    }
+
+    #[test]
+    fn a_streamed_wav_with_unknown_lengths_plays_what_arrived() {
+        let (mono, rate) = decode_wav(&streamed(&[16384, -16384, 8192])).unwrap();
+        assert_eq!(rate, 24_000);
+        assert_eq!(mono.len(), 3);
+        assert!((mono[0] - 0.5).abs() < 1e-3 && (mono[2] - 0.25).abs() < 1e-3);
+    }
+
+    #[test]
+    fn a_stream_cut_mid_sample_keeps_the_whole_samples() {
+        let mut bytes = streamed(&[16384, -16384, 8192]);
+        bytes.pop();
+        let (mono, _) = decode_wav(&bytes).unwrap();
+        assert_eq!(mono.len(), 2);
     }
 
     #[test]

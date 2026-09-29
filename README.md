@@ -111,8 +111,9 @@ snowlearner voices list --lang pt-BR
 snowlearner voices test --lang en --voice af_heart
 ```
 
-Or open the panel's **ÁUDIO** tab: microphone, *Testar microfone*, voice engine, pt-BR voice,
-target-language voice, *Testar vozes*, speaker. Changes apply live and are saved.
+Or open the panel's **ÁUDIO** tab: microphone, *Testar microfone*, voice engine, *Endereço* (TTS
+server, e.g. `192.168.0.10:8880`), pt-BR voice, target-language voice, *Testar vozes*, speaker.
+Changes apply live and are saved.
 
 **Voice engines** (`tts_engine`):
 

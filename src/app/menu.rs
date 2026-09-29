@@ -37,6 +37,8 @@ pub enum Item {
     Mic,
     TestMic,
     Engine,
+    /// Address of the HTTP voice server (typed in the panel).
+    Endpoint,
     VoiceNative,
     VoiceLearning,
     TestVoices,
@@ -66,8 +68,16 @@ pub const GAME: &[Item] = &[
     Item::Quit,
 ];
 
-pub const AUDIO: &[Item] =
-    &[Item::Mic, Item::TestMic, Item::Engine, Item::VoiceNative, Item::VoiceLearning, Item::TestVoices, Item::Speaker];
+pub const AUDIO: &[Item] = &[
+    Item::Mic,
+    Item::TestMic,
+    Item::Engine,
+    Item::Endpoint,
+    Item::VoiceNative,
+    Item::VoiceLearning,
+    Item::TestVoices,
+    Item::Speaker,
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {
@@ -78,6 +88,9 @@ pub enum Key {
     Enter,
     Tab,
     Esc,
+    /// Typed text, for the address field.
+    Char(char),
+    Backspace,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,6 +126,29 @@ pub struct Menu {
     pub status: String,
     /// What the PROGRESSO tab shows (the app refreshes it).
     pub progress: Option<Progress>,
+    /// The address being typed; keys go to it until Enter or Esc.
+    edit: Option<String>,
+}
+
+/// Completes a typed voice server address: `192.168.0.10:8880` becomes
+/// `http://192.168.0.10:8880/v1` (Kokoro-FastAPI's base). An explicit path
+/// is kept. None when it can't be an http(s) address.
+pub fn normalize_url(raw: &str) -> Option<String> {
+    let t = raw.trim();
+    if t.is_empty() || t.chars().any(char::is_whitespace) {
+        return None;
+    }
+    let (scheme, rest) = match t.split_once("://") {
+        Some((sc, r)) if sc.eq_ignore_ascii_case("http") || sc.eq_ignore_ascii_case("https") => (sc, r),
+        Some(_) => return None,
+        None => ("http", t),
+    };
+    let rest = rest.trim_end_matches('/');
+    if rest.is_empty() || rest.starts_with('/') {
+        return None;
+    }
+    let path = if rest.contains('/') { "" } else { "/v1" };
+    Some(format!("{}://{rest}{path}", scheme.to_ascii_lowercase()))
 }
 
 fn cycle<T: PartialEq + Clone>(options: &[T], current: &T, forward: bool) -> T {
@@ -171,7 +207,36 @@ impl Menu {
             test_result: String::new(),
             status: String::new(),
             progress: None,
+            edit: None,
         }
+    }
+
+    /// The address being typed, if the field is open.
+    pub fn editing(&self) -> Option<&str> {
+        self.edit.as_deref()
+    }
+
+    /// Keys while the address field is open: type, fix, save or cancel.
+    fn edit_key(&mut self, key: Key, s: &mut Settings) -> Action {
+        let Some(buf) = &mut self.edit else { return Action::None };
+        match key {
+            Key::Char(c) if !c.is_control() && buf.chars().count() < 200 => buf.push(c),
+            Key::Backspace => drop(buf.pop()),
+            Key::Enter => match normalize_url(buf) {
+                Some(url) => {
+                    s.tts_url = url;
+                    s.tts_engine = TtsEngine::Http;
+                    self.edit = None;
+                    self.sel = self.items().iter().position(|i| *i == Item::TestVoices).unwrap_or(self.sel);
+                    self.test_result = "Endereço salvo. Enter: testar as vozes.".into();
+                    return Action::Changed(Item::Endpoint);
+                }
+                None => self.test_result = "Endereço inválido: use http://IP:porta/v1".into(),
+            },
+            Key::Esc => self.edit = None,
+            _ => {}
+        }
+        Action::None
     }
 
     pub fn items(&self) -> &'static [Item] {
@@ -242,7 +307,7 @@ impl Menu {
         Action::Changed(item)
     }
 
-    fn activate(&self, item: Item, s: &mut Settings) -> Action {
+    fn activate(&mut self, item: Item, s: &mut Settings) -> Action {
         match item {
             Item::PracticeNow => Action::PracticeNow,
             Item::Summary => Action::Summary,
@@ -250,11 +315,19 @@ impl Menu {
             Item::Quit => Action::Quit,
             Item::TestMic => Action::TestMic,
             Item::TestVoices => Action::TestVoices,
+            Item::Endpoint => {
+                self.edit = Some(s.tts_url.clone());
+                self.test_result = "Digite o endereço · Enter salva · Esc cancela".into();
+                Action::None
+            }
             other => self.change(other, s, true),
         }
     }
 
     pub fn key(&mut self, key: Key, s: &mut Settings) -> Action {
+        if self.edit.is_some() {
+            return self.edit_key(key, s);
+        }
         let n = self.items().len();
         match key {
             // PROGRESSO has nothing to select.
@@ -275,6 +348,7 @@ impl Menu {
                 Action::None
             }
             Key::Esc => Action::Close,
+            Key::Char(_) | Key::Backspace => Action::None,
         }
     }
 
@@ -326,6 +400,10 @@ impl Menu {
             Item::Pause => if self.paused { "pausado" } else { "ativo" }.into(),
             Item::Mic => auto(&s.mic, "padrão do sistema"),
             Item::Speaker => auto(&s.speaker, "padrão do sistema"),
+            Item::Endpoint => {
+                let url = s.tts_url.split_once("://").map_or(s.tts_url.as_str(), |(_, r)| r);
+                shorten(url, 22)
+            }
             Item::Engine => match s.tts_engine {
                 TtsEngine::System => "sistema".into(),
                 TtsEngine::Http => "HTTP (Kokoro…)".into(),
@@ -353,6 +431,7 @@ impl Menu {
             Item::Mic => "Microfone",
             Item::TestMic => "> Testar microfone",
             Item::Engine => "Motor de voz",
+            Item::Endpoint => "Endereço",
             Item::VoiceNative => "Voz pt-BR",
             Item::VoiceLearning => "Voz do idioma",
             Item::TestVoices => "> Testar vozes",
@@ -432,6 +511,22 @@ impl Menu {
                 }
             }
             font::draw(c, 10, y - 2, Self::label(*item), if selected { hex(0xffffff) } else { ink });
+            if *item == Item::Endpoint
+                && let Some(buf) = &self.edit
+            {
+                // The end of what is typed, so the cursor stays in view.
+                let room = c.w - 70;
+                let mut shown: String = buf.clone();
+                while font::text_width(&shown) > room - 8 && !shown.is_empty() {
+                    shown.remove(0);
+                }
+                let cursor = if (time * 3.0) as i32 % 2 == 0 { "_" } else { " " };
+                let text = format!("{shown}{cursor}");
+                let w = font::text_width(&text);
+                c.rect(c.w - room - 6, y, room + 2, ROW_H, hex(0x151233));
+                font::draw(c, c.w - w - 6, y - 2, &text, hex(0xffd64a));
+                continue;
+            }
             let value = self.value(*item, s);
             if !value.is_empty() {
                 let text = if selected { format!("< {value} >") } else { value };
@@ -606,6 +701,93 @@ mod tests {
                     s.validate().unwrap();
                 }
             }
+        }
+    }
+
+    fn type_text(m: &mut Menu, s: &mut Settings, text: &str) {
+        for ch in text.chars() {
+            assert_eq!(m.key(Key::Char(ch), s), Action::None);
+        }
+    }
+
+    #[test]
+    fn the_tts_address_is_typed_saved_and_leads_to_the_voice_test() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Endpoint);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::None, "Enter starts editing");
+        assert!(m.editing().is_some());
+        for _ in 0..s.tts_url.chars().count() {
+            m.key(Key::Backspace, &mut s);
+        }
+        type_text(&mut m, &mut s, "192.168.0.10:88800");
+        m.key(Key::Backspace, &mut s);
+        m.key(Key::Down, &mut s); // arrows don't leave the field
+        assert_eq!(m.editing(), Some("192.168.0.10:8880"));
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::Endpoint));
+        assert_eq!(s.tts_url, "http://192.168.0.10:8880/v1");
+        assert_eq!(s.tts_engine, TtsEngine::Http, "an address means the HTTP engine");
+        assert!(m.editing().is_none());
+        assert_eq!(m.item(), Item::TestVoices, "Enter again plays the voices through it");
+        assert_eq!(m.key(Key::Enter, &mut s), Action::TestVoices);
+        s.validate().unwrap();
+    }
+
+    #[test]
+    fn esc_cancels_the_address_edit_without_closing_the_panel() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        let before = s.tts_url.clone();
+        select(&mut m, Item::Endpoint);
+        m.key(Key::Enter, &mut s);
+        type_text(&mut m, &mut s, "zzz");
+        assert_eq!(m.key(Key::Esc, &mut s), Action::None);
+        assert!(m.editing().is_none());
+        assert_eq!(s.tts_url, before);
+        assert_eq!(m.key(Key::Esc, &mut s), Action::Close);
+    }
+
+    #[test]
+    fn an_unusable_address_is_refused_and_stays_in_the_field() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        let before = s.tts_url.clone();
+        select(&mut m, Item::Endpoint);
+        m.key(Key::Enter, &mut s);
+        for _ in 0..before.chars().count() {
+            m.key(Key::Backspace, &mut s);
+        }
+        type_text(&mut m, &mut s, "ftp://x");
+        assert_eq!(m.key(Key::Enter, &mut s), Action::None);
+        assert_eq!(s.tts_url, before);
+        assert_eq!(m.editing(), Some("ftp://x"), "kept for fixing");
+        assert!(m.test_result.contains("http://"), "{}", m.test_result);
+    }
+
+    #[test]
+    fn a_long_address_being_typed_draws_inside_the_panel() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Endpoint);
+        m.key(Key::Enter, &mut s);
+        type_text(&mut m, &mut s, "/very/long/path/to/some/kokoro/server/behind/a/proxy/v1");
+        for t in [0.0, 0.4] {
+            let mut c = Canvas::new(WIDTH, HEIGHT);
+            m.draw(&mut c, &s, t);
+            assert_eq!(c.opaque_in(0, 0, WIDTH, HEIGHT), (WIDTH * HEIGHT) as usize);
+        }
+        assert!(font::supports(&m.test_result), "{}", m.test_result);
+    }
+
+    #[test]
+    fn tts_addresses_are_completed_and_checked() {
+        assert_eq!(normalize_url("192.168.0.10:8880").as_deref(), Some("http://192.168.0.10:8880/v1"));
+        assert_eq!(normalize_url(" localhost:8880 ").as_deref(), Some("http://localhost:8880/v1"));
+        assert_eq!(normalize_url("http://h:1/v1/").as_deref(), Some("http://h:1/v1"));
+        assert_eq!(normalize_url("https://tts.example.com/api").as_deref(), Some("https://tts.example.com/api"));
+        assert_eq!(normalize_url("HTTP://Kokoro:8880").as_deref(), Some("http://Kokoro:8880/v1"));
+        for bad in ["", "   ", "http://", "ftp://x", "http://a b"] {
+            assert_eq!(normalize_url(bad), None, "{bad:?}");
         }
     }
 
