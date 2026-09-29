@@ -12,7 +12,7 @@ use crate::learn::picker::Practice;
 use crate::learn::progress::{Progress, Tally};
 use crate::render::canvas::{Canvas, Rgba, hex};
 use crate::render::font;
-use crate::speech::voices::TtsEngine;
+use crate::speech::voices::{TtsEngine, kokoro_default, kokoro_voice};
 
 pub const WIDTH: i32 = 232;
 pub const HEIGHT: i32 = 188;
@@ -375,6 +375,23 @@ impl Menu {
         self.activate(self.items()[row], s)
     }
 
+    /// Under a Kokoro voice row: who the voice is (gender, language and
+    /// accent, read from its id), or which one "automática" plays.
+    pub fn voice_note(&self, s: &Settings) -> Option<String> {
+        if self.tab != Tab::Audio || s.tts_engine != TtsEngine::Http {
+            return None;
+        }
+        let (voice, lang) = match self.item() {
+            Item::VoiceNative => (&s.voice_native, &s.native),
+            Item::VoiceLearning => (&s.voice_learning, &s.learning),
+            _ => return None,
+        };
+        if voice.is_empty() {
+            return kokoro_voice(kokoro_default(lang)).map(|k| format!("Automática, usa {}", k.describe()));
+        }
+        kokoro_voice(voice).map(|k| k.describe())
+    }
+
     fn value(&self, item: Item, s: &Settings) -> String {
         let auto = |v: &str, empty: &str| if v.is_empty() { empty.to_string() } else { shorten(v, 20) };
         match item {
@@ -409,8 +426,13 @@ impl Menu {
                 TtsEngine::Http => "HTTP (Kokoro…)".into(),
                 TtsEngine::Command => "comando".into(),
             },
-            Item::VoiceNative => auto(&s.voice_native, "automática"),
-            Item::VoiceLearning => auto(&s.voice_learning, "automática"),
+            Item::VoiceNative | Item::VoiceLearning => {
+                let v = if item == Item::VoiceNative { &s.voice_native } else { &s.voice_learning };
+                match kokoro_voice(v).filter(|_| s.tts_engine == TtsEngine::Http) {
+                    Some(k) => k.short(),
+                    None => auto(v, "automática"),
+                }
+            }
             _ => String::new(),
         }
     }
@@ -553,7 +575,9 @@ impl Menu {
                 }
                 font::draw(c, 116, y - 1, "fale algo…", accent);
             }
-            for (k, line) in font::wrap(&self.test_result, WIDTH - 16).iter().take(3).enumerate() {
+            let note = self.meter.is_none().then(|| self.voice_note(s)).flatten();
+            let text = note.as_deref().unwrap_or(&self.test_result);
+            for (k, line) in font::wrap(text, WIDTH - 16).iter().take(3).enumerate() {
                 font::draw(c, 6, y + 10 + k as i32 * (ROW_H - 1), line, hex(0xe6ecff));
             }
         } else {
@@ -777,6 +801,39 @@ mod tests {
             assert_eq!(c.opaque_in(0, 0, WIDTH, HEIGHT), (WIDTH * HEIGHT) as usize);
         }
         assert!(font::supports(&m.test_result), "{}", m.test_result);
+    }
+
+    #[test]
+    fn kokoro_voices_show_who_they_are_in_the_row_and_below_it() {
+        let mut m = menu();
+        m.voices_learning = vec!["af_heart".into(), "bf_emma".into()];
+        let mut s = Settings { tts_engine: TtsEngine::Http, ..Default::default() };
+        select(&mut m, Item::VoiceLearning);
+        assert_eq!(
+            m.voice_note(&s).as_deref(),
+            Some("Automática, usa Heart: voz feminina, inglês americano (af_heart)")
+        );
+        m.key(Key::Right, &mut s);
+        m.key(Key::Right, &mut s);
+        assert_eq!(s.voice_learning, "bf_emma", "the setting keeps Kokoro's id");
+        assert_eq!(m.value(Item::VoiceLearning, &s), "Emma · RU");
+        assert_eq!(m.voice_note(&s).as_deref(), Some("Emma: voz feminina, inglês britânico (bf_emma)"));
+        select(&mut m, Item::VoiceNative);
+        assert_eq!(
+            m.voice_note(&s).as_deref(),
+            Some("Automática, usa Dora: voz feminina, português do Brasil (pf_dora)")
+        );
+        select(&mut m, Item::Speaker);
+        assert_eq!(m.voice_note(&s), None, "only on the voice rows");
+    }
+
+    #[test]
+    fn system_voices_keep_their_own_names() {
+        let mut m = menu();
+        let s = Settings { voice_learning: "Microsoft Zira Desktop".into(), ..Default::default() };
+        select(&mut m, Item::VoiceLearning);
+        assert_eq!(m.value(Item::VoiceLearning, &s), "Microsoft Zira Desk…");
+        assert_eq!(m.voice_note(&s), None, "nothing to decode outside Kokoro");
     }
 
     #[test]
