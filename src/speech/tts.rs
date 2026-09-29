@@ -54,13 +54,24 @@ $v = $s.GetInstalledVoices() | Where-Object { $_.VoiceInfo.Culture.Name -like ($
 if ($v) { $s.SelectVoice($v.VoiceInfo.Name) } }; \
 $s.Rate = [int]$env:SL_RATE; $s.Speak($env:SL_TEXT)";
 
-/// `slow` = the learner's target language: read a little slower.
+/// How fast a line is read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Speed {
+    /// Portuguese cues, recaps.
+    #[default]
+    Normal,
+    /// The learner's target language: a little slower.
+    Slow,
+    /// The target language for a pre-A1 learner, who knows no English yet.
+    Slower,
+}
+
 pub fn command(
     engine: Engine,
     text: &str,
     lang: &str,
     voice: &str,
-    slow: bool,
+    speed: Speed,
     mac_voices: &[(String, String)],
 ) -> Cmd {
     let loc = locale(lang);
@@ -69,8 +80,10 @@ pub fn command(
     let program = match engine {
         Engine::SpdSay => {
             args.extend(["-w".into(), "-l".into(), loc]);
-            if slow {
-                args.extend(["-r".into(), "-20".into()]);
+            match speed {
+                Speed::Normal => {}
+                Speed::Slow => args.extend(["-r".into(), "-20".into()]),
+                Speed::Slower => args.extend(["-r".into(), "-45".into()]),
             }
             if !voice.is_empty() {
                 args.extend(["-y".into(), voice.into()]);
@@ -85,7 +98,12 @@ pub fn command(
                 "-v".into(),
                 v,
                 "-s".into(),
-                if slow { "135" } else { "165" }.into(),
+                match speed {
+                    Speed::Normal => "165",
+                    Speed::Slow => "135",
+                    Speed::Slower => "110",
+                }
+                .into(),
                 "--".into(),
                 text.into(),
             ]);
@@ -96,8 +114,10 @@ pub fn command(
             if let Some(v) = chosen {
                 args.extend(["-v".into(), v]);
             }
-            if slow {
-                args.extend(["-r".into(), "150".into()]);
+            match speed {
+                Speed::Normal => {}
+                Speed::Slow => args.extend(["-r".into(), "150".into()]),
+                Speed::Slower => args.extend(["-r".into(), "120".into()]),
             }
             args.extend(["--".into(), text.into()]);
             "say"
@@ -107,7 +127,12 @@ pub fn command(
             env.push(("SL_TEXT".into(), text.into()));
             env.push(("SL_LANG".into(), loc));
             env.push(("SL_VOICE".into(), voice.into()));
-            env.push(("SL_RATE".into(), if slow { "-2" } else { "0" }.into()));
+            let rate = match speed {
+                Speed::Normal => "0",
+                Speed::Slow => "-2",
+                Speed::Slower => "-4",
+            };
+            env.push(("SL_RATE".into(), rate.into()));
             "powershell"
         }
     };
@@ -221,11 +246,11 @@ impl Tts {
     }
 
     /// Speaks and blocks until done.
-    pub fn speak(&self, text: &str, lang: &str, voice: &str, slow: bool) -> Result<()> {
+    pub fn speak(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<()> {
         let Some(engine) = self.engine else {
             bail!("no text-to-speech engine found (install speech-dispatcher or espeak-ng)");
         };
-        let cmd = command(engine, text, lang, voice, slow, &self.mac_voices);
+        let cmd = command(engine, text, lang, voice, speed, &self.mac_voices);
         let status = command_no_window(&cmd.program)
             .args(&cmd.args)
             .envs(cmd.env.iter().map(|(k, v)| (k, v)))
@@ -323,27 +348,41 @@ mod tests {
 
     #[test]
     fn spd_say_waits_and_slows_the_target_language() {
-        let c = command(Engine::SpdSay, "I'm hungry", "en", "", true, &[]);
+        let c = command(Engine::SpdSay, "I'm hungry", "en", "", Speed::Slow, &[]);
         assert_eq!(c.program, "spd-say");
         assert_eq!(c.args, vec!["-w", "-l", "en-US", "-r", "-20", "--", "I'm hungry"]);
+    }
+
+    #[test]
+    fn every_engine_has_a_slower_pace_for_beginners() {
+        let rate = |e, speed| command(e, "Hello.", "en", "", speed, &[]);
+        assert_eq!(rate(Engine::SpdSay, Speed::Slower).args[3..5], ["-r", "-45"]);
+        assert_eq!(rate(Engine::EspeakNg, Speed::Slower).args[3], "110");
+        assert_eq!(rate(Engine::EspeakNg, Speed::Normal).args[3], "165");
+        assert_eq!(rate(Engine::Say, Speed::Slower).args[0..2], ["-r", "120"]);
+        let sapi = |speed| rate(Engine::PowerShell, speed).env.into_iter().find(|(k, _)| k == "SL_RATE").unwrap().1;
+        assert_eq!(
+            (sapi(Speed::Normal), sapi(Speed::Slow), sapi(Speed::Slower)),
+            ("0".into(), "-2".into(), "-4".into())
+        );
     }
 
     #[test]
     fn text_is_passed_as_one_argument_never_through_a_shell() {
         let evil = "\"; rm -rf ~; echo \"";
         for e in [Engine::SpdSay, Engine::EspeakNg, Engine::Say] {
-            let c = command(e, evil, "en", "", false, &[]);
+            let c = command(e, evil, "en", "", Speed::Normal, &[]);
             assert_eq!(c.args.last().unwrap(), evil, "{e:?}");
         }
-        let ps = command(Engine::PowerShell, evil, "en", "", false, &[]);
+        let ps = command(Engine::PowerShell, evil, "en", "", Speed::Normal, &[]);
         assert!(!ps.args.iter().any(|a| a.contains(evil)), "PowerShell text must go through env");
         assert!(ps.env.contains(&("SL_TEXT".into(), evil.into())));
     }
 
     #[test]
     fn espeak_uses_its_own_voice_names() {
-        assert_eq!(command(Engine::EspeakNg, "oi", "pt-BR", "", false, &[]).args[1], "pt-br");
-        assert_eq!(command(Engine::EspeakNg, "hola", "es", "", false, &[]).args[1], "es");
+        assert_eq!(command(Engine::EspeakNg, "oi", "pt-BR", "", Speed::Normal, &[]).args[1], "pt-br");
+        assert_eq!(command(Engine::EspeakNg, "hola", "es", "", Speed::Normal, &[]).args[1], "es");
     }
 
     #[test]
@@ -354,15 +393,15 @@ mod tests {
                        Bad Line\n";
         let v = parse_mac_voices(listing);
         assert_eq!(v.len(), 3);
-        let c = command(Engine::Say, "Oi", "pt-BR", "", false, &v);
+        let c = command(Engine::Say, "Oi", "pt-BR", "", Speed::Normal, &v);
         assert_eq!(&c.args[..2], &["-v", "Luciana"]);
-        let c = command(Engine::Say, "Hola", "es", "", false, &v);
+        let c = command(Engine::Say, "Hola", "es", "", Speed::Normal, &v);
         assert_eq!(&c.args[..2], &["-v", "Mónica"]);
     }
 
     #[test]
     fn explicit_voice_wins() {
-        let c = command(Engine::SpdSay, "hi", "en", "Alex", false, &[]);
+        let c = command(Engine::SpdSay, "hi", "en", "Alex", Speed::Normal, &[]);
         assert!(c.args.windows(2).any(|w| w == ["-y", "Alex"]));
     }
 }

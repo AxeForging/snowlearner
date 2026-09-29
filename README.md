@@ -22,8 +22,8 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
 - ⚔️ A **warrior** tries to survive: builds *fogueiras*, sword-fights frost slimes and bats,
   gives you tips (false friends, pronunciation traps) — and freezes solid if you ignore him.
 - 🪜 You start from **zero**: first single words (*hello, water, thanks*), then short
-  expressions (*good morning, the check please*), and only then full phrases — easy (A1) to
-  harder (B2). A few new items at a time; learning one opens the next, and it tells you so.
+  expressions (*good morning, the check please*), and only then full phrases — pre-A1 (no
+  English at all) to B2. A few new items at a time; learning one opens the next, and it tells you so.
 - 🗣️ Everything is a **real situation** (meetings, travel, restaurant, doctor, phone, small
   talk…): new items you hear and repeat, known ones you say **from memory**. Missed ones come
   back until you get them; a recognizer slip of a letter or two doesn't count against you.
@@ -154,7 +154,7 @@ native = "pt-BR"
 commitment = "steady"    # chill | steady | committed | relentless
 practice = "auto"        # auto | repeat | recall
 topic = ""               # "" = all, or e.g. "trabalho", "viagem"
-max_level = "B2"         # A1..C2
+max_level = "B2"         # PRE-A1 | A1..C2
 daily_goal = 10
 listen_seconds = 6.0     # time to start answering (recall gets +4)
 mic = ""                 # "" = system default (see `snowlearner audio mics`)

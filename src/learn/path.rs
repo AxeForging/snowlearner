@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub const LEARNING_SLOTS: usize = 4;
 
 /// Unleveled (hand-curated) phrases sit with B1.
-const UNLEVELED_RANK: usize = 2;
+const UNLEVELED_LEVEL: &str = "B1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Stage {
@@ -75,7 +75,8 @@ pub fn is_started(s: PhraseStats) -> bool {
 /// Stage, then level; words and chunks keep the deck's teaching order
 /// (hello, bye, yes, no…), phrases go shorter first.
 fn rank(p: &Phrase) -> (Stage, usize, usize) {
-    let level = p.level.as_deref().and_then(|l| LEVELS.iter().position(|x| *x == l)).unwrap_or(UNLEVELED_RANK);
+    let rank_of = |l: &str| LEVELS.iter().position(|x| *x == l);
+    let level = p.level.as_deref().and_then(rank_of).or_else(|| rank_of(UNLEVELED_LEVEL)).unwrap_or(0);
     let stage = Stage::of(p);
     (stage, level, if stage == Stage::Phrases { p.say.chars().count() } else { 0 })
 }
@@ -165,6 +166,28 @@ mod tests {
                 "Where is the station?",
                 "Sorry, you're on mute",
                 "Could you walk me through it?"
+            ]
+        );
+    }
+
+    #[test]
+    fn pre_a1_comes_first_and_unleveled_phrases_still_sit_with_b1() {
+        let p = vec![
+            phrase("Where is the station, please?", None),
+            phrase("Could you send it tomorrow?", Some("A2")),
+            phrase("Water.", Some("A1")),
+            phrase("Could you walk me through the report?", Some("B2")),
+            phrase("Thanks.", Some("PRE-A1")),
+        ];
+        let says: Vec<&str> = ordered(&p, &all(&p)).iter().map(|&i| p[i].say.as_str()).collect();
+        assert_eq!(
+            says,
+            [
+                "Thanks.",
+                "Water.",
+                "Could you send it tomorrow?",
+                "Where is the station, please?",
+                "Could you walk me through the report?"
             ]
         );
     }

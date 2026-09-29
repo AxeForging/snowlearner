@@ -4,13 +4,14 @@
 //! recap. It drives the scene and asks the app to run speech jobs.
 
 use crate::learn::cue::Segment;
-use crate::learn::deck::{Deck, Phrase};
+use crate::learn::deck::{Deck, PRE_A1, Phrase};
 use crate::learn::path;
 use crate::learn::picker::{self, Mode, Practice};
 use crate::scene::Scene;
 use crate::scene::hud::{Caption, Meter, Stats, Status, SummaryLine, SummaryPanel};
 use crate::speech::endpoint::ListenPlan;
 use crate::speech::matcher::{self, WordHit};
+use crate::speech::tts::Speed;
 use crate::speech::worker::{Job, SpeechEvent, Utterance};
 use crate::store::history::{Attempt, History};
 use chrono::{DateTime, Local, NaiveTime};
@@ -146,6 +147,15 @@ impl Lesson {
         &self.opts
     }
 
+    /// Pre-A1: the learner knows no English yet.
+    fn beginner(&self) -> bool {
+        self.opts.max_level == PRE_A1
+    }
+
+    fn target_speed(&self) -> Speed {
+        target_speed(&self.opts.max_level)
+    }
+
     /// Switches language (deck) live. Cancels whatever is on screen.
     pub fn set_deck(&mut self, deck: Deck, scene: &mut Scene) {
         self.close(scene);
@@ -164,6 +174,22 @@ impl Lesson {
         self.combo = 0;
         scene.tips = self.tips();
         self.refresh_stats(scene);
+    }
+
+    /// Topics with something at the current level: what the panel offers.
+    pub fn topics(&self) -> Vec<String> {
+        self.deck.topics_at(&self.opts.max_level)
+    }
+
+    /// Drops a topic with nothing at the current level ("trabalho" at pre-A1)
+    /// and returns it, so the caller can say so and save the setting.
+    pub fn drop_empty_topic(&mut self, scene: &mut Scene) -> Option<String> {
+        let topic = self.opts.topic.clone()?;
+        if self.topics().contains(&topic) {
+            return None;
+        }
+        self.set_options(|o| o.topic = None, scene);
+        Some(topic)
     }
 
     pub fn set_options(&mut self, f: impl FnOnce(&mut Options), scene: &mut Scene) {
@@ -237,8 +263,12 @@ impl Lesson {
         segments
             .iter()
             .map(|s| match s {
-                Segment::Native(t) => Utterance { text: t.clone(), lang: self.opts.native.clone(), slow: false },
-                Segment::Target(t) => Utterance { text: t.clone(), lang: self.deck.language.clone(), slow: true },
+                Segment::Native(t) => {
+                    Utterance { text: t.clone(), lang: self.opts.native.clone(), speed: Speed::Normal }
+                }
+                Segment::Target(t) => {
+                    Utterance { text: t.clone(), lang: self.deck.language.clone(), speed: self.target_speed() }
+                }
             })
             .collect()
     }
@@ -352,7 +382,9 @@ impl Lesson {
             return;
         };
         let p = self.phrase(i).clone();
-        let mode = picker::mode_for(self.opts.practice, stats.get(&p.say).copied().unwrap_or_default());
+        // Someone who knows nothing yet always hears the answer first.
+        let practice = if self.beginner() { Practice::Repeat } else { self.opts.practice };
+        let mode = picker::mode_for(practice, stats.get(&p.say).copied().unwrap_or_default());
         self.last_phrase = Some(p.say.clone());
         let job = self.job_id();
         self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job };
@@ -452,7 +484,8 @@ impl Lesson {
             (State::Challenge { phrase, stage: Stage::Listening, tries, .. }, SpeechEvent::Heard { text, .. }) => {
                 let (phrase, tries) = (*phrase, *tries);
                 let p = self.phrase(phrase).clone();
-                let (m, _) = matcher::score_any(&p.answers(), &text);
+                let slack = if self.beginner() { matcher::BEGINNER_SLACK } else { 0 };
+                let (m, _) = matcher::score_any(&p.answers(), &text, slack);
                 let passed = m.passed(self.opts.threshold);
                 if !passed && matcher::is_hallucination(&text) {
                     // Whisper invented "Thank you for watching" out of noise: that's silence.
@@ -463,7 +496,7 @@ impl Lesson {
                 let words = if passed {
                     p.say.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
                 } else {
-                    matcher::score(&p.say, &text).words
+                    matcher::score_lenient(&p.say, &text, slack).words
                 };
                 if let Some(c) = &mut scene.hud.caption {
                     c.feedback = Some(words);
@@ -652,7 +685,7 @@ impl Lesson {
             c.meaning = p.meaning.clone();
             c.active = p.cue.iter().position(|s| matches!(s, Segment::Target(t) if *t == p.say));
         }
-        let part = Utterance { text: p.say.clone(), lang: self.deck.language.clone(), slow: true };
+        let part = Utterance { text: p.say.clone(), lang: self.deck.language.clone(), speed: self.target_speed() };
         jobs.push(Job::Speak { id: job, parts: vec![part] });
     }
 
@@ -680,12 +713,12 @@ impl Lesson {
                 n => format!("Resumo de hoje: você praticou {n} frases."),
             },
             lang: self.opts.native.clone(),
-            slow: false,
+            speed: Speed::Normal,
         }];
         parts.extend(rows.iter().map(|r| Utterance {
             text: r.say.clone(),
             lang: self.deck.language.clone(),
-            slow: true,
+            speed: self.target_speed(),
         }));
         scene.hud.caption = None;
         scene.hud.summary = Some(SummaryPanel {
@@ -709,6 +742,17 @@ impl Lesson {
         scene.hud.summary = None;
         scene.set_practicing(false);
     }
+}
+
+/// Says a topic had nothing at the level (the HUD then shows "todos os
+/// temas"); short enough for a 320 px window.
+pub fn topic_dropped(topic: &str) -> String {
+    format!("Sem {topic} nesse nível.")
+}
+
+/// How the target language is read: slower for a pre-A1 learner.
+pub fn target_speed(max_level: &str) -> Speed {
+    if max_level == PRE_A1 { Speed::Slower } else { Speed::Slow }
 }
 
 #[cfg(test)]
@@ -880,6 +924,66 @@ mod tests {
         assert_eq!(toast, "Nova etapa: expressões! Agora você junta palavras. Primeira: Good morning.");
     }
 
+    const PRE_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
+         [[phrase]]\nsay='Thanks.'\nmeaning='Obrigado.'\nsituation='O garçom traz a água.'\ntopic='restaurante'\nlevel='PRE-A1'";
+
+    /// A pre-A1 learner answers the only phrase with `heard`; true if it passed.
+    fn beginner_answers(max_level: &str, heard: &str) -> (bool, Vec<Utterance>, String) {
+        let mut o = options(true);
+        o.practice = Practice::Recall; // asks from memory, unless the learner knows nothing yet
+        o.max_level = max_level.into();
+        let mut f = fixture_with(o);
+        f.lesson.set_deck(Deck::parse(PRE_DECK).unwrap(), &mut f.scene);
+        let (id, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        let tag = f.scene.hud.caption.as_ref().unwrap().tag.clone();
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: heard.into() }));
+        (f.scene.hud.caption.as_ref().unwrap().status == Status::Passed, parts, tag)
+    }
+
+    #[test]
+    fn a_pre_a1_learner_always_hears_the_answer_slower_and_gets_a_gentler_check() {
+        let (passed, parts, tag) = beginner_answers(PRE_A1, "tenks");
+        assert!(tag.contains("repita"), "never from memory at pre-A1: {tag}");
+        let target = parts.iter().find(|p| p.lang == "en").expect("the answer is read out");
+        assert_eq!(target.speed, Speed::Slower);
+        assert!(passed, "one extra slip is fine for a beginner");
+
+        let (passed, parts, tag) = beginner_answers("A1", "tenks");
+        assert!(tag.contains("memória"), "{tag}");
+        assert!(parts.iter().all(|p| p.lang != "en" || p.speed == Speed::Slow));
+        assert!(!passed, "the usual check from A1 up");
+    }
+
+    #[test]
+    fn the_dropped_topic_notice_fits_the_narrowest_screen_for_every_topic() {
+        for lang in Deck::builtin_languages() {
+            for topic in Deck::builtin(lang).unwrap().topics() {
+                let text = topic_dropped(&topic);
+                assert!(text.contains(&topic));
+                assert!(crate::render::font::text_width(&text) <= 316, "{text:?} overflows a 320 px window");
+                assert!(crate::render::font::supports(&text), "{text:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_topic_with_nothing_at_the_level_is_dropped_and_named() {
+        let mut o = options(true);
+        o.topic = Some("trabalho".into());
+        o.max_level = "B2".into();
+        let mut f = fixture_with(o);
+        assert_eq!(f.lesson.drop_empty_topic(&mut f.scene), None, "trabalho has B2 phrases");
+        f.lesson.set_options(|o| o.max_level = PRE_A1.into(), &mut f.scene);
+        f.lesson.set_deck(Deck::parse(PRE_DECK).unwrap(), &mut f.scene);
+        f.lesson.set_options(|o| o.topic = Some("trabalho".into()), &mut f.scene);
+        assert_eq!(f.lesson.topics(), vec!["restaurante"], "the panel offers only what exists at pre-A1");
+        assert_eq!(f.lesson.drop_empty_topic(&mut f.scene).as_deref(), Some("trabalho"));
+        assert_eq!(f.lesson.options().topic, None);
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(!parts.is_empty(), "a lesson starts instead of 'Nenhuma frase com esse tema/nível'");
+    }
+
     #[test]
     fn challenge_reads_native_cue_in_native_voice_and_target_in_target_voice() {
         let mut f = fixture(true);
@@ -888,8 +992,8 @@ mod tests {
         let say = f.current_say();
         assert_eq!(parts.len(), 2);
         assert_eq!(parts[0].lang, "pt-BR");
-        assert!(!parts[0].slow);
-        assert_eq!((parts[1].text.as_str(), parts[1].lang.as_str(), parts[1].slow), (say.as_str(), "en", true));
+        assert_eq!(parts[0].speed, Speed::Normal);
+        assert_eq!((parts[1].text.as_str(), parts[1].lang.as_str(), parts[1].speed), (say.as_str(), "en", Speed::Slow));
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Speaking);
     }
 

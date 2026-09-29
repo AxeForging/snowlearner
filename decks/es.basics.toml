@@ -8,7 +8,7 @@ title = "Primeiros passos"
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você entra numa loja e o atendente olha pra você."
 say = "Hola."
 meaning = "Olá."
@@ -16,7 +16,7 @@ tip = "O 'h' é mudo: soa como 'óla'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você sai da padaria e acena para o caixa."
 say = "Adiós."
 meaning = "Tchau."
@@ -25,7 +25,7 @@ tip = "Na América do Sul se ouve muito 'chao' ou 'chau'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "O recepcionista pergunta se você tem reserva, e você tem."
 say = "Sí."
 meaning = "Sim."
@@ -33,7 +33,7 @@ tip = "Sem o 'm' do português: é só 'sí'."
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "O vendedor pergunta se você quer mais alguma coisa, e você não quer."
 say = "No."
 meaning = "Não."
@@ -41,7 +41,7 @@ tip = "Soa como 'nô', sem o som nasal do 'não'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Um desconhecido segura a porta pra você passar."
 say = "Gracias."
 meaning = "Obrigado."
@@ -49,7 +49,7 @@ tip = "Na Espanha o 'c' soa como 'th' do inglês; na América Latina, como 's'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você esbarra em alguém sem querer na fila."
 say = "Perdón."
 meaning = "Desculpa."
@@ -57,7 +57,7 @@ accept = ["Perdona", "Perdone"]
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você quer chamar a atenção do vendedor que está de costas."
 say = "Disculpe."
 meaning = "Com licença."
@@ -66,7 +66,7 @@ tip = "'Disculpe' é formal (usted); 'disculpa' é informal (tú)."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "No bar, o atendente pergunta o que você vai tomar."
 say = "Cerveza."
 meaning = "Cerveja."
@@ -84,7 +84,7 @@ tip = "O 'h' é mudo: soa como 'iêlo'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "No café da manhã do hotel, perguntam o que você quer beber."
 say = "Jugo."
 meaning = "Suco."
@@ -93,7 +93,7 @@ tip = "O 'j' é um 'r' forte de garganta: 'rrúgo'. Na Espanha se diz 'zumo'."
 
 [[phrase]]
 topic = "comida e compras"
-level = "A1"
+level = "PRE-A1"
 situation = "No mercado, a balconista pergunta o que falta na sua lista."
 say = "Leche."
 meaning = "Leite."
@@ -136,7 +136,7 @@ tip = "Falso amigo: 'propina' é gorjeta, não suborno (que é 'soborno')."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "No avião, a comissária pergunta se você quer frango ou massa."
 say = "Pollo."
 meaning = "Frango."
@@ -145,7 +145,7 @@ tip = "O 'll' soa como 'j' ou 'lh': 'pôjo'. Não é 'polo'!"
 
 [[phrase]]
 topic = "emergência"
-level = "A1"
+level = "PRE-A1"
 situation = "Você caiu na rua e não consegue levantar sozinho."
 say = "¡Ayuda!"
 meaning = "Socorro!"
@@ -153,7 +153,7 @@ accept = ["¡Socorro!", "¡Ayúdeme!"]
 
 [[phrase]]
 topic = "emergência"
-level = "A1"
+level = "PRE-A1"
 situation = "Uma pessoa vai atravessar a rua sem ver o carro vindo."
 say = "¡Cuidado!"
 meaning = "Cuidado!"
@@ -161,7 +161,7 @@ tip = "O 'd' entre vogais é bem suave, quase 'cuidáo'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O táxi está passando do seu destino e você precisa que ele pare."
 say = "¡Pare!"
 meaning = "Pare!"
@@ -169,7 +169,7 @@ accept = ["¡Pare aquí!"]
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O ônibus vai fechar a porta e você ainda está descendo a escada."
 say = "¡Espere!"
 meaning = "Espere!"
@@ -178,7 +178,7 @@ tip = "'Espere' é formal (usted); 'espera' é informal (tú)."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O motorista do aplicativo pergunta pra que lado virar na esquina."
 say = "Izquierda."
 meaning = "Esquerda."
@@ -187,7 +187,7 @@ tip = "Soa como 'iss-kiérda'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O motorista pergunta de novo, e agora é para o outro lado."
 say = "Derecha."
 meaning = "Direita."
@@ -205,7 +205,7 @@ tip = "O 'j' é um 'r' forte de garganta: 'lérros'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O mecânico pergunta quando você precisa do carro, e é pra hoje mesmo."
 say = "Hoy."
 meaning = "Hoje."
@@ -213,7 +213,7 @@ tip = "O 'h' é mudo: soa como 'ói'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "Perguntam quando você vai voltar pra buscar o conserto."
 say = "Mañana."
 meaning = "Amanhã."
@@ -229,7 +229,7 @@ tip = "Soa como 'ajér' ou 'aiêr'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "Na bilheteria do metrô, perguntam quantos bilhetes você quer, e é só pra você."
 say = "Uno."
 meaning = "Um."
@@ -237,7 +237,7 @@ accept = ["Solo uno", "Uno, por favor"]
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Você está com um amigo e o garçom pergunta quantos cafés."
 say = "Dos."
 meaning = "Dois."
@@ -246,7 +246,7 @@ tip = "É 'dôs', sem o 'i' do português."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "No elevador do hotel, alguém pergunta pra qual andar você vai."
 say = "Cuatro."
 meaning = "Quatro."
@@ -254,7 +254,7 @@ accept = ["Al cuatro", "Cuatro, por favor"]
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "Na banca, você pergunta o preço e precisa confirmar que são cinco pesos."
 say = "¿Cinco?"
 meaning = "Cinco?"
@@ -263,7 +263,7 @@ tip = "Na América Latina soa como 'sínco'."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "Alguém diz que o ponto de ônibus fica perto, mas você não vê nada."
 say = "¿Dónde?"
 meaning = "Onde?"
@@ -271,7 +271,7 @@ tip = "Com acento na pergunta: '¿dónde?'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "O garçom chega com o prato e não sabe onde colocar."
 say = "Aquí."
 meaning = "Aqui."
@@ -279,7 +279,7 @@ accept = ["Aquí, por favor"]
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O porteiro pergunta quando você quer o táxi, e é pra já."
 say = "Ahora."
 meaning = "Agora."
@@ -314,7 +314,7 @@ tip = "O 'j' é um 'r' forte de garganta: 'tar-rrêta'."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "Na cafeteria, perguntam se você quer o leite quente ou frio."
 say = "Caliente."
 meaning = "Quente."
@@ -365,7 +365,7 @@ tip = "O 'h' é mudo: 'almoáda'."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Todo mundo levanta o copo pra brindar no jantar."
 say = "¡Salud!"
 meaning = "Saúde!"
@@ -373,7 +373,7 @@ tip = "Também se diz '¡salud!' quando alguém espirra."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Te convidam pra uma festa, mas você ainda não sabe se vai."
 say = "Quizás."
 meaning = "Talvez."
@@ -382,7 +382,7 @@ tip = "Soa como 'kissás'."
 
 [[phrase]]
 topic = "rotina e transporte"
-level = "A1"
+level = "PRE-A1"
 situation = "O motorista está correndo demais e você está com medo."
 say = "¡Despacio!"
 meaning = "Devagar!"
@@ -391,7 +391,7 @@ tip = "Falso amigo: 'despacio' é devagar, não 'depressa'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Alguém se apresenta e você responde que é um prazer."
 say = "Encantado."
 meaning = "Prazer."
@@ -402,7 +402,7 @@ tip = "Homem diz 'encantado'; mulher diz 'encantada'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você chega no trabalho às oito e cumprimenta o porteiro."
 say = "Buenos días."
 meaning = "Bom dia."
@@ -411,7 +411,7 @@ tip = "No plural: 'buenos días'. Na Argentina se ouve 'buen día'."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você entra numa loja às três da tarde e cumprimenta a vendedora."
 say = "Buenas tardes."
 meaning = "Boa tarde."
@@ -419,7 +419,7 @@ accept = ["Buenas"]
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Você chega no restaurante às nove da noite e cumprimenta o garçom."
 say = "Buenas noches."
 meaning = "Boa noite."
@@ -428,7 +428,7 @@ tip = "Serve tanto para chegar quanto para se despedir."
 
 [[phrase]]
 topic = "restaurante"
-level = "A1"
+level = "PRE-A1"
 situation = "O garçom oferece mais pão e você aceita com educação."
 say = "Por favor."
 meaning = "Por favor."
@@ -437,7 +437,7 @@ tip = "Soa quase igual ao português, mas o 'r' final é vibrado: 'por fabór'."
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Um colega conta que o cachorro dele morreu."
 say = "Lo siento."
 meaning = "Sinto muito."
@@ -454,7 +454,7 @@ accept = ["¿Y el baño?", "¿Los servicios?"]
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "Na feira, você aponta para um pote de mel sem preço."
 say = "¿Cuánto es?"
 meaning = "Quanto é?"
@@ -511,7 +511,7 @@ meaning = "Hoje à noite."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "A atendente falou rápido demais e você não pegou o nome da rua."
 say = "¿Otra vez?"
 meaning = "De novo?"
@@ -519,7 +519,7 @@ accept = ["¿Otra vez, por favor?"]
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Você sai do curso e se despede dos colegas que vai ver no dia seguinte."
 say = "¡Hasta mañana!"
 meaning = "Até amanhã!"
@@ -586,7 +586,7 @@ tip = "'Aquí tiene' é formal; 'aquí tienes' é informal."
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A2"
+level = "PRE-A1"
 situation = "O atendente pede seu passaporte e você precisa procurar na mochila."
 say = "Un momento."
 meaning = "Um momento."
@@ -594,7 +594,7 @@ accept = ["Un momento, por favor", "Un segundo"]
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Sua amiga vai fazer uma entrevista de emprego amanhã."
 say = "¡Buena suerte!"
 meaning = "Boa sorte!"
@@ -602,7 +602,7 @@ accept = ["¡Mucha suerte!"]
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "É aniversário de um colega e ele chega no escritório."
 say = "¡Feliz cumpleaños!"
 meaning = "Feliz aniversário!"
@@ -618,7 +618,7 @@ accept = ["Claro", "Claro que sí"]
 
 [[phrase]]
 topic = "saúde e social"
-level = "A1"
+level = "PRE-A1"
 situation = "Um colega diz que adora pizza, e você também."
 say = "Yo también."
 meaning = "Eu também."
@@ -651,7 +651,7 @@ meaning = "Que horas?"
 
 [[phrase]]
 topic = "primeiros contatos"
-level = "A1"
+level = "PRE-A1"
 situation = "Alguém pergunta como você está, e você quer devolver a pergunta."
 say = "¿Y tú?"
 meaning = "E você?"
@@ -671,3 +671,153 @@ level = "A1"
 situation = "Seu amigo te chama da sala e você ainda está terminando de se arrumar."
 say = "¡Ya voy!"
 meaning = "Já vou!"
+
+# ---------------------------------------------------------------- pre-A1: numbers, days, okay
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "Na entrada do restaurante, o garçom pergunta quantas pessoas são: três."
+say = "Tres."
+meaning = "Três."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "No elevador, alguém pergunta pra que andar você vai: o sexto."
+say = "Seis."
+meaning = "Seis."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "A recepção do hotel pergunta a que horas você quer o café da manhã: às sete."
+say = "Siete."
+meaning = "Sete."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Na padaria, a atendente pergunta quantos pães você quer: oito."
+say = "Ocho."
+meaning = "Oito."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "O médico pergunta, de zero a dez, quanto está doendo: nove."
+say = "Nueve."
+meaning = "Nove."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Na feira, o vendedor pergunta quantas maçãs você quer: dez."
+say = "Diez."
+meaning = "Dez."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "O dentista pergunta que dia você pode voltar: segunda-feira."
+say = "Lunes."
+meaning = "Segunda-feira."
+accept = ["El lunes"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "Um colega pergunta quando é a festa: sexta-feira."
+say = "Viernes."
+meaning = "Sexta-feira."
+accept = ["El viernes"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "O taxista confirma o endereço que você mostrou e você concorda."
+say = "Está bien."
+meaning = "Tá bom."
+accept = ["Vale", "De acuerdo"]
+
+# ---------------------------------------------------------------- pre-A1: at work
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Um colega vê você saindo com o notebook e pergunta aonde você vai: pra reunião."
+say = "Reunión."
+meaning = "Reunião."
+accept = ["Una reunión"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "O cliente pergunta como pode te mandar o contrato: por e-mail."
+say = "Correo."
+meaning = "E-mail."
+accept = ["Por correo", "Email"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Meio-dia, um colega pergunta aonde todo mundo foi: almoçar."
+say = "Almuerzo."
+meaning = "Almoço."
+accept = ["La comida"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "O chefe pergunta se o relatório já ficou pronto, e ficou."
+say = "Terminado."
+meaning = "Pronto, feito."
+accept = ["Hecho", "Ya está"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Antes de começar a call, perguntam se você está pronto."
+say = "Listo."
+meaning = "Pronto."
+accept = ["Lista", "Estoy listo"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Você entra na call das nove com o time todo."
+say = "Hola a todos."
+meaning = "Bom dia, pessoal."
+accept = ["Buenos días a todos"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Primeiro dia no escritório, e o notebook está sem internet."
+say = "¿Contraseña del wifi?"
+meaning = "A senha do Wi-Fi?"
+accept = ["¿Clave del wifi?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Na chamada, o gerente pergunta se você está ouvindo."
+say = "Estoy aquí."
+meaning = "Estou aqui."
+accept = ["Aquí estoy"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Perguntam se você consegue terminar a tarefa hoje."
+say = "Sí, puedo."
+meaning = "Sim, consigo."
+accept = ["Sí, lo puedo hacer"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Um colega pergunta como falar com você mais tarde."
+say = "Llámame."
+meaning = "Me liga."
+accept = ["Llámeme"]

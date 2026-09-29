@@ -193,7 +193,7 @@ fn voices(settings: &Settings, action: VoicesAction) -> Result<()> {
             let name = name.unwrap_or_else(|| configured.clone());
             let text = text.unwrap_or_else(|| sample_text(&lang).to_string());
             println!("{} · {lang} · {}", voice.describe(), if name.is_empty() { "automatic voice" } else { &name });
-            voice.speak(&text, &lang, &name, false)?;
+            voice.speak(&text, &lang, &name, crate::speech::tts::Speed::Normal)?;
         }
     }
     Ok(())
@@ -281,9 +281,19 @@ fn report(settings: &Settings, paths: &Paths, date: Option<&str>, speak: bool) -
     println!("  {learned} de {} frases acertadas", rows.len());
     if speak {
         let tts = settings.voice();
-        tts.speak(&format!("Hoje você praticou {learned} frases."), &settings.native, &settings.voice_native, false)?;
+        tts.speak(
+            &format!("Hoje você praticou {learned} frases."),
+            &settings.native,
+            &settings.voice_native,
+            crate::speech::tts::Speed::Normal,
+        )?;
         for r in rows.iter().filter(|r| r.successes > 0) {
-            tts.speak(&r.say, &settings.learning, &settings.voice_learning, true)?;
+            tts.speak(
+                &r.say,
+                &settings.learning,
+                &settings.voice_learning,
+                crate::app::lesson::target_speed(&settings.max_level),
+            )?;
         }
     }
     Ok(())

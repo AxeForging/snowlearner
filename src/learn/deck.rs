@@ -31,7 +31,10 @@ const BUILTIN: &[(&str, &[&str])] = &[
     ),
 ];
 
-pub const LEVELS: &[&str] = &["A1", "A2", "B1", "B2", "C1", "C2"];
+/// CEFR levels, easiest first. Pre-A1 (CEFR Companion Volume, 2020) is the
+/// learner who knows nothing yet: isolated words and set expressions.
+pub const LEVELS: &[&str] = &[PRE_A1, "A1", "A2", "B1", "B2", "C1", "C2"];
+pub const PRE_A1: &str = "PRE-A1";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -223,8 +226,12 @@ impl Deck {
         (0..self.phrases.len())
             .filter(|&i| {
                 let p = &self.phrases[i];
-                let level_ok =
-                    p.level.as_deref().and_then(|l| LEVELS.iter().position(|x| *x == l)).is_none_or(|l| l <= max);
+                // Unleveled phrases count at every level but pre-A1, where
+                // someone who knows nothing must not get full phrases.
+                let level_ok = match p.level.as_deref().and_then(|l| LEVELS.iter().position(|x| *x == l)) {
+                    Some(l) => l <= max,
+                    None => max_level != PRE_A1,
+                };
                 level_ok && topic.is_none_or(|t| p.topic == t)
             })
             .collect()
@@ -247,6 +254,18 @@ impl Deck {
     }
 
     /// Topics in first-seen order.
+    /// Topics with something to practice at `max_level`, in deck order.
+    pub fn topics_at(&self, max_level: &str) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for i in self.selection(None, max_level) {
+            let t = &self.phrases[i].topic;
+            if !out.contains(t) {
+                out.push(t.clone());
+            }
+        }
+        out
+    }
+
     pub fn topics(&self) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
         for p in &self.phrases {
@@ -278,6 +297,21 @@ mod tests {
                 assert!(!p.meaning.is_empty(), "{:?} has no meaning", p.say);
                 assert!(p.situation.is_some(), "{:?} has no real-life situation", p.say);
                 assert_ne!(p.topic, DEFAULT_TOPIC, "{:?} has no topic", p.say);
+            }
+        }
+    }
+
+    #[test]
+    fn builtin_decks_give_a_pre_a1_learner_words_and_set_expressions_only() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            let pre = deck.selection(None, PRE_A1);
+            assert!(pre.len() >= 60, "{lang}: only {} pre-A1 items", pre.len());
+            for &i in &pre {
+                let p = &deck.phrases[i];
+                assert_eq!(p.level.as_deref(), Some(PRE_A1), "{lang}: {:?} is not pre-A1", p.say);
+                assert!(p.say.split_whitespace().count() <= 3, "{lang}: {:?} is a full phrase", p.say);
+                assert!(crate::render::font::supports(&format!("{} {}", p.say, p.meaning)), "{lang}: {:?}", p.say);
             }
         }
     }
@@ -361,6 +395,37 @@ mod tests {
         assert_eq!(a.phrases.iter().map(|p| p.say.as_str()).collect::<Vec<_>>(), vec!["I'm hungry", "New one"]);
         assert_eq!(a.phrases[0].meaning, "x", "the first (curated) version wins");
         assert_eq!(a.tips, vec!["t"]);
+    }
+
+    #[test]
+    fn pre_a1_is_below_a1_and_keeps_beginners_to_their_own_items() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='Hello.'\nmeaning='x'\nlevel='pre-a1'\n\
+             [[phrase]]\nsay='Good morning.'\nmeaning='x'\nlevel='A1'\n\
+             [[phrase]]\nsay='Where is the station?'\nmeaning='x'"
+        ))
+        .unwrap();
+        assert_eq!(LEVELS[0], PRE_A1);
+        assert_eq!(d.phrases[0].level.as_deref(), Some(PRE_A1), "any case is read as PRE-A1");
+        assert_eq!(
+            d.selection(None, PRE_A1),
+            vec![0],
+            "neither A1 nor unleveled phrases for someone who knows nothing"
+        );
+        assert_eq!(d.selection(None, "A1"), vec![0, 1, 2], "A1 and up still take pre-A1 and unleveled phrases");
+    }
+
+    #[test]
+    fn topics_at_a_level_are_those_with_something_to_practice_there() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='a'\nmeaning='x'\ntopic='viagem'\nlevel='PRE-A1'\n\
+             [[phrase]]\nsay='b'\nmeaning='x'\ntopic='trabalho'\nlevel='B1'\n\
+             [[phrase]]\nsay='c'\nmeaning='x'\ntopic='compras'\nlevel='A1'"
+        ))
+        .unwrap();
+        assert_eq!(d.topics_at(PRE_A1), vec!["viagem"]);
+        assert_eq!(d.topics_at("A1"), vec!["viagem", "compras"]);
+        assert_eq!(d.topics_at("C2"), d.topics(), "every topic once nothing is filtered out");
     }
 
     #[test]

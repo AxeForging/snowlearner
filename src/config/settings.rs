@@ -119,7 +119,7 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # learning: deck to practice (\"en\", \"es\" or a custom decks/<name>.toml)\n\
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
-    # topic: \"\" for all, or e.g. \"trabalho\"    max_level: A1..C2\n\n";
+    # topic: \"\" for all, or e.g. \"trabalho\"    max_level: PRE-A1, A1..C2\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -128,7 +128,8 @@ impl Settings {
             return Ok(Settings::default());
         }
         let src = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-        let s: Settings = toml::from_str(&src).with_context(|| format!("invalid config {}", path.display()))?;
+        let mut s: Settings = toml::from_str(&src).with_context(|| format!("invalid config {}", path.display()))?;
+        s.max_level = s.max_level.trim().to_uppercase(); // "pre-a1", "b1" …
         s.validate().with_context(|| format!("invalid config {}", path.display()))?;
         Ok(s)
     }
@@ -246,6 +247,7 @@ mod tests {
             ("listen_seconds = 1.0", "listen_seconds"),
             ("learning = ''", "learning"),
             ("max_level = 'Z1'", "max_level"),
+            ("max_level = 'C3'", "max_level"),
             ("daily_goal = 0", "daily_goal"),
             ("tts_engine = 'http'\ntts_url = 'localhost'", "tts_url"),
             ("tts_engine = 'command'", "tts_command"),
@@ -290,5 +292,13 @@ mod tests {
         assert_eq!(Settings::load(&p).unwrap(), Settings::default());
         assert!(Settings::write_default(&p, false).is_err());
         Settings::write_default(&p, true).unwrap();
+    }
+
+    #[test]
+    fn pre_a1_is_a_level_whatever_the_case_it_is_written_in() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        std::fs::write(&path, "max_level = \"pre-a1\"\n").unwrap();
+        assert_eq!(Settings::load(&path).unwrap().max_level, "PRE-A1");
     }
 }

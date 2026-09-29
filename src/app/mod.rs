@@ -5,6 +5,7 @@ pub mod lesson;
 pub mod menu;
 pub mod platform;
 
+use crate::app::lesson::target_speed;
 use crate::config::level::Commitment;
 use crate::config::paths::Paths;
 use crate::config::settings::Settings;
@@ -15,6 +16,7 @@ use crate::render::canvas::Canvas;
 use crate::render::screen::Screen;
 use crate::scene::Scene;
 use crate::scene::hud::Cheats;
+use crate::speech::tts::Speed;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
 use crate::store::history::History;
 use anyhow::{Context, Result};
@@ -505,6 +507,24 @@ impl App {
             }
             _ => {}
         }
+        if matches!(item, Item::Language | Item::Level) {
+            self.fit_topic();
+        }
+    }
+
+    /// Keeps topic and level compatible: the panel lists only topics with
+    /// something at this level, and a topic left with nothing is dropped
+    /// (saved, and said) instead of every lesson failing to find a phrase.
+    fn fit_topic(&mut self) {
+        self.menu.topics = self.lesson.topics();
+        let Some(scene) = &mut self.scene else { return };
+        if let Some(topic) = self.lesson.drop_empty_topic(scene) {
+            self.settings.topic.clear();
+            if let Err(e) = self.settings.save(&self.paths.config_file()) {
+                eprintln!("could not save settings: {e:#}");
+            }
+            scene.hud.toast(crate::app::lesson::topic_dropped(&topic), 6.0);
+        }
     }
 
     fn menu_action(&mut self, action: Action, el: &ActiveEventLoop) {
@@ -537,9 +557,13 @@ impl App {
                     Utterance {
                         text: "Olá! Esta é a voz em português.".into(),
                         lang: self.settings.native.clone(),
-                        slow: false,
+                        speed: Speed::Normal,
                     },
-                    Utterance { text: sample.into(), lang: self.settings.learning.clone(), slow: true },
+                    Utterance {
+                        text: sample.into(),
+                        lang: self.settings.learning.clone(),
+                        speed: target_speed(&self.settings.max_level),
+                    },
                 ];
                 self.speech.send(Job::Speak { id: self.test_id, parts });
             }
@@ -815,6 +839,7 @@ impl ApplicationHandler<UserEvent> for App {
         let hint = if self.resolved.overlay { self.settings.hotkey_menu.clone() } else { "H".into() };
         scene.hud.toast(format!("Snowlearner · {} · ajuda/painel: {hint}", self.commitment.label_pt()), 5.0);
         self.scene = Some(scene);
+        self.fit_topic();
         if self.resolved.overlay {
             self.open_orb(el);
         }
