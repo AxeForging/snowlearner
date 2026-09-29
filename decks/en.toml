@@ -412,3 +412,181 @@ situation = "Precisa de ajuda urgente na rua."
 say = "Can you help me, please?"
 meaning = "Você pode me ajudar, por favor?"
 accept = ["Could you help me, please?", "Can you help me?"]
+
+# ---------------------------------------------------------------- work, A1 and A2 (pre-A1 is in basics)
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Seu celular toca durante a reunião e você atende rapidinho pra avisar."
+say = "I'm in a meeting."
+meaning = "Estou numa reunião."
+accept = ["I'm in a meeting now"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um colega chega na sua mesa enquanto você está numa ligação."
+say = "I'm on a call."
+meaning = "Estou numa ligação."
+accept = ["I'm on the phone"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Na festa da empresa, alguém de outra área pergunta o que você faz."
+say = "I work in IT."
+meaning = "Trabalho com TI."
+accept = ["I work in tech", "I work in technology"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um colega pergunta a que horas é a reunião de hoje."
+say = "The meeting is at ten."
+meaning = "A reunião é às dez."
+accept = ["It's at ten"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Primeiro dia no escritório, você procura onde vai ser a reunião."
+say = "Where is the meeting room?"
+meaning = "Onde fica a sala de reunião?"
+accept = ["Where's the meeting room?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Na call, o cliente falou rápido e você não pegou o número do pedido."
+say = "Can you repeat, please?"
+meaning = "Pode repetir, por favor?"
+accept = ["Can you repeat that, please?", "Repeat, please"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um cliente chega e você apresenta a pessoa que coordena o seu time."
+say = "This is my manager."
+meaning = "Esse é o meu gerente."
+accept = ["This is my boss"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "No fim da apresentação, perguntam se alguém tem dúvidas, e você tem."
+say = "I have a question."
+meaning = "Tenho uma pergunta."
+accept = ["I've got a question"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Você acorda com febre e avisa o time no chat que não vai trabalhar."
+say = "I'm sick today."
+meaning = "Estou doente hoje."
+accept = ["I'm ill today"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um colega passou meia hora te ajudando a configurar o notebook."
+say = "Thanks for your help."
+meaning = "Obrigado pela ajuda."
+accept = ["Thank you for your help"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Sexta à tarde, você sai do escritório e se despede do time."
+say = "See you on Monday."
+meaning = "Até segunda."
+accept = ["See you Monday"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Um colega quer conversar, mas você está no meio de uma entrega."
+say = "Can we talk after lunch?"
+meaning = "Podemos conversar depois do almoço?"
+accept = ["Could we talk after lunch?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "O cliente pergunta quando vai receber a proposta."
+say = "I'll send the email today."
+meaning = "Mando o e-mail hoje."
+accept = ["I will send the email today"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Um colega pergunta se você vai ao escritório hoje."
+say = "I'm working from home today."
+meaning = "Hoje estou trabalhando de casa."
+accept = ["I'm working remotely today"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "A reunião já começou e você não acha o convite na agenda."
+say = "Can you send me the link?"
+meaning = "Pode me mandar o link?"
+accept = ["Could you send me the link?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você entra atrasado na call e explica o motivo."
+say = "My internet is down."
+meaning = "Minha internet caiu."
+accept = ["My internet isn't working"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Na call, o som do colega some de repente."
+say = "I can't hear you."
+meaning = "Não estou te ouvindo."
+accept = ["I cannot hear you"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você avisa um colega que a reunião de quarta mudou de dia."
+say = "The meeting was moved to Friday."
+meaning = "A reunião mudou pra sexta."
+accept = ["They moved the meeting to Friday"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "O trânsito parou e você avisa no chat que vai chegar atrasado."
+say = "I'll be five minutes late."
+meaning = "Vou atrasar cinco minutos."
+accept = ["I'm going to be five minutes late"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você quer marcar uma conversa com um cliente e pergunta o melhor horário."
+say = "What time works for you?"
+meaning = "Que horário fica bom pra você?"
+accept = ["What time is good for you?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "O chefe pergunta como está o relatório do mês."
+say = "I finished the report."
+meaning = "Terminei o relatório."
+accept = ["I've finished the report"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você combina com um colega de revisar o projeto juntos."
+say = "Let's meet tomorrow at nine."
+meaning = "Vamos nos ver amanhã às nove."
+accept = ["Let's meet at nine tomorrow"]

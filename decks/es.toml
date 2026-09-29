@@ -343,3 +343,181 @@ situation = "Precisa de ajuda na rua."
 say = "¿Me puede ayudar, por favor?"
 meaning = "Pode me ajudar, por favor?"
 accept = ["¿Me puedes ayudar?", "Ayúdeme, por favor"]
+
+# ---------------------------------------------------------------- work, A1 and A2 (pre-A1 is in basics)
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Seu celular toca durante a reunião e você atende rapidinho pra avisar."
+say = "Estoy en una reunión."
+meaning = "Estou numa reunião."
+accept = ["Estoy en reunión"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um colega chega na sua mesa enquanto você está numa ligação."
+say = "Estoy en una llamada."
+meaning = "Estou numa ligação."
+accept = ["Estoy al teléfono"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Na festa da empresa, alguém de outra área pergunta o que você faz."
+say = "Trabajo en informática."
+meaning = "Trabalho com TI."
+accept = ["Trabajo en tecnología", "Trabajo en sistemas"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um colega pergunta a que horas é a reunião de hoje."
+say = "La reunión es a las diez."
+meaning = "A reunião é às dez."
+accept = ["Es a las diez"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Primeiro dia no escritório, você procura onde vai ser a reunião."
+say = "¿Dónde está la sala de reuniones?"
+meaning = "Onde fica a sala de reunião?"
+accept = ["¿Dónde es la sala de reuniones?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Na call, o cliente falou rápido e você não pegou o número do pedido."
+say = "¿Puede repetir, por favor?"
+meaning = "Pode repetir, por favor?"
+accept = ["¿Puedes repetir, por favor?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um cliente chega e você apresenta a pessoa que coordena o seu time."
+say = "Este es mi jefe."
+meaning = "Esse é o meu gerente."
+accept = ["Esta es mi jefa"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "No fim da apresentação, perguntam se alguém tem dúvidas, e você tem."
+say = "Tengo una pregunta."
+meaning = "Tenho uma pergunta."
+accept = ["Tengo una duda"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Você acorda com febre e avisa o time no chat que não vai trabalhar."
+say = "Hoy estoy enfermo."
+meaning = "Estou doente hoje."
+accept = ["Hoy estoy enferma", "Estoy enfermo hoy"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Um colega passou meia hora te ajudando a configurar o notebook."
+say = "Gracias por tu ayuda."
+meaning = "Obrigado pela ajuda."
+accept = ["Gracias por su ayuda"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Sexta à tarde, você sai do escritório e se despede do time."
+say = "Nos vemos el lunes."
+meaning = "Até segunda."
+accept = ["Hasta el lunes"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Um colega quer conversar, mas você está no meio de uma entrega."
+say = "¿Hablamos después del almuerzo?"
+meaning = "Podemos conversar depois do almoço?"
+accept = ["¿Podemos hablar después de comer?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "O cliente pergunta quando vai receber a proposta."
+say = "Hoy te mando el correo."
+meaning = "Mando o e-mail hoje."
+accept = ["Te envío el correo hoy"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Um colega pergunta se você vai ao escritório hoje."
+say = "Hoy trabajo desde casa."
+meaning = "Hoje estou trabalhando de casa."
+accept = ["Hoy trabajo en remoto"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "A reunião já começou e você não acha o convite na agenda."
+say = "¿Me mandas el enlace?"
+meaning = "Pode me mandar o link?"
+accept = ["¿Me puedes enviar el enlace?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você entra atrasado na call e explica o motivo."
+say = "No me funciona internet."
+meaning = "Minha internet caiu."
+accept = ["Se me cayó internet"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Na call, o som do colega some de repente."
+say = "No te oigo."
+meaning = "Não estou te ouvindo."
+accept = ["No te escucho", "No lo escucho"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você avisa um colega que a reunião de quarta mudou de dia."
+say = "La reunión se movió al viernes."
+meaning = "A reunião mudou pra sexta."
+accept = ["Cambiaron la reunión al viernes"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "O trânsito parou e você avisa no chat que vai chegar atrasado."
+say = "Llego cinco minutos tarde."
+meaning = "Vou atrasar cinco minutos."
+accept = ["Voy a llegar cinco minutos tarde"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você quer marcar uma conversa com um cliente e pergunta o melhor horário."
+say = "¿A qué hora te viene bien?"
+meaning = "Que horário fica bom pra você?"
+accept = ["¿Qué hora te queda bien?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "O chefe pergunta como está o relatório do mês."
+say = "Terminé el informe."
+meaning = "Terminei o relatório."
+accept = ["Ya terminé el informe"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A2"
+situation = "Você combina com um colega de revisar o projeto juntos."
+say = "Nos vemos mañana a las nueve."
+meaning = "Vamos nos ver amanhã às nove."
+accept = ["Quedamos mañana a las nueve"]
