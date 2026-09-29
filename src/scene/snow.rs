@@ -46,7 +46,22 @@ impl Snow {
         }
     }
 
-    /// Adds a thin even layer (falling flakes settling).
+    /// One settled snowflake: exactly one pixel on the column it landed on.
+    /// False when it missed the pile or the column is already at the cap.
+    pub fn add_grain(&mut self, x: f32) -> bool {
+        if x < 0.0 {
+            return false;
+        }
+        match self.heights.get_mut(x as usize) {
+            Some(h) if *h < self.cap => {
+                *h = (*h + 1.0).min(self.cap);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Adds a thin even layer.
     pub fn dust(&mut self, amount: f32) {
         for h in &mut self.heights {
             *h = (*h + amount).min(self.cap);
@@ -134,6 +149,19 @@ impl Snow {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_grain_adds_exactly_one_pixel_to_its_column_up_to_the_cap() {
+        let mut s = Snow::new(10, 3.0);
+        assert!(s.add_grain(4.7));
+        assert_eq!(s.height_at(4.0), 1.0);
+        assert_eq!(s.fill(), 1.0 / 30.0, "only that column");
+        s.add_grain(4.2);
+        s.add_grain(4.9);
+        assert!(!s.add_grain(4.5), "full column takes no more");
+        assert_eq!(s.height_at(4.0), 3.0);
+        assert!(!s.add_grain(-3.0) && !s.add_grain(10.0), "off the pile");
+    }
 
     #[test]
     fn add_piles_snow_around_the_impact_point() {
