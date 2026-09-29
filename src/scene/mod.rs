@@ -789,6 +789,7 @@ impl Scene {
                 bites += 1;
             }
         }
+        mobs::separate(&mut self.mobs, dt);
         self.mobs.retain(Mob::present);
         if bites > 0 && !frozen {
             self.warrior.warmth = (self.warrior.warmth - 0.06 * bites as f32).max(0.01);
@@ -899,18 +900,24 @@ impl Scene {
         self.mobs.iter().filter(|m| m.fighting()).count()
     }
 
-    /// A wave of 1–3 frost mobs from the edge farther from the warrior.
+    /// A wave of 1–3 frost mobs, usually from the edge farther from the
+    /// warrior, sometimes split between both. Each one starts its own distance
+    /// off-screen, so they arrive one by one instead of in formation.
     pub fn spawn_mobs(&mut self) {
         let w = self.w as f32;
         let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
         let n = 1 + (self.rng.f32() * 3.0) as usize;
-        for i in 0..n {
+        let split = n > 1 && self.rng.chance(MOB_WAVE_SPLIT);
+        for _ in 0..n {
             if self.mobs.len() >= 5 {
                 break;
             }
             let kind = if self.rng.chance(0.6) { mobs::Kind::Slime } else { mobs::Kind::Bat };
-            let x = if wc > w / 2.0 { -10.0 - i as f32 * 14.0 } else { w + 2.0 + i as f32 * 14.0 };
-            self.mobs.push(Mob::new(kind, x));
+            let mut mob = Mob::new(kind, 0.0, &mut self.rng);
+            let from_left = if split { self.rng.chance(0.5) } else { wc > w / 2.0 };
+            let late = self.rng.range(0.0, MOB_ARRIVAL_SPREAD_S) * kind.speed() * mob.pace;
+            mob.x = if from_left { -10.0 - late } else { w + 2.0 + late };
+            self.mobs.push(mob);
         }
         self.warrior.say("Monstros de gelo! Deixa comigo!", 2.5);
     }
@@ -1122,6 +1129,11 @@ impl Scene {
 fn lands_on_pile(f: &Flake, transparent: bool) -> bool {
     transparent || f.speed >= 9.0
 }
+
+/// Mobs of a wave reach the screen up to this many seconds apart.
+const MOB_ARRIVAL_SPREAD_S: f32 = 4.0;
+/// Share of multi-mob waves whose mobs each pick a side of the screen.
+const MOB_WAVE_SPLIT: f32 = 0.35;
 
 fn ground_at(snow: &Snow, transparent: bool, h: i32, x: f32) -> f32 {
     let g = if transparent { h as f32 } else { (h - GROUND_BAND) as f32 };
@@ -1562,5 +1574,39 @@ mod tests {
         assert_eq!(falling(&s), 0, "no new snowfall while you practice");
         let added = pile(&s) - before;
         assert!((added - in_air as f32).abs() < 0.5, "the {in_air} flakes in the air settled, pile grew {added}");
+    }
+
+    /// Waves over many seeds: where each mob starts, relative to its side.
+    fn waves(n: u64) -> Vec<Vec<f32>> {
+        (0..n)
+            .map(|seed| {
+                let mut s = Scene::new(240, 135, seed, Commitment::Chill.pace(), true);
+                s.spawn_mobs();
+                s.mobs.iter().map(|m| m.x).collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_wave_arrives_spread_out_not_in_a_fixed_formation() {
+        let mut gaps = Vec::new();
+        for wave in waves(200) {
+            let mut left: Vec<f32> = wave.iter().copied().filter(|x| *x < 0.0).collect();
+            left.sort_by(f32::total_cmp);
+            gaps.extend(left.windows(2).map(|w| w[1] - w[0]));
+        }
+        assert!(gaps.len() > 20, "enough multi-mob waves: {}", gaps.len());
+        let fixed = gaps.iter().filter(|g| (**g - 14.0).abs() < 0.5).count();
+        assert!(fixed * 10 < gaps.len(), "still mostly 14 px apart: {fixed}/{}", gaps.len());
+        let (lo, hi) = gaps.iter().fold((f32::MAX, f32::MIN), |(l, h), g| (l.min(*g), h.max(*g)));
+        assert!(hi - lo > 30.0, "arrival gaps barely vary: {lo}..{hi}");
+    }
+
+    #[test]
+    fn some_waves_come_from_both_sides() {
+        let multi: Vec<Vec<f32>> = waves(300).into_iter().filter(|w| w.len() > 1).collect();
+        let both = multi.iter().filter(|w| w.iter().any(|x| *x < 0.0) && w.iter().any(|x| *x > 240.0)).count();
+        let share = both as f32 / multi.len() as f32;
+        assert!((0.1..0.4).contains(&share), "{both} of {} multi-mob waves split", multi.len());
     }
 }
