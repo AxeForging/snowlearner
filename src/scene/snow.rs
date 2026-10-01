@@ -1,8 +1,7 @@
 //! The snow pile along the bottom of the screen: one height per column.
 //! Ice cubes and summons add to it, speaking melts it, campfires thaw it locally.
 
-use super::rng::hash01;
-use crate::render::canvas::{Canvas, Rgba, bayer, hex};
+use crate::render::canvas::{Rgba, bayer, hex};
 
 /// Dark rim drawn past a pile's surface over the desktop, so it shows on light windows.
 pub const OUTLINE: Rgba = hex(0x5c6fb0);
@@ -123,30 +122,6 @@ impl Snow {
     /// 0 = bare, 1 = every column at the cap.
     pub fn fill(&self) -> f32 {
         self.heights.iter().sum::<f32>() / (self.heights.len() as f32 * self.cap)
-    }
-
-    /// `outline` draws a darker rim on the surface so the pile stays visible
-    /// over light desktop windows in overlay mode.
-    pub fn draw(&self, c: &mut Canvas, ground_y: i32, time: f32, outline: bool) {
-        for (x, &h) in self.heights.iter().enumerate() {
-            let x = x as i32;
-            let hh = h.round() as i32;
-            if hh <= 0 {
-                continue;
-            }
-            let top = ground_y - hh;
-            if outline {
-                c.set(x, top - 1, OUTLINE);
-            }
-            for y in top..ground_y {
-                c.set(x, y, shade(y - top, x, y));
-            }
-            // Twinkling ice crystals near the surface.
-            let n = hash01(x, 91);
-            if n > 0.93 && ((time * 2.0 + n * 10.0).sin() > 0.6) {
-                c.set(x, top + 1, hex(0xffffff));
-            }
-        }
     }
 }
 

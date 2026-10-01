@@ -1,10 +1,9 @@
 //! Snow stuck to the top, left and right edges of the screen: flakes the wind
 //! blows into a side wall stay on the row they hit, the top corners ice over
 //! on their own, and summoned friends burst snow onto the nearest edge.
-//! Speaking melts it. Drawn like the ground pile, the edge being its floor.
+//! Speaking melts it. Drawn with the ground pile as one blanket (`blanket.rs`).
 
-use super::snow::{OUTLINE, shade};
-use crate::render::canvas::Canvas;
+use super::rng::hash01;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Edge {
@@ -75,16 +74,25 @@ impl Frost {
         }
     }
 
+    /// How deep row/column `i` of `edge` may get: the cap rises and falls a
+    /// little along the edge, so a full wall reads as drifts, not a ruler.
+    fn cap_at(&self, edge: Edge, i: usize) -> f32 {
+        let salt = edge as i32 * 17 + 5;
+        let (cell, t) = ((i / 24) as i32, (i % 24) as f32 / 24.0);
+        let s = t * t * (3.0 - 2.0 * t);
+        self.max_depth * (0.8 + 0.2 * (hash01(cell, salt) * (1.0 - s) + hash01(cell + 1, salt) * s))
+    }
+
     /// Adds a patch of snow on `edge`, centered at `pos` (x for the top edge, y
     /// for the sides); `strength` is in the 22%-cap units it was tuned in.
     pub fn burst(&mut self, edge: Edge, pos: f32, strength: f32, radius: f32) {
-        let (max, strength) = (self.max_depth, strength * EDGE_CAP / TUNED_FOR_CAP);
-        let v = self.edge_mut(edge);
+        let strength = strength * EDGE_CAP / TUNED_FOR_CAP;
+        let len = self.edge_mut(edge).len() as i64;
         let (lo, hi) = ((pos - radius * 2.0).floor() as i64, (pos + radius * 2.0).ceil() as i64);
-        for i in lo.max(0)..=hi.min(v.len() as i64 - 1) {
-            let d = (i as f32 - pos) / radius;
-            let cell = &mut v[i as usize];
-            *cell = (*cell + strength * (-d * d).exp()).min(max);
+        for i in lo.max(0)..=hi.min(len - 1) {
+            let (d, cap) = ((i as f32 - pos) / radius, self.cap_at(edge, i as usize));
+            let cell = &mut self.edge_mut(edge)[i as usize];
+            *cell = (*cell + strength * (-d * d).exp()).min(cap);
         }
     }
 
@@ -101,13 +109,13 @@ impl Frost {
     /// One flake stuck to `edge` at `pos`: exactly one pixel on that row.
     /// False when it missed the wall or that row is already at the cap.
     pub fn add_grain(&mut self, edge: Edge, pos: f32) -> bool {
-        let max = self.max_depth;
         if pos < 0.0 {
             return false;
         }
+        let cap = self.cap_at(edge, pos as usize);
         match self.edge_mut(edge).get_mut(pos as usize) {
-            Some(d) if *d < max => {
-                *d = (*d + 1.0).min(max);
+            Some(d) if *d < cap => {
+                *d = (*d + 1.0).min(cap);
                 true
             }
             _ => false,
@@ -154,42 +162,18 @@ impl Frost {
         let n = (self.top.len() + self.left.len() + self.right.len()) as f32;
         total / (n * self.max_depth)
     }
-
-    /// Solid from the edge to the surface, shaded like the ground pile;
-    /// `outline` adds its dark rim past the surface (over the desktop).
-    pub fn draw(&self, c: &mut Canvas, outline: bool) {
-        let w = self.w;
-        for (i, &d) in self.top.iter().enumerate() {
-            pile(c, d, outline, |k| (i as i32, k));
-        }
-        for (i, &d) in self.left.iter().enumerate() {
-            pile(c, d, outline, |k| (k, i as i32));
-        }
-        for (i, &d) in self.right.iter().enumerate() {
-            pile(c, d, outline, |k| (w - 1 - k, i as i32));
-        }
-    }
-}
-
-/// One row of edge snow, `depth` px deep; `at(k)` is the pixel `k` px in from the edge.
-fn pile(c: &mut Canvas, depth: f32, outline: bool, at: impl Fn(i32) -> (i32, i32)) {
-    let d = depth.round() as i32;
-    if d <= 0 {
-        return;
-    }
-    for k in 0..d {
-        let (x, y) = at(k);
-        c.set(x, y, shade(d - 1 - k, x, y));
-    }
-    if outline {
-        let (x, y) = at(d);
-        c.set(x, y, OUTLINE);
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::render::canvas::Canvas;
+
+    /// The edges alone, drawn the way the scene draws them.
+    fn draw(c: &mut Canvas, f: &Frost, outline: bool) {
+        let snow = super::super::snow::Snow::new(c.w, 1.0);
+        super::super::blanket::Blanket::default().draw(c, &snow, f, c.h, 0.0, outline);
+    }
 
     #[test]
     fn nearest_edge_picks_the_closest_side() {
@@ -228,7 +212,7 @@ mod tests {
             f.creep(1.0, 0.2);
         }
         let mut c = Canvas::new(200, 100);
-        f.draw(&mut c, false);
+        draw(&mut c, &f, false);
         let corner = c.opaque_in(0, 0, 20, 20);
         let center = c.opaque_in(90, 40, 20, 20);
         assert!(corner > 0 && center == 0, "corner {corner} center {center}");
@@ -239,7 +223,7 @@ mod tests {
         let mut f = Frost::new(120, 80);
         f.burst(Edge::Right, 40.0, 30.0, 10.0);
         let mut c = Canvas::new(120, 80);
-        f.draw(&mut c, false);
+        draw(&mut c, &f, false);
         assert!(c.opaque_in(100, 30, 20, 20) > 0);
         assert_eq!(c.opaque_in(0, 30, 40, 20), 0);
     }
@@ -253,7 +237,8 @@ mod tests {
         assert!(f.add_grain(Edge::Right, 10.0));
         assert_eq!(f.depth_at(Edge::Right, 10.0), 1.0);
         while f.add_grain(Edge::Left, 40.0) {}
-        assert_eq!(f.depth_at(Edge::Left, 40.0), f.max_depth, "capped");
+        let full = f.depth_at(Edge::Left, 40.0);
+        assert!(full <= f.max_depth && full >= f.max_depth * 0.8, "capped, a little below or at the max: {full}");
         assert!(!f.add_grain(Edge::Left, -1.0) && !f.add_grain(Edge::Right, 100.0), "off the wall");
     }
 
@@ -263,7 +248,7 @@ mod tests {
         f.burst(Edge::Left, 40.0, 20.0, 8.0);
         f.burst(Edge::Top, 60.0, 12.0, 10.0);
         let mut c = Canvas::new(120, 80);
-        f.draw(&mut c, false);
+        draw(&mut c, &f, false);
         for y in 0..80 {
             let d = f.depth_at(Edge::Left, y as f32).round() as i32;
             for x in 0..d {
@@ -283,8 +268,8 @@ mod tests {
         let mut f = Frost::new(120, 80);
         f.burst(Edge::Right, 40.0, 10.0, 6.0);
         let (mut plain, mut lined) = (Canvas::new(120, 80), Canvas::new(120, 80));
-        f.draw(&mut plain, false);
-        f.draw(&mut lined, true);
+        draw(&mut plain, &f, false);
+        draw(&mut lined, &f, true);
         assert!(lined.opaque_in(0, 0, 120, 80) > plain.opaque_in(0, 0, 120, 80));
     }
 }

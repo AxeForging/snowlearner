@@ -3,6 +3,7 @@
 //! same in the app, in `snowlearner snapshot` and in tests.
 
 pub mod backdrop;
+pub mod blanket;
 pub mod fire;
 pub mod friends;
 pub mod frost;
@@ -17,9 +18,12 @@ pub mod snow;
 pub mod vortex;
 pub mod warrior;
 
+use std::cell::RefCell;
+
 use crate::config::level::Pace;
 use crate::render::canvas::{CLEAR, Canvas, hex};
 use backdrop::{Backdrop, GROUND_BAND};
+use blanket::Blanket;
 use fire::Fire;
 use friends::Friend;
 use frost::{Edge, Frost};
@@ -112,6 +116,8 @@ pub struct Scene {
     pub warrior: Warrior,
     pub snow: Snow,
     pub frost: Frost,
+    /// The snow blanket as last drawn; redrawn only when the snow moves.
+    blanket: RefCell<Blanket>,
     pub fires: Vec<Fire>,
     pub hud: Hud,
     /// Warrior tips (pt-BR), provided by the app (hotkey hints, phrase tips).
@@ -179,6 +185,7 @@ impl Scene {
             warrior: Warrior::new(w as f32 * 0.7),
             snow: Snow::new(w, snow_cap(h)),
             frost: Frost::new(w, h),
+            blanket: RefCell::default(),
             fires: Vec::new(),
             hud: Hud::default(),
             tips: Vec::new(),
@@ -1091,9 +1098,9 @@ impl Scene {
     /// Everything that lives in the world (not the landscape, not the HUD).
     fn draw_world(&self, c: &mut Canvas) {
         let gy = self.ground_y();
-        self.snow.draw(c, gy as i32, self.time, self.transparent);
-        // Edge snow is scenery: everyone and everything they say stays in front.
-        self.frost.draw(c, self.transparent);
+        // Ground pile and edge snow as one blanket; scenery, so everyone and
+        // everything they say stays in front of it.
+        self.blanket.borrow_mut().draw(c, &self.snow, &self.frost, gy as i32, self.time, self.transparent);
         for fire in &self.fires {
             fire.draw(c, self.feet_y(fire.x), self.time);
         }
