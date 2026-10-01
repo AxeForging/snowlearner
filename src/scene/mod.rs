@@ -813,6 +813,7 @@ impl Scene {
         self.frost.creep(dt, 0.02 + self.snow.fill() * 0.25);
         self.snow.settle();
         self.snow.settle();
+        self.frost.settle();
 
         let ground = self.ground_y();
         let snow = &self.snow;
@@ -830,13 +831,20 @@ impl Scene {
     /// Moves the snowfall with `target` flakes of the pool in the air. New
     /// ones enter at the top; surplus ones stop only once they land, so the
     /// snowfall thickens and thins without flakes popping in or out mid-air.
-    /// Every flake that lands on the pile stays there as one pixel of snow
-    /// (the pile is one height per column, so thousands of grains cost
-    /// nothing). Returns how many settled.
+    /// Every flake that lands — on the ground pile, or on the snow of the
+    /// side wall the wind blew it into — stays there as one pixel on the
+    /// column or row it hit (one height per column/row, so thousands of
+    /// grains cost nothing). Returns how many settled.
     fn fall_flakes(&mut self, dt: f32, target: usize) -> usize {
         let w = self.w as f32;
         let (transparent, time, h) = (self.transparent, self.time, self.h);
-        let snow = &mut self.snow;
+        let gust = wind(time);
+        let (snow, frost) = (&mut self.snow, &mut self.frost);
+        // A new flake starts in the open sky, between whatever the walls hold.
+        let spawn_x = |f: &Flake, frost: &Frost| {
+            let (l, r) = (frost.depth_at(Edge::Left, 0.0), frost.depth_at(Edge::Right, 0.0));
+            (f.phase * 997.0 + time * 31.0).rem_euclid(w).clamp(l + 1.0, (w - r - 2.0).max(l + 1.0))
+        };
         let mut settled = 0;
         for (i, f) in self.flakes.iter_mut().enumerate() {
             if !f.falling {
@@ -845,17 +853,32 @@ impl Scene {
                 }
                 f.falling = true;
                 f.y = -1.0;
-                f.x = (f.phase * 997.0 + time * 31.0).rem_euclid(w);
+                f.x = spawn_x(f, frost);
             }
             f.y += f.speed * dt;
-            f.x = (f.x + ((time * 1.3 + f.phase).sin() * 5.0 - 4.0) * dt).rem_euclid(w);
-            let surface = ground_at(snow, transparent, h, f.x);
-            if f.y >= surface {
-                if lands_on_pile(f, transparent) && snow.add_grain(f.x) {
-                    settled += 1;
+            f.x += ((time * 1.3 + f.phase).sin() * 3.0 + gust) * dt;
+            let stays = lands_on_pile(f, transparent);
+            let wall = if f.x <= frost.depth_at(Edge::Left, f.y) {
+                Some(Edge::Left)
+            } else if f.x >= w - frost.depth_at(Edge::Right, f.y) {
+                Some(Edge::Right)
+            } else {
+                None
+            };
+            let landed = match wall {
+                Some(edge) => {
+                    settled += usize::from(stays && frost.add_grain(edge, f.y));
+                    true
                 }
+                None if f.y >= ground_at(snow, transparent, h, f.x) => {
+                    settled += usize::from(stays && snow.add_grain(f.x));
+                    true
+                }
+                None => false,
+            };
+            if landed {
                 f.y = -1.0;
-                f.x = (f.phase * 997.0 + time * 31.0).rem_euclid(w);
+                f.x = spawn_x(f, frost);
                 f.falling = i < target;
             }
         }
@@ -1069,6 +1092,8 @@ impl Scene {
     fn draw_world(&self, c: &mut Canvas) {
         let gy = self.ground_y();
         self.snow.draw(c, gy as i32, self.time, self.transparent);
+        // Edge snow is scenery: everyone and everything they say stays in front.
+        self.frost.draw(c, self.transparent);
         for fire in &self.fires {
             fire.draw(c, self.feet_y(fire.x), self.time);
         }
@@ -1109,7 +1134,6 @@ impl Scene {
         for p in &self.particles {
             p.draw(c);
         }
-        self.frost.draw(c);
         if self.sun_t > 0.0 {
             draw_sun(c, self.time, (self.sun_t / 1.0).min(1.0));
         }
@@ -1122,6 +1146,16 @@ impl Scene {
             warrior::draw_bubble(c, mx as i32, top, &b.text);
         }
     }
+}
+
+/// Wind across the screen: turns from one side to the other every half
+/// period, so each side wall gets its turn of snow.
+const WIND_PERIOD_S: f32 = 60.0;
+/// Strongest gust, px/s (positive blows right).
+const WIND_PX_S: f32 = 3.0;
+
+fn wind(time: f32) -> f32 {
+    WIND_PX_S * (std::f32::consts::TAU * time / WIND_PERIOD_S).sin()
 }
 
 /// Flakes drawn in front of the land (all of them over the desktop) land on
@@ -1535,19 +1569,24 @@ mod tests {
         s.snow.fill() * s.snow.width() as f32 * s.snow.cap()
     }
 
+    /// Snow on the ground plus snow stuck to the side walls, in pixels.
+    fn walls(s: &Scene) -> f32 {
+        (0..s.h).map(|y| s.frost.depth_at(Edge::Left, y as f32) + s.frost.depth_at(Edge::Right, y as f32)).sum()
+    }
+
     #[test]
     fn every_flake_that_lands_stays_as_one_pixel_of_snow() {
         let mut s = Scene::new(480, 270, 5, Commitment::Chill.pace(), true);
         let all = s.flakes.len();
-        let before = pile(&s);
+        let before = pile(&s) + walls(&s);
         let mut landed = 0;
         for _ in 0..(60 * 30) {
             landed += s.fall_flakes(1.0 / 30.0, all);
             s.time += 1.0 / 30.0;
         }
         assert!(landed > 300, "enough landings to measure, got {landed}");
-        let added = pile(&s) - before;
-        assert!((added - landed as f32).abs() < 0.5, "{landed} grains landed, the pile grew {added}");
+        let added = pile(&s) + walls(&s) - before;
+        assert!((added - landed as f32).abs() < 0.5, "{landed} grains landed, ground and walls grew {added}");
     }
 
     #[test]
@@ -1608,5 +1647,60 @@ mod tests {
         let both = multi.iter().filter(|w| w.iter().any(|x| *x < 0.0) && w.iter().any(|x| *x > 240.0)).count();
         let share = both as f32 / multi.len() as f32;
         assert!((0.1..0.4).contains(&share), "{both} of {} multi-mob waves split", multi.len());
+    }
+
+    #[test]
+    fn the_wind_turns_from_one_side_to_the_other() {
+        let samples: Vec<f32> = (0..600).map(|i| wind(i as f32 * WIND_PERIOD_S / 600.0)).collect();
+        assert!(samples.iter().any(|&v| v > WIND_PX_S * 0.9), "blows right");
+        assert!(samples.iter().any(|&v| v < -WIND_PX_S * 0.9), "blows left");
+        assert!(samples.iter().all(|v| v.abs() <= WIND_PX_S + 1e-3));
+        let mean = samples.iter().sum::<f32>() / samples.len() as f32;
+        assert!(mean.abs() < 0.1, "no side is favored over a cycle: {mean}");
+    }
+
+    #[test]
+    fn flakes_that_reach_a_wall_stick_where_they_hit_on_both_sides() {
+        let mut s = Scene::new(480, 270, 9, Commitment::Chill.pace(), true);
+        let all = s.flakes.len();
+        for _ in 0..(WIND_PERIOD_S as i32 * 2 * 30) {
+            s.fall_flakes(1.0 / 30.0, all);
+            s.time += 1.0 / 30.0;
+        }
+        let side = |e: Edge| (0..s.h).map(|y| s.frost.depth_at(e, y as f32)).sum::<f32>();
+        assert!(
+            side(Edge::Left) > 10.0 && side(Edge::Right) > 10.0,
+            "left {} right {}",
+            side(Edge::Left),
+            side(Edge::Right)
+        );
+        let rows_hit = (0..s.h).filter(|&y| s.frost.depth_at(Edge::Left, y as f32) > 0.0).count();
+        assert!(rows_hit > 20, "spread over the wall's height, not one spot: {rows_hit} rows");
+    }
+
+    #[test]
+    fn characters_and_their_words_stay_in_front_of_the_wall_snow() {
+        let mut s = Scene::new(480, 270, 12, Commitment::Chill.pace(), true);
+        s.warrior.x = 2.0;
+        s.warrior.say("Aperte Ctrl+Alt+M e fale comigo!", 9.0);
+        let mut clear = Canvas::new(480, 270);
+        s.draw(&mut clear);
+        for y in 0..270 {
+            while s.frost.add_grain(Edge::Left, y as f32) {}
+        }
+        let mut walled = Canvas::new(480, 270);
+        s.draw(&mut walled);
+        let feet = s.feet_y(s.warrior.x + warrior::WIDTH as f32 / 2.0) as i32;
+        let (mut seen, mut hidden) = (0, 0);
+        for y in (feet - 40).max(0)..feet - 1 {
+            for x in 0..60 {
+                if clear.opaque_in(x, y, 1, 1) == 1 {
+                    seen += 1;
+                    hidden += usize::from(clear.get(x, y) != walled.get(x, y));
+                }
+            }
+        }
+        assert!(seen > 50, "the warrior and his bubble are on screen: {seen}");
+        assert_eq!(hidden, 0, "{hidden} of {seen} warrior/bubble pixels covered by wall snow");
     }
 }

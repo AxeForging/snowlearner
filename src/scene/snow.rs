@@ -2,7 +2,22 @@
 //! Ice cubes and summons add to it, speaking melts it, campfires thaw it locally.
 
 use super::rng::hash01;
-use crate::render::canvas::{Canvas, bayer, hex};
+use crate::render::canvas::{Canvas, Rgba, bayer, hex};
+
+/// Dark rim drawn past a pile's surface over the desktop, so it shows on light windows.
+pub const OUTLINE: Rgba = hex(0x5c6fb0);
+
+/// Color of a snow pixel `depth` px under the pile's surface: white on top,
+/// bluer deeper down, dithered between shades.
+pub fn shade(depth: i32, x: i32, y: i32) -> Rgba {
+    if depth == 0 {
+        return hex(0xffffff);
+    }
+    let body = [hex(0xeef5ff), hex(0xd4e2fb), hex(0xb3c3ec), hex(0x93a6da)];
+    let s = (depth as f32 / 10.0).min(3.0);
+    let i = s.floor() as usize;
+    body[(i + usize::from(s - i as f32 > bayer(x, y))).min(3)]
+}
 
 pub struct Snow {
     heights: Vec<f32>,
@@ -113,8 +128,6 @@ impl Snow {
     /// `outline` draws a darker rim on the surface so the pile stays visible
     /// over light desktop windows in overlay mode.
     pub fn draw(&self, c: &mut Canvas, ground_y: i32, time: f32, outline: bool) {
-        let top_c = hex(0xffffff);
-        let body = [hex(0xeef5ff), hex(0xd4e2fb), hex(0xb3c3ec), hex(0x93a6da)];
         for (x, &h) in self.heights.iter().enumerate() {
             let x = x as i32;
             let hh = h.round() as i32;
@@ -123,24 +136,15 @@ impl Snow {
             }
             let top = ground_y - hh;
             if outline {
-                c.set(x, top - 1, hex(0x5c6fb0));
+                c.set(x, top - 1, OUTLINE);
             }
             for y in top..ground_y {
-                let depth = y - top;
-                let col = if depth == 0 {
-                    top_c
-                } else {
-                    let shade = (depth as f32 / 10.0).min(3.0);
-                    let i = shade.floor() as usize;
-                    let f = shade - i as f32;
-                    body[(i + usize::from(f > bayer(x, y))).min(3)]
-                };
-                c.set(x, y, col);
+                c.set(x, y, shade(y - top, x, y));
             }
             // Twinkling ice crystals near the surface.
             let n = hash01(x, 91);
             if n > 0.93 && ((time * 2.0 + n * 10.0).sin() > 0.6) {
-                c.set(x, top + 1, top_c);
+                c.set(x, top + 1, hex(0xffffff));
             }
         }
     }
