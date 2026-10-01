@@ -183,11 +183,7 @@ impl Http {
             "input": text,
             "voice": voice,
             "response_format": "wav",
-            "speed": match speed {
-                Speed::Normal => 1.0,
-                Speed::Slow => 0.85,
-                Speed::Slower => 0.7,
-            },
+            "speed": kokoro_speed(speed),
         });
         let url = format!("{}/audio/speech", self.base());
         let mut resp =
@@ -205,6 +201,18 @@ impl Http {
         let mut resp = with_agents(&url, |a| a.get(&url).call()).with_context(|| format!("listing voices at {url}"))?;
         let body = resp.body_mut().read_to_string()?;
         Ok(filter_kokoro(parse_voice_list(&body)?, lang))
+    }
+}
+
+/// Kokoro slows down by stretching phonemes; below this it sounds choppy
+/// (listened on a real server: 0.85 and 0.7 choppy, 0.88 and up clean).
+const KOKORO_SLOWEST: f64 = 0.88;
+
+fn kokoro_speed(speed: Speed) -> f64 {
+    match speed {
+        Speed::Normal => 1.0,
+        Speed::Slow => 0.94,
+        Speed::Slower => KOKORO_SLOWEST,
     }
 }
 
@@ -521,10 +529,17 @@ mod tests {
         assert!(req.starts_with("POST /v1/audio/speech"), "{req}");
         assert!(req.contains(r#""voice":"pf_dora""#) && req.contains(r#""input":"Olá""#), "{req}");
         assert!(req.contains(r#""response_format":"wav""#));
-        assert!(req.contains(r#""speed":0.7"#), "beginner pace: {req}");
+        assert!(req.contains(r#""speed":0.88"#), "beginner pace, no slower than Kokoro stays clean: {req}");
         // Kokoro wants one-letter codes ("p", "a"): "pt"/"en" made it answer
         // 200 with no audio. Left out, it takes the language from the voice.
         assert!(!req.contains("lang_code"), "{req}");
+    }
+
+    #[test]
+    fn kokoro_never_goes_below_the_slowest_pace_that_sounds_clean() {
+        assert_eq!(kokoro_speed(Speed::Normal), 1.0);
+        assert_eq!(kokoro_speed(Speed::Slow), 0.94);
+        assert_eq!(kokoro_speed(Speed::Slower), 0.88, "the slowest pace heard clean; below it is choppy");
     }
 
     #[test]

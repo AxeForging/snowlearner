@@ -61,6 +61,9 @@ pub fn output(name: &str) -> Result<cpal::Device> {
 /// Streaming TTS servers (Kokoro-FastAPI) send the header before they know
 /// the length and write 0xFFFFFFFF as the RIFF and data sizes. A data size
 /// that overruns what arrived becomes what arrived (whole sample frames).
+/// Kokoro then appends the header it could not seek back to fix — as long as
+/// the real one, zeros but the RIFF size and the data size — which played as
+/// a click after every line; when those sizes match the file, they are used.
 fn with_real_sizes(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     let u32_at = |i: usize| bytes.get(i..i + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize);
     if bytes.get(0..4) != Some(b"RIFF") || bytes.get(8..12) != Some(b"WAVE") {
@@ -74,7 +77,12 @@ fn with_real_sizes(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
                 align = bytes.get(body + 12..body + 14).map_or(1, |b| u16::from_le_bytes([b[0], b[1]])).max(1) as usize
             }
             b"data" if size > bytes.len() - body => {
-                let real = (bytes.len() - body) / align * align;
+                let len = bytes.len();
+                let patched = u32_at(len - 4).filter(|&n| {
+                    len.checked_sub(body).and_then(|rest| rest.checked_sub(body)) == Some(n)
+                        && u32_at(len - body + 4) == Some(body + n - 8)
+                });
+                let real = patched.unwrap_or(len - body) / align * align;
                 let mut fixed = bytes[..body + real].to_vec();
                 fixed[i + 4..i + 8].copy_from_slice(&(real as u32).to_le_bytes());
                 let riff = fixed.len() as u32 - 8;
@@ -209,6 +217,27 @@ mod tests {
         assert_eq!(rate, 24_000);
         assert_eq!(mono.len(), 3);
         assert!((mono[0] - 0.5).abs() < 1e-3 && (mono[2] - 0.25).abs() < 1e-3);
+    }
+
+    /// Kokoro-FastAPI's streamed WAV also ends with the header it could not
+    /// seek back to fix: a copy as long as the real header, zeros except the
+    /// RIFF size (at 4) and the data size (at the end).
+    fn with_header_patch(samples: &[i16]) -> Vec<u8> {
+        let mut bytes = streamed(samples);
+        let header = bytes.windows(4).position(|w| w == b"data").unwrap() + 8;
+        let audio = (bytes.len() - header) as u32;
+        let mut patch = vec![0u8; header];
+        patch[4..8].copy_from_slice(&(header as u32 + audio - 8).to_le_bytes());
+        patch[header - 4..].copy_from_slice(&audio.to_le_bytes());
+        bytes.extend_from_slice(&patch);
+        bytes
+    }
+
+    #[test]
+    fn kokoros_trailing_header_patch_is_not_played_as_a_click() {
+        let (mono, _) = decode_wav(&with_header_patch(&[16384, -16384, 8192, 0])).unwrap();
+        assert_eq!(mono.len(), 4, "the 78-byte patch is not audio");
+        assert_eq!(mono[3], 0.0, "ends where the speech ends, no spike");
     }
 
     #[test]
