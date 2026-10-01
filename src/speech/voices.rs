@@ -176,18 +176,17 @@ impl Http {
     }
 
     /// Asks the server for WAV audio of `text`.
-    pub fn synthesize(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<Vec<u8>> {
+    /// `_speed` is not sent: Kokoro slows down by stretching phonemes, and below
+    /// 1.0 the voice sounds choppy (heard on a real server at 0.85 and 0.7);
+    /// its natural pace already reads well. OS voices still slow down.
+    pub fn synthesize(&self, text: &str, lang: &str, voice: &str, _speed: Speed) -> Result<Vec<u8>> {
         let voice = if voice.is_empty() { kokoro_default(lang) } else { voice };
         let body = serde_json::json!({
             "model": self.model,
             "input": text,
             "voice": voice,
             "response_format": "wav",
-            "speed": match speed {
-                Speed::Normal => 1.0,
-                Speed::Slow => 0.85,
-                Speed::Slower => 0.7,
-            },
+            "speed": 1.0,
         });
         let url = format!("{}/audio/speech", self.base());
         let mut resp =
@@ -521,7 +520,7 @@ mod tests {
         assert!(req.starts_with("POST /v1/audio/speech"), "{req}");
         assert!(req.contains(r#""voice":"pf_dora""#) && req.contains(r#""input":"Olá""#), "{req}");
         assert!(req.contains(r#""response_format":"wav""#));
-        assert!(req.contains(r#""speed":0.7"#), "beginner pace: {req}");
+        assert!(req.contains(r#""speed":1.0"#), "Kokoro stays at its natural pace, even for beginners: {req}");
         // Kokoro wants one-letter codes ("p", "a"): "pt"/"en" made it answer
         // 200 with no audio. Left out, it takes the language from the voice.
         assert!(!req.contains("lang_code"), "{req}");
