@@ -1,8 +1,9 @@
-//! Window frost creeping in from the top, left and right edges of the screen.
-//! Summoned friends burst frost onto the nearest edge; speaking melts it.
+//! Snow stuck to the top, left and right edges of the screen: flakes the wind
+//! blows into a side wall stay on the row they hit, the top corners ice over
+//! on their own, and summoned friends burst snow onto the nearest edge.
+//! Speaking melts it. Drawn with the ground pile as one blanket (`blanket.rs`).
 
 use super::rng::hash01;
-use crate::render::canvas::{Canvas, bayer, hex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Edge {
@@ -10,6 +11,14 @@ pub enum Edge {
     Left,
     Right,
 }
+
+/// Deepest edge snow, as a share of the screen's shorter side: enough to
+/// press in from the walls without walling off the desktop.
+const EDGE_CAP: f32 = 0.08;
+/// Friends' bursts and the corners' creep were tuned for edges as deep as 22%
+/// of the screen. Scaled to EDGE_CAP, the edges freeze — coverage, and the
+/// freeze level built on it — exactly as fast as before, only thinner.
+const TUNED_FOR_CAP: f32 = 0.22;
 
 pub struct Frost {
     w: i32,
@@ -22,7 +31,7 @@ pub struct Frost {
 
 impl Frost {
     pub fn new(w: i32, h: i32) -> Self {
-        let max_depth = (w.min(h) as f32 * 0.22).max(8.0);
+        let max_depth = (w.min(h) as f32 * EDGE_CAP).max(8.0);
         Frost {
             w,
             h,
@@ -43,7 +52,7 @@ impl Frost {
         self.right = stretch(&self.right, h);
         self.w = w;
         self.h = h;
-        self.max_depth = (w.min(h) as f32 * 0.22).max(8.0);
+        self.max_depth = (w.min(h) as f32 * EDGE_CAP).max(8.0);
     }
 
     pub fn nearest_edge(&self, x: f32, y: f32) -> Edge {
@@ -65,16 +74,51 @@ impl Frost {
         }
     }
 
-    /// Adds a patch of frost `strength` px deep on `edge`, centered at `pos`
-    /// (x for the top edge, y for the sides).
+    /// How deep row/column `i` of `edge` may get: the cap rises and falls a
+    /// little along the edge, so a full wall reads as drifts, not a ruler.
+    fn cap_at(&self, edge: Edge, i: usize) -> f32 {
+        let salt = edge as i32 * 17 + 5;
+        let (cell, t) = ((i / 24) as i32, (i % 24) as f32 / 24.0);
+        let s = t * t * (3.0 - 2.0 * t);
+        self.max_depth * (0.8 + 0.2 * (hash01(cell, salt) * (1.0 - s) + hash01(cell + 1, salt) * s))
+    }
+
+    /// Adds a patch of snow on `edge`, centered at `pos` (x for the top edge, y
+    /// for the sides); `strength` is in the 22%-cap units it was tuned in.
     pub fn burst(&mut self, edge: Edge, pos: f32, strength: f32, radius: f32) {
-        let max = self.max_depth;
-        let v = self.edge_mut(edge);
+        let strength = strength * EDGE_CAP / TUNED_FOR_CAP;
+        let len = self.edge_mut(edge).len() as i64;
         let (lo, hi) = ((pos - radius * 2.0).floor() as i64, (pos + radius * 2.0).ceil() as i64);
-        for i in lo.max(0)..=hi.min(v.len() as i64 - 1) {
-            let d = (i as f32 - pos) / radius;
-            let cell = &mut v[i as usize];
-            *cell = (*cell + strength * (-d * d).exp()).min(max);
+        for i in lo.max(0)..=hi.min(len - 1) {
+            let (d, cap) = ((i as f32 - pos) / radius, self.cap_at(edge, i as usize));
+            let cell = &mut self.edge_mut(edge)[i as usize];
+            *cell = (*cell + strength * (-d * d).exp()).min(cap);
+        }
+    }
+
+    /// How deep the snow on `edge` is at `pos` (x for the top, y for the sides).
+    pub fn depth_at(&self, edge: Edge, pos: f32) -> f32 {
+        let v = match edge {
+            Edge::Top => &self.top,
+            Edge::Left => &self.left,
+            Edge::Right => &self.right,
+        };
+        if pos < 0.0 { 0.0 } else { v.get(pos as usize).copied().unwrap_or(0.0) }
+    }
+
+    /// One flake stuck to `edge` at `pos`: exactly one pixel on that row.
+    /// False when it missed the wall or that row is already at the cap.
+    pub fn add_grain(&mut self, edge: Edge, pos: f32) -> bool {
+        if pos < 0.0 {
+            return false;
+        }
+        let cap = self.cap_at(edge, pos as usize);
+        match self.edge_mut(edge).get_mut(pos as usize) {
+            Some(d) if *d < cap => {
+                *d = (*d + 1.0).min(cap);
+                true
+            }
+            _ => false,
         }
     }
 
@@ -90,6 +134,21 @@ impl Frost {
         let _ = h;
     }
 
+    /// Lets a row stuck out from its neighbors slide into them, as the ground
+    /// pile does, so the walls show drifts instead of one-row whiskers.
+    pub fn settle(&mut self) {
+        for v in [&mut self.top, &mut self.left, &mut self.right] {
+            for i in 1..v.len() {
+                let diff = v[i - 1] - v[i];
+                if diff.abs() > 1.0 {
+                    let moved = diff * 0.35;
+                    v[i - 1] -= moved;
+                    v[i] += moved;
+                }
+            }
+        }
+    }
+
     pub fn melt(&mut self, fraction: f32) {
         let k = 1.0 - fraction.clamp(0.0, 1.0);
         for v in [&mut self.top, &mut self.left, &mut self.right] {
@@ -103,52 +162,18 @@ impl Frost {
         let n = (self.top.len() + self.left.len() + self.right.len()) as f32;
         total / (n * self.max_depth)
     }
-
-    pub fn draw(&self, c: &mut Canvas) {
-        let w = self.w;
-        for (i, &d) in self.top.iter().enumerate() {
-            for k in 0..d.ceil() as i32 {
-                paint(c, i as i32, 0, k, d, i as i32, k);
-            }
-        }
-        for (i, &d) in self.left.iter().enumerate() {
-            for k in 0..d.ceil() as i32 {
-                paint(c, i as i32, 1, k, d, k, i as i32);
-            }
-        }
-        for (i, &d) in self.right.iter().enumerate() {
-            for k in 0..d.ceil() as i32 {
-                paint(c, i as i32, 2, k, d, w - 1 - k, i as i32);
-            }
-        }
-    }
-}
-
-/// One frost pixel `k` px into the screen at position `i` along an edge.
-/// Depth varies with coarse + fine noise so the edge grows fern-like spikes.
-fn paint(c: &mut Canvas, i: i32, salt: i32, k: i32, depth: f32, x: i32, y: i32) {
-    let spike = 0.55 + 0.35 * hash01(i / 3, 7 + salt * 13) + 0.25 * hash01(i, 3 + salt * 13);
-    let d = depth * spike;
-    if (k as f32) >= d {
-        return;
-    }
-    let t = k as f32 / d; // 0 at the edge → 1 at the frost tip
-    let density = 1.05 - t * 0.9 + (hash01(x, y) - 0.5) * 0.35;
-    if density > bayer(x, y) {
-        let col = if t < 0.3 {
-            hex(0xffffff)
-        } else if t < 0.75 {
-            hex(0xc8f4ff)
-        } else {
-            hex(0x8ad8f5)
-        };
-        c.set(x, y, col);
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::render::canvas::Canvas;
+
+    /// The edges alone, drawn the way the scene draws them.
+    fn draw(c: &mut Canvas, f: &Frost, outline: bool) {
+        let snow = super::super::snow::Snow::new(c.w, 1.0);
+        super::super::blanket::Blanket::default().draw(c, &snow, f, c.h, 0.0, outline);
+    }
 
     #[test]
     fn nearest_edge_picks_the_closest_side() {
@@ -187,7 +212,7 @@ mod tests {
             f.creep(1.0, 0.2);
         }
         let mut c = Canvas::new(200, 100);
-        f.draw(&mut c);
+        draw(&mut c, &f, false);
         let corner = c.opaque_in(0, 0, 20, 20);
         let center = c.opaque_in(90, 40, 20, 20);
         assert!(corner > 0 && center == 0, "corner {corner} center {center}");
@@ -198,8 +223,53 @@ mod tests {
         let mut f = Frost::new(120, 80);
         f.burst(Edge::Right, 40.0, 30.0, 10.0);
         let mut c = Canvas::new(120, 80);
-        f.draw(&mut c);
+        draw(&mut c, &f, false);
         assert!(c.opaque_in(100, 30, 20, 20) > 0);
         assert_eq!(c.opaque_in(0, 30, 40, 20), 0);
+    }
+
+    #[test]
+    fn a_flake_on_a_wall_adds_exactly_one_pixel_to_that_row_up_to_the_cap() {
+        let mut f = Frost::new(200, 100);
+        assert!(f.add_grain(Edge::Left, 40.7));
+        assert_eq!(f.depth_at(Edge::Left, 40.0), 1.0);
+        assert_eq!(f.depth_at(Edge::Left, 41.0), 0.0, "only the row it hit");
+        assert!(f.add_grain(Edge::Right, 10.0));
+        assert_eq!(f.depth_at(Edge::Right, 10.0), 1.0);
+        while f.add_grain(Edge::Left, 40.0) {}
+        let full = f.depth_at(Edge::Left, 40.0);
+        assert!(full <= f.max_depth && full >= f.max_depth * 0.8, "capped, a little below or at the max: {full}");
+        assert!(!f.add_grain(Edge::Left, -1.0) && !f.add_grain(Edge::Right, 100.0), "off the wall");
+    }
+
+    #[test]
+    fn wall_snow_is_solid_from_the_glass_to_its_surface_with_no_specks() {
+        let mut f = Frost::new(120, 80);
+        f.burst(Edge::Left, 40.0, 20.0, 8.0);
+        f.burst(Edge::Top, 60.0, 12.0, 10.0);
+        let mut c = Canvas::new(120, 80);
+        draw(&mut c, &f, false);
+        for y in 0..80 {
+            let d = f.depth_at(Edge::Left, y as f32).round() as i32;
+            for x in 0..d {
+                assert!(c.opaque_in(x, y, 1, 1) == 1, "hole at ({x},{y}) inside a {d}px pile");
+            }
+        }
+        // Nothing past the surface but the outline (and, here, the top's pile).
+        let speck = (30..80)
+            .flat_map(|y| (25..120).map(move |x| (x, y)))
+            .filter(|&(x, y)| c.opaque_in(x, y, 1, 1) == 1)
+            .count();
+        assert_eq!(speck, 0, "no specks away from the walls");
+    }
+
+    #[test]
+    fn over_the_desktop_the_wall_snow_gets_an_outline_like_the_ground() {
+        let mut f = Frost::new(120, 80);
+        f.burst(Edge::Right, 40.0, 10.0, 6.0);
+        let (mut plain, mut lined) = (Canvas::new(120, 80), Canvas::new(120, 80));
+        draw(&mut plain, &f, false);
+        draw(&mut lined, &f, true);
+        assert!(lined.opaque_in(0, 0, 120, 80) > plain.opaque_in(0, 0, 120, 80));
     }
 }
