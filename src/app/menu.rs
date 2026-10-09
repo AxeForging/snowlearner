@@ -6,7 +6,7 @@
 
 use crate::config::level::Commitment;
 use crate::config::settings::{Settings, WindowMode};
-use crate::learn::deck::{LEVELS, PRE_A1};
+use crate::learn::deck::{Answer, LEVELS, PRE_A1};
 use crate::learn::path::Stage;
 use crate::learn::picker::Practice;
 use crate::learn::progress::{Progress, Tally};
@@ -15,7 +15,7 @@ use crate::render::font;
 use crate::speech::voices::{TtsEngine, kokoro_default, kokoro_voice};
 
 pub const WIDTH: i32 = 232;
-pub const HEIGHT: i32 = 188;
+pub const HEIGHT: i32 = 200;
 const ROW_H: i32 = 12;
 const TABS_Y: i32 = 13;
 const TOP: i32 = 28;
@@ -28,6 +28,8 @@ pub enum Item {
     Topic,
     Level,
     Practice,
+    /// Which answer tier to practice (short, complete, polished, or all).
+    Answer,
     Goal,
     Mode,
     PracticeNow,
@@ -60,6 +62,7 @@ pub const GAME: &[Item] = &[
     Item::Topic,
     Item::Level,
     Item::Practice,
+    Item::Answer,
     Item::Goal,
     Item::Mode,
     Item::PracticeNow,
@@ -276,6 +279,7 @@ impl Menu {
             Item::Practice => {
                 s.practice = cycle(&[Practice::Auto, Practice::Repeat, Practice::Recall], &s.practice, forward)
             }
+            Item::Answer => s.answer = cycle(&Answer::CHOICES, &s.answer, forward),
             Item::Goal => {
                 s.daily_goal = if forward {
                     GOALS.iter().copied().find(|g| *g > s.daily_goal).unwrap_or(GOALS[0])
@@ -409,6 +413,7 @@ impl Menu {
                 Practice::Repeat => "repetir".into(),
                 Practice::Recall => "de memória".into(),
             },
+            Item::Answer => s.answer.label_pt().into(),
             Item::Goal => format!("{} frases", s.daily_goal),
             Item::Mode => match s.mode {
                 WindowMode::Auto => "auto*".into(),
@@ -445,6 +450,7 @@ impl Menu {
             Item::Topic => "Tema",
             Item::Level => "Nível",
             Item::Practice => "Prática",
+            Item::Answer => "Resposta",
             Item::Goal => "Meta diária",
             Item::Mode => "Tela",
             Item::PracticeNow => "> Praticar agora",
@@ -848,6 +854,21 @@ mod tests {
         m.key(Key::Right, &mut s);
         assert_eq!(m.value(Item::Level, &s), "até A1");
         s.validate().unwrap();
+    }
+
+    #[test]
+    fn the_answer_row_cycles_all_short_complete_polished() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Answer);
+        let mut seen = vec![m.value(Item::Answer, &s)];
+        for _ in 0..4 {
+            assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::Answer));
+            seen.push(m.value(Item::Answer, &s));
+        }
+        assert_eq!(seen, ["todas", "curta", "completa", "polida", "todas"]);
+        m.key(Key::Left, &mut s);
+        assert_eq!(s.answer, Answer::Polished, "left goes back");
     }
 
     #[test]

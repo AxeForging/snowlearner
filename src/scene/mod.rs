@@ -35,7 +35,7 @@ use hud::Hud;
 use ice::{Cube, Icicle, Kind, Particle};
 use mage::Mage;
 use mobs::Mob;
-use pyro::Pyro;
+use pyro::{Pyro, Spell};
 use rng::Rng;
 use snow::Snow;
 use warrior::Warrior;
@@ -60,6 +60,7 @@ struct Fireball {
     age: f32,
     flight: f32,
     power: f32,
+    spell: Spell,
 }
 
 /// What the frost mage's summon ritual is for.
@@ -142,7 +143,9 @@ pub struct Scene {
     /// The fire mage, present only during lessons.
     pub pyro: Pyro,
     fireballs: Vec<Fireball>,
-    pending_power: Vec<f32>,
+    pending_power: Vec<(f32, Spell)>,
+    /// The spell cast for the last right answer.
+    last_spell: Option<Spell>,
     icicles: Vec<Icicle>,
     mobs: Vec<Mob>,
     next_mobs: f32,
@@ -177,6 +180,9 @@ pub struct Scene {
     next_throw: f32,
     next_summon: f32,
     next_tip: f32,
+    /// Weather-only screen (the other monitors in overlay mode): the freeze
+    /// level it follows, set from outside. No actors, no lesson, no HUD.
+    weather: Option<f32>,
 }
 
 impl Scene {
@@ -219,6 +225,7 @@ impl Scene {
             pyro: Pyro::default(),
             fireballs: Vec::new(),
             pending_power: Vec::new(),
+            last_spell: None,
             icicles: Vec::new(),
             mobs: Vec::new(),
             next_mobs: 40.0_f32.min(pace.mobs_every),
@@ -244,12 +251,30 @@ impl Scene {
             next_throw: 1.5,
             next_summon: 25.0_f32.min(pace.summon_every),
             next_tip: 12.0,
+            weather: None,
             rng,
         };
         if !transparent {
             s.backdrop = Some(Backdrop::new(w, h));
         }
         s
+    }
+
+    /// A screen with only the weather — snowfall, the pile and the wall snow —
+    /// following the freeze level given by `set_freeze_target` (the primary
+    /// screen's). Nobody lives here: no mages, warrior, mobs, lesson or HUD.
+    pub fn weather(w: i32, h: i32, seed: u64, pace: Pace, transparent: bool) -> Self {
+        let mut s = Scene::new(w, h, seed, pace, transparent);
+        s.weather = Some(0.0);
+        s
+    }
+
+    /// The level (0 clear, 1 buried) a weather-only screen drifts toward.
+    /// A full scene makes its own weather and ignores it.
+    pub fn set_freeze_target(&mut self, level: f32) {
+        if let Some(t) = &mut self.weather {
+            *t = level.clamp(0.0, 1.0);
+        }
     }
 
     pub fn resize(&mut self, w: i32, h: i32) {
@@ -475,16 +500,22 @@ impl Scene {
 
     /// A correct phrase: the fire mage casts. The melt (`pace.melt_fraction`
     /// × `power`) happens when the fireball hits the frost mage.
-    pub fn celebrate(&mut self, power: f32) {
+    pub fn celebrate(&mut self, power: f32, spell: Spell) {
         self.pyro.focus(false);
-        let melt = self.pace.melt_fraction * power;
+        self.last_spell = Some(spell);
+        let melt = self.pace.melt_fraction * power * spell.melt();
         if self.pyro.visible() {
-            self.pending_power.push(melt);
+            self.pending_power.push((melt, spell));
             self.pyro.cast();
         } else {
             let (x, y) = (self.mage.x + mage::WIDTH as f32 / 2.0, self.feet_y(self.mage.x) - 12.0);
-            self.impact(x, y, melt);
+            self.impact(x, y, melt, spell);
         }
+    }
+
+    /// The spell the fire mage cast for the last right answer.
+    pub fn last_spell(&self) -> Option<Spell> {
+        self.last_spell
     }
 
     /// A wrong answer: the fireball fizzles and the frost mage fires back.
@@ -494,7 +525,7 @@ impl Scene {
         self.mage.start_throw(false);
     }
 
-    fn impact(&mut self, x: f32, y: f32, melt: f32) {
+    fn impact(&mut self, x: f32, y: f32, melt: f32, spell: Spell) {
         let gy = self.ground_y();
         for (px, hgt) in self.snow.melt(melt) {
             let py = gy - hgt;
@@ -506,7 +537,7 @@ impl Scene {
         }
         self.frost.melt(melt);
         self.snow.thaw(x, 24.0, 40.0, 0.25);
-        for i in 0..40 {
+        for i in 0..20 * spell.radius() as usize {
             let a = self.rng.range(0.0, std::f32::consts::TAU);
             let sp = self.rng.range(20.0, 90.0);
             let col = hex([0xfff4b0, 0xffc13d, 0xff7a2a, 0xd93a2a][i % 4]);
@@ -604,6 +635,10 @@ impl Scene {
     }
 
     pub fn step(&mut self, dt: f32) {
+        if let Some(target) = self.weather {
+            self.step_weather(dt, target);
+            return;
+        }
         self.time += dt;
         self.hud.step(dt);
         self.vortex = self.vortex.step(dt);
@@ -719,8 +754,11 @@ impl Scene {
         // Fire mage and his fireballs.
         let pyro_feet = self.feet_y(self.pyro.x + mage::WIDTH as f32 / 2.0);
         if let Some(pyro::Event::Release { x, y }) = self.pyro.step(dt, pyro_feet) {
-            let power =
-                if self.pending_power.is_empty() { self.pace.melt_fraction } else { self.pending_power.remove(0) };
+            let (power, spell) = if self.pending_power.is_empty() {
+                (self.pace.melt_fraction, Spell::Fireball)
+            } else {
+                self.pending_power.remove(0)
+            };
             let tx = self.mage.x + mage::WIDTH as f32 / 2.0;
             let ty = self.feet_y(tx) - 12.0;
             let flight = 0.5 + (tx - x).abs() / w * 0.6;
@@ -733,6 +771,7 @@ impl Scene {
                 age: 0.0,
                 flight,
                 power,
+                spell,
             });
         }
         let mut hits = Vec::new();
@@ -752,7 +791,7 @@ impl Scene {
         }
         for i in hits.into_iter().rev() {
             let fb = self.fireballs.remove(i);
-            self.impact(fb.x, fb.y, fb.power);
+            self.impact(fb.x, fb.y, fb.power, fb.spell);
         }
 
         // The ice owl and its snowballs (no new ones while you practice).
@@ -916,10 +955,7 @@ impl Scene {
 
         // Ambient: past the ice line, corner frost creeps faster the more
         // buried the screen is.
-        // At the ice line the pile stops rising and the screen freezes instead.
-        self.frozen_over = self.edges_freeze();
-        self.snow.set_frozen(self.frozen_over);
-        self.frost.set_pile(self.feet_y(0.0), self.feet_y(self.w as f32 - 1.0));
+        self.update_ice_line();
         if self.edges_freeze() {
             self.frost.creep(dt, 0.02 + self.pile_level() * 0.25);
         }
@@ -938,6 +974,46 @@ impl Scene {
         // The sky holds its snow while you practice, like the mage his cubes.
         let target = if self.practicing || self.paused { 0 } else { snowfall(self.flakes.len(), self.freeze_level()) };
         self.fall_flakes(dt, target);
+    }
+
+    /// At the ice line the pile stops rising and the screen freezes instead.
+    fn update_ice_line(&mut self) {
+        self.frozen_over = self.edges_freeze();
+        self.snow.set_frozen(self.frozen_over);
+        self.frost.set_pile(self.feet_y(0.0), self.feet_y(self.w as f32 - 1.0));
+    }
+
+    /// Weather-only step, in the same two stages as a full scene: the pile
+    /// rises toward its share of `target` (freeze level = 0.6 × pile + 0.8 ×
+    /// edges), freezes at the ice line, and only then do the edges take their
+    /// share. Snowfall is as thick as `target` says.
+    fn step_weather(&mut self, dt: f32, target: f32) {
+        self.time += dt;
+        let k = (WEATHER_FOLLOW * dt).min(1.0);
+        let (w, h) = (self.w as f32, self.h as f32);
+        // A little past the line, so a pile meant to be at it gets there.
+        let (pile_want, edges_want) = ((target / 0.6).min(1.02), ((target - 0.6) / 0.8).max(0.0));
+        let pile = self.pile_level();
+        if pile < pile_want {
+            let x = self.rng.range(0.0, w);
+            let total = (pile_want - pile) * k * w * h * ICE_LINE;
+            self.snow.add(x, total / (CUBE_SPREAD * 1.77), CUBE_SPREAD);
+        } else if pile > 0.0 {
+            self.snow.melt((1.0 - pile_want / pile) * k);
+        }
+        self.update_ice_line();
+        let cover = self.frost.coverage();
+        if self.frozen_over && cover < edges_want {
+            let edge = *self.rng.pick(&[Edge::Top, Edge::Left, Edge::Right]);
+            let at = if edge == Edge::Top { self.rng.range(0.0, w) } else { self.rng.range(0.0, h) };
+            let strength = self.frost_strength() * (edges_want - cover) / edges_want * WEATHER_FROST * dt;
+            self.frost.burst(edge, at, strength, h * 0.15);
+        } else if cover > edges_want {
+            self.frost.melt((1.0 - edges_want / cover) * k);
+        }
+        self.snow.settle();
+        self.frost.settle();
+        self.fall_flakes(dt, snowfall(self.flakes.len(), target));
     }
 
     /// Moves the snowfall with `target` flakes of the pool in the air. New
@@ -1199,6 +1275,10 @@ impl Scene {
     }
 
     pub fn draw(&self, c: &mut Canvas) {
+        if self.weather.is_some() {
+            self.draw_weather(c);
+            return;
+        }
         if let Some(b) = &self.backdrop {
             b.draw_sky(c, self.time);
             for f in self.flakes.iter().filter(|f| f.falling && f.speed < 9.0) {
@@ -1248,6 +1328,23 @@ impl Scene {
         }
     }
 
+    /// Weather only: the landscape (window mode), the glass frost, the blanket
+    /// and the flakes.
+    fn draw_weather(&self, c: &mut Canvas) {
+        match &self.backdrop {
+            Some(b) => {
+                b.draw_sky(c, self.time);
+                b.draw_land(c);
+            }
+            None => c.clear(CLEAR),
+        }
+        self.glass.draw(c, (self.frost.coverage() / GLASS_FULL_AT).min(1.0));
+        self.blanket.borrow_mut().draw(c, &self.snow, &self.frost, self.ground_y() as i32, self.time, self.transparent);
+        for f in self.flakes.iter().filter(|f| f.falling) {
+            c.dot(f.x, f.y, if f.speed > 13.0 { hex(0xffffff) } else { hex(0xc9d0f2) });
+        }
+    }
+
     /// Everything that lives in the world (not the landscape, not the HUD).
     fn draw_world(&self, c: &mut Canvas) {
         let gy = self.ground_y();
@@ -1283,9 +1380,10 @@ impl Scene {
         let px = self.pyro.x + mage::WIDTH as f32 / 2.0;
         self.pyro.draw(c, self.feet_y(px), self.time);
         for fb in &self.fireballs {
-            c.glow(fb.x, fb.y, 6.0, 0.8, hex(0xff7a2a));
-            c.rect(fb.x.round() as i32 - 2, fb.y.round() as i32 - 2, 4, 4, hex(0xffc13d));
-            c.rect(fb.x.round() as i32 - 1, fb.y.round() as i32 - 1, 2, 2, hex(0xfff4b0));
+            let (r, x, y) = (fb.spell.radius(), fb.x.round() as i32, fb.y.round() as i32);
+            c.glow(fb.x, fb.y, 3.0 * r as f32, 0.8, hex(0xff7a2a));
+            c.rect(x - r, y - r, 2 * r, 2 * r, hex(0xffc13d));
+            c.rect(x - r / 2, y - r / 2, r.max(1), r.max(1), hex(0xfff4b0));
         }
         for cube in &self.cubes {
             cube.draw(c);
@@ -1331,6 +1429,11 @@ fn wind(time: f32) -> f32 {
 fn lands_on_pile(f: &Flake, transparent: bool) -> bool {
     transparent || f.speed >= 9.0
 }
+
+/// Share of the gap to the target level a weather-only screen closes per second.
+const WEATHER_FOLLOW: f32 = 0.5;
+/// How hard a weather-only screen's walls frost over while behind the target.
+const WEATHER_FROST: f32 = 30.0;
 
 /// Mobs of a wave reach the screen up to this many seconds apart.
 const MOB_ARRIVAL_SPREAD_S: f32 = 4.0;
@@ -1435,11 +1538,26 @@ mod tests {
         run(&mut s, 150.0);
         let (snow, frost) = (s.snow.fill(), s.frost.coverage());
         assert!(frost > 0.0, "friends should have frosted the edges");
-        s.celebrate(1.0);
+        s.celebrate(1.0, Spell::Fireball);
         let melt = Commitment::Relentless.pace().melt_fraction;
         assert!(s.snow.fill() <= snow * (1.0 - melt) + 1e-4);
         assert!(s.frost.coverage() <= frost * (1.0 - melt) + 1e-4);
         assert!(s.snow.fill() > 0.0, "one answer never clears everything");
+    }
+
+    #[test]
+    fn a_bigger_spell_melts_more_but_never_clears_the_screen() {
+        let melted = |spell: Spell| {
+            let mut s = Scene::new(240, 135, 2, Commitment::Relentless.pace(), true);
+            run(&mut s, 150.0);
+            let before = s.snow.fill();
+            s.celebrate(1.5, spell); // the most an answer earns: recall on the first try
+            assert_eq!(s.last_spell(), Some(spell));
+            assert!(s.snow.fill() > 0.0, "{spell:?} cleared everything");
+            before - s.snow.fill()
+        };
+        let (spark, fireball, blaze) = (melted(Spell::Spark), melted(Spell::Fireball), melted(Spell::Blaze));
+        assert!(spark > 0.0 && spark < fireball && fireball < blaze, "{spark} {fireball} {blaze}");
     }
 
     #[test]
@@ -1450,7 +1568,7 @@ mod tests {
         run(&mut s, 1.0);
         assert!(s.pyro.visible());
         let before = s.snow.fill();
-        s.celebrate(1.0);
+        s.celebrate(1.0, Spell::Fireball);
         assert!((s.snow.fill() - before).abs() < 1e-3, "nothing melts until the fireball lands");
         let mut staggered = false;
         for _ in 0..90 {
@@ -2206,5 +2324,129 @@ mod tests {
         }
         assert!(dropped);
         assert!(s.snow.fill() <= before + 1e-6, "snowballs just burst on the frozen pile");
+    }
+
+    // ---- weather-only scenes (the other monitors in overlay mode) ----
+
+    #[test]
+    fn a_weather_screen_never_spawns_actors_whatever_the_freeze() {
+        let mut s = Scene::weather(320, 180, 13, Commitment::Relentless.pace(), true);
+        s.set_freeze_target(0.9);
+        run(&mut s, 240.0);
+        assert_eq!(s.mobs_out(), 0, "no mob waves");
+        assert_eq!(s.friends_out(), 0, "no summoned friends");
+        assert_eq!(s.icicles_falling(), 0, "no icicle rain");
+        assert_eq!(s.cubes_in_flight(), 0, "no ice cubes thrown");
+        assert!(s.fires.is_empty(), "no warrior lighting fires");
+        assert!(!s.pyro.visible(), "no fire mage");
+    }
+
+    #[test]
+    fn a_weather_screen_allocates_nothing_for_actors_effects_or_hud() {
+        // Secondary monitors must stay cheap: after minutes of heavy weather the
+        // only heap a weather screen holds is the flakes, pile, walls and blanket.
+        let mut s = Scene::weather(640, 360, 18, Commitment::Relentless.pace(), true);
+        s.set_freeze_target(1.0);
+        run(&mut s, 120.0);
+        let mut c = Canvas::new(640, 360);
+        s.draw(&mut c);
+        let heaps = [
+            ("cubes", s.cubes.capacity()),
+            ("particles", s.particles.capacity()),
+            ("friends", s.friends.capacity()),
+            ("fires", s.fires.capacity()),
+            ("fireballs", s.fireballs.capacity()),
+            ("pending_power", s.pending_power.capacity()),
+            ("icicles", s.icicles.capacity()),
+            ("mobs", s.mobs.capacity()),
+            ("tips", s.tips.capacity()),
+        ];
+        for (what, cap) in heaps {
+            assert_eq!(cap, 0, "{what} allocated on a weather screen");
+        }
+        assert!(s.backdrop.is_none(), "an overlay weather screen paints no landscape");
+        let hud = &s.hud;
+        assert!(hud.caption.is_none() && hud.summary.is_none() && hud.toast.is_none() && hud.stats.is_none());
+        assert!(s.mage.bubble.is_none() && s.warrior.bubble.is_none(), "nobody talks");
+    }
+
+    #[test]
+    fn a_weather_screen_draws_only_weather_no_characters_or_hud() {
+        let mut s = Scene::weather(320, 180, 14, Commitment::Steady.pace(), true);
+        s.hud.toast("Snowlearner · não deve aparecer", 5.0);
+        s.mage.say("Nem eu!", 5.0);
+        run(&mut s, 1.0);
+        let mut c = Canvas::new(320, 180);
+        s.draw(&mut c);
+        let lit = c.opaque_in(0, 0, 320, 180);
+        // Flakes in the air plus the odd grain that settled before melting away.
+        assert!(lit <= falling(&s) + 40, "{lit} opaque pixels but only {} flakes in the air", falling(&s));
+        // The same world as a full scene shows the mage, the warrior and the toast.
+        let mut full = Scene::new(320, 180, 14, Commitment::Steady.pace(), true);
+        full.hud.toast("Snowlearner · não deve aparecer", 5.0);
+        run(&mut full, 1.0);
+        let mut f = Canvas::new(320, 180);
+        full.draw(&mut f);
+        assert!(f.opaque_in(0, 0, 320, 180) > lit + 200, "a full scene draws much more");
+    }
+
+    #[test]
+    fn a_weather_screen_follows_the_freeze_level_set_from_outside_up_and_down() {
+        let mut s = Scene::weather(320, 180, 15, Commitment::Steady.pace(), true);
+        assert!(s.freeze_level() < 0.01, "starts clear");
+        s.set_freeze_target(0.9);
+        run(&mut s, 90.0);
+        let up = s.freeze_level();
+        assert!((up - 0.9).abs() < 0.08, "climbed to the primary's level: {up}");
+        assert!(s.frozen_over && s.frost.coverage() > 0.2, "pile at the line, edges frozen");
+        s.set_freeze_target(0.1);
+        run(&mut s, 20.0);
+        let down = s.freeze_level();
+        assert!((down - 0.1).abs() < 0.06, "melted with the primary: {down}");
+        assert!(!s.frozen_over, "the pile thawed below the line");
+    }
+
+    #[test]
+    fn a_weather_screen_freezes_in_two_stages_pile_first_then_the_edges() {
+        let mut s = Scene::weather(320, 180, 19, Commitment::Steady.pace(), true);
+        s.set_freeze_target(0.45);
+        for _ in 0..(60 * 30) {
+            s.step(1.0 / 30.0);
+            assert_eq!(s.frost.coverage(), 0.0, "edge snow before the pile reached the line");
+        }
+        assert!(!s.frozen_over);
+        assert!((s.pile_level() - 0.75).abs() < 0.08, "the pile alone carries the level: {}", s.pile_level());
+        s.set_freeze_target(0.8);
+        run(&mut s, 60.0);
+        assert!(s.frozen_over, "the pile reached the line");
+        let line = s.h as f32 * ICE_LINE;
+        assert!(s.snow.mean() <= line * 1.05, "and stopped there: mean {} vs {line}", s.snow.mean());
+        assert!(s.frost.coverage() > 0.1, "then the edges froze: {}", s.frost.coverage());
+    }
+
+    #[test]
+    fn a_weather_screen_snows_as_hard_as_the_primary_level_says() {
+        let mut s = Scene::weather(320, 180, 16, Commitment::Steady.pace(), true);
+        s.set_freeze_target(0.0);
+        run(&mut s, 10.0);
+        let light = falling(&s);
+        s.set_freeze_target(1.0);
+        run(&mut s, 30.0);
+        assert!(falling(&s) > light * 5, "heavy snowfall when buried: {} vs {light}", falling(&s));
+    }
+
+    #[test]
+    fn the_freeze_target_is_ignored_by_a_full_scene_and_clamped_on_a_weather_one() {
+        let mut full = Scene::new(240, 135, 17, Commitment::Steady.pace(), true);
+        full.set_freeze_target(1.0);
+        run(&mut full, 2.0);
+        assert!(full.freeze_level() < 0.2, "the primary's level comes from its own mage");
+        let mut s = Scene::weather(240, 135, 17, Commitment::Steady.pace(), true);
+        s.set_freeze_target(7.0);
+        run(&mut s, 60.0);
+        assert!(s.freeze_level() <= 1.0);
+        s.set_freeze_target(-3.0);
+        run(&mut s, 30.0);
+        assert!(s.freeze_level() < 0.05, "a negative level means clear: {}", s.freeze_level());
     }
 }

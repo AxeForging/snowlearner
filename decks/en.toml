@@ -45,6 +45,8 @@ text = "Em email e reunião, 'I'm afraid...' suaviza uma notícia ruim."
 topic = "trabalho"
 situation = "O colega está falando, mas está no mudo."
 say = "Sorry, you're on mute"
+short = "You're muted"
+polished = "Sorry, I think you might be on mute"
 meaning = "Desculpa, você está no mudo"
 accept = ["You're on mute"]
 
@@ -52,6 +54,8 @@ accept = ["You're on mute"]
 topic = "trabalho"
 situation = "Você quer ver o que o colega está mostrando."
 say = "Can you share your screen?"
+short = "Share your screen?"
+polished = "Would you mind sharing your screen?"
 meaning = "Pode compartilhar sua tela?"
 accept = ["Could you share your screen?"]
 
@@ -59,6 +63,8 @@ accept = ["Could you share your screen?"]
 topic = "trabalho"
 situation = "Você vai se atrasar para a daily."
 say = "I'm running a few minutes late"
+short = "Running late!"
+polished = "Sorry, I'm running a few minutes late"
 meaning = "Estou alguns minutos atrasado"
 tip = "'Running late' é o jeito natural de dizer que está atrasado."
 
@@ -66,6 +72,8 @@ tip = "'Running late' é o jeito natural de dizer que está atrasado."
 topic = "trabalho"
 situation = "Te perguntaram algo e você precisa confirmar antes."
 say = "Let me double-check and get back to you"
+short = "Let me check"
+polished = "Let me double-check that and get back to you shortly"
 meaning = "Deixa eu confirmar e te retorno"
 accept = ["Let me check and get back to you"]
 tip = "'Get back to you' = te dar retorno. Muito usado no trabalho."
@@ -74,6 +82,8 @@ tip = "'Get back to you' = te dar retorno. Muito usado no trabalho."
 topic = "trabalho"
 situation = "Você não entendeu uma explicação técnica."
 say = "Could you walk me through it?"
+short = "Walk me through it?"
+polished = "Would you mind walking me through it?"
 meaning = "Você pode me explicar passo a passo?"
 accept = ["Can you walk me through it?"]
 
@@ -81,6 +91,8 @@ accept = ["Can you walk me through it?"]
 topic = "trabalho"
 situation = "Você quer confirmar se entendeu direito."
 say = "Just to clarify, you mean the new version?"
+short = "The new version?"
+polished = "Just to clarify, do you mean the new version?"
 meaning = "Só pra esclarecer, você quer dizer a nova versão?"
 accept = ["Just to clarify, do you mean the new version?"]
 
@@ -88,6 +100,7 @@ accept = ["Just to clarify, do you mean the new version?"]
 topic = "trabalho"
 situation = "Você está travado esperando outra equipe."
 say = "I'm blocked on this until they fix the API"
+short = "I'm blocked on this"
 meaning = "Estou travado nisso até eles arrumarem a API"
 tip = "API em inglês se fala 'ei-pi-ai'."
 
@@ -95,6 +108,8 @@ tip = "API em inglês se fala 'ei-pi-ai'."
 topic = "trabalho"
 situation = "Perguntam o prazo de uma tarefa."
 say = "What's the deadline for this?"
+short = "When's it due?"
+polished = "When would you need this by?"
 meaning = "Qual é o prazo pra isso?"
 accept = ["When is the deadline for this?"]
 
@@ -102,6 +117,8 @@ accept = ["When is the deadline for this?"]
 topic = "trabalho"
 situation = "A reunião precisa ser adiada."
 say = "Can we push this to tomorrow?"
+short = "Tomorrow instead?"
+polished = "Would it be possible to push this to tomorrow?"
 meaning = "Podemos passar isso pra amanhã?"
 accept = ["Could we push this to tomorrow?", "Can we move this to tomorrow?"]
 
@@ -109,6 +126,8 @@ accept = ["Could we push this to tomorrow?", "Can we move this to tomorrow?"]
 topic = "trabalho"
 situation = "Você concorda com a sugestão do colega."
 say = "That makes sense"
+short = "Makes sense"
+polished = "That makes a lot of sense, thanks"
 meaning = "Isso faz sentido"
 tip = "Muito mais natural que 'I agree with you' no dia a dia."
 
@@ -116,6 +135,8 @@ tip = "Muito mais natural que 'I agree with you' no dia a dia."
 topic = "trabalho"
 situation = "Você não tem tempo pra pegar mais tarefas."
 say = "I don't have the bandwidth for this right now"
+short = "I'm swamped right now"
+polished = "I'm afraid I don't have the bandwidth for this right now"
 meaning = "Não tenho capacidade pra isso agora"
 accept = ["I don't have bandwidth for this right now"]
 
@@ -123,12 +144,16 @@ accept = ["I don't have bandwidth for this right now"]
 topic = "trabalho"
 situation = "Achou um problema sério em produção."
 say = "I think we have a bug in production"
+short = "Production bug!"
+polished = "I think we might have a bug in production"
 meaning = "Acho que temos um bug em produção"
 
 [[phrase]]
 topic = "trabalho"
 situation = "Você vai tirar o dia de folga amanhã."
 say = "I'll be out of office tomorrow"
+short = "I'm off tomorrow"
+polished = "Just a heads-up, I'll be out of office tomorrow"
 meaning = "Vou estar fora do escritório amanhã"
 accept = ["I'll be off tomorrow"]
 
@@ -136,6 +161,8 @@ accept = ["I'll be off tomorrow"]
 topic = "trabalho"
 situation = "Terminou a reunião e você vai mandar um resumo."
 say = "I'll send a follow-up email"
+short = "I'll follow up"
+polished = "I'll send you a follow-up email later today"
 meaning = "Vou mandar um email de acompanhamento"
 accept = ["I'll send you a follow-up email"]
 
@@ -143,6 +170,8 @@ accept = ["I'll send you a follow-up email"]
 topic = "trabalho"
 situation = "Seu áudio pode estar ruim no começo da call."
 say = "Can you hear me okay?"
+short = "Can you hear me?"
+polished = "Sorry, can you hear me okay?"
 meaning = "Você está me ouvindo bem?"
 accept = ["Can you hear me?"]
 
@@ -150,12 +179,15 @@ accept = ["Can you hear me?"]
 topic = "trabalho"
 situation = "Você discorda, mas com educação."
 say = "I see your point, but I'm not sure that works"
+short = "I'm not sure about that"
+polished = "I see your point, but I'm not entirely sure that works"
 meaning = "Entendo seu ponto, mas não tenho certeza se funciona"
 
 [[phrase]]
 topic = "trabalho"
 situation = "Na daily, conte o que fez ontem."
 say = "Yesterday I finished the login page"
+short = "The login page is done"
 meaning = "Ontem eu terminei a página de login"
 tip = "'Finished' termina com som de 't': 'fínisht'."
 
@@ -165,6 +197,8 @@ tip = "'Finished' termina com som de 't': 'fínisht'."
 topic = "viagem"
 situation = "Você chegou no hotel."
 say = "I have a reservation under my name"
+short = "I have a reservation"
+polished = "Hi, I have a reservation under my name"
 meaning = "Tenho uma reserva no meu nome"
 accept = ["I have a reservation"]
 
@@ -172,18 +206,24 @@ accept = ["I have a reservation"]
 topic = "viagem"
 situation = "Quer saber se o café da manhã está incluso."
 say = "Is breakfast included?"
+short = "Breakfast included?"
+polished = "Could you tell me if breakfast is included?"
 meaning = "O café da manhã está incluso?"
 
 [[phrase]]
 topic = "viagem"
 situation = "Precisa saber até que horas pode ficar no quarto."
 say = "What time is check-out?"
+short = "Check-out time?"
+polished = "Could you tell me what time check-out is?"
 meaning = "Que horas é o check-out?"
 
 [[phrase]]
 topic = "viagem"
 situation = "Sua mala não apareceu na esteira."
 say = "My luggage didn't arrive"
+short = "Lost luggage"
+polished = "I'm afraid my luggage didn't arrive"
 meaning = "Minha bagagem não chegou"
 accept = ["My bag didn't arrive"]
 tip = "'Luggage' não tem plural: nunca 'luggages'."
@@ -192,12 +232,16 @@ tip = "'Luggage' não tem plural: nunca 'luggages'."
 topic = "viagem"
 situation = "Está perdido e procura a estação."
 say = "How do I get to the train station?"
+short = "Train station?"
+polished = "Excuse me, how do I get to the train station?"
 meaning = "Como eu chego na estação de trem?"
 
 [[phrase]]
 topic = "viagem"
 situation = "No check-in do voo."
 say = "Could I get a window seat, please?"
+short = "Window seat, please"
+polished = "If possible, could I get a window seat, please?"
 meaning = "Poderia me dar um assento na janela, por favor?"
 accept = ["Can I get a window seat, please?", "Can I have a window seat?"]
 
@@ -205,6 +249,7 @@ accept = ["Can I get a window seat, please?", "Can I have a window seat?"]
 topic = "viagem"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "How long does it take to get downtown?"
+short = "How far is downtown?"
 meaning = "Quanto tempo leva pra chegar no centro?"
 tip = "'Downtown' é o centro da cidade nos EUA."
 
@@ -212,6 +257,8 @@ tip = "'Downtown' é o centro da cidade nos EUA."
 topic = "viagem"
 situation = "Na imigração, perguntam o motivo da viagem."
 say = "I'm here on vacation"
+short = "On vacation"
+polished = "I'm just here on vacation for a week"
 meaning = "Estou aqui de férias"
 accept = ["I'm here for vacation", "I'm here on holiday"]
 
@@ -221,6 +268,8 @@ accept = ["I'm here for vacation", "I'm here on holiday"]
 topic = "restaurante"
 situation = "Você quer levar a comida pra viagem."
 say = "Can I get this to go?"
+short = "To go, please"
+polished = "Could I get this to go, please?"
 meaning = "Pode embalar pra viagem?"
 accept = ["Could I get this to go?"]
 
@@ -228,6 +277,8 @@ accept = ["Could I get this to go?"]
 topic = "restaurante"
 situation = "Você tem alergia a amendoim."
 say = "I'm allergic to peanuts"
+short = "No peanuts, please"
+polished = "Just so you know, I'm allergic to peanuts"
 meaning = "Sou alérgico a amendoim"
 tip = "Alergia é sério: fale devagar e aponte no cardápio se precisar."
 
@@ -235,6 +286,8 @@ tip = "Alergia é sério: fale devagar e aponte no cardápio se precisar."
 topic = "restaurante"
 situation = "Terminou de comer e quer pagar."
 say = "Could we get the check, please?"
+short = "Check, please"
+polished = "Whenever you're ready, could we get the check, please?"
 meaning = "Pode trazer a conta, por favor?"
 accept = ["Can we get the check, please?", "Check, please"]
 tip = "Nos EUA é 'check'; no Reino Unido, 'bill'."
@@ -243,18 +296,24 @@ tip = "Nos EUA é 'check'; no Reino Unido, 'bill'."
 topic = "restaurante"
 situation = "Chegou no restaurante com um amigo."
 say = "A table for two, please"
+short = "Two, please"
+polished = "Hi, could we get a table for two, please?"
 meaning = "Uma mesa pra dois, por favor"
 
 [[phrase]]
 topic = "restaurante"
 situation = "Não sabe o que pedir."
 say = "What do you recommend?"
+short = "Any recommendations?"
+polished = "What would you recommend here?"
 meaning = "O que você recomenda?"
 
 [[phrase]]
 topic = "restaurante"
 situation = "Quer saber se aceitam cartão."
 say = "Do you take credit cards?"
+short = "Card okay?"
+polished = "Do you happen to take credit cards?"
 meaning = "Vocês aceitam cartão de crédito?"
 accept = ["Do you accept credit cards?"]
 
@@ -264,6 +323,8 @@ accept = ["Do you accept credit cards?"]
 topic = "compras"
 situation = "O vendedor oferece ajuda, mas você só está olhando."
 say = "I'm just looking, thanks"
+short = "Just looking"
+polished = "I'm just looking for now, thank you"
 meaning = "Só estou olhando, obrigado"
 accept = ["Just looking, thanks"]
 
@@ -271,6 +332,7 @@ accept = ["Just looking, thanks"]
 topic = "compras"
 situation = "Quer provar uma roupa."
 say = "Can I try this on?"
+polished = "Would it be okay if I tried this on?"
 meaning = "Posso experimentar?"
 accept = ["Could I try this on?"]
 
@@ -278,6 +340,8 @@ accept = ["Could I try this on?"]
 topic = "compras"
 situation = "Precisa de um tamanho maior."
 say = "Do you have this in a bigger size?"
+short = "A bigger size?"
+polished = "Excuse me, do you have this in a bigger size?"
 meaning = "Tem esse num tamanho maior?"
 accept = ["Do you have this in a larger size?"]
 
@@ -285,6 +349,7 @@ accept = ["Do you have this in a larger size?"]
 topic = "compras"
 situation = "O produto veio com defeito."
 say = "I'd like to return this"
+polished = "Hi, I'd like to return this, please"
 meaning = "Eu gostaria de devolver isso"
 accept = ["I would like to return this"]
 
@@ -294,12 +359,15 @@ accept = ["I would like to return this"]
 topic = "saúde"
 situation = "Você não está bem e precisa de atendimento."
 say = "I need to see a doctor"
+short = "I need a doctor"
+polished = "I think I need to see a doctor, please"
 meaning = "Preciso ver um médico"
 
 [[phrase]]
 topic = "saúde"
 situation = "Na consulta, mostre onde dói."
 say = "It hurts right here"
+short = "It hurts here"
 meaning = "Dói bem aqui"
 accept = ["It hurts here"]
 
@@ -307,12 +375,15 @@ accept = ["It hurts here"]
 topic = "saúde"
 situation = "Na farmácia, procurando remédio pra dor de cabeça."
 say = "Do you have something for a headache?"
+short = "Something for a headache?"
+polished = "Could you recommend something for a headache?"
 meaning = "Tem algo pra dor de cabeça?"
 
 [[phrase]]
 topic = "saúde"
 situation = "O médico pergunta há quanto tempo você está assim."
 say = "I've been feeling sick since yesterday"
+short = "I feel sick"
 meaning = "Estou me sentindo mal desde ontem"
 
 # ---------------------------------------------------------------- social
@@ -321,12 +392,15 @@ meaning = "Estou me sentindo mal desde ontem"
 topic = "social"
 situation = "Alguém pergunta de onde você é."
 say = "I'm from Brazil"
+polished = "I'm originally from Brazil"
 meaning = "Eu sou do Brasil"
 
 [[phrase]]
 topic = "social"
 situation = "Quer puxar conversa sobre o trabalho da pessoa."
 say = "What do you do for a living?"
+short = "What do you do?"
+polished = "So, what do you do for a living?"
 meaning = "Com o que você trabalha?"
 accept = ["What do you do?"]
 
@@ -334,6 +408,8 @@ accept = ["What do you do?"]
 topic = "social"
 situation = "A pessoa fala rápido demais pra você."
 say = "Could you speak a little slower?"
+short = "Slower, please"
+polished = "Sorry, could you speak a little slower, please?"
 meaning = "Você poderia falar um pouco mais devagar?"
 accept = ["Could you speak more slowly?", "Can you speak a little slower?"]
 
@@ -341,6 +417,7 @@ accept = ["Could you speak more slowly?", "Can you speak a little slower?"]
 topic = "social"
 situation = "Não sabe uma palavra em inglês."
 say = "How do you say this in English?"
+short = "How do you say this?"
 meaning = "Como se diz isso em inglês?"
 
 [[phrase]]
@@ -354,18 +431,23 @@ accept = ["No problem"]
 topic = "social"
 situation = "Um amigo pergunta se você está chegando."
 say = "I'm on my way"
+short = "On my way!"
+polished = "I'm on my way, see you soon"
 meaning = "Estou a caminho"
 
 [[phrase]]
 topic = "social"
 situation = "Não entendeu o que a pessoa quis dizer."
 say = "What do you mean?"
+polished = "Sorry, what do you mean by that?"
 meaning = "O que você quer dizer?"
 
 [[phrase]]
 topic = "social"
 situation = "Está indo embora da festa."
 say = "It was great seeing you"
+short = "Great seeing you"
+polished = "It was really great seeing you again"
 meaning = "Foi ótimo te ver"
 accept = ["It was nice seeing you", "It was great to see you"]
 
@@ -375,6 +457,7 @@ accept = ["It was nice seeing you", "It was great to see you"]
 topic = "telefone"
 situation = "A pessoa que você procura não está."
 say = "Can I leave a message?"
+polished = "Could I leave a message, please?"
 meaning = "Posso deixar um recado?"
 accept = ["Could I leave a message?"]
 
@@ -382,12 +465,14 @@ accept = ["Could I leave a message?"]
 topic = "telefone"
 situation = "Ligou pro número errado."
 say = "Sorry, I think I have the wrong number"
+short = "Wrong number, sorry"
 meaning = "Desculpa, acho que liguei errado"
 
 [[phrase]]
 topic = "telefone"
 situation = "Precisa soletrar seu nome."
 say = "Let me spell it for you"
+short = "Let me spell it"
 meaning = "Deixa eu soletrar pra você"
 tip = "Treine o alfabeto: o 'e' em inglês se fala 'í' e o 'i' se fala 'ái'."
 
@@ -397,6 +482,7 @@ tip = "Treine o alfabeto: o 'e' em inglês se fala 'í' e o 'i' se fala 'ái'."
 topic = "emergência"
 situation = "Aconteceu um acidente."
 say = "Please call an ambulance"
+short = "Call an ambulance!"
 meaning = "Por favor, chame uma ambulância"
 accept = ["Call an ambulance"]
 
@@ -404,12 +490,15 @@ accept = ["Call an ambulance"]
 topic = "emergência"
 situation = "Perdeu o passaporte na viagem."
 say = "I lost my passport"
+polished = "Excuse me, I've lost my passport"
 meaning = "Perdi meu passaporte"
 
 [[phrase]]
 topic = "emergência"
 situation = "Precisa de ajuda urgente na rua."
 say = "Can you help me, please?"
+short = "Help, please!"
+polished = "Excuse me, could you help me, please?"
 meaning = "Você pode me ajudar, por favor?"
 accept = ["Could you help me, please?", "Can you help me?"]
 
@@ -420,6 +509,7 @@ topic = "trabalho"
 level = "A1"
 situation = "Seu celular toca durante a reunião e você atende rapidinho pra avisar."
 say = "I'm in a meeting."
+polished = "Sorry, I'm in a meeting right now."
 meaning = "Estou numa reunião."
 accept = ["I'm in a meeting now"]
 
@@ -460,6 +550,7 @@ topic = "trabalho"
 level = "A1"
 situation = "Na call, o cliente falou rápido e você não pegou o número do pedido."
 say = "Can you repeat, please?"
+polished = "Sorry, could you repeat that, please?"
 meaning = "Pode repetir, por favor?"
 accept = ["Can you repeat that, please?", "Repeat, please"]
 
@@ -492,6 +583,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um colega passou meia hora te ajudando a configurar o notebook."
 say = "Thanks for your help."
+short = "Thanks!"
+polished = "Thank you so much for your help."
 meaning = "Obrigado pela ajuda."
 accept = ["Thank you for your help"]
 
@@ -500,6 +593,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Sexta à tarde, você sai do escritório e se despede do time."
 say = "See you on Monday."
+short = "See you Monday."
+polished = "Have a good weekend, see you on Monday."
 meaning = "Até segunda."
 accept = ["See you Monday"]
 
@@ -508,6 +603,7 @@ topic = "trabalho"
 level = "A2"
 situation = "Um colega quer conversar, mas você está no meio de uma entrega."
 say = "Can we talk after lunch?"
+polished = "Could we talk after lunch, if that's okay?"
 meaning = "Podemos conversar depois do almoço?"
 accept = ["Could we talk after lunch?"]
 
@@ -532,6 +628,8 @@ topic = "trabalho"
 level = "A2"
 situation = "A reunião já começou e você não acha o convite na agenda."
 say = "Can you send me the link?"
+short = "Link, please?"
+polished = "Could you send me the link, please?"
 meaning = "Pode me mandar o link?"
 accept = ["Could you send me the link?"]
 
@@ -548,6 +646,7 @@ topic = "trabalho"
 level = "A2"
 situation = "Na call, o som do colega some de repente."
 say = "I can't hear you."
+polished = "Sorry, I can't hear you very well."
 meaning = "Não estou te ouvindo."
 accept = ["I cannot hear you"]
 
@@ -564,6 +663,7 @@ topic = "trabalho"
 level = "A2"
 situation = "O trânsito parou e você avisa no chat que vai chegar atrasado."
 say = "I'll be five minutes late."
+polished = "Sorry, I'll be about five minutes late."
 meaning = "Vou atrasar cinco minutos."
 accept = ["I'm going to be five minutes late"]
 
@@ -572,6 +672,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Você quer marcar uma conversa com um cliente e pergunta o melhor horário."
 say = "What time works for you?"
+short = "When works?"
+polished = "What time would work best for you?"
 meaning = "Que horário fica bom pra você?"
 accept = ["What time is good for you?"]
 
@@ -588,5 +690,7 @@ topic = "trabalho"
 level = "A2"
 situation = "Você combina com um colega de revisar o projeto juntos."
 say = "Let's meet tomorrow at nine."
+short = "Tomorrow at nine?"
+polished = "Would it work to meet tomorrow at nine?"
 meaning = "Vamos nos ver amanhã às nove."
 accept = ["Let's meet at nine tomorrow"]

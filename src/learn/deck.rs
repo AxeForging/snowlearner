@@ -3,10 +3,12 @@
 //!
 //! Phrases are real situations, not vocabulary drills: each has a topic, a
 //! pt-BR situation, accepted variants and an optional practical tip.
+//! A phrase may come in three tiers: `short` (the quickest way to say it),
+//! `say` (the complete one) and `polished` (the most courteous one).
 
 use super::cue::{self, Segment};
 use anyhow::{Context, Result, bail};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Built-in decks per language: hand-curated phrases, the first words and
@@ -68,6 +70,12 @@ struct PhraseFile {
     topic: Option<String>,
     #[serde(default)]
     accept: Vec<String>,
+    /// Shortest natural way to say it ("Mute!"); `say` is the complete one.
+    #[serde(default)]
+    short: Option<String>,
+    /// Most courteous way to say it.
+    #[serde(default)]
+    polished: Option<String>,
     #[serde(default)]
     tip: Option<String>,
     /// CEFR level (A1..C2).
@@ -87,12 +95,45 @@ fn default_cue() -> String {
 
 pub const DEFAULT_TOPIC: &str = "geral";
 
+/// Which answer the learner practices: every tier shown, or a single one.
+/// A tier is `Short`, `Complete` or `Polished`; `All` only picks what is shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Answer {
+    #[default]
+    #[serde(alias = "todas")]
+    All,
+    #[serde(alias = "curta")]
+    Short,
+    #[serde(alias = "completa")]
+    Complete,
+    #[serde(alias = "polida")]
+    Polished,
+}
+
+impl Answer {
+    pub const CHOICES: [Answer; 4] = [Answer::All, Answer::Short, Answer::Complete, Answer::Polished];
+
+    pub fn label_pt(self) -> &'static str {
+        match self {
+            Answer::All => "todas",
+            Answer::Short => "curta",
+            Answer::Complete => "completa",
+            Answer::Polished => "polida",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Phrase {
     /// What the learner must say, in the target language.
     pub say: String,
-    /// Other answers that also count ("Can you…" vs "Could you…").
+    /// Other answers that also count ("Can you…" vs "Could you…"), as complete.
     pub accept: Vec<String>,
+    /// Shorter tier; None when the deck has none (or it equals `say`).
+    pub short: Option<String>,
+    /// Politer tier; None when the deck has none (or it equals another tier).
+    pub polished: Option<String>,
     /// Native-language meaning (shown in captions and the daily summary).
     pub meaning: String,
     /// Real-life context in the native language ("Você entrou na call…").
@@ -113,6 +154,8 @@ impl Phrase {
         Phrase {
             say: say.to_string(),
             accept: Vec::new(),
+            short: None,
+            polished: None,
             meaning: meaning.to_string(),
             situation: None,
             topic: DEFAULT_TOPIC.to_string(),
@@ -122,9 +165,58 @@ impl Phrase {
         }
     }
 
-    /// Every answer that counts, preferred one first.
-    pub fn answers(&self) -> Vec<&str> {
-        std::iter::once(self.say.as_str()).chain(self.accept.iter().map(String::as_str)).collect()
+    /// Every answer that counts with its tier, shortest tier first (so a tie
+    /// in scoring goes to the higher tier). Accepted variants count as complete.
+    pub fn answers(&self) -> Vec<(Answer, &str)> {
+        let short = self.short.as_deref().map(|s| (Answer::Short, s));
+        let polished = self.polished.as_deref().map(|s| (Answer::Polished, s));
+        short
+            .into_iter()
+            .chain(std::iter::once((Answer::Complete, self.say.as_str())))
+            .chain(self.accept.iter().map(|a| (Answer::Complete, a.as_str())))
+            .chain(polished)
+            .collect()
+    }
+
+    /// The distinct tiers this phrase has: short, complete, polished.
+    pub fn tiers(&self) -> Vec<(Answer, &str)> {
+        self.answers().into_iter().filter(|(t, s)| *t != Answer::Complete || *s == self.say).collect()
+    }
+
+    /// The tier the learner is asked for; a missing tier falls back to `say`,
+    /// and `All` asks for the complete one (the others are shown beside it).
+    pub fn shown(&self, answer: Answer) -> &str {
+        let tier = match answer {
+            Answer::Short => self.short.as_deref(),
+            Answer::Polished => self.polished.as_deref(),
+            Answer::All | Answer::Complete => None,
+        };
+        tier.unwrap_or(&self.say)
+    }
+
+    /// The repeat cue with the asked tier in place of the complete phrase.
+    pub fn cue_for(&self, answer: Answer) -> Vec<Segment> {
+        let shown = self.shown(answer);
+        self.cue
+            .iter()
+            .map(|s| match s {
+                Segment::Target(t) if *t == self.say => Segment::Target(shown.to_string()),
+                other => other.clone(),
+            })
+            .collect()
+    }
+
+    /// With `All`: the other tiers, labeled ("curta: Mute!"), to show under
+    /// the cue (which holds the complete one). Nothing for a single tier.
+    pub fn alternatives(&self, answer: Answer) -> Vec<String> {
+        if answer != Answer::All {
+            return Vec::new();
+        }
+        self.tiers()
+            .into_iter()
+            .filter(|(t, _)| *t != Answer::Complete)
+            .map(|(t, s)| format!("{}: {s}", t.label_pt()))
+            .collect()
     }
 
     /// Recall-mode cue: the situation and meaning, but not the answer.
@@ -169,6 +261,14 @@ impl Deck {
                 (None, None) => file.default_cue.clone(),
             };
             let cue = cue::parse(&cue_src, &say).with_context(|| format!("phrase #{} ({say:?})", i + 1))?;
+            // A tier equal to a lower one (ignoring case and punctuation) collapses.
+            let key = |s: &str| crate::speech::matcher::normalize(s).join(" ");
+            let tier = |t: Option<String>, below: &[Option<&str>]| {
+                t.map(|t| t.trim().to_string())
+                    .filter(|t| !t.is_empty() && below.iter().flatten().all(|b| key(b) != key(t)))
+            };
+            let short = tier(p.short, &[Some(&say)]);
+            let polished = tier(p.polished, &[Some(&say), short.as_deref()]);
             let topic = p.topic.map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty());
             let level = p.level.map(|l| l.trim().to_uppercase());
             if let Some(l) = &level
@@ -179,6 +279,8 @@ impl Deck {
             phrases.push(Phrase {
                 meaning: p.meaning.unwrap_or_default(),
                 accept: p.accept.into_iter().map(|a| a.trim().to_string()).filter(|a| !a.is_empty()).collect(),
+                short,
+                polished,
                 situation: p.situation,
                 topic: topic.unwrap_or_else(|| DEFAULT_TOPIC.to_string()),
                 say,
@@ -376,10 +478,100 @@ mod tests {
             }
             for p in deck.phrases {
                 let cue = p.cue.iter().map(|s| s.text()).collect::<Vec<_>>().join(" ");
-                let all = format!("{} {} {cue} {:?} {:?} {}", p.say, p.meaning, p.situation, p.tip, p.accept.join(" "));
+                let all = format!(
+                    "{} {} {cue} {:?} {:?} {} {:?}",
+                    p.say,
+                    p.meaning,
+                    p.situation,
+                    p.tip,
+                    p.accept.join(" "),
+                    p.alternatives(Answer::All)
+                );
                 assert!(crate::render::font::supports(&all), "unrenderable text in {all:?}");
             }
         }
+    }
+
+    #[test]
+    fn builtin_tiers_grow_from_short_to_complete_to_polished() {
+        let words = |s: &str| s.split_whitespace().count();
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            let tiered: Vec<&Phrase> = deck.phrases.iter().filter(|p| p.tiers().len() > 1).collect();
+            assert!(tiered.len() >= 40, "{lang}: only {} phrases with tiers", tiered.len());
+            for p in tiered {
+                assert!(p.level.as_deref() != Some(PRE_A1), "{lang}: pre-A1 {:?} stays a single word", p.say);
+                if let Some(s) = &p.short {
+                    assert!(words(s) <= words(&p.say), "{lang}: short {s:?} longer than {:?}", p.say);
+                }
+                if let Some(pol) = &p.polished {
+                    assert!(words(&p.say) <= words(pol), "{lang}: polished {pol:?} shorter than {:?}", p.say);
+                }
+                if let (Some(s), Some(pol)) = (&p.short, &p.polished) {
+                    assert!(words(s) < words(pol), "{lang}: {s:?} and {pol:?} are the same size");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn tiers_are_optional_and_missing_ones_fall_back_to_say() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='Can you share your screen?'\nmeaning='x'\nshort='Share your screen?'\n\
+             polished='Would you mind sharing your screen?'\naccept=['Could you share your screen?']\n\
+             [[phrase]]\nsay='Hi'\nmeaning='Oi'"
+        ))
+        .unwrap();
+        let (tiered, plain) = (&d.phrases[0], &d.phrases[1]);
+        assert_eq!(tiered.shown(Answer::Short), "Share your screen?");
+        assert_eq!(tiered.shown(Answer::Complete), "Can you share your screen?");
+        assert_eq!(tiered.shown(Answer::All), "Can you share your screen?", "all asks the complete one");
+        assert_eq!(tiered.shown(Answer::Polished), "Would you mind sharing your screen?");
+        assert_eq!(
+            tiered.answers(),
+            vec![
+                (Answer::Short, "Share your screen?"),
+                (Answer::Complete, "Can you share your screen?"),
+                (Answer::Complete, "Could you share your screen?"),
+                (Answer::Polished, "Would you mind sharing your screen?"),
+            ],
+            "every tier counts, shortest first"
+        );
+        assert_eq!(
+            tiered.alternatives(Answer::All),
+            vec!["curta: Share your screen?", "polida: Would you mind sharing your screen?"]
+        );
+        assert!(tiered.alternatives(Answer::Short).is_empty(), "one tier shows only itself");
+        for a in Answer::CHOICES {
+            assert_eq!(plain.shown(a), "Hi", "{a:?} falls back to say");
+            assert!(plain.alternatives(a).is_empty());
+        }
+        assert_eq!(plain.tiers(), vec![(Answer::Complete, "Hi")]);
+    }
+
+    #[test]
+    fn the_cue_asks_for_the_chosen_tier() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='Thank you so much'\nmeaning='x'\nsituation='Ajudaram você.'\nshort='Thanks!'"
+        ))
+        .unwrap();
+        let p = &d.phrases[0];
+        assert_eq!(p.cue_for(Answer::Short)[1], Segment::Target("Thanks!".into()));
+        assert_eq!(p.cue_for(Answer::All), p.cue, "all reads the complete one");
+        assert_eq!(p.cue_for(Answer::Polished), p.cue, "no polished tier: the complete one");
+    }
+
+    #[test]
+    fn empty_and_duplicate_tiers_collapse() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='Thanks a lot.'\nmeaning='x'\nshort='  '\npolished='thanks a lot'\n\
+             [[phrase]]\nsay='Thank you'\nmeaning='x'\nshort='Thanks'\npolished='THANKS!'"
+        ))
+        .unwrap();
+        assert_eq!((d.phrases[0].short.as_deref(), d.phrases[0].polished.as_deref()), (None, None));
+        assert_eq!(d.phrases[0].tiers().len(), 1);
+        assert_eq!(d.phrases[1].short.as_deref(), Some("Thanks"));
+        assert_eq!(d.phrases[1].polished, None, "equal to short once case and punctuation go");
     }
 
     #[test]
@@ -419,7 +611,8 @@ mod tests {
             "{HEAD}[[phrase]]\nsay='Could you repeat that?'\nmeaning='x'\ntopic=' Trabalho '\naccept=['Can you repeat that?', '  ']"
         ))
         .unwrap();
-        assert_eq!(d.phrases[0].answers(), vec!["Could you repeat that?", "Can you repeat that?"]);
+        let answers: Vec<&str> = d.phrases[0].answers().into_iter().map(|(_, a)| a).collect();
+        assert_eq!(answers, vec!["Could you repeat that?", "Can you repeat that?"]);
         assert_eq!(d.phrases[0].topic, "trabalho");
     }
 
