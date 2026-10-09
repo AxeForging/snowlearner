@@ -1470,7 +1470,7 @@ fn draw_sun(c: &mut Canvas, time: f32, fade: f32) {
 
 /// Once the ground pile's mean height reaches this share of the screen, the
 /// edges start to freeze; before that, snow never sticks to them.
-const ICE_LINE: f32 = 0.30;
+pub const ICE_LINE: f32 = 0.30;
 
 /// Edge-snow coverage at which the glass is fully frosted over.
 const GLASS_FULL_AT: f32 = 0.6;

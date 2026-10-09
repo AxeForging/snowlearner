@@ -146,6 +146,8 @@ pub enum Scenario {
     Fight,
     /// Pausing: everything is sucked into the orb's black hole.
     Blackhole,
+    /// Deep snow: the frost mage summons the ice owl and it drops snowballs.
+    Snowstorm,
 }
 
 #[derive(Subcommand, Debug)]

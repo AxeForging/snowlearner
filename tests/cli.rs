@@ -186,6 +186,28 @@ fn snapshot_writes_a_png_of_the_requested_size() {
 }
 
 #[test]
+fn snapshot_stages_the_snowstorm_as_an_animation() {
+    let home = Home::new();
+    let out = home.dir.path().join("storm.png");
+    let o = home.run(&[
+        "snapshot",
+        out.to_str().unwrap(),
+        "--scenario",
+        "snowstorm",
+        "--frames",
+        "3",
+        "--width",
+        "200",
+        "--height",
+        "100",
+    ]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    for f in 0..3 {
+        assert!(home.dir.path().join(format!("storm-{f:03}.png")).exists(), "frame {f}");
+    }
+}
+
+#[test]
 fn snapshot_rejects_absurd_sizes() {
     let home = Home::new();
     let out = home.dir.path().join("x.png");

@@ -15,18 +15,21 @@ That's it: it installs, downloads the offline speech model and registers the sho
 Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [Install](#install).
 
 - 🧙 The **frost mage** patrols the bottom of the screen throwing ice, calls **icicle rain**,
-  and summons **snowmen** and **penguins** that burst frost onto the screen edges. He asks the
-  questions — and taunts you.
+  and summons **snowmen** and **penguins** that burst frost onto the screen edges; once the snow
+  is deep, an **ice owl** flies over dropping snowballs. He asks the questions — and taunts you.
 - 🔥 Start a lesson and your **fire mage** teleports in. Answer out loud; get it right and a
-  fireball melts part of the ice. Three in a row call the **sun**.
+  fireball melts part of the ice. Every phrase comes **short, complete and polished**: the fuller
+  your answer, the bigger the spell and the more it melts. Three in a row call the **sun**.
 - ⚔️ A **warrior** tries to survive: builds *fogueiras*, sword-fights frost slimes and bats,
-  gives you tips (false friends, pronunciation traps) — and freezes solid if you ignore him.
+  gives you tips (false friends, pronunciation traps), slides down steep snow piles — and freezes
+  solid if you ignore him.
 - 🪜 You start from **zero**: first single words (*hello, water, thanks*), then short
   expressions (*good morning, the check please*), and only then full phrases — pre-A1 (no
   English at all) to B2. A few new items at a time; learning one opens the next, and it tells you so.
 - 🗣️ Everything is a **real situation** (meetings, travel, restaurant, doctor, phone, small
   talk…): new items you hear and repeat, known ones you say **from memory**. Missed ones come
-  back until you get them; a recognizer slip of a letter or two doesn't count against you.
+  back until you get them. Answers are checked by **how they sound** (Spanish *poyo* is *pollo*,
+  accents never matter), and a slip of a letter or two doesn't count against you.
 - 📈 **Progress** (`Ctrl+Alt+P`): what you already know, what you're learning now and what
   comes next, per stage and per topic.
 - 🎙️ It listens like a patient teacher: thinking time before you start, room to hesitate
@@ -37,11 +40,12 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
   **pause** — everything gets sucked into a black hole until you're back.
 - ✋ Hold **Ctrl+Alt** (or `snowlearner grab`) and a magic hand lets you pick the mage (grumpy)
   or the warrior (shy) up and drop them in the snow.
+- 🖥️ Every monitor gets its own snow; the mage and the lesson stay on the main one.
 - 🌙 At the end of the day it shows and **reads back** everything you practiced.
 
-| A lesson (window mode) | Icicle rain, summons, mobs | Pause = black hole |
-|---|---|---|
-| ![lesson](docs/img/lesson.webp) | ![fight](docs/img/fight.webp) | ![black hole](docs/img/blackhole.webp) |
+| A lesson (window mode) | Icicle rain, summons, mobs | Deep snow: ice owl, sliding | Pause = black hole |
+|---|---|---|---|
+| ![lesson](docs/img/lesson.webp) | ![fight](docs/img/fight.webp) | ![ice owl](docs/img/snowstorm.webp) | ![black hole](docs/img/blackhole.webp) |
 
 No cloud, no LLM required: recognition is whisper.cpp running offline.
 **No GPU needed**: everything is drawn on the CPU and blitted to the window, redrawing only
