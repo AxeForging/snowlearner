@@ -500,7 +500,9 @@ mod tests {
             let tiered: Vec<&Phrase> = deck.phrases.iter().filter(|p| p.tiers().len() > 1).collect();
             assert!(tiered.len() >= 40, "{lang}: only {} phrases with tiers", tiered.len());
             for p in tiered {
-                assert!(p.level.as_deref() != Some(PRE_A1), "{lang}: pre-A1 {:?} stays a single word", p.say);
+                if p.level.as_deref() == Some(PRE_A1) {
+                    assert!(words(&p.say) <= 3, "{lang}: pre-A1 {:?} is asked as a word or set expression", p.say);
+                }
                 if let Some(s) = &p.short {
                     assert!(words(s) <= words(&p.say), "{lang}: short {s:?} longer than {:?}", p.say);
                 }
@@ -510,6 +512,28 @@ mod tests {
                 if let (Some(s), Some(pol)) = (&p.short, &p.polished) {
                     assert!(words(s) < words(pol), "{lang}: {s:?} and {pol:?} are the same size");
                 }
+            }
+        }
+    }
+
+    /// The first-words decks, where the learning path starts.
+    const BASICS: &[(&str, &str)] =
+        &[("en", include_str!("../../decks/en.basics.toml")), ("es", include_str!("../../decks/es.basics.toml"))];
+
+    #[test]
+    fn first_words_keep_their_shape_and_offer_a_polished_sentence() {
+        let words = |s: &str| s.split_whitespace().count();
+        let key = |s: &str| crate::speech::matcher::normalize(s).join(" ");
+        for (lang, src) in BASICS {
+            let deck = Deck::parse(src).unwrap();
+            for p in &deck.phrases {
+                assert!(words(&p.say) <= 3, "{lang}: basics {:?} is asked as a word or short chunk", p.say);
+                let pol = p.polished.as_deref().unwrap_or_else(|| panic!("{lang}: {:?} has no polished tier", p.say));
+                assert_ne!(key(pol), key(&p.say), "{lang}: polished {pol:?} repeats the word");
+                assert!(words(pol) > words(&p.say), "{lang}: polished {pol:?} is no fuller than {:?}", p.say);
+                assert!(words(pol) <= 7, "{lang}: polished {pol:?} is too long for a beginner");
+                assert_eq!(p.shown(Answer::Complete), p.say, "{lang}: the complete tier still asks the word");
+                assert_eq!(p.alternatives(Answer::All), vec![format!("polida: {pol}")]);
             }
         }
     }
