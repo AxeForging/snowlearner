@@ -9,7 +9,7 @@ use super::trace;
 use super::voices::{TtsEngine, Voice};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::time::Instant;
 
@@ -41,6 +41,8 @@ pub enum Job {
     },
     /// End the current listen now ("I'm done"). Handled out of band.
     StopListening,
+    /// Stop reading the current Speak job after the line being said. Out of band.
+    StopSpeaking,
     /// Apply new voice/mic settings live (from the panel).
     Configure(Box<VoiceSettings>),
 }
@@ -127,8 +129,12 @@ impl VoiceSettings {
 }
 
 pub struct Speech {
-    tx: Sender<Job>,
+    /// Jobs with their send order, so a stop can reach queued ones too.
+    tx: Sender<(u64, Job)>,
     stop: Arc<AtomicBool>,
+    /// Speak jobs sent up to this order number are hushed.
+    hush: Arc<AtomicU64>,
+    sent: AtomicU64,
     /// Engine description, e.g. "speech-dispatcher (spd-say)".
     pub tts: String,
     pub tts_ok: bool,
@@ -141,9 +147,11 @@ impl Speech {
         let voice = cfg.voice();
         let (tts, tts_ok) = (voice.describe(), voice.available());
         let can_listen = cfg!(feature = "stt") && cfg.model.exists();
-        let (tx, rx) = mpsc::channel::<Job>();
+        let (tx, rx) = mpsc::channel::<(u64, Job)>();
         let stop = Arc::new(AtomicBool::new(false));
         let stop_worker = stop.clone();
+        let hush = Arc::new(AtomicU64::new(0));
+        let hush_worker = hush.clone();
         std::thread::Builder::new()
             .name("speech".into())
             .spawn(move || {
@@ -158,7 +166,7 @@ impl Speech {
                     let deadline = recognizer.deadline();
                     #[cfg(not(feature = "stt"))]
                     let deadline: Option<Instant> = None;
-                    let job = match deadline {
+                    let (seq, job) = match deadline {
                         None => match rx.recv() {
                             Ok(job) => job,
                             Err(_) => break,
@@ -178,10 +186,16 @@ impl Speech {
                             cfg = *new;
                             voice = cfg.voice();
                         }
-                        Job::StopListening => {}
+                        Job::StopListening | Job::StopSpeaking => {}
                         Job::Speak { id, parts } => {
                             let started = Instant::now();
                             for (index, p) in parts.iter().enumerate() {
+                                // shortcut: stops between lines, not mid-line; threading the
+                                // flag into audio playback would make it instant.
+                                if seq <= hush_worker.load(Ordering::SeqCst) {
+                                    trace::line(format_args!("speech stopped"));
+                                    break;
+                                }
                                 notify(SpeechEvent::Part { id, index });
                                 trace::line(format_args!("speak [{}] {:?}", p.lang, p.text));
                                 let v = if p.lang == cfg.native_lang { &cfg.native_voice } else { &cfg.learning_voice };
@@ -217,14 +231,16 @@ impl Speech {
                 }
             })
             .expect("spawning speech thread");
-        Speech { tx, stop, tts, tts_ok, can_listen }
+        Speech { tx, stop, hush, sent: AtomicU64::new(0), tts, tts_ok, can_listen }
     }
 
     pub fn send(&self, job: Job) {
         match job {
             Job::StopListening => self.stop.store(true, Ordering::SeqCst),
+            Job::StopSpeaking => self.hush.store(self.sent.load(Ordering::SeqCst), Ordering::SeqCst),
             other => {
-                let _ = self.tx.send(other);
+                let seq = self.sent.fetch_add(1, Ordering::SeqCst) + 1;
+                let _ = self.tx.send((seq, other));
             }
         }
     }

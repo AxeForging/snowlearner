@@ -560,7 +560,9 @@ impl App {
     fn toggle_pause(&mut self) {
         self.menu.paused = !self.menu.paused;
         if let Some(scene) = &mut self.scene {
-            self.lesson.set_paused(self.menu.paused, scene);
+            for job in self.lesson.set_paused(self.menu.paused, scene) {
+                self.speech.send(job);
+            }
             scene.set_paused(self.menu.paused);
             let msg = if self.menu.paused { T::PauseOn } else { T::PauseOff };
             scene.hud.toast(msg.get(self.settings.native), 3.0);

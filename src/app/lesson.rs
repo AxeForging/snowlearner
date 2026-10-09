@@ -321,12 +321,23 @@ impl Lesson {
     }
 
     /// Paused (black hole): no lessons, nudges or recaps until resumed.
-    pub fn set_paused(&mut self, on: bool, scene: &mut Scene) {
+    /// Returns the jobs to send (stopping a recap being read).
+    pub fn set_paused(&mut self, on: bool, scene: &mut Scene) -> Vec<Job> {
+        let mut jobs = Vec::new();
         self.paused = on;
         if on {
+            self.hush(&mut jobs);
             self.close(scene);
         }
         self.idle_for = 0.0;
+        jobs
+    }
+
+    /// Leaving the recap stops its reading (at the end of the current line).
+    fn hush(&self, jobs: &mut Vec<Job>) {
+        if matches!(self.state, State::Summary { .. }) {
+            jobs.push(Job::StopSpeaking);
+        }
     }
 
     pub fn handle(&mut self, input: Input, scene: &mut Scene) -> Vec<Job> {
@@ -343,12 +354,17 @@ impl Lesson {
             Input::Tick { dt, now } => self.tick(dt, now, scene, &mut jobs),
             Input::Primary => self.primary(scene, &mut jobs),
             Input::Summary => {
-                if !matches!(self.state, State::Summary { .. }) {
-                    self.close(scene);
+                let open = matches!(self.state, State::Summary { .. });
+                self.hush(&mut jobs);
+                self.close(scene);
+                if !open {
                     self.start_summary(Local::now(), scene, &mut jobs);
                 }
             }
-            Input::Dismiss => self.close(scene),
+            Input::Dismiss => {
+                self.hush(&mut jobs);
+                self.close(scene);
+            }
             Input::Speech(ev) => self.speech(ev, scene, &mut jobs),
         }
         jobs
@@ -382,6 +398,7 @@ impl Lesson {
                 self.finish_attempt(phrase, tries, &say, 1.0, Some(tier), scene);
             }
             State::Challenge { stage: Stage::Result { .. }, .. } | State::Summary { .. } => {
+                self.hush(jobs);
                 self.close(scene);
                 self.start_challenge(scene, jobs);
             }
@@ -1679,6 +1696,33 @@ mod tests {
         f.send(Input::Speech(SpeechEvent::Spoken { id: sid }));
         f.tick(SUMMARY_LINGER + 0.2);
         assert!(f.scene.hud.summary.is_none());
+    }
+
+    #[test]
+    fn leaving_the_summary_any_way_stops_the_reading() {
+        let stops = |jobs: &[Job]| jobs.iter().any(|j| matches!(j, Job::StopSpeaking));
+        let reading = || {
+            let mut f = fixture(true);
+            f.answer(true);
+            f.send(Input::Summary);
+            assert!(f.scene.hud.summary.is_some());
+            f
+        };
+        let mut f = reading();
+        assert!(stops(&f.send(Input::Dismiss)), "Esc");
+        assert!(f.scene.hud.summary.is_none());
+        let mut f = reading();
+        let jobs = f.send(Input::Summary);
+        assert!(stops(&jobs), "the summary hotkey again closes it");
+        assert!(f.scene.hud.summary.is_none());
+        let mut f = reading();
+        f.tick(1.0); // past the held-hotkey debounce
+        let jobs = f.send(Input::Primary);
+        assert!(stops(&jobs) && jobs.iter().any(|j| matches!(j, Job::Speak { .. })), "skip to a challenge");
+        let mut f = reading();
+        assert!(stops(&f.lesson.set_paused(true, &mut f.scene)), "pausing");
+        let mut f = fixture(true);
+        assert!(!stops(&f.lesson.set_paused(true, &mut f.scene)), "nothing to stop outside the summary");
     }
 
     #[test]
