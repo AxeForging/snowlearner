@@ -30,7 +30,8 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
   expressions (*good morning, the check please*), and only then full phrases — pre-A1 (no
   English at all) to B2. A few new items at a time; learning one opens the next, and it tells you so.
 - 🗣️ Everything is a **real situation** (meetings, travel, restaurant, doctor, phone, small
-  talk…): new items you hear and repeat, known ones you say **from memory**. Missed ones come
+  talk…), and you tick the topics you want in the panel (Enter on any option lists them all,
+  with how many items each topic has at your level): new items you hear and repeat, known ones you say **from memory**. Missed ones come
   back until you get them. Answers are checked by **how they sound** (Spanish *poyo* is *pollo*,
   accents never matter), and a slip of a letter or two doesn't count against you.
 - 📈 **Progress** (`Ctrl+Alt+P`): what you already know, what you're learning now and what
@@ -161,7 +162,7 @@ learning = "en"          # "en", "es" or "pt-BR" built in, or your own decks/<na
 native = "pt-BR"         # your own language: "pt-BR" or "en" (never the one you learn)
 commitment = "steady"    # chill | steady | committed | relentless
 practice = "auto"        # auto | repeat | recall
-topic = ""               # "" = all, or e.g. "trabalho", "viagem"
+topics = []              # [] = all, or e.g. ["trabalho", "viagem"] (old `topic = "x"` still works)
 max_level = "B2"         # PRE-A1 | A1..C2
 daily_goal = 10
 listen_seconds = 6.0     # time to start answering (recall gets +4)
