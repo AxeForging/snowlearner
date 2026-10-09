@@ -4,6 +4,7 @@
 
 use super::deck::{LEVELS, Phrase};
 use super::picker::{PhraseStats, RECALL_AFTER};
+use crate::lang::{Native, T};
 use std::collections::HashMap;
 
 /// New items in progress at once: enough variety, few enough to stick.
@@ -32,29 +33,32 @@ impl Stage {
     }
 
     /// One item of this stage, for the caption ("palavra · restaurante · repita").
-    pub fn singular_pt(self) -> &'static str {
+    pub fn singular(self, native: Native) -> &'static str {
         match self {
-            Stage::Words => "palavra",
-            Stage::Chunks => "expressão",
-            Stage::Phrases => "frase",
+            Stage::Words => T::StageWord,
+            Stage::Chunks => T::StageChunk,
+            Stage::Phrases => T::StagePhrase,
         }
+        .get(native)
     }
 
     /// Said when the path reaches this stage.
-    pub fn welcome_pt(self) -> &'static str {
+    pub fn welcome(self, native: Native) -> &'static str {
         match self {
-            Stage::Words => "Primeiras palavras!",
-            Stage::Chunks => "Nova etapa: expressões! Agora você junta palavras.",
-            Stage::Phrases => "Nova etapa: frases! Você já monta frases inteiras.",
+            Stage::Words => T::WelcomeWords,
+            Stage::Chunks => T::WelcomeChunks,
+            Stage::Phrases => T::WelcomePhrases,
         }
+        .get(native)
     }
 
-    pub fn label_pt(self) -> &'static str {
+    pub fn label(self, native: Native) -> &'static str {
         match self {
-            Stage::Words => "palavras",
-            Stage::Chunks => "expressões",
-            Stage::Phrases => "frases",
+            Stage::Words => T::StageWords,
+            Stage::Chunks => T::StageChunks,
+            Stage::Phrases => T::StagePhrases,
         }
+        .get(native)
     }
 }
 

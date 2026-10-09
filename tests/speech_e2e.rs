@@ -30,7 +30,7 @@ fn recognizer() -> Recognizer {
 #[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
 fn spoken_english_phrase_is_recognized_and_accepted() {
     let dir = tempfile::tempdir().unwrap();
-    let heard = recognizer().transcribe(&synth("I'm hungry", "en-us", dir.path()), "en").unwrap();
+    let heard = recognizer().transcribe(&synth("I'm hungry", "en-us", dir.path()), "en", None).unwrap();
     let m = matcher::score("I'm hungry", &heard);
     assert!(m.passed(0.72), "heard {heard:?} scored {}", m.score);
 }
@@ -39,7 +39,7 @@ fn spoken_english_phrase_is_recognized_and_accepted() {
 #[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
 fn spoken_spanish_phrase_is_recognized_and_accepted() {
     let dir = tempfile::tempdir().unwrap();
-    let heard = recognizer().transcribe(&synth("Muchas gracias", "es", dir.path()), "es").unwrap();
+    let heard = recognizer().transcribe(&synth("Muchas gracias", "es", dir.path()), "es", None).unwrap();
     let m = matcher::score("Muchas gracias", &heard);
     assert!(m.passed(0.72), "heard {heard:?} scored {}", m.score);
 }
@@ -48,7 +48,7 @@ fn spoken_spanish_phrase_is_recognized_and_accepted() {
 #[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
 fn saying_a_different_phrase_is_rejected() {
     let dir = tempfile::tempdir().unwrap();
-    let heard = recognizer().transcribe(&synth("Good night everyone", "en-us", dir.path()), "en").unwrap();
+    let heard = recognizer().transcribe(&synth("Good night everyone", "en-us", dir.path()), "en", None).unwrap();
     assert!(!matcher::score("I'm hungry", &heard).passed(0.72), "heard {heard:?}");
 }
 
@@ -79,7 +79,7 @@ fn a_single_word_said_the_instant_listening_starts_is_recognized() {
     let dir = tempfile::tempdir().unwrap();
     let r = recognizer();
     for phrase in ["Sorry.", "Good morning."] {
-        let heard = r.transcribe(&answered_instantly(phrase, dir.path()), "en").unwrap();
+        let heard = r.transcribe(&answered_instantly(phrase, dir.path()), "en", None).unwrap();
         assert!(matcher::score(phrase, &heard).passed(0.72), "{phrase:?} was heard as {heard:?}");
     }
 }
@@ -103,6 +103,50 @@ fn a_word_through_a_hissy_48khz_mic_is_recognized() {
     let mut mic: Vec<f32> = (0..24_000).map(|_| hiss()).collect();
     mic.extend(at_48k.iter().map(|v| v * 0.05 / level + hiss()));
     mic.extend((0..48_000).map(|_| hiss()));
-    let heard = recognizer().transcribe(&resample(&mic, 48_000, WHISPER_RATE), "en").unwrap();
+    let heard = recognizer().transcribe(&resample(&mic, 48_000, WHISPER_RATE), "en", None).unwrap();
     assert!(matcher::score("Please.", &heard).passed(0.72), "heard {heard:?}");
+}
+
+/// A lone short word is the hardest case for whisper: "¡Pare!" came back as
+/// "body", "¿Vale?", "¡Badi!" and "*Suscríbete*" for a learner who said it right.
+/// Without the hinted second pass, 3 of these 5 fail here (base model).
+#[test]
+#[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
+fn a_short_spanish_word_on_its_own_is_recognized_with_the_vocabulary_hint() {
+    let dir = tempfile::tempdir().unwrap();
+    let r = recognizer();
+    // The vocabulary around the target, as a lesson hands it over.
+    let vocab = "Disculpe. Adiós. Correo. Jugo. Reunión. Leche. Cuidado.";
+    for word in ["¡Pare!", "Sí.", "Pollo.", "Leche.", "¡Ayuda!"] {
+        let expect = matcher::Expect {
+            answers: vec![word.into()],
+            lang: "es".into(),
+            slack: 0,
+            threshold: 0.72,
+            hint: format!("{vocab} {word}"),
+        };
+        let heard = r.transcribe_expecting(&synth(word, "es", dir.path()), "es", Some(&expect)).unwrap();
+        let m = matcher::score_lenient(word, &heard, 0, "es");
+        assert!(m.passed(0.72), "{word:?} heard as {heard:?}");
+    }
+}
+
+/// The hint must not make a different word pass for the target.
+#[test]
+#[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
+fn the_vocabulary_hint_does_not_turn_a_different_word_into_the_target() {
+    let dir = tempfile::tempdir().unwrap();
+    let r = recognizer();
+    let vocab = "Disculpe. Adiós. Correo. Jugo. Reunión. Leche. Cuidado.";
+    for (target, said) in [("¡Pare!", "Vale"), ("Pollo.", "Pelo"), ("Sí.", "No"), ("¡Ayuda!", "Mañana")] {
+        let expect = matcher::Expect {
+            answers: vec![target.into()],
+            lang: "es".into(),
+            slack: 0,
+            threshold: 0.72,
+            hint: format!("{vocab} {target}"),
+        };
+        let heard = r.transcribe_expecting(&synth(said, "es", dir.path()), "es", Some(&expect)).unwrap();
+        assert!(!expect.accepts(&heard), "said {said:?}, heard {heard:?}, passed for {target:?}");
+    }
 }

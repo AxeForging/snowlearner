@@ -186,6 +186,28 @@ fn snapshot_writes_a_png_of_the_requested_size() {
 }
 
 #[test]
+fn snapshot_stages_the_snowstorm_as_an_animation() {
+    let home = Home::new();
+    let out = home.dir.path().join("storm.png");
+    let o = home.run(&[
+        "snapshot",
+        out.to_str().unwrap(),
+        "--scenario",
+        "snowstorm",
+        "--frames",
+        "3",
+        "--width",
+        "200",
+        "--height",
+        "100",
+    ]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    for f in 0..3 {
+        assert!(home.dir.path().join(format!("storm-{f:03}.png")).exists(), "frame {f}");
+    }
+}
+
+#[test]
 fn snapshot_rejects_absurd_sizes() {
     let home = Home::new();
     let out = home.dir.path().join("x.png");
@@ -221,6 +243,29 @@ fn progress_without_the_app_prints_a_path_that_starts_with_words() {
     assert!(out.contains("Progresso em inglês: 0 de "), "{out}");
     assert!(out.contains("Etapa atual: palavras"), "{out}");
     assert!(out.contains("Aprendendo agora:"), "{out}");
+}
+
+/// Topic names under "Por tema:" in `progress --print`.
+fn progress_topics(home: &Home) -> Vec<String> {
+    let o = home.run(&["progress", "--print"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let out = stdout(&o);
+    let (_, by_topic) = out.split_once("Por tema:\n").expect("a per-topic section");
+    by_topic.lines().filter_map(|l| l.split("  ").map(str::trim).find(|w| !w.is_empty())).map(String::from).collect()
+}
+
+#[test]
+fn progress_covers_only_the_ticked_topics_and_an_old_single_topic_config_still_works() {
+    let home = Home::new();
+    let port = free_port();
+    home.config(&format!("ipc_port = {port}\ntopic = 'restaurante'\nmax_level = 'B1'\n"));
+    assert_eq!(progress_topics(&home), ["restaurante"], "the old `topic` key still loads");
+    home.config(&format!("ipc_port = {port}\ntopics = ['viagem', 'Restaurante']\nmax_level = 'B1'\n"));
+    let mut both = progress_topics(&home);
+    both.sort();
+    assert_eq!(both, ["restaurante", "viagem"], "several topics at once");
+    home.config(&format!("ipc_port = {port}\ntopics = []\nmax_level = 'B1'\n"));
+    assert!(progress_topics(&home).len() > 5, "nothing ticked = every topic");
 }
 
 #[test]
@@ -308,5 +353,43 @@ fn setup_rejects_an_unknown_language_before_changing_anything() {
     let o = home.setup(&["--lang", "klingon", "--no-model"]);
     assert!(!o.status.success());
     assert!(stderr(&o).contains("klingon"), "{}", stderr(&o));
+    assert!(!home.dir.path().join("config/config.toml").exists());
+}
+
+#[test]
+fn an_english_speaker_gets_spanish_meanings_in_english() {
+    let o = Home::new().run(&["decks", "--native", "en", "--learning", "es"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let out = stdout(&o);
+    assert!(out.contains("[en → es]"), "{out}");
+    assert!(out.lines().any(|l| l.contains("Hola.") && l.contains("Hello.")), "{out}");
+    assert!(!out.contains("Olá."), "no Portuguese meanings: {out}");
+}
+
+#[test]
+fn an_english_speaker_can_learn_brazilian_portuguese() {
+    let home = Home::new();
+    let o = home.setup(&["--native", "en", "--lang", "pt-BR", "--no-model"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let config = std::fs::read_to_string(home.dir.path().join("config/config.toml")).unwrap();
+    assert!(config.contains("native = \"en\"") && config.contains("learning = \"pt-BR\""), "{config}");
+    let progress = stdout(&home.run(&["progress", "--print"]));
+    assert!(progress.contains("Progress in Portuguese"), "{progress}");
+    assert!(progress.contains("Current stage: words"), "{progress}");
+    let decks = stdout(&home.run(&["decks"]));
+    assert!(decks.lines().any(|l| l.contains("Oi.") && l.contains("Hi.")), "{decks}");
+}
+
+#[test]
+fn your_own_language_is_checked_before_anything_runs() {
+    let home = Home::new();
+    let o = home.run(&["decks", "--native", "fr"]);
+    assert!(!o.status.success());
+    assert!(stderr(&o).contains("--native"), "{}", stderr(&o));
+    let o = home.run(&["decks", "--native", "en"]);
+    assert!(!o.status.success(), "English is the default deck: an English speaker can't learn it");
+    assert!(stderr(&o).contains("own language"), "{}", stderr(&o));
+    let o = home.setup(&["--lang", "pt-BR", "--no-model"]);
+    assert!(!o.status.success(), "pt-BR speakers don't learn pt-BR");
     assert!(!home.dir.path().join("config/config.toml").exists());
 }

@@ -34,4 +34,5 @@ overlay_clip() { # name scenario seconds-before frames level
 overlay_clip overlay lesson 240 75 committed
 clip lesson lesson 120 75 committed
 clip fight fight 30 60 steady
+clip snowstorm snowstorm 30 90 relentless
 clip blackhole blackhole 150 80 relentless

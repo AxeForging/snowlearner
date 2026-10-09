@@ -1,0 +1,553 @@
+# English for English speakers, overlaying decks/es.basics.toml. Keyed by `say` (must match the deck exactly).
+language = "es"
+native = "en"
+language_name = "Spanish"
+title = "First steps"
+
+# ---------------------------------------------------------------- first words
+
+[[phrase]]
+say = "Hola."
+meaning = "Hello."
+situation = "You walk into a shop and the clerk looks at you."
+tip = "The 'h' is silent: say OH-lah."
+
+[[phrase]]
+say = "Adiós."
+meaning = "Bye."
+situation = "You leave the bakery and wave to the cashier."
+tip = "In South America you'll often hear 'chao' or 'chau'."
+
+[[phrase]]
+say = "Sí."
+meaning = "Yes."
+situation = "The receptionist asks if you have a reservation, and you do."
+tip = "Short and clean, like the English 'see'."
+
+[[phrase]]
+say = "No."
+meaning = "No."
+situation = "The salesperson asks if you want anything else, and you don't."
+tip = "A pure, short 'o': not 'noh-oo' like in English."
+
+[[phrase]]
+say = "Gracias."
+meaning = "Thank you."
+situation = "A stranger holds the door open for you."
+tip = "In Spain the 'c' sounds like English 'th'; in Latin America, like 's'."
+
+[[phrase]]
+say = "Perdón."
+meaning = "Sorry."
+situation = "You accidentally bump into someone in line."
+
+[[phrase]]
+say = "Disculpe."
+meaning = "Excuse me."
+situation = "You want to get the attention of a salesperson who has their back to you."
+tip = "'Disculpe' is formal (usted); 'disculpa' is informal (tú)."
+
+[[phrase]]
+say = "Cerveza."
+meaning = "Beer."
+situation = "At the bar, the bartender asks what you'll have."
+tip = "In Latin America the 'z' sounds like 's': ser-VEH-sah."
+
+[[phrase]]
+say = "Hielo."
+meaning = "Ice."
+situation = "The waiter asks if you want anything in your soda."
+tip = "The 'h' is silent: say YEH-loh."
+
+[[phrase]]
+say = "Jugo."
+meaning = "Juice."
+situation = "At the hotel breakfast, they ask what you'd like to drink."
+tip = "The 'j' is a strong throaty 'h', like in 'loch': HOO-goh. In Spain they say 'zumo'."
+
+[[phrase]]
+say = "Leche."
+meaning = "Milk."
+situation = "At the market, the clerk asks what's still missing from your list."
+tip = "Say LEH-cheh, with 'ch' as in 'church'."
+
+[[phrase]]
+say = "¿Un vaso?"
+meaning = "A glass?"
+situation = "The bottle of water arrived, but there's no glass on the table."
+tip = "False friend: 'vaso' is a drinking glass. A flower vase is 'florero', a plant pot 'maceta'."
+
+[[phrase]]
+say = "Servilleta."
+meaning = "Napkin."
+situation = "You spilled sauce on your clothes and need something to wipe it."
+tip = "The 'll' sounds like 'y' (or 'j'/'sh' in Argentina): ser-vee-YEH-tah."
+
+[[phrase]]
+say = "Cuchara."
+meaning = "Spoon."
+situation = "They brought the soup, but forgot to give you something to eat it with."
+
+[[phrase]]
+say = "¿Propina?"
+meaning = "Tip?"
+situation = "You ask your friend if the tip is already included in the bill."
+tip = "'Propina' is the tip for the waiter; a bribe is 'soborno'."
+
+[[phrase]]
+say = "Pollo."
+meaning = "Chicken."
+situation = "On the plane, the flight attendant asks if you want chicken or pasta."
+tip = "The 'll' sounds like 'y': POH-yoh. It's not 'polo'!"
+
+[[phrase]]
+say = "¡Ayuda!"
+meaning = "Help!"
+situation = "You fell on the street and can't get up by yourself."
+
+[[phrase]]
+say = "¡Cuidado!"
+meaning = "Watch out!"
+situation = "Someone is about to cross the street without seeing the car coming."
+tip = "The 'd' between vowels is very soft, like the 'th' in 'this': kwee-DAH-thoh."
+
+[[phrase]]
+say = "¡Pare!"
+meaning = "Stop!"
+situation = "The taxi is driving past your stop and you need it to pull over."
+
+[[phrase]]
+say = "¡Espere!"
+meaning = "Wait!"
+situation = "The bus is about to close its doors and you're still on the steps."
+tip = "'Espere' is formal (usted); 'espera' is informal (tú)."
+
+[[phrase]]
+say = "Izquierda."
+meaning = "Left."
+situation = "The ride-share driver asks which way to turn at the corner."
+tip = "Say ees-KYEHR-dah."
+
+[[phrase]]
+say = "Derecha."
+meaning = "Right."
+situation = "The driver asks again, and this time it's the other way."
+tip = "Careful: 'derecho' (straight ahead) is not 'derecha' (right)."
+
+[[phrase]]
+say = "Lejos."
+meaning = "Far."
+situation = "Someone asks if the hotel is close, but it's on the other side of town."
+tip = "The 'j' is a strong throaty 'h', like in 'loch': LEH-hos."
+
+[[phrase]]
+say = "Hoy."
+meaning = "Today."
+situation = "The mechanic asks when you need the car, and it's for today."
+tip = "The 'h' is silent: it sounds like 'oy'."
+
+[[phrase]]
+say = "Mañana."
+meaning = "Tomorrow."
+situation = "They ask when you'll come back to pick up the repair."
+tip = "'Mañana' also means 'morning': 'mañana por la mañana' is tomorrow morning."
+
+[[phrase]]
+say = "Ayer."
+meaning = "Yesterday."
+situation = "The doctor asks when the pain started."
+tip = "Say ah-YEHR."
+
+[[phrase]]
+say = "Uno."
+meaning = "One."
+situation = "At the subway ticket office, they ask how many tickets you want, and it's just for you."
+
+[[phrase]]
+say = "Dos."
+meaning = "Two."
+situation = "You're with a friend and the waiter asks how many coffees."
+tip = "Short 'o', like 'dose' without the glide."
+
+[[phrase]]
+say = "Cuatro."
+meaning = "Four."
+situation = "In the hotel elevator, someone asks which floor you're going to."
+
+[[phrase]]
+say = "¿Cinco?"
+meaning = "Five?"
+situation = "At the newsstand, you ask the price and need to check it's five pesos."
+tip = "In Latin America it sounds like SEEN-koh."
+
+[[phrase]]
+say = "¿Dónde?"
+meaning = "Where?"
+situation = "Someone says the bus stop is close, but you can't see it anywhere."
+tip = "As a question it carries an accent: '¿dónde?'."
+
+[[phrase]]
+say = "Aquí."
+meaning = "Here."
+situation = "The waiter arrives with the dish and doesn't know where to put it."
+
+[[phrase]]
+say = "Ahora."
+meaning = "Now."
+situation = "The doorman asks when you want the taxi, and it's right now."
+tip = "The 'h' is silent: ah-OH-rah."
+
+[[phrase]]
+say = "Luego."
+meaning = "Later."
+situation = "Your friend calls wanting to chat, but you're at the supermarket."
+
+[[phrase]]
+say = "Efectivo."
+meaning = "Cash."
+situation = "The cashier asks if it's card or cash, and you have cash."
+tip = "Paying 'en efectivo' means paying in cash."
+
+[[phrase]]
+say = "Tarjeta."
+meaning = "Card."
+situation = "The cashier asks how you'll pay, and it's by card."
+tip = "The 'j' is a strong throaty 'h', like in 'loch': tar-HEH-tah."
+
+[[phrase]]
+say = "Caliente."
+meaning = "Hot."
+situation = "At the coffee shop, they ask if you want the milk hot or cold."
+tip = "Say kah-LYEN-teh. The opposite is 'frío'."
+
+[[phrase]]
+say = "Pasillo."
+meaning = "Aisle."
+situation = "At check-in, they ask if you prefer window or aisle, and you want the aisle."
+
+[[phrase]]
+say = "Ventanilla."
+meaning = "Window seat."
+situation = "Now, on the other flight, you want to see the view."
+tip = "On a plane or bus it's 'ventanilla'; in a house it's 'ventana'."
+
+[[phrase]]
+say = "¿La llave?"
+meaning = "The key?"
+situation = "You get to the hotel at night and ask for the thing that opens your room."
+tip = "The 'll' sounds like 'y': YAH-veh."
+
+[[phrase]]
+say = "Toalla."
+meaning = "Towel."
+situation = "In your hotel room there's nothing to dry yourself with after the shower."
+
+[[phrase]]
+say = "Almohada."
+meaning = "Pillow."
+situation = "At the hostel, the receptionist asks if anything is missing from your bed."
+tip = "The 'h' is silent: al-moh-AH-dah."
+
+[[phrase]]
+say = "¡Salud!"
+meaning = "Cheers!"
+situation = "Everyone raises their glass for a toast at dinner."
+tip = "You also say '¡salud!' when someone sneezes, like 'bless you'."
+
+[[phrase]]
+say = "Quizás."
+meaning = "Maybe."
+situation = "You're invited to a party, but you don't know yet if you'll go."
+tip = "Say kee-SAHS."
+
+[[phrase]]
+say = "¡Despacio!"
+meaning = "Slow down!"
+situation = "The driver is going way too fast and you're scared."
+tip = "'Despacio' means slowly; it sounds like 'dispatch' but means the opposite of hurry."
+
+[[phrase]]
+say = "Encantado."
+meaning = "Nice to meet you."
+situation = "Someone introduces themselves and you say it's a pleasure."
+tip = "A man says 'encantado'; a woman says 'encantada'."
+
+# ---------------------------------------------------------------- short chunks
+
+[[phrase]]
+say = "Buenos días."
+meaning = "Good morning."
+situation = "You get to work at eight and greet the doorman."
+tip = "It's plural: 'buenos días'. In Argentina you'll hear 'buen día'."
+
+[[phrase]]
+say = "Buenas tardes."
+meaning = "Good afternoon."
+situation = "You walk into a shop at three in the afternoon and greet the clerk."
+
+[[phrase]]
+say = "Buenas noches."
+meaning = "Good evening."
+situation = "You arrive at the restaurant at nine at night and greet the waiter."
+tip = "It works both for arriving and for saying goodbye (good night)."
+
+[[phrase]]
+say = "Por favor."
+meaning = "Please."
+situation = "The waiter offers more bread and you politely accept."
+tip = "The 'v' sounds close to a soft 'b', and the final 'r' is tapped: por fah-BOR."
+
+[[phrase]]
+say = "Lo siento."
+meaning = "I'm sorry."
+situation = "A coworker tells you his dog died."
+tip = "'Lo siento' is for sympathy or regret; 'perdón' is for apologizing."
+
+[[phrase]]
+say = "¿El baño?"
+meaning = "The bathroom?"
+situation = "You're desperate at the airport and can only manage to ask the essentials."
+
+[[phrase]]
+say = "¿Cuánto es?"
+meaning = "How much is it?"
+situation = "At the market, you point at a jar of honey with no price."
+
+[[phrase]]
+say = "Agua sin gas."
+meaning = "Still water."
+situation = "The waiter asks if you want sparkling or still water."
+tip = "'Sin' means without; sparkling water is 'con gas'."
+
+[[phrase]]
+say = "Dos cafés."
+meaning = "Two coffees."
+situation = "You get to the coffee shop counter with a friend."
+
+[[phrase]]
+say = "Otra, por favor."
+meaning = "Another one, please."
+situation = "Your beer is finished and you call the waiter to order one more."
+
+[[phrase]]
+say = "Sin hielo."
+meaning = "No ice."
+situation = "You order a soda, but you have a sore throat."
+
+[[phrase]]
+say = "Para llevar."
+meaning = "To go."
+situation = "At the snack bar, they ask if it's for here or to go."
+tip = "Eating in is 'para comer aquí'."
+
+[[phrase]]
+say = "Esta noche."
+meaning = "Tonight."
+situation = "A coworker asks when the party is, and it's tonight."
+
+[[phrase]]
+say = "¿Otra vez?"
+meaning = "Again?"
+situation = "The clerk spoke too fast and you didn't catch the street name."
+
+[[phrase]]
+say = "¡Hasta mañana!"
+meaning = "See you tomorrow!"
+situation = "You leave class and say goodbye to classmates you'll see the next day."
+
+[[phrase]]
+say = "Estoy perdido."
+meaning = "I'm lost."
+situation = "You're in the middle of an unfamiliar city and stop someone on the street."
+tip = "A woman says 'estoy perdida'."
+
+[[phrase]]
+say = "Tengo hambre."
+meaning = "I'm hungry."
+situation = "Your friend asks if you want to stop to eat."
+tip = "In Spanish you 'have' hunger: 'tengo hambre'. The 'h' is silent."
+
+[[phrase]]
+say = "Estoy cansado."
+meaning = "I'm tired."
+situation = "After walking all day, your friend wants to go out again."
+
+[[phrase]]
+say = "¿La salida?"
+meaning = "The exit?"
+situation = "The concert is over and you can't find the way out of the stadium."
+
+[[phrase]]
+say = "Todo recto."
+meaning = "Straight ahead."
+situation = "A tourist asks the way to the museum, which is straight ahead."
+tip = "In Spain, 'todo recto'; in much of Latin America, 'todo derecho'."
+
+[[phrase]]
+say = "Este, por favor."
+meaning = "This one, please."
+situation = "At the bakery, you don't know the bread's name and point at it."
+
+[[phrase]]
+say = "Aquí tiene."
+meaning = "Here you go."
+situation = "You hand the money to the cashier."
+tip = "'Aquí tiene' is formal; 'aquí tienes' is informal."
+
+[[phrase]]
+say = "Un momento."
+meaning = "One moment."
+situation = "The clerk asks for your passport and you need to dig through your backpack."
+
+[[phrase]]
+say = "¡Buena suerte!"
+meaning = "Good luck!"
+situation = "Your friend has a job interview tomorrow."
+
+[[phrase]]
+say = "¡Feliz cumpleaños!"
+meaning = "Happy birthday!"
+situation = "It's a coworker's birthday and he arrives at the office."
+tip = "False friend: 'aniversario' is an anniversary, not a birthday."
+
+[[phrase]]
+say = "Por supuesto."
+meaning = "Of course."
+situation = "A neighbor asks if he can leave a package with you."
+
+[[phrase]]
+say = "Yo también."
+meaning = "Me too."
+situation = "A coworker says he loves pizza, and so do you."
+tip = "With 'gustar' you say 'a mí también': 'me gusta' and 'a mí también'."
+
+[[phrase]]
+say = "Sin bolsa, gracias."
+meaning = "No bag, thanks."
+situation = "The cashier is about to put your two small items in a bag, but you don't need one."
+
+[[phrase]]
+say = "Al aeropuerto."
+meaning = "To the airport."
+situation = "You get into the taxi and the driver asks where you're going."
+tip = "'A' + 'el' becomes 'al'."
+
+[[phrase]]
+say = "¿A qué hora?"
+meaning = "What time?"
+situation = "A friend says the game is tomorrow, but doesn't say the time."
+
+[[phrase]]
+say = "¿Y tú?"
+meaning = "And you?"
+situation = "Someone asks how you are, and you want to ask them back."
+tip = "With older strangers, use '¿y usted?'."
+
+[[phrase]]
+say = "¿Qué es esto?"
+meaning = "What is this?"
+situation = "At the market, you see a fruit you've never seen in your life."
+
+[[phrase]]
+say = "¡Ya voy!"
+meaning = "Coming!"
+situation = "Your friend calls you from the living room and you're still getting ready."
+
+# ---------------------------------------------------------------- pre-A1: numbers, days, okay
+
+[[phrase]]
+say = "Tres."
+meaning = "Three."
+situation = "At the restaurant entrance, the waiter asks how many people: three."
+
+[[phrase]]
+say = "Seis."
+meaning = "Six."
+situation = "In the elevator, someone asks which floor you're going to: the sixth."
+
+[[phrase]]
+say = "Siete."
+meaning = "Seven."
+situation = "The hotel front desk asks what time you want breakfast: at seven."
+
+[[phrase]]
+say = "Ocho."
+meaning = "Eight."
+situation = "At the bakery, the clerk asks how many rolls you want: eight."
+
+[[phrase]]
+say = "Nueve."
+meaning = "Nine."
+situation = "The doctor asks how much it hurts, from zero to ten: nine."
+
+[[phrase]]
+say = "Diez."
+meaning = "Ten."
+situation = "At the market, the seller asks how many apples you want: ten."
+
+[[phrase]]
+say = "Lunes."
+meaning = "Monday."
+situation = "The dentist asks which day you can come back: Monday."
+
+[[phrase]]
+say = "Viernes."
+meaning = "Friday."
+situation = "A coworker asks when the party is: Friday."
+
+[[phrase]]
+say = "Está bien."
+meaning = "Okay."
+situation = "The taxi driver confirms the address you showed him and you agree."
+
+# ---------------------------------------------------------------- pre-A1: at work
+
+[[phrase]]
+say = "Reunión."
+meaning = "Meeting."
+situation = "A coworker sees you leaving with your laptop and asks where you're going: to a meeting."
+
+[[phrase]]
+say = "Correo."
+meaning = "Email."
+situation = "The client asks how to send you the contract: by email."
+
+[[phrase]]
+say = "Almuerzo."
+meaning = "Lunch."
+situation = "At noon, a coworker asks where everyone went: to lunch."
+
+[[phrase]]
+say = "Terminado."
+meaning = "Done, finished."
+situation = "Your boss asks if the report is ready yet, and it is."
+
+[[phrase]]
+say = "Listo."
+meaning = "Ready."
+situation = "Before the call starts, they ask if you're ready."
+
+[[phrase]]
+say = "Hola a todos."
+meaning = "Hi, everyone."
+situation = "You join the nine o'clock call with the whole team."
+
+[[phrase]]
+say = "¿Contraseña del wifi?"
+meaning = "The Wi-Fi password?"
+situation = "It's your first day at the office, and your laptop has no internet."
+
+[[phrase]]
+say = "Estoy aquí."
+meaning = "I'm here."
+situation = "On the call, the manager asks if you can hear him."
+
+[[phrase]]
+say = "Sí, puedo."
+meaning = "Yes, I can."
+situation = "They ask if you can finish the task today."
+
+[[phrase]]
+say = "Llámame."
+meaning = "Call me."
+situation = "A coworker asks how to reach you later."

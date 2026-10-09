@@ -1,6 +1,7 @@
 //! On-screen text: lesson captions (legendas) with highlights and per-word
 //! feedback, the end-of-day summary panel, and short toasts.
 
+use crate::lang::{Native, T};
 use crate::learn::cue::Segment;
 use crate::render::canvas::{Canvas, Rgba, hex};
 use crate::render::font;
@@ -21,15 +22,16 @@ pub enum Status {
 }
 
 impl Status {
-    fn label(self) -> &'static str {
+    fn label(self, native: Native) -> &'static str {
         match self {
-            Status::Speaking => "OUÇA",
-            Status::Listening => "FALE AGORA",
-            Status::Thinking => "PENSANDO",
-            Status::Passed => "ACERTOU!",
-            Status::Failed => "QUASE! TENTE DE NOVO",
-            Status::Confirm => "FALE E CONFIRME",
+            Status::Speaking => T::StatusSpeaking,
+            Status::Listening => T::StatusListening,
+            Status::Thinking => T::StatusThinking,
+            Status::Passed => T::StatusPassed,
+            Status::Failed => T::StatusFailed,
+            Status::Confirm => T::StatusConfirm,
         }
+        .get(native)
     }
 
     fn color(self) -> Rgba {
@@ -48,6 +50,10 @@ pub struct Caption {
     pub say: String,
     /// Segment currently being read aloud.
     pub active: Option<usize>,
+    /// Other ways to say it, labeled ("curta: Mute!"), under the cue.
+    pub alts: Vec<String>,
+    /// Index in `alts` of the option that counted, lit like a pass.
+    pub counted: Option<usize>,
     pub meaning: String,
     pub status: Status,
     pub feedback: Option<Vec<WordHit>>,
@@ -104,6 +110,8 @@ pub struct Hud {
     pub help: Option<Vec<String>>,
     /// Compact shortcut sheet next to the orb (hover / Ctrl+Alt held).
     pub cheats: Option<Cheats>,
+    /// The learner's own language, for the HUD's own words ("OUÇA", "Ouvi:").
+    pub native: Native,
 }
 
 /// Shortcut sheet: a prefix ("Ctrl+Alt +") and key → action rows, drawn next to `anchor`.
@@ -133,6 +141,8 @@ impl Cheats {
 const INK: Rgba = hex(0xe6ecff);
 const DIM: Rgba = hex(0x8f96d8);
 const TARGET: Rgba = hex(0x9be8ff);
+/// The other answer tiers: target-blue, but quieter than the asked one.
+const ALT: Rgba = hex(0x6fb4d0);
 const HIT: Rgba = hex(0x7dff9b);
 const MISS: Rgba = hex(0xff6b6b);
 const PANEL: Rgba = hex(0x0e0c2c);
@@ -165,7 +175,7 @@ impl Hud {
 
     pub fn draw(&self, c: &mut Canvas, ground_y: i32, time: f32) {
         if let Some(cap) = &self.caption {
-            draw_caption(c, cap, ground_y, time);
+            draw_caption(c, cap, self.native, ground_y, time);
         }
         if let Some(s) = &self.summary {
             draw_summary(c, s, time);
@@ -312,25 +322,35 @@ fn layout(tokens: &[Token], max_w: i32) -> Vec<Vec<usize>> {
     lines
 }
 
-fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
+fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, time: f32) {
     let pw = (c.w - 16).min(300);
     let inner = pw - 12;
     let toks = tokens(cap);
     let lines = layout(&toks, inner);
     let lh = font::LINE_H - 1;
     let mut rows = 1 + lines.len() as i32 + i32::from(cap.listen.is_some());
+    let alt_color = |i: usize| if cap.counted == Some(i) { Status::Passed.color() } else { ALT };
+    let alt_lines: Vec<(String, Rgba)> = cap
+        .alts
+        .iter()
+        .enumerate()
+        .flat_map(|(i, a)| font::wrap(a, inner).into_iter().map(move |l| (l, alt_color(i))))
+        .collect();
+    rows += alt_lines.len() as i32;
     let meaning_lines = if cap.meaning.is_empty() { vec![] } else { font::wrap(&format!("= {}", cap.meaning), inner) };
     rows += meaning_lines.len() as i32;
-    let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&format!("Ouvi: \"{h}\""), inner)).unwrap_or_default();
+    let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&T::Heard.fill(native, &[h]), inner)).unwrap_or_default();
     rows += heard_lines.len() as i32;
     if !cap.footer.is_empty() {
         rows += 1;
     }
     let ph = rows * lh + 8;
     let px = (c.w - pw) / 2;
-    // Upper part of the screen: clear of the characters and their speech bubbles.
-    // Below the progress corner, above the characters and their bubbles.
-    let py = (c.h / 8).max(2 * font::LINE_H + 8).min(ground_y - ph - 50).max(4);
+    // Below the progress corner, above the characters and their bubbles. A
+    // tall caption (several answer tiers) gives up room over the bubbles, never
+    // the corner, unless it would not fit on screen at all.
+    let below_corner = 2 * font::LINE_H + 8;
+    let py = (c.h / 8).max(below_corner).min(ground_y - ph - 50).max(below_corner.min(c.h - ph)).max(4);
     panel(c, px, py, pw, ph);
 
     // Header: icon + status.
@@ -343,7 +363,7 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
         Status::Failed => c.sprite(CROSS, &[('#', icon_c)], px + 6, y + 4, false),
         Status::Thinking => {}
     }
-    let mut label = cap.status.label().to_string();
+    let mut label = cap.status.label(native).to_string();
     if matches!(cap.status, Status::Listening | Status::Thinking) {
         label.push_str(&".".repeat(1 + (time * 3.0) as usize % 3));
     }
@@ -356,7 +376,7 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     }
     y += lh;
     if let Some(m) = &cap.listen {
-        draw_meter(c, px + 6, y + 3, pw - 12, m, time);
+        draw_meter(c, px + 6, y + 3, pw - 12, m, native, time);
         y += lh;
     }
 
@@ -376,6 +396,10 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
         }
         y += lh;
     }
+    for (l, color) in &alt_lines {
+        font::draw(c, px + 6, y, l, *color);
+        y += lh;
+    }
     for l in &meaning_lines {
         font::draw(c, px + 6, y, l, DIM);
         y += lh;
@@ -390,7 +414,7 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
 }
 
 /// 12-segment mic meter; then either "falando" or the thinking countdown bar.
-fn draw_meter(c: &mut Canvas, x: i32, y: i32, w: i32, m: &Meter, time: f32) {
+fn draw_meter(c: &mut Canvas, x: i32, y: i32, w: i32, m: &Meter, native: Native, time: f32) {
     const SEGS: i32 = 12;
     // Speech RMS lives around 0.02–0.3: a square-root curve makes quiet voices visible.
     let lit = ((m.level.sqrt() * 2.2).clamp(0.0, 1.0) * SEGS as f32).round() as i32;
@@ -409,7 +433,7 @@ fn draw_meter(c: &mut Canvas, x: i32, y: i32, w: i32, m: &Meter, time: f32) {
     let tx = x + SEGS * 4 + 6;
     if m.speaking {
         let dots = ".".repeat(1 + (time * 3.0) as usize % 3);
-        font::draw(c, tx, y - 3, &format!("falando{dots}"), hex(0x7dff9b));
+        font::draw(c, tx, y - 3, &format!("{}{dots}", T::Speaking.get(native)), hex(0x7dff9b));
     } else {
         let bar_w = (w - (tx - x) - 30).max(10);
         let fill = if m.think_total > 0.0 { (bar_w as f32 * m.think_left / m.think_total).round() as i32 } else { 0 };
@@ -478,6 +502,8 @@ mod tests {
             ],
             say: "I'm hungry".into(),
             active: None,
+            alts: Vec::new(),
+            counted: None,
             meaning: "Estou com fome".into(),
             status: Status::Listening,
             feedback,
@@ -559,6 +585,55 @@ mod tests {
         hud.draw(&mut combo, 60, 0.0);
         assert!(plain.opaque_in(100, 0, 100, 40) > 0);
         assert!(combo.opaque_in(0, 0, 200, 60) > plain.opaque_in(0, 0, 200, 60), "combo adds 'x4'");
+    }
+
+    #[test]
+    fn other_answer_tiers_are_listed_under_the_cue_on_a_narrow_screen() {
+        let alt_px = |alts: Vec<String>| {
+            let hud = Hud { caption: Some(Caption { alts, ..caption(None) }), ..Default::default() };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 170, 0.0);
+            (0..180).flat_map(|y| (0..320).map(move |x| (x, y))).filter(|&(x, y)| c.get(x, y) == Some(ALT)).count()
+        };
+        assert_eq!(alt_px(Vec::new()), 0, "a single tier shows no extra lines");
+        let alts = vec!["curta: Hungry!".to_string(), "polida: I'm actually quite hungry, could we eat?".to_string()];
+        assert!(alts.iter().all(|a| font::supports(a)));
+        assert!(alt_px(alts) > 0);
+    }
+
+    #[test]
+    fn a_tall_caption_never_covers_the_progress_corner() {
+        let alts = vec!["curta: You're muted".to_string(), "polida: Sorry, I think you might be on mute".to_string()];
+        let cap =
+            Caption { alts, heard: Some("sorry you're on mute".into()), footer: "Ctrl+Alt+M".into(), ..caption(None) };
+        let draw = |caption: Option<Caption>| {
+            let stats = Some(Stats { done: 4, goal: 10, combo: 2, label: "EN · trabalho".into() });
+            let hud = Hud { caption, stats, ..Default::default() };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 170, 0.0);
+            c
+        };
+        let (alone, both) = (draw(None), draw(Some(cap)));
+        let corner = 2 * font::LINE_H + 6;
+        for y in 0..corner {
+            for x in 0..320 {
+                assert_eq!(alone.get(x, y), both.get(x, y), "caption drawn over the progress corner at {x},{y}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_option_that_counted_is_drawn_in_the_pass_color() {
+        let green = |counted: Option<usize>| {
+            let alts = vec!["curta: Hungry!".to_string(), "polida: I'm actually quite hungry".to_string()];
+            let cap = Caption { alts, counted, status: Status::Passed, ..caption(None) };
+            let hud = Hud { caption: Some(cap), ..Default::default() };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 170, 0.0);
+            let pass = Status::Passed.color();
+            (0..180).flat_map(|y| (0..320).map(move |x| (x, y))).filter(|&(x, y)| c.get(x, y) == Some(pass)).count()
+        };
+        assert!(green(Some(1)) > green(None) + 50, "the polished line lights up");
     }
 
     #[test]

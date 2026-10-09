@@ -11,18 +11,20 @@ use crate::config::paths::Paths;
 use crate::config::settings::Settings;
 use crate::control::hotkeys::Hotkeys;
 use crate::control::ipc::{self, Command};
+use crate::lang::{Lines, T};
 use crate::learn::deck::Deck;
 use crate::render::canvas::Canvas;
 use crate::render::screen::Screen;
 use crate::scene::Scene;
 use crate::scene::hud::Cheats;
 use crate::speech::tts::Speed;
+use crate::speech::voices::sample_text;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
 use crate::store::history::History;
 use anyhow::{Context, Result};
 use lesson::{Input, Lesson, Options};
 use menu::{Action, Item, Menu};
-use platform::{Resolved, Session};
+use platform::{Rect, Resolved, Session};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
@@ -40,17 +42,11 @@ const MENU_SCALE: u32 = 3;
 const TEST_IDS: u64 = 1 << 40;
 /// Orb window size in art pixels.
 const ORB_ART: i32 = 22;
-
-const HELP: &[&str] = &[
-    "TECLAS",
-    "Espaço: praticar    S: resumo do dia",
-    "M: painel           P: pausar o mago",
-    "1-4: compromisso    L: trocar idioma",
-    "H: esta ajuda       Esc: cancelar",
-    "Orbe: clique = praticar · Ctrl+clique = painel",
-    "      botão direito = pausar (buraco negro!)",
-    "Clique no mago, no guerreiro, na fogueira...",
-];
+/// Weather-only monitors redraw every this many frames (snow drifts slowly;
+/// half the frames is half the canvas diffing on every extra monitor).
+const WEATHER_EVERY: u64 = 2;
+/// How often the monitor list is re-read (one cheap query to the display).
+const MONITOR_CHECK: Duration = Duration::from_secs(2);
 
 #[derive(Debug)]
 enum UserEvent {
@@ -86,7 +82,7 @@ impl AudioLists {
         AudioLists {
             mics,
             speakers,
-            voices_native: short(voice.voices(&settings.native).unwrap_or_default()),
+            voices_native: short(voice.voices(settings.native.code()).unwrap_or_default()),
             voices_learning: short(voice.voices(&settings.learning).unwrap_or_default()),
         }
     }
@@ -100,7 +96,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         eprintln!("{note}");
     }
 
-    let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
+    let deck = Deck::load(&settings.learning, settings.native, &paths.decks_dir())?;
     let history = History::open(&paths.db_file())?;
     let event_loop = build_event_loop(&resolved)?;
     let proxy = event_loop.create_proxy();
@@ -159,7 +155,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
 
     let commitment = level.unwrap_or(settings.commitment);
     let opts = Options {
-        native: settings.native.clone(),
+        native: settings.native,
         threshold: settings.match_threshold,
         can_listen: speech.can_listen,
         listen_seconds: settings.listen_seconds,
@@ -168,12 +164,13 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         summary_at: settings.summary_at()?,
         ask_every: commitment.pace().ask_every,
         practice: settings.practice,
-        topic: settings.topic_filter(),
+        answer: settings.answer,
+        topics: settings.topics.clone(),
         max_level: settings.max_level.clone(),
         daily_goal: settings.daily_goal,
     };
     let languages = available_languages(&paths, &settings.learning);
-    let menu = Menu::new(languages, deck.topics());
+    let menu = Menu::new(languages, deck.topic_counts(&settings.max_level));
     let lesson = Lesson::new(deck, opts, history);
 
     let mut app = App {
@@ -188,6 +185,12 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         hotkeys,
         main: None,
         scene: None,
+        screen: platform::FALLBACK_SCREEN,
+        weather: Vec::new(),
+        layout: platform::Overlay { primary: platform::FALLBACK_SCREEN, weather: Vec::new() },
+        next_monitor_check: Instant::now(),
+        seed: 1,
+        frames: 0,
         menu,
         menu_win: None,
         want_menu: false,
@@ -250,6 +253,34 @@ struct Surface {
     scale: u32,
 }
 
+/// An overlay window on one of the other monitors: weather only, following
+/// the primary scene's freeze level.
+struct Weather {
+    surface: Surface,
+    scene: Scene,
+    last: Instant,
+}
+
+/// A window's outer rect (title bar included) in physical screen pixels.
+fn panel_rect(w: &Window) -> Option<Rect> {
+    let (pos, size) = (w.outer_position().ok()?, w.outer_size());
+    Some(Rect { x: pos.x, y: pos.y, w: size.width, h: size.height })
+}
+
+/// The monitors as winit reports them, for `platform::overlay_layout`.
+fn monitors(el: &ActiveEventLoop) -> Vec<platform::Monitor> {
+    let primary = el.primary_monitor();
+    el.available_monitors()
+        .map(|m| {
+            let (pos, size) = (m.position(), m.size());
+            platform::Monitor {
+                rect: Rect { x: pos.x, y: pos.y, w: size.width, h: size.height },
+                primary: primary.as_ref() == Some(&m),
+            }
+        })
+        .collect()
+}
+
 struct App {
     proxy: EventLoopProxy<UserEvent>,
     /// Latest panel list request; older answers are dropped.
@@ -263,6 +294,16 @@ struct App {
     hotkeys: Option<Hotkeys>,
     main: Option<Surface>,
     scene: Option<Scene>,
+    /// The monitor the main window (overlay) and the orb sit on.
+    screen: Rect,
+    /// Overlay mode: weather-only windows on the other monitors.
+    weather: Vec<Weather>,
+    /// The monitors the overlay was laid out for; re-checked every few
+    /// seconds so a monitor plugged in, unplugged or resized is followed.
+    layout: platform::Overlay,
+    next_monitor_check: Instant,
+    seed: u64,
+    frames: u64,
     menu: Menu,
     menu_win: Option<Surface>,
     /// Open the panel on the next loop turn (needs the ActiveEventLoop).
@@ -290,11 +331,8 @@ struct App {
 }
 
 impl App {
-    fn overlay_attributes(&self, el: &ActiveEventLoop) -> WindowAttributes {
-        let monitor = el.primary_monitor().or_else(|| el.available_monitors().next());
-        let (pos, size) = monitor
-            .map(|m| (m.position(), m.size()))
-            .unwrap_or((PhysicalPosition::new(0, 0), PhysicalSize::new(1280, 720)));
+    fn overlay_attributes(rect: Rect) -> WindowAttributes {
+        let (pos, size) = (PhysicalPosition::new(rect.x, rect.y), PhysicalSize::new(rect.w, rect.h));
         #[allow(unused_mut)]
         let mut attrs = Window::default_attributes()
             .with_title("Snowlearner")
@@ -375,14 +413,11 @@ impl App {
     fn open_orb(&mut self, el: &ActiveEventLoop) {
         let scale = self.settings.pixel_scale.max(2);
         let side = ORB_ART as u32 * scale;
-        let monitor = el.primary_monitor().or_else(|| el.available_monitors().next());
-        let (mpos, msize) = monitor
-            .map(|m| (m.position(), m.size()))
-            .unwrap_or((PhysicalPosition::new(0, 0), PhysicalSize::new(1280, 720)));
+        let m = self.screen;
         let pos = if self.settings.orb_x >= 0 && self.settings.orb_y >= 0 {
             PhysicalPosition::new(self.settings.orb_x, self.settings.orb_y)
         } else {
-            PhysicalPosition::new(mpos.x + msize.width as i32 - side as i32 - 24, mpos.y + 48)
+            PhysicalPosition::new(m.x + m.w as i32 - side as i32 - 24, m.y + 48)
         };
         #[allow(unused_mut)]
         let mut attrs = Window::default_attributes()
@@ -416,12 +451,90 @@ impl App {
         }
     }
 
+    /// One click-through weather window per extra monitor. Skipped where the
+    /// desktop can't show through: an opaque window would black out a screen.
+    fn open_weather(&mut self, el: &ActiveEventLoop, rects: &[Rect], seed: u64) {
+        let scale = self.settings.pixel_scale.max(1);
+        for (i, &rect) in rects.iter().enumerate() {
+            let Ok(window) = el.create_window(Self::overlay_attributes(rect)).map(Arc::new) else {
+                eprintln!("could not open the snow on the monitor at {},{}", rect.x, rect.y);
+                continue;
+            };
+            let _ = window.set_cursor_hittest(false);
+            let screen = match Screen::new(window.clone(), true) {
+                Ok(s) if s.transparent() => s,
+                Ok(_) => {
+                    eprintln!("No transparent windows: the other monitors stay without snow.");
+                    return;
+                }
+                Err(e) => {
+                    eprintln!("could not draw the snow on another monitor: {e:#}");
+                    continue;
+                }
+            };
+            let size = window.inner_size();
+            let (w, h) = (size.width.div_ceil(scale) as i32, size.height.div_ceil(scale) as i32);
+            let scene = Scene::weather(w, h, seed.wrapping_add(i as u64 + 1), self.commitment.pace(), true);
+            let surface = Surface { window, screen, canvas: Canvas::new(w, h), scale };
+            self.weather.push(Weather { surface, scene, last: Instant::now() });
+        }
+    }
+
+    /// The panel window on screen, while the overlay could cover it.
+    fn panel_rect(&self) -> Option<Rect> {
+        self.menu_win.as_ref().filter(|_| self.resolved.overlay).and_then(|m| panel_rect(&m.window))
+    }
+
+    /// Follows a monitor change: the main overlay moves/resizes onto the
+    /// primary monitor (a `Resized` event refits the scene) and the weather
+    /// windows are rebuilt for the other monitors.
+    fn relayout(&mut self, el: &ActiveEventLoop, new: platform::Overlay) {
+        let p = new.primary;
+        if let Some(m) = &self.main {
+            m.window.set_outer_position(PhysicalPosition::new(p.x, p.y));
+            let _ = m.window.request_inner_size(PhysicalSize::new(p.w, p.h));
+        }
+        self.screen = p;
+        self.overlay_origin = (p.x, p.y);
+        self.weather.clear();
+        self.open_weather(el, &new.weather, self.seed);
+        if let Some(pos) = self.orb.as_ref().and_then(|o| o.window.outer_position().ok()) {
+            self.sync_hole(pos.x, pos.y);
+        }
+        self.layout = new;
+    }
+
+    /// Steps and draws the weather window `i` at the primary's freeze level.
+    fn draw_weather(&mut self, i: usize) {
+        let level = self.scene.as_ref().map(Scene::freeze_level).unwrap_or(0.0);
+        let paused = self.scene.as_ref().is_some_and(Scene::paused);
+        // The black hole in screen pixels: this screen's snow is pulled toward it.
+        let main_scale = self.main.as_ref().map_or(1.0, |m| m.scale as f32);
+        let (hx, hy) = self.scene.as_ref().map_or((0.0, 0.0), |s| s.hole);
+        let hole = (hx * main_scale + self.overlay_origin.0 as f32, hy * main_scale + self.overlay_origin.1 as f32);
+        let panel = self.panel_rect();
+        let Some(wx) = self.weather.get_mut(i) else { return };
+        let now = Instant::now();
+        let dt = (now - wx.last).as_secs_f32().min(0.2);
+        wx.last = now;
+        wx.scene.set_freeze_target(level);
+        let at = wx.surface.window.outer_position().map(|p| (p.x, p.y)).unwrap_or_default();
+        let s = wx.surface.scale as f32;
+        wx.scene.hole = ((hole.0 - at.0 as f32) / s, (hole.1 - at.1 as f32) / s);
+        wx.scene.set_paused(paused);
+        wx.scene.keep_clear = panel.map(|win| platform::to_scene(win, at, wx.surface.scale));
+        wx.scene.step(dt);
+        wx.scene.draw(&mut wx.surface.canvas);
+        wx.surface.screen.present(&wx.surface.canvas, wx.surface.scale);
+    }
+
     /// Points the black hole at the orb's center (screen → scene coordinates).
     fn sync_hole(&mut self, orb_x: i32, orb_y: i32) {
         let (Some(orb), Some(main), Some(scene)) = (&self.orb, &self.main, &mut self.scene) else { return };
         let half = (ORB_ART as u32 * orb.scale / 2) as i32;
         let (sx, sy) = (orb_x + half - self.overlay_origin.0, orb_y + half - self.overlay_origin.1);
         scene.hole = (sx as f32 / main.scale as f32, sy as f32 / main.scale as f32);
+        scene.orb_r = crate::scene::ORB_R * orb.scale as f32 / main.scale as f32;
     }
 
     fn draw_orb(&mut self) {
@@ -447,10 +560,12 @@ impl App {
     fn toggle_pause(&mut self) {
         self.menu.paused = !self.menu.paused;
         if let Some(scene) = &mut self.scene {
-            self.lesson.set_paused(self.menu.paused, scene);
+            for job in self.lesson.set_paused(self.menu.paused, scene) {
+                self.speech.send(job);
+            }
             scene.set_paused(self.menu.paused);
-            let msg = if self.menu.paused { "Mago pausado. Bom foco!" } else { "O mago voltou!" };
-            scene.hud.toast(msg, 3.0);
+            let msg = if self.menu.paused { T::PauseOn } else { T::PauseOff };
+            scene.hud.toast(msg.get(self.settings.native), 3.0);
         }
     }
 
@@ -459,30 +574,41 @@ impl App {
         if let Err(e) = self.settings.save(&self.paths.config_file()) {
             eprintln!("could not save settings: {e:#}");
         }
-        if item == Item::Language {
-            self.refresh_audio_lists(); // the learning voices follow the language
+        if matches!(item, Item::Language | Item::Native) {
+            self.refresh_audio_lists(); // the voices follow the languages
         }
+        let n = self.settings.native;
         let Some(scene) = &mut self.scene else { return };
         match item {
-            Item::Language => match Deck::load(&self.settings.learning, &self.paths.decks_dir()) {
-                Ok(deck) => {
-                    self.menu.topics = deck.topics();
-                    self.settings.topic.clear();
-                    self.lesson.set_options(|o| o.topic = None, scene);
-                    self.lesson.set_deck(deck, scene);
+            Item::Language | Item::Native => {
+                // Your own language changes every text, the cue voice and the deck's meanings.
+                scene.set_native(n);
+                self.lesson.set_options(|o| o.native = n, scene);
+                match Deck::load(&self.settings.learning, n, &self.paths.decks_dir()) {
+                    Ok(deck) => {
+                        self.menu.topics = deck.topic_counts(&self.settings.max_level);
+                        self.settings.topics.clear();
+                        self.lesson.set_options(|o| o.topics.clear(), scene);
+                        self.lesson.set_deck(deck, scene);
+                        if item == Item::Native {
+                            let learning = crate::lang::text::language_name(n, &self.settings.learning);
+                            scene.hud.toast(T::NativeToast.fill(n, &[&learning]), 3.0);
+                        }
+                    }
+                    Err(e) => scene.hud.toast(T::DeckUnavailable.fill(n, &[&format!("{e:#}")]), 5.0),
                 }
-                Err(e) => scene.hud.toast(format!("Deck indisponível: {e:#}"), 5.0),
-            },
+                self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
+            }
             Item::Commitment => {
                 self.commitment = self.settings.commitment;
                 let pace = self.commitment.pace();
                 scene.set_pace(pace);
                 self.lesson.set_options(|o| o.ask_every = pace.ask_every, scene);
-                scene.hud.toast(format!("Compromisso: {}", self.commitment.label_pt()), 2.5);
+                scene.hud.toast(T::CommitmentToast.fill(n, &[&self.commitment.label(n)]), 2.5);
             }
             Item::Topic => {
-                let topic = self.settings.topic_filter();
-                self.lesson.set_options(|o| o.topic = topic, scene);
+                let topics = self.settings.topics.clone();
+                self.lesson.set_options(|o| o.topics = topics, scene);
             }
             Item::Level => {
                 let lvl = self.settings.max_level.clone();
@@ -492,38 +618,47 @@ impl App {
                 let p = self.settings.practice;
                 self.lesson.set_options(|o| o.practice = p, scene);
             }
+            Item::Answer => {
+                let a = self.settings.answer;
+                self.lesson.set_options(|o| o.answer = a, scene);
+            }
             Item::Goal => {
                 let g = self.settings.daily_goal;
                 self.lesson.set_options(|o| o.daily_goal = g, scene);
             }
-            Item::Mode => scene.hud.toast("Modo de tela muda ao reiniciar o Snowlearner", 3.0),
+            Item::Mode => scene.hud.toast(T::ModeRestart.get(n), 3.0),
             Item::Mic | Item::Speaker | Item::Engine | Item::Endpoint | Item::VoiceNative | Item::VoiceLearning => {
                 self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
                 if matches!(item, Item::Engine | Item::Endpoint) {
                     let desc = self.settings.voice().describe();
-                    scene.hud.toast(format!("Voz: {desc}"), 3.0);
+                    scene.hud.toast(T::VoiceToast.fill(n, &[&desc]), 3.0);
                     self.refresh_audio_lists();
                 }
             }
             _ => {}
         }
-        if matches!(item, Item::Language | Item::Level) {
+        if matches!(item, Item::Language | Item::Native | Item::Level) {
             self.fit_topic();
         }
     }
 
-    /// Keeps topic and level compatible: the panel lists only topics with
-    /// something at this level, and a topic left with nothing is dropped
-    /// (saved, and said) instead of every lesson failing to find a phrase.
+    /// Keeps topics and level compatible: the panel lists only topics with
+    /// something at this level (and how much), and ticked topics left with
+    /// nothing are unticked (saved, and said) instead of every lesson failing
+    /// to find a phrase. Topics the deck doesn't have are dropped quietly.
     fn fit_topic(&mut self) {
         self.menu.topics = self.lesson.topics();
         let Some(scene) = &mut self.scene else { return };
-        if let Some(topic) = self.lesson.drop_empty_topic(scene) {
-            self.settings.topic.clear();
+        let dropped = self.lesson.drop_empty_topics(scene);
+        let kept = &self.lesson.options().topics;
+        if *kept != self.settings.topics {
+            self.settings.topics = kept.clone();
             if let Err(e) = self.settings.save(&self.paths.config_file()) {
                 eprintln!("could not save settings: {e:#}");
             }
-            scene.hud.toast(crate::app::lesson::topic_dropped(&topic), 6.0);
+        }
+        if !dropped.is_empty() {
+            scene.hud.toast(crate::app::lesson::topic_dropped(self.settings.native, &dropped), 6.0);
         }
     }
 
@@ -543,24 +678,17 @@ impl App {
             Action::TestMic => {
                 self.test_id += 1;
                 self.menu.meter = Some(0.0);
-                self.menu.test_result = "Ouvindo... fale uma frase em voz alta.".into();
+                self.menu.test_result = T::TestListening.get(self.settings.native).into();
                 self.speech.send(Job::MicTest { id: self.test_id, lang: self.settings.learning.clone() });
             }
             Action::TestVoices => {
                 self.test_id += 1;
-                self.menu.test_result = "Tocando as duas vozes...".into();
-                let sample = match self.settings.learning.as_str() {
-                    "es" => "¡Hola! Esta es la voz en español.",
-                    _ => "Hello! This is the English voice.",
-                };
+                self.menu.test_result = T::TestPlaying.get(self.settings.native).into();
+                let native = self.settings.native.code();
                 let parts = vec![
+                    Utterance { text: sample_text(native).into(), lang: native.into(), speed: Speed::Normal },
                     Utterance {
-                        text: "Olá! Esta é a voz em português.".into(),
-                        lang: self.settings.native.clone(),
-                        speed: Speed::Normal,
-                    },
-                    Utterance {
-                        text: sample.into(),
+                        text: sample_text(&self.settings.learning).into(),
                         lang: self.settings.learning.clone(),
                         speed: target_speed(&self.settings.max_level),
                     },
@@ -593,24 +721,26 @@ impl App {
         if ev.id() != self.test_id {
             return;
         }
+        let n = self.settings.native;
+        let failed = T::TestError.fill(n, &[&""]);
         match ev {
             SpeechEvent::Level { level, .. } => self.menu.meter = Some(level),
-            SpeechEvent::Thinking { .. } => self.menu.test_result = "Analisando...".into(),
+            SpeechEvent::Thinking { .. } => self.menu.test_result = T::TestThinking.get(n).into(),
             SpeechEvent::Heard { text, .. } => {
                 self.menu.meter = None;
-                self.menu.test_result = format!("✓ Ouvi: \"{text}\"");
+                self.menu.test_result = T::TestHeard.fill(n, &[&text]);
             }
             SpeechEvent::NoSpeech { .. } => {
                 self.menu.meter = None;
-                self.menu.test_result = "Não ouvi nada. Confira o microfone escolhido e o volume.".into();
+                self.menu.test_result = T::TestNothing.get(n).into();
             }
             SpeechEvent::Failed { error, .. } => {
                 self.menu.meter = None;
-                self.menu.test_result = format!("Erro: {error}");
+                self.menu.test_result = T::TestError.fill(n, &[&error]);
             }
             // The worker reports Spoken even after a part failed: keep the error.
-            SpeechEvent::Spoken { .. } if !self.menu.test_result.starts_with("Erro:") => {
-                self.menu.test_result = "✓ Vozes tocadas. Troque em Voz pt-BR / Voz do idioma.".into()
+            SpeechEvent::Spoken { .. } if !self.menu.test_result.starts_with(&failed) => {
+                self.menu.test_result = T::TestVoicesDone.get(n).into()
             }
             SpeechEvent::Spoken { .. } => {}
             SpeechEvent::Part { .. } => {}
@@ -655,15 +785,15 @@ impl App {
         if scene.hud.cheats.is_some() {
             return;
         }
+        let n = self.settings.native;
         let keys = [
-            (self.settings.hotkey_challenge.as_str(), "praticar / terminei"),
-            (self.settings.hotkey_menu.as_str(), "painel"),
-            (self.settings.hotkey_summary.as_str(), "resumo do dia"),
-            (self.settings.hotkey_grab.as_str(), "mão mágica"),
-            (self.settings.hotkey_progress.as_str(), "progresso"),
+            (self.settings.hotkey_challenge.as_str(), T::CheatPractice.get(n)),
+            (self.settings.hotkey_menu.as_str(), T::CheatPanel.get(n)),
+            (self.settings.hotkey_summary.as_str(), T::CheatRecap.get(n)),
+            (self.settings.hotkey_grab.as_str(), T::CheatHand.get(n)),
+            (self.settings.hotkey_progress.as_str(), T::CheatProgress.get(n)),
         ];
-        scene.hud.cheats =
-            Some(Cheats::from_hotkeys(scene.hole, &keys, "Orbe: clique pratica · Ctrl+clique painel · direito pausa"));
+        scene.hud.cheats = Some(Cheats::from_hotkeys(scene.hole, &keys, T::CheatFooter.get(n)));
     }
 
     fn open_menu(&mut self, el: &ActiveEventLoop) {
@@ -672,9 +802,10 @@ impl App {
             return;
         }
         self.refresh_audio_lists();
+        self.menu.close_list(); // a fresh panel opens on its rows
         let size = PhysicalSize::new(menu::WIDTH as u32 * MENU_SCALE, menu::HEIGHT as u32 * MENU_SCALE);
         let attrs = Window::default_attributes()
-            .with_title("Snowlearner · Painel")
+            .with_title(T::PanelWindow.get(self.settings.native))
             .with_inner_size(size)
             .with_resizable(false)
             .with_window_level(WindowLevel::AlwaysOnTop);
@@ -702,6 +833,11 @@ impl App {
             scene.step(dt);
         }
         self.input(Input::Tick { dt, now: chrono::Local::now() });
+        // The overlay stacks above the panel on X11: leave its spot clear.
+        let panel = self.panel_rect();
+        if let (Some(scene), Some(main)) = (&mut self.scene, &self.main) {
+            scene.keep_clear = panel.map(|win| platform::to_scene(win, self.overlay_origin, main.scale));
+        }
         if let (Some(scene), Some(main)) = (&self.scene, &mut self.main) {
             scene.draw(&mut main.canvas);
             main.screen.present(&main.canvas, main.scale);
@@ -718,12 +854,8 @@ impl App {
             self.menu.progress = Some(self.lesson.progress());
             self.progress_at = Instant::now();
         }
-        self.menu.status = format!(
-            "Hoje: {}/{}  ·  combo x{}",
-            self.lesson.done_today(),
-            self.settings.daily_goal,
-            self.lesson.combo()
-        );
+        self.menu.status = T::Today
+            .fill(self.settings.native, &[&self.lesson.done_today(), &self.settings.daily_goal, &self.lesson.combo()]);
         if let Some(m) = &mut self.menu_win {
             self.menu.draw(&mut m.canvas, &self.settings, time);
             m.screen.present(&m.canvas, m.scale);
@@ -743,13 +875,13 @@ impl App {
                     if let Some(scene) = &mut self.scene {
                         scene.hud.help = match scene.hud.help {
                             Some(_) => None,
-                            None => Some(HELP.iter().map(|s| s.to_string()).collect()),
+                            None => Some(Lines::Help.get(self.settings.native).iter().map(|s| s.to_string()).collect()),
                         };
                     }
                 }
                 "l" => {
                     let mut s = self.settings.clone();
-                    self.menu.sel = 0;
+                    self.menu.sel = menu::GAME.iter().position(|i| *i == Item::Language).unwrap_or(0);
                     if let Action::Changed(item) = self.menu.key(menu::Key::Right, &mut s) {
                         self.settings = s;
                         self.apply(item);
@@ -798,7 +930,11 @@ impl ApplicationHandler<UserEvent> for App {
         if self.main.is_some() {
             return;
         }
-        let attrs = if self.resolved.overlay { self.overlay_attributes(el) } else { self.window_attributes() };
+        let layout = platform::overlay_layout(&monitors(el));
+        self.screen = layout.primary;
+        self.layout = layout.clone();
+        let attrs =
+            if self.resolved.overlay { Self::overlay_attributes(layout.primary) } else { self.window_attributes() };
         let window = match el.create_window(attrs) {
             Ok(w) => Arc::new(w),
             Err(e) => {
@@ -826,8 +962,10 @@ impl ApplicationHandler<UserEvent> for App {
         self.main = Some(Surface { window, screen, canvas: Canvas::new(1, 1), scale: 1 });
         self.fit(size.width, size.height);
         let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(1);
+        self.seed = seed;
         let (w, h) = self.main.as_ref().map(|m| (m.canvas.w, m.canvas.h)).unwrap_or((320, 180));
         let mut scene = Scene::new(w, h, seed, self.commitment.pace(), transparent);
+        scene.set_native(self.settings.native);
         self.lesson.attach(&mut scene);
         if self.resolved.overlay {
             self.overlay_origin =
@@ -837,11 +975,13 @@ impl ApplicationHandler<UserEvent> for App {
             scene.hole = (10.0, 10.0);
         }
         let hint = if self.resolved.overlay { self.settings.hotkey_menu.clone() } else { "H".into() };
-        scene.hud.toast(format!("Snowlearner · {} · ajuda/painel: {hint}", self.commitment.label_pt()), 5.0);
+        let n = self.settings.native;
+        scene.hud.toast(T::Welcome.fill(n, &[&self.commitment.label(n), &hint]), 5.0);
         self.scene = Some(scene);
         self.fit_topic();
         if self.resolved.overlay {
             self.open_orb(el);
+            self.open_weather(el, &layout.weather, seed);
         }
         self.last = Instant::now();
     }
@@ -860,6 +1000,26 @@ impl ApplicationHandler<UserEvent> for App {
                     s.screen.invalidate();
                 }
             }
+            for wx in &mut self.weather {
+                if wx.surface.window.id() == id {
+                    wx.surface.screen.invalidate();
+                }
+            }
+        }
+        if let Some(i) = self.weather.iter().position(|wx| wx.surface.window.id() == id) {
+            match event {
+                WindowEvent::RedrawRequested => self.draw_weather(i),
+                WindowEvent::Resized(size) => {
+                    let wx = &mut self.weather[i];
+                    let s = wx.surface.scale;
+                    let (w, h) = (size.width.div_ceil(s) as i32, size.height.div_ceil(s) as i32);
+                    wx.surface.screen.resize(size.width, size.height);
+                    wx.surface.canvas = Canvas::new(w, h);
+                    wx.scene.resize(w, h);
+                }
+                _ => {}
+            }
+            return;
         }
         let is_orb = self.orb.as_ref().is_some_and(|o| o.window.id() == id);
         if is_orb {
@@ -956,20 +1116,19 @@ impl ApplicationHandler<UserEvent> for App {
                     scene.release();
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } if self.hand_on => {
-                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
-                let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
-                if let Some(scene) = &mut self.scene {
-                    scene.grab_at(x, y);
-                }
-            }
             WindowEvent::MouseInput { state: ElementState::Pressed, button, .. } => {
                 let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
                 let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
+                // The orb wins over the hand and the snow: always reachable.
                 let on_orb = self.scene.as_ref().is_some_and(|s| s.orb_at(x, y));
                 match (button, on_orb) {
                     (MouseButton::Left, true) => self.orb_click(),
                     (MouseButton::Right, true) => self.toggle_pause(),
+                    (MouseButton::Left, false) if self.hand_on => {
+                        if let Some(scene) = &mut self.scene {
+                            scene.grab_at(x, y);
+                        }
+                    }
                     (MouseButton::Left, false) => {
                         if let Some(scene) = &mut self.scene {
                             scene.poke(x, y);
@@ -1026,6 +1185,12 @@ impl ApplicationHandler<UserEvent> for App {
             }
         }
         let now = Instant::now();
+        if self.resolved.overlay && now >= self.next_monitor_check {
+            self.next_monitor_check = now + MONITOR_CHECK;
+            if let Some(new) = platform::replan(&self.layout, &monitors(el)) {
+                self.relayout(el, new);
+            }
+        }
         if now >= self.next_frame {
             self.next_frame = now + Duration::from_secs_f32(1.0 / FPS);
             if let Some(m) = &self.main {
@@ -1036,6 +1201,12 @@ impl ApplicationHandler<UserEvent> for App {
             }
             if let Some(o) = &self.orb {
                 o.window.request_redraw();
+            }
+            self.frames += 1;
+            if self.frames % WEATHER_EVERY == 0 {
+                for wx in &self.weather {
+                    wx.surface.window.request_redraw();
+                }
             }
         }
         el.set_control_flow(ControlFlow::WaitUntil(self.next_frame));

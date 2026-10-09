@@ -2,7 +2,8 @@
 //! rejected so typos surface instead of being silently ignored.
 
 use super::level::Commitment;
-use crate::learn::deck::LEVELS;
+use crate::lang::Native;
+use crate::learn::deck::{Answer, LEVELS};
 use crate::learn::picker::Practice;
 use crate::speech::voices::TtsEngine;
 use anyhow::{Context, Result, bail};
@@ -27,8 +28,9 @@ pub enum WindowMode {
 pub struct Settings {
     /// Language you are learning (deck name): "en", "es", or a custom deck.
     pub learning: String,
-    /// Your language, used for cues and the voice that reads them.
-    pub native: String,
+    /// Your own language: every text, cue and meaning, and the voice that
+    /// reads them. "pt-BR" or "en"; never the language you are learning.
+    pub native: Native,
     pub commitment: Commitment,
     pub mode: WindowMode,
     /// Screen pixels per art pixel.
@@ -69,8 +71,12 @@ pub struct Settings {
     pub speaker: String,
     /// auto (repeat new phrases, recall known ones) | repeat | recall.
     pub practice: Practice,
-    /// Only practice this topic; empty = all topics.
-    pub topic: String,
+    /// all (short, complete and polished shown) | short | complete | polished.
+    pub answer: Answer,
+    /// Only practice these topics; empty = all topics. An old config's
+    /// single `topic = "x"` still loads as `["x"]`.
+    #[serde(alias = "topic", deserialize_with = "one_or_many")]
+    pub topics: Vec<String>,
     /// Highest CEFR level to practice: A1 A2 B1 B2 C1 C2.
     pub max_level: String,
     /// Phrases per day you aim for.
@@ -81,7 +87,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             learning: "en".into(),
-            native: "pt-BR".into(),
+            native: Native::PtBr,
             commitment: Commitment::Steady,
             mode: WindowMode::Auto,
             pixel_scale: 4,
@@ -106,20 +112,48 @@ impl Default for Settings {
             mic: String::new(),
             speaker: String::new(),
             practice: Practice::Auto,
-            topic: String::new(),
+            answer: Answer::All,
+            topics: Vec::new(),
             max_level: "B2".into(),
             daily_goal: 10,
         }
     }
 }
 
+/// `topics = ["a", "b"]`, or the old single `topic = "a"` ("" = all).
+fn one_or_many<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Vec<String>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(String),
+        Many(Vec<String>),
+    }
+    Ok(match OneOrMany::deserialize(d)? {
+        OneOrMany::One(t) => vec![t],
+        OneOrMany::Many(ts) => ts,
+    })
+}
+
+/// Lowercase, trimmed, no blanks and no repeats, in the order given.
+pub fn normalize_topics(topics: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for t in topics.iter().map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty()) {
+        if !out.contains(&t) {
+            out.push(t);
+        }
+    }
+    out
+}
+
 pub const MODELS: &[&str] = &["tiny", "base", "small"];
 
 const HEADER: &str = "# snowlearner config (also editable live: `snowlearner menu`)\n\
-    # learning: deck to practice (\"en\", \"es\" or a custom decks/<name>.toml)\n\
+    # learning: deck to practice (\"en\", \"es\", \"pt-BR\" or a custom decks/<name>.toml)\n\
+    # native: your own language, \"pt-BR\" or \"en\" (never the one you learn)\n\
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
-    # topic: \"\" for all, or e.g. \"trabalho\"    max_level: PRE-A1, A1..C2\n\n";
+    # answer: all | short | complete | polished\n\
+    # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -130,6 +164,7 @@ impl Settings {
         let src = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
         let mut s: Settings = toml::from_str(&src).with_context(|| format!("invalid config {}", path.display()))?;
         s.max_level = s.max_level.trim().to_uppercase(); // "pre-a1", "b1" …
+        s.topics = normalize_topics(&s.topics);
         s.validate().with_context(|| format!("invalid config {}", path.display()))?;
         Ok(s)
     }
@@ -137,6 +172,9 @@ impl Settings {
     pub fn validate(&self) -> Result<()> {
         if self.learning.trim().is_empty() {
             bail!("`learning` must name a deck, e.g. \"en\" or \"es\"");
+        }
+        if self.native.is(&self.learning) {
+            bail!("`learning` {:?} is your own language (`native`): pick another one to learn", self.learning);
         }
         if !(self.match_threshold > 0.0 && self.match_threshold <= 1.0) {
             bail!("`match_threshold` must be in (0, 1], got {}", self.match_threshold);
@@ -164,12 +202,6 @@ impl Settings {
         }
         self.summary_at()?;
         Ok(())
-    }
-
-    /// Topic filter as an option (empty string = every topic).
-    pub fn topic_filter(&self) -> Option<String> {
-        let t = self.topic.trim().to_lowercase();
-        (!t.is_empty()).then_some(t)
     }
 
     /// The voice engine these settings describe.
@@ -251,6 +283,8 @@ mod tests {
             ("daily_goal = 0", "daily_goal"),
             ("tts_engine = 'http'\ntts_url = 'localhost'", "tts_url"),
             ("tts_engine = 'command'", "tts_command"),
+            ("answer = 'longest'", "answer"),
+            ("native = 'fr'", "native"),
         ] {
             std::fs::write(&p, src).unwrap();
             let err = format!("{:#}", Settings::load(&p).unwrap_err());
@@ -265,13 +299,14 @@ mod tests {
         let mut s = Settings {
             learning: "es".into(),
             commitment: Commitment::Committed,
-            topic: "trabalho".into(),
+            topics: vec!["trabalho".into(), "viagem".into()],
             practice: Practice::Recall,
+            answer: Answer::Polished,
             ..Default::default()
         };
         s.save(&p).unwrap();
         assert_eq!(Settings::load(&p).unwrap(), s);
-        assert_eq!(s.topic_filter().as_deref(), Some("trabalho"));
+        assert!(std::fs::read_to_string(&p).unwrap().contains("topics = ["), "saved under the new key");
         s.max_level = "nope".into();
         assert!(s.save(&p).is_err(), "never persist an invalid config");
     }
@@ -295,10 +330,97 @@ mod tests {
     }
 
     #[test]
+    fn the_answer_tier_defaults_to_all_and_reads_portuguese_names_too() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        assert_eq!(Settings::default().answer, Answer::All);
+        for (src, want) in [("answer = 'short'", Answer::Short), ("answer = 'polida'", Answer::Polished)] {
+            std::fs::write(&p, src).unwrap();
+            assert_eq!(Settings::load(&p).unwrap().answer, want, "{src}");
+        }
+    }
+
+    #[test]
+    fn your_own_language_round_trips_and_defaults_to_portuguese() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        assert_eq!(Settings::default().native, Native::PtBr);
+        let s = Settings { native: Native::En, learning: "pt-BR".into(), ..Default::default() };
+        s.save(&p).unwrap();
+        assert!(std::fs::read_to_string(&p).unwrap().contains("native = \"en\""));
+        assert_eq!(Settings::load(&p).unwrap(), s);
+        std::fs::write(&p, "native = 'en'\nlearning = 'es'\n").unwrap();
+        assert_eq!(Settings::load(&p).unwrap().native, Native::En);
+        std::fs::write(&p, "native = 'pt'\n").unwrap();
+        assert_eq!(Settings::load(&p).unwrap().native, Native::PtBr, "pt is read as pt-BR");
+    }
+
+    #[test]
+    fn an_unknown_native_language_is_rejected_with_the_key_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        for bad in ["native = 'fr'", "native = ''", "native = 'english'"] {
+            std::fs::write(&p, bad).unwrap();
+            let err = format!("{:#}", Settings::load(&p).unwrap_err());
+            assert!(err.contains("native"), "{bad} -> {err}");
+        }
+    }
+
+    #[test]
+    fn you_never_learn_your_own_language() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        for src in ["native = 'en'", "native = 'en'\nlearning = 'EN'", "learning = 'pt-BR'", "learning = 'pt'"] {
+            std::fs::write(&p, src).unwrap();
+            let err = format!("{:#}", Settings::load(&p).unwrap_err());
+            assert!(err.contains("own language"), "{src} -> {err}");
+        }
+        let s = Settings { native: Native::En, learning: "en".into(), ..Default::default() };
+        assert!(s.save(&dir.path().join("x.toml")).is_err(), "never persisted either");
+    }
+
+    #[test]
     fn pre_a1_is_a_level_whatever_the_case_it_is_written_in() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("config.toml");
         std::fs::write(&path, "max_level = \"pre-a1\"\n").unwrap();
         assert_eq!(Settings::load(&path).unwrap().max_level, "PRE-A1");
+    }
+
+    #[test]
+    fn an_old_single_topic_config_loads_as_a_one_topic_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        for (src, want) in [
+            ("topic = 'trabalho'", vec!["trabalho"]),
+            ("topic = ' Viagem '", vec!["viagem"]),
+            ("topic = ''", vec![]),
+            ("topics = ['Trabalho', 'viagem', 'trabalho', ' ']", vec!["trabalho", "viagem"]),
+            ("topics = []", vec![]),
+            ("", vec![]),
+        ] {
+            std::fs::write(&p, src).unwrap();
+            let s = Settings::load(&p).unwrap();
+            assert_eq!(s.topics, want, "{src}");
+        }
+        std::fs::write(&p, "topic = 'trabalho'").unwrap();
+        let mut s = Settings::load(&p).unwrap();
+        s.save(&p).unwrap();
+        let saved = std::fs::read_to_string(&p).unwrap();
+        assert!(saved.contains("topics = [\"trabalho\"]") && !saved.contains("topic ="), "{saved}");
+        assert_eq!(Settings::load(&p).unwrap(), s, "migrated once, round-trips after");
+        s.topics.push("viagem".into());
+        s.save(&p).unwrap();
+        assert_eq!(Settings::load(&p).unwrap().topics, ["trabalho", "viagem"]);
+    }
+
+    #[test]
+    fn a_topic_that_is_neither_text_nor_a_list_is_rejected_with_the_key_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        for bad in ["topics = 3", "topic = true", "topics = [1, 2]"] {
+            std::fs::write(&p, bad).unwrap();
+            assert!(Settings::load(&p).is_err(), "{bad}");
+        }
     }
 }
