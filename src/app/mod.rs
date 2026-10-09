@@ -22,7 +22,7 @@ use crate::store::history::History;
 use anyhow::{Context, Result};
 use lesson::{Input, Lesson, Options};
 use menu::{Action, Item, Menu};
-use platform::{Resolved, Session};
+use platform::{Rect, Resolved, Session};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
@@ -40,6 +40,9 @@ const MENU_SCALE: u32 = 3;
 const TEST_IDS: u64 = 1 << 40;
 /// Orb window size in art pixels.
 const ORB_ART: i32 = 22;
+/// Weather-only monitors redraw every this many frames (snow drifts slowly;
+/// half the frames is half the canvas diffing on every extra monitor).
+const WEATHER_EVERY: u64 = 2;
 
 const HELP: &[&str] = &[
     "TECLAS",
@@ -188,6 +191,9 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         hotkeys,
         main: None,
         scene: None,
+        screen: platform::FALLBACK_SCREEN,
+        weather: Vec::new(),
+        frames: 0,
         menu,
         menu_win: None,
         want_menu: false,
@@ -250,6 +256,28 @@ struct Surface {
     scale: u32,
 }
 
+/// An overlay window on one of the other monitors: weather only, following
+/// the primary scene's freeze level.
+struct Weather {
+    surface: Surface,
+    scene: Scene,
+    last: Instant,
+}
+
+/// The monitors as winit reports them, for `platform::overlay_layout`.
+fn monitors(el: &ActiveEventLoop) -> Vec<platform::Monitor> {
+    let primary = el.primary_monitor();
+    el.available_monitors()
+        .map(|m| {
+            let (pos, size) = (m.position(), m.size());
+            platform::Monitor {
+                rect: Rect { x: pos.x, y: pos.y, w: size.width, h: size.height },
+                primary: primary.as_ref() == Some(&m),
+            }
+        })
+        .collect()
+}
+
 struct App {
     proxy: EventLoopProxy<UserEvent>,
     /// Latest panel list request; older answers are dropped.
@@ -263,6 +291,12 @@ struct App {
     hotkeys: Option<Hotkeys>,
     main: Option<Surface>,
     scene: Option<Scene>,
+    /// The monitor the main window (overlay) and the orb sit on.
+    screen: Rect,
+    /// Overlay mode: weather-only windows on the other monitors. Monitors
+    /// plugged in later are picked up on the next start.
+    weather: Vec<Weather>,
+    frames: u64,
     menu: Menu,
     menu_win: Option<Surface>,
     /// Open the panel on the next loop turn (needs the ActiveEventLoop).
@@ -290,11 +324,8 @@ struct App {
 }
 
 impl App {
-    fn overlay_attributes(&self, el: &ActiveEventLoop) -> WindowAttributes {
-        let monitor = el.primary_monitor().or_else(|| el.available_monitors().next());
-        let (pos, size) = monitor
-            .map(|m| (m.position(), m.size()))
-            .unwrap_or((PhysicalPosition::new(0, 0), PhysicalSize::new(1280, 720)));
+    fn overlay_attributes(rect: Rect) -> WindowAttributes {
+        let (pos, size) = (PhysicalPosition::new(rect.x, rect.y), PhysicalSize::new(rect.w, rect.h));
         #[allow(unused_mut)]
         let mut attrs = Window::default_attributes()
             .with_title("Snowlearner")
@@ -375,14 +406,11 @@ impl App {
     fn open_orb(&mut self, el: &ActiveEventLoop) {
         let scale = self.settings.pixel_scale.max(2);
         let side = ORB_ART as u32 * scale;
-        let monitor = el.primary_monitor().or_else(|| el.available_monitors().next());
-        let (mpos, msize) = monitor
-            .map(|m| (m.position(), m.size()))
-            .unwrap_or((PhysicalPosition::new(0, 0), PhysicalSize::new(1280, 720)));
+        let m = self.screen;
         let pos = if self.settings.orb_x >= 0 && self.settings.orb_y >= 0 {
             PhysicalPosition::new(self.settings.orb_x, self.settings.orb_y)
         } else {
-            PhysicalPosition::new(mpos.x + msize.width as i32 - side as i32 - 24, mpos.y + 48)
+            PhysicalPosition::new(m.x + m.w as i32 - side as i32 - 24, m.y + 48)
         };
         #[allow(unused_mut)]
         let mut attrs = Window::default_attributes()
@@ -414,6 +442,48 @@ impl App {
             }
             Err(e) => eprintln!("could not draw the orb: {e:#}"),
         }
+    }
+
+    /// One click-through weather window per extra monitor. Skipped where the
+    /// desktop can't show through: an opaque window would black out a screen.
+    fn open_weather(&mut self, el: &ActiveEventLoop, rects: &[Rect], seed: u64) {
+        let scale = self.settings.pixel_scale.max(1);
+        for (i, &rect) in rects.iter().enumerate() {
+            let Ok(window) = el.create_window(Self::overlay_attributes(rect)).map(Arc::new) else {
+                eprintln!("could not open the snow on the monitor at {},{}", rect.x, rect.y);
+                continue;
+            };
+            let _ = window.set_cursor_hittest(false);
+            let screen = match Screen::new(window.clone(), true) {
+                Ok(s) if s.transparent() => s,
+                Ok(_) => {
+                    eprintln!("No transparent windows: the other monitors stay without snow.");
+                    return;
+                }
+                Err(e) => {
+                    eprintln!("could not draw the snow on another monitor: {e:#}");
+                    continue;
+                }
+            };
+            let size = window.inner_size();
+            let (w, h) = (size.width.div_ceil(scale) as i32, size.height.div_ceil(scale) as i32);
+            let scene = Scene::weather(w, h, seed.wrapping_add(i as u64 + 1), self.commitment.pace(), true);
+            let surface = Surface { window, screen, canvas: Canvas::new(w, h), scale };
+            self.weather.push(Weather { surface, scene, last: Instant::now() });
+        }
+    }
+
+    /// Steps and draws the weather window `i` at the primary's freeze level.
+    fn draw_weather(&mut self, i: usize) {
+        let level = self.scene.as_ref().map(Scene::freeze_level).unwrap_or(0.0);
+        let Some(wx) = self.weather.get_mut(i) else { return };
+        let now = Instant::now();
+        let dt = (now - wx.last).as_secs_f32().min(0.2);
+        wx.last = now;
+        wx.scene.set_freeze_target(level);
+        wx.scene.step(dt);
+        wx.scene.draw(&mut wx.surface.canvas);
+        wx.surface.screen.present(&wx.surface.canvas, wx.surface.scale);
     }
 
     /// Points the black hole at the orb's center (screen → scene coordinates).
@@ -799,7 +869,10 @@ impl ApplicationHandler<UserEvent> for App {
         if self.main.is_some() {
             return;
         }
-        let attrs = if self.resolved.overlay { self.overlay_attributes(el) } else { self.window_attributes() };
+        let layout = platform::overlay_layout(&monitors(el));
+        self.screen = layout.primary;
+        let attrs =
+            if self.resolved.overlay { Self::overlay_attributes(layout.primary) } else { self.window_attributes() };
         let window = match el.create_window(attrs) {
             Ok(w) => Arc::new(w),
             Err(e) => {
@@ -843,6 +916,7 @@ impl ApplicationHandler<UserEvent> for App {
         self.fit_topic();
         if self.resolved.overlay {
             self.open_orb(el);
+            self.open_weather(el, &layout.weather, seed);
         }
         self.last = Instant::now();
     }
@@ -861,6 +935,26 @@ impl ApplicationHandler<UserEvent> for App {
                     s.screen.invalidate();
                 }
             }
+            for wx in &mut self.weather {
+                if wx.surface.window.id() == id {
+                    wx.surface.screen.invalidate();
+                }
+            }
+        }
+        if let Some(i) = self.weather.iter().position(|wx| wx.surface.window.id() == id) {
+            match event {
+                WindowEvent::RedrawRequested => self.draw_weather(i),
+                WindowEvent::Resized(size) => {
+                    let wx = &mut self.weather[i];
+                    let s = wx.surface.scale;
+                    let (w, h) = (size.width.div_ceil(s) as i32, size.height.div_ceil(s) as i32);
+                    wx.surface.screen.resize(size.width, size.height);
+                    wx.surface.canvas = Canvas::new(w, h);
+                    wx.scene.resize(w, h);
+                }
+                _ => {}
+            }
+            return;
         }
         let is_orb = self.orb.as_ref().is_some_and(|o| o.window.id() == id);
         if is_orb {
@@ -1036,6 +1130,12 @@ impl ApplicationHandler<UserEvent> for App {
             }
             if let Some(o) = &self.orb {
                 o.window.request_redraw();
+            }
+            self.frames += 1;
+            if self.frames % WEATHER_EVERY == 0 {
+                for wx in &self.weather {
+                    wx.surface.window.request_redraw();
+                }
             }
         }
         el.set_control_flow(ControlFlow::WaitUntil(self.next_frame));
