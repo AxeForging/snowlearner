@@ -50,6 +50,8 @@ pub struct Caption {
     pub active: Option<usize>,
     /// Other ways to say it, labeled ("curta: Mute!"), under the cue.
     pub alts: Vec<String>,
+    /// Index in `alts` of the option that counted, lit like a pass.
+    pub counted: Option<usize>,
     pub meaning: String,
     pub status: Status,
     pub feedback: Option<Vec<WordHit>>,
@@ -323,7 +325,13 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     let lines = layout(&toks, inner);
     let lh = font::LINE_H - 1;
     let mut rows = 1 + lines.len() as i32 + i32::from(cap.listen.is_some());
-    let alt_lines: Vec<String> = cap.alts.iter().flat_map(|a| font::wrap(a, inner)).collect();
+    let alt_color = |i: usize| if cap.counted == Some(i) { Status::Passed.color() } else { ALT };
+    let alt_lines: Vec<(String, Rgba)> = cap
+        .alts
+        .iter()
+        .enumerate()
+        .flat_map(|(i, a)| font::wrap(a, inner).into_iter().map(move |l| (l, alt_color(i))))
+        .collect();
     rows += alt_lines.len() as i32;
     let meaning_lines = if cap.meaning.is_empty() { vec![] } else { font::wrap(&format!("= {}", cap.meaning), inner) };
     rows += meaning_lines.len() as i32;
@@ -384,8 +392,8 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
         }
         y += lh;
     }
-    for l in &alt_lines {
-        font::draw(c, px + 6, y, l, ALT);
+    for (l, color) in &alt_lines {
+        font::draw(c, px + 6, y, l, *color);
         y += lh;
     }
     for l in &meaning_lines {
@@ -491,6 +499,7 @@ mod tests {
             say: "I'm hungry".into(),
             active: None,
             alts: Vec::new(),
+            counted: None,
             meaning: "Estou com fome".into(),
             status: Status::Listening,
             feedback,
@@ -607,6 +616,20 @@ mod tests {
                 assert_eq!(alone.get(x, y), both.get(x, y), "caption drawn over the progress corner at {x},{y}");
             }
         }
+    }
+
+    #[test]
+    fn the_option_that_counted_is_drawn_in_the_pass_color() {
+        let green = |counted: Option<usize>| {
+            let alts = vec!["curta: Hungry!".to_string(), "polida: I'm actually quite hungry".to_string()];
+            let cap = Caption { alts, counted, status: Status::Passed, ..caption(None) };
+            let hud = Hud { caption: Some(cap), ..Default::default() };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 170, 0.0);
+            let pass = Status::Passed.color();
+            (0..180).flat_map(|y| (0..320).map(move |x| (x, y))).filter(|&(x, y)| c.get(x, y) == Some(pass)).count()
+        };
+        assert!(green(Some(1)) > green(None) + 50, "the polished line lights up");
     }
 
     #[test]

@@ -471,6 +471,7 @@ fn lesson_caption(p: &crate::learn::deck::Phrase, status: Status) -> Caption {
         say: p.say.clone(),
         active: p.cue.iter().position(|s| s.is_target()),
         alts: p.alternatives(crate::learn::deck::Answer::All),
+        counted: None,
         meaning: p.meaning.clone(),
         status,
         feedback: None,

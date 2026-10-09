@@ -414,6 +414,7 @@ impl Lesson {
             say: self.shown(&p),
             active: None,
             alts: if mode == Mode::Repeat { p.alternatives(self.opts.answer) } else { Vec::new() },
+            counted: None,
             meaning: if mode == Mode::Repeat { p.meaning.clone() } else { String::new() },
             status: Status::Speaking,
             feedback: None,
@@ -524,16 +525,29 @@ impl Lesson {
                     self.silence(scene);
                     return;
                 }
-                // Feedback is shown on the asked phrase; any other right answer lights it all green.
+                // Feedback is shown on the asked phrase. When another option on
+                // screen is what counted, that option lights up instead.
                 let shown = self.shown(&p);
+                let other =
+                    said.and_then(|t| p.tiers().into_iter().find(|(tier, _)| *tier == t)).filter(|(_, s)| *s != shown);
                 let words = if passed {
-                    shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
+                    shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: other.is_none() }).collect()
                 } else {
                     matcher::score_lenient(&shown, &text, slack, &self.deck.language).words
                 };
                 if let Some(c) = &mut scene.hud.caption {
                     c.feedback = Some(words);
                     c.heard = Some(text.clone());
+                    if passed {
+                        // Now that it's said, show every other way to say it.
+                        c.alts = p
+                            .tiers()
+                            .iter()
+                            .filter(|(_, s)| *s != shown)
+                            .map(|(t, s)| format!("{}: {s}", t.label_pt()))
+                            .collect();
+                    }
+                    c.counted = other.and_then(|(_, s)| c.alts.iter().position(|a| a.ends_with(s)));
                 }
                 self.finish_attempt(phrase, tries, &text, m.score, said, scene);
             }
@@ -1055,6 +1069,40 @@ mod tests {
         let mut f = fixture(true);
         f.answer(true);
         assert!(!f.scene.hud.caption.as_ref().unwrap().footer.starts_with("Resposta"), "no tiers, nothing to tell");
+    }
+
+    #[test]
+    fn the_option_that_counted_is_the_one_lit_green() {
+        let answered = |heard: &str| {
+            let mut f = tier_fixture(Answer::All);
+            let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: heard.into() }));
+            let c = f.scene.hud.caption.take().unwrap();
+            let asked_green = c.feedback.as_ref().is_some_and(|w| w.iter().all(|w| w.hit));
+            (c.counted.map(|i| c.alts[i].clone()), asked_green)
+        };
+        let (counted, asked_green) = answered("perdon could you please share your screen");
+        assert_eq!(counted.as_deref(), Some("polida: Could you please share your screen?"));
+        assert!(!asked_green, "the asked phrase is not what counted");
+        assert_eq!(answered("Share your screen").0.as_deref(), Some("curta: Share your screen?"));
+        assert_eq!(answered("Can you share your screen"), (None, true), "the asked one lights itself");
+    }
+
+    #[test]
+    fn after_a_right_answer_every_other_option_is_shown_even_when_one_was_asked() {
+        let mut f = tier_fixture(Answer::Short);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(f.scene.hud.caption.as_ref().unwrap().alts.is_empty(), "only the asked option before answering");
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Could you please share your screen".into() }));
+        let c = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(
+            c.alts,
+            vec!["completa: Can you share your screen?", "polida: Could you please share your screen?"],
+            "the learner sees what else they could say"
+        );
+        assert_eq!(c.counted, Some(1), "with the one recognized lit green");
     }
 
     #[test]
