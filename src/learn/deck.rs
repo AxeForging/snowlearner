@@ -1,12 +1,17 @@
-//! Phrase decks: TOML data, built-in for `en` and `es` (pt-BR cues), and
-//! overridable by dropping `<lang>.toml` into the config `decks/` folder.
+//! Phrase decks: TOML data, built-in for `en` and `es` (pt-BR cues) and
+//! `pt-BR` (English cues), overridable by dropping `<lang>.toml` into the
+//! config `decks/` folder.
 //!
 //! Phrases are real situations, not vocabulary drills: each has a topic, a
-//! pt-BR situation, accepted variants and an optional practical tip.
+//! situation in the learner's own language, accepted variants and an
+//! optional practical tip. A deck is written for one native language; a
+//! translation overlay (`decks/i18n/<deck>.<native>.toml`, keyed by `say`)
+//! brings it to another, and phrases it does not translate are left out.
 //! A phrase may come in three tiers: `short` (the quickest way to say it),
 //! `say` (the complete one) and `polished` (the most courteous one).
 
 use super::cue::{self, Segment};
+use crate::lang::{Native, T};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -31,6 +36,7 @@ const BUILTIN: &[(&str, &[&str])] = &[
             include_str!("../../decks/es.lexicaster.toml"),
         ],
     ),
+    ("pt-BR", &[include_str!("../../decks/pt.basics.toml")]),
 ];
 
 /// Answer tiers for the generated decks, hand-curated and keyed by `say`
@@ -39,6 +45,14 @@ const TIERS: &[(&str, &str)] = &[
     ("en", include_str!("../../decks/en.lexicaster.tiers.toml")),
     ("es", include_str!("../../decks/es.lexicaster.tiers.toml")),
 ];
+
+/// Built-in translations: (deck language, native, overlays keyed by `say`).
+/// The Lexicaster ports have none yet, so English speakers don't get them.
+const TRANSLATIONS: &[(&str, Native, &[&str])] = &[(
+    "es",
+    Native::En,
+    &[include_str!("../../decks/i18n/es.en.toml"), include_str!("../../decks/i18n/es.basics.en.toml")],
+)];
 
 /// CEFR levels, easiest first. Pre-A1 (CEFR Companion Volume, 2020) is the
 /// learner who knows nothing yet: isolated words and set expressions.
@@ -54,8 +68,8 @@ struct DeckFile {
     /// Language name in the native language ("inglês"), used in recall prompts.
     #[serde(default)]
     language_name: Option<String>,
-    #[serde(default = "default_cue")]
-    default_cue: String,
+    #[serde(default)]
+    default_cue: Option<String>,
     #[serde(rename = "phrase", default)]
     phrases: Vec<PhraseFile>,
     /// General tips (false friends, pronunciation, culture) for the warrior.
@@ -129,8 +143,45 @@ fn clean_tiers(say: &str, short: Option<String>, polished: Option<String>) -> (O
     (short, polished)
 }
 
-fn default_cue() -> String {
-    "Repita: {}".to_string()
+/// A deck's text in another native language, keyed by the phrase's `say`.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OverlayFile {
+    language: String,
+    native: String,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    language_name: Option<String>,
+    #[serde(default)]
+    default_cue: Option<String>,
+    #[serde(rename = "phrase", default)]
+    phrases: Vec<OverlayPhrase>,
+    #[serde(rename = "tip", default)]
+    tips: Vec<TipFile>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OverlayPhrase {
+    say: String,
+    meaning: String,
+    #[serde(default)]
+    situation: Option<String>,
+    #[serde(default)]
+    tip: Option<String>,
+    #[serde(default)]
+    cue: Option<String>,
+}
+
+/// The cue a phrase gets without its own: the situation then "Say:", or the
+/// deck's default ("Repeat: {}").
+fn derived_cue(native: Native, situation: Option<&str>, default_cue: Option<&str>) -> String {
+    match (situation, default_cue) {
+        (Some(s), _) => format!("{s} {} {{}}", T::CueSay.get(native)),
+        (None, Some(d)) => d.to_string(),
+        (None, None) => format!("{} {{}}", T::CueRepeat.get(native)),
+    }
 }
 
 pub const DEFAULT_TOPIC: &str = "geral";
@@ -154,13 +205,14 @@ pub enum Answer {
 impl Answer {
     pub const CHOICES: [Answer; 4] = [Answer::All, Answer::Short, Answer::Complete, Answer::Polished];
 
-    pub fn label_pt(self) -> &'static str {
+    pub fn label(self, native: Native) -> &'static str {
         match self {
-            Answer::All => "todas",
-            Answer::Short => "curta",
-            Answer::Complete => "completa",
-            Answer::Polished => "polida",
+            Answer::All => T::AnswerAll,
+            Answer::Short => T::AnswerShort,
+            Answer::Complete => T::AnswerComplete,
+            Answer::Polished => T::AnswerPolished,
         }
+        .get(native)
     }
 }
 
@@ -248,24 +300,24 @@ impl Phrase {
 
     /// With `All`: the other tiers, labeled ("curta: Mute!"), to show under
     /// the cue (which holds the complete one). Nothing for a single tier.
-    pub fn alternatives(&self, answer: Answer) -> Vec<String> {
+    pub fn alternatives(&self, answer: Answer, native: Native) -> Vec<String> {
         if answer != Answer::All {
             return Vec::new();
         }
         self.tiers()
             .into_iter()
             .filter(|(t, _)| *t != Answer::Complete)
-            .map(|(t, s)| format!("{}: {s}", t.label_pt()))
+            .map(|(t, s)| format!("{}: {s}", t.label(native)))
             .collect()
     }
 
     /// Recall-mode cue: the situation and meaning, but not the answer.
-    pub fn recall_cue(&self, language_name: &str) -> Vec<Segment> {
+    pub fn recall_cue(&self, language_name: &str, native: Native) -> Vec<Segment> {
         let mut out = Vec::new();
         if let Some(s) = &self.situation {
             out.push(Segment::Native(s.clone()));
         }
-        out.push(Segment::Native(format!("Diga em {language_name}: \"{}\"", self.meaning)));
+        out.push(Segment::Native(T::RecallAsk.fill(native, &[&language_name, &self.meaning])));
         out
     }
 }
@@ -289,17 +341,16 @@ impl Deck {
         if file.phrases.is_empty() {
             bail!("deck {:?} has no [[phrase]] entries", file.title);
         }
+        // Custom decks may name any native; their cue words fall back to pt-BR.
+        let native = Native::parse(&file.native).unwrap_or_default();
         let mut phrases = Vec::with_capacity(file.phrases.len());
         for (i, p) in file.phrases.into_iter().enumerate() {
             let say = p.say.trim().to_string();
             if say.is_empty() {
                 bail!("phrase #{} has an empty `say`", i + 1);
             }
-            let cue_src = match (p.cue, &p.situation) {
-                (Some(c), _) => c,
-                (None, Some(s)) => format!("{s} Diga: {{}}"),
-                (None, None) => file.default_cue.clone(),
-            };
+            let cue_src =
+                p.cue.unwrap_or_else(|| derived_cue(native, p.situation.as_deref(), file.default_cue.as_deref()));
             let cue = cue::parse(&cue_src, &say).with_context(|| format!("phrase #{} ({say:?})", i + 1))?;
             let (short, polished) = clean_tiers(&say, p.short, p.polished);
             let topic = p.topic.map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty());
@@ -341,7 +392,93 @@ impl Deck {
     }
 
     pub fn builtin_languages() -> &'static [&'static str] {
-        &["en", "es"]
+        &["en", "es", "pt-BR"]
+    }
+
+    /// The built-in deck for `language` in the learner's `native` language:
+    /// as written, or through its built-in translation. None when there is
+    /// no such deck or no translation for that native.
+    pub fn builtin_for(language: &str, native: Native) -> Option<Deck> {
+        let deck = Deck::builtin(language)?;
+        deck.localize(native, &builtin_overlays(language, native)).ok()
+    }
+
+    /// Built-in languages there is something to learn in for this native
+    /// (written for it or translated), never the native itself.
+    pub fn languages_for(native: Native) -> Vec<&'static str> {
+        Deck::builtin_languages()
+            .iter()
+            .copied()
+            .filter(|l| !native.is(l))
+            .filter(|l| {
+                let written = BUILTIN.iter().find(|(b, _)| b == l).and_then(|(_, s)| s.first());
+                written.is_some_and(|src| Deck::parse(src).is_ok_and(|d| Native::parse(&d.native) == Some(native)))
+                    || TRANSLATIONS.iter().any(|(b, n, _)| b == l && *n == native)
+            })
+            .collect()
+    }
+
+    /// This deck in `native`: unchanged when written for it; otherwise the
+    /// overlays give each phrase its meaning, situation, tip and cue, and a
+    /// phrase they leave out is dropped (never shown half translated). An
+    /// overlay entry for a phrase the deck doesn't have is an error: it went
+    /// stale when the deck changed.
+    pub fn localize(mut self, native: Native, overlays: &[&str]) -> Result<Deck> {
+        if Native::parse(&self.native) == Some(native) {
+            return Ok(self);
+        }
+        if overlays.is_empty() {
+            bail!("deck {:?} is for {} speakers and has no {} translation", self.language, self.native, native.code());
+        }
+        let deck_keys: std::collections::HashSet<String> = self.phrases.iter().map(|p| same_key(&p.say)).collect();
+        let mut by_say: std::collections::HashMap<String, (OverlayPhrase, Option<String>)> = Default::default();
+        let mut tips = Vec::new();
+        let (mut title, mut language_name) = (None, None);
+        for (n, src) in overlays.iter().enumerate() {
+            let file: OverlayFile = toml::from_str(src).with_context(|| format!("invalid translation #{}", n + 1))?;
+            if file.language != self.language || Native::parse(&file.native) != Some(native) {
+                bail!(
+                    "translation #{} is {} -> {}, the deck needs {} -> {}",
+                    n + 1,
+                    file.native,
+                    file.language,
+                    native.code(),
+                    self.language
+                );
+            }
+            title = title.or(file.title);
+            language_name = language_name.or(file.language_name);
+            tips.extend(file.tips.into_iter().map(|t| t.text));
+            for p in file.phrases {
+                let k = same_key(&p.say);
+                if !deck_keys.contains(&k) {
+                    bail!("translation of {:?} matches no phrase in the {} deck (stale?)", p.say, self.language);
+                }
+                if p.meaning.trim().is_empty() {
+                    bail!("translation of {:?} has an empty `meaning`", p.say);
+                }
+                let say = p.say.clone();
+                if by_say.insert(k, (p, file.default_cue.clone())).is_some() {
+                    bail!("{say:?} is translated twice");
+                }
+            }
+        }
+        let mut phrases = Vec::new();
+        for mut p in std::mem::take(&mut self.phrases) {
+            let Some((t, default_cue)) = by_say.remove(&same_key(&p.say)) else { continue };
+            let src = t.cue.unwrap_or_else(|| derived_cue(native, t.situation.as_deref(), default_cue.as_deref()));
+            p.cue = cue::parse(&src, &p.say).with_context(|| format!("translated cue of {:?}", p.say))?;
+            p.meaning = t.meaning;
+            p.situation = t.situation;
+            p.tip = t.tip;
+            phrases.push(p);
+        }
+        self.phrases = phrases;
+        self.tips = tips;
+        self.native = native.code().to_string();
+        self.title = title.unwrap_or(self.title);
+        self.language_name = language_name.unwrap_or_else(|| crate::lang::text::language_name(native, &self.language));
+        Ok(self)
     }
 
     /// Sets the short / polished tiers from an overlay (`[[tier]]` entries keyed
@@ -362,10 +499,9 @@ impl Deck {
     /// Appends phrases and tips from `other`, skipping phrases already present
     /// (compared ignoring case, accents and punctuation).
     pub fn merge(&mut self, other: Deck) {
-        let key = |s: &str| crate::speech::matcher::normalize(s).join(" ");
-        let mut seen: std::collections::HashSet<String> = self.phrases.iter().map(|p| key(&p.say)).collect();
+        let mut seen: std::collections::HashSet<String> = self.phrases.iter().map(|p| same_key(&p.say)).collect();
         for p in other.phrases {
-            if seen.insert(key(&p.say)) {
+            if seen.insert(same_key(&p.say)) {
                 self.phrases.push(p);
             }
         }
@@ -390,23 +526,32 @@ impl Deck {
             .collect()
     }
 
-    /// A custom `<decks_dir>/<language>.toml` wins over the built-in deck.
-    pub fn load(language: &str, decks_dir: &Path) -> Result<Deck> {
-        let custom = decks_dir.join(format!("{language}.toml"));
-        if custom.exists() {
-            let src = std::fs::read_to_string(&custom).with_context(|| format!("reading {}", custom.display()))?;
-            return Deck::parse(&src).with_context(|| format!("in {}", custom.display()));
+    /// The deck for `language` in the learner's `native` language. A custom
+    /// `<decks_dir>/<language>.toml` wins over the built-in deck; one written
+    /// for another native is translated by `<decks_dir>/i18n/<language>.<native>.toml`.
+    pub fn load(language: &str, native: Native, decks_dir: &Path) -> Result<Deck> {
+        if native.is(language) {
+            bail!("{language:?} is your own language: choose another one to learn");
         }
-        Deck::builtin(language).with_context(|| {
-            format!(
+        let custom = decks_dir.join(format!("{language}.toml"));
+        let read = |p: &Path| std::fs::read_to_string(p).with_context(|| format!("reading {}", p.display()));
+        if custom.exists() {
+            let deck = Deck::parse(&read(&custom)?).with_context(|| format!("in {}", custom.display()))?;
+            let overlay = decks_dir.join("i18n").join(format!("{language}.{}.toml", native.code()));
+            let overlays = if overlay.exists() { vec![read(&overlay)?] } else { Vec::new() };
+            let refs: Vec<&str> = overlays.iter().map(String::as_str).collect();
+            return deck.localize(native, &refs).with_context(|| format!("in {}", custom.display()));
+        }
+        let Some(deck) = Deck::builtin(language) else {
+            bail!(
                 "no deck for language {language:?}: built-in decks are {:?}, or create {}",
                 Deck::builtin_languages(),
                 custom.display()
-            )
-        })
+            );
+        };
+        deck.localize(native, &builtin_overlays(language, native))
     }
 
-    /// Topics in first-seen order.
     /// Topics with something to practice at `max_level`, in deck order.
     pub fn topics_at(&self, max_level: &str) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
@@ -419,6 +564,7 @@ impl Deck {
         out
     }
 
+    /// Topics in first-seen order.
     pub fn topics(&self) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
         for p in &self.phrases {
@@ -430,15 +576,164 @@ impl Deck {
     }
 }
 
+fn builtin_overlays(language: &str, native: Native) -> Vec<&'static str> {
+    TRANSLATIONS
+        .iter()
+        .filter(|(l, n, _)| *l == language && *n == native)
+        .flat_map(|(_, _, o)| o.iter().copied())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const HEAD: &str = "language='en'\nnative='pt-BR'\ntitle='t'\n";
+    /// Built-in decks written for pt-BR speakers (the big ones, with Lexicaster).
+    const PT_BR_DECKS: &[&str] = &["en", "es"];
+    const ES_HEAD: &str = "language='es'\nnative='pt-BR'\ntitle='t'\n";
+    const ES_EN: &str = "language='es'\nnative='en'\ntitle='Spanish'\nlanguage_name='Spanish'\n";
+
+    #[test]
+    fn an_overlay_brings_a_deck_to_english_speakers_and_drops_what_it_does_not_translate() {
+        let deck = Deck::parse(&format!(
+            "{ES_HEAD}language_name='espanhol'\n[[tip]]\ntext='Falso amigo: polvo.'\n\
+             [[phrase]]\nsay='Hola.'\nmeaning='Olá.'\nsituation='Você entra na loja.'\ntip='O h é mudo.'\n\
+             [[phrase]]\nsay='La cuenta.'\nmeaning='A conta.'\nsituation='Você terminou de jantar.'\n\
+             [[phrase]]\nsay='Gracias.'\nmeaning='Obrigado.'\ntip='Dica só em português.'"
+        ))
+        .unwrap();
+        let overlay = format!(
+            "{ES_EN}[[tip]]\ntext='False friend: embarazada.'\n\
+             [[phrase]]\nsay='hola'\nmeaning='Hello.'\nsituation='You walk into a shop.'\ntip='The h is silent.'\n\
+             [[phrase]]\nsay='Gracias.'\nmeaning='Thank you.'"
+        );
+        let d = deck.localize(Native::En, &[&overlay]).unwrap();
+        assert_eq!(d.native, "en");
+        assert_eq!(d.language_name, "Spanish");
+        assert_eq!(d.tips, vec!["False friend: embarazada."], "the deck's own tips are for pt-BR speakers");
+        let says: Vec<&str> = d.phrases.iter().map(|p| p.say.as_str()).collect();
+        assert_eq!(says, vec!["Hola.", "Gracias."], "no translation, no phrase");
+        let hola = &d.phrases[0];
+        assert_eq!((hola.meaning.as_str(), hola.tip.as_deref()), ("Hello.", Some("The h is silent.")));
+        assert_eq!(
+            hola.cue,
+            vec![Segment::Native("You walk into a shop. Say:".into()), Segment::Target("Hola.".into())]
+        );
+        let gracias = &d.phrases[1];
+        assert_eq!(gracias.tip, None, "a tip left untranslated is not shown in Portuguese");
+        assert_eq!(gracias.cue[0], Segment::Native("Repeat:".into()));
+    }
+
+    #[test]
+    fn a_stale_or_doubled_overlay_entry_is_an_error() {
+        let deck = Deck::parse(&format!("{ES_HEAD}[[phrase]]\nsay='Hola.'\nmeaning='Olá.'")).unwrap();
+        let stale = format!("{ES_EN}[[phrase]]\nsay='Adiós.'\nmeaning='Bye.'");
+        let err = format!("{:#}", deck.clone().localize(Native::En, &[&stale]).unwrap_err());
+        assert!(err.contains("Adiós") && err.contains("stale"), "{err}");
+        let twice = format!("{ES_EN}[[phrase]]\nsay='Hola.'\nmeaning='Hi.'");
+        assert!(deck.clone().localize(Native::En, &[&twice, &twice]).is_err());
+        let wrong_pair = "language='en'\nnative='en'\n[[phrase]]\nsay='Hola.'\nmeaning='Hi.'";
+        assert!(deck.clone().localize(Native::En, &[wrong_pair]).is_err(), "an overlay for another deck");
+        let typo = format!("{ES_EN}[[phrase]]\nsay='Hola.'\nmeening='Hi.'");
+        assert!(deck.clone().localize(Native::En, &[&typo]).is_err(), "unknown fields are not ignored");
+        let err = format!("{:#}", deck.clone().localize(Native::En, &[]).unwrap_err());
+        assert!(err.contains("no en translation"), "{err}");
+        assert_eq!(deck.localize(Native::PtBr, &[]).unwrap().phrases[0].meaning, "Olá.", "already in pt-BR");
+    }
+
+    #[test]
+    fn english_speakers_get_the_whole_curated_spanish_deck_in_english() {
+        let pt = Deck::builtin("es").unwrap();
+        let en = Deck::builtin_for("es", Native::En).unwrap();
+        let curated = Deck::parse(include_str!("../../decks/es.toml")).unwrap().phrases.len()
+            + Deck::parse(include_str!("../../decks/es.basics.toml")).unwrap().phrases.len();
+        assert_eq!(en.phrases.len(), curated, "es.toml and es.basics are fully translated; Lexicaster is not");
+        assert!(en.phrases.len() < pt.phrases.len());
+        assert!(en.tips.len() >= 10, "tips for English speakers");
+        assert_eq!(en.language_name, "Spanish");
+        for p in &en.phrases {
+            assert!(p.situation.is_some(), "{:?} has no situation", p.say);
+            assert!(p.cue.iter().any(|s| matches!(s, Segment::Native(t) if t.ends_with("Say:"))), "{:?}", p.say);
+            let text =
+                format!("{} {:?} {:?} {:?}", p.meaning, p.situation, p.tip, p.alternatives(Answer::All, Native::En));
+            assert!(crate::render::font::supports(&text), "{text}");
+        }
+        for t in &en.tips {
+            assert!(crate::render::font::supports(t), "{t}");
+        }
+        let pre = en.selection(None, PRE_A1);
+        assert!(pre.len() >= 40, "an English beginner has {} first items", pre.len());
+        let first = crate::learn::path::ordered(&en.phrases, &en.selection(None, "C2"))[0];
+        assert_eq!(crate::learn::path::Stage::of(&en.phrases[first]), crate::learn::path::Stage::Words);
+    }
+
+    #[test]
+    fn english_speakers_can_learn_brazilian_portuguese_from_single_words() {
+        use crate::learn::path::Stage;
+        let d = Deck::builtin_for("pt-BR", Native::En).unwrap();
+        assert_eq!((d.language.as_str(), d.native.as_str()), ("pt-BR", "en"));
+        assert!(d.phrases.len() >= 60, "{} items", d.phrases.len());
+        let count = |st: Stage| d.phrases.iter().filter(|p| Stage::of(p) == st).count();
+        assert!(count(Stage::Words) >= 40, "{} first words", count(Stage::Words));
+        assert!(count(Stage::Chunks) >= 20, "{} short chunks", count(Stage::Chunks));
+        assert_eq!(count(Stage::Phrases), 0, "a first-steps deck has no full phrases");
+        let order = crate::learn::path::ordered(&d.phrases, &d.selection(None, "C2"));
+        assert_eq!(Stage::of(&d.phrases[order[0]]), Stage::Words, "the path starts with a word");
+        for p in &d.phrases {
+            assert!(p.situation.is_some() && !p.meaning.is_empty(), "{:?}", p.say);
+            assert_ne!(p.topic, DEFAULT_TOPIC, "{:?} has no topic", p.say);
+            assert!(crate::render::font::supports(&format!("{} {:?} {:?}", p.meaning, p.situation, p.tip)));
+        }
+        for topic in CORE_TOPICS {
+            for level in [PRE_A1, "A1"] {
+                let n = d.phrases.iter().filter(|p| p.topic == *topic && p.level.as_deref() == Some(level)).count();
+                assert!(n >= RUNG_MIN, "pt-BR: {topic} {level} has {n}");
+            }
+        }
+    }
+
+    #[test]
+    fn nobody_is_offered_their_own_language_or_a_deck_they_cannot_read() {
+        assert_eq!(Deck::languages_for(Native::PtBr), vec!["en", "es"]);
+        assert_eq!(Deck::languages_for(Native::En), vec!["es", "pt-BR"]);
+        assert!(Deck::builtin_for("pt-BR", Native::PtBr).is_none());
+        assert!(Deck::builtin_for("en", Native::En).is_none());
+        let dir = tempfile::tempdir().unwrap();
+        let err = format!("{:#}", Deck::load("en", Native::En, dir.path()).unwrap_err());
+        assert!(err.contains("own language"), "{err}");
+        assert!(Deck::load("pt", Native::PtBr, dir.path()).is_err());
+    }
+
+    #[test]
+    fn portuguese_speakers_keep_the_same_decks_as_before() {
+        for lang in PT_BR_DECKS {
+            let dir = tempfile::tempdir().unwrap();
+            let loaded = Deck::load(lang, Native::PtBr, dir.path()).unwrap();
+            let raw = Deck::builtin(lang).unwrap();
+            assert_eq!(loaded.phrases.len(), raw.phrases.len());
+            assert_eq!(loaded.tips, raw.tips);
+            assert!(loaded.phrases.iter().zip(&raw.phrases).all(|(a, b)| a.meaning == b.meaning && a.cue == b.cue));
+            assert!(loaded.phrases.iter().any(|p| p.cue.iter().any(|s| s.text().ends_with("Diga:"))));
+        }
+    }
+
+    #[test]
+    fn a_custom_deck_is_translated_by_its_own_overlay() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("es.toml"), format!("{ES_HEAD}[[phrase]]\nsay='Hola.'\nmeaning='Olá.'"))
+            .unwrap();
+        let err = format!("{:#}", Deck::load("es", Native::En, dir.path()).unwrap_err());
+        assert!(err.contains("no en translation"), "{err}");
+        std::fs::create_dir(dir.path().join("i18n")).unwrap();
+        std::fs::write(dir.path().join("i18n/es.en.toml"), format!("{ES_EN}[[phrase]]\nsay='Hola.'\nmeaning='Hi.'"))
+            .unwrap();
+        assert_eq!(Deck::load("es", Native::En, dir.path()).unwrap().phrases[0].meaning, "Hi.");
+    }
 
     #[test]
     fn builtin_decks_are_rich_real_life_decks() {
-        for lang in Deck::builtin_languages() {
+        for lang in PT_BR_DECKS {
             let deck = Deck::builtin(lang).unwrap();
             assert_eq!(&deck.language, lang);
             assert_eq!(deck.native, "pt-BR");
@@ -456,7 +751,7 @@ mod tests {
 
     #[test]
     fn builtin_decks_give_a_pre_a1_learner_words_and_set_expressions_only() {
-        for lang in Deck::builtin_languages() {
+        for lang in PT_BR_DECKS {
             let deck = Deck::builtin(lang).unwrap();
             let pre = deck.selection(None, PRE_A1);
             assert!(pre.len() >= 60, "{lang}: only {} pre-A1 items", pre.len());
@@ -491,7 +786,7 @@ mod tests {
 
     #[test]
     fn core_topics_climb_every_level_from_pre_a1_to_b1() {
-        for lang in Deck::builtin_languages() {
+        for lang in PT_BR_DECKS {
             let deck = Deck::builtin(lang).unwrap();
             for topic in CORE_TOPICS {
                 for level in LADDER {
@@ -536,7 +831,7 @@ mod tests {
                     p.situation,
                     p.tip,
                     p.accept.join(" "),
-                    p.alternatives(Answer::All)
+                    p.alternatives(Answer::All, Native::parse(&deck.native).unwrap())
                 );
                 assert!(crate::render::font::supports(&all), "unrenderable text in {all:?}");
             }
@@ -568,8 +863,11 @@ mod tests {
     }
 
     /// The first-words decks, where the learning path starts.
-    const BASICS: &[(&str, &str)] =
-        &[("en", include_str!("../../decks/en.basics.toml")), ("es", include_str!("../../decks/es.basics.toml"))];
+    const BASICS: &[(&str, &str)] = &[
+        ("en", include_str!("../../decks/en.basics.toml")),
+        ("es", include_str!("../../decks/es.basics.toml")),
+        ("pt-BR", include_str!("../../decks/pt.basics.toml")),
+    ];
 
     #[test]
     fn first_words_keep_their_shape_and_offer_a_polished_sentence() {
@@ -584,7 +882,9 @@ mod tests {
                 assert!(words(pol) > words(&p.say), "{lang}: polished {pol:?} is no fuller than {:?}", p.say);
                 assert!(words(pol) <= 7, "{lang}: polished {pol:?} is too long for a beginner");
                 assert_eq!(p.shown(Answer::Complete), p.say, "{lang}: the complete tier still asks the word");
-                assert_eq!(p.alternatives(Answer::All), vec![format!("polida: {pol}")]);
+                let native = Native::parse(&deck.native).unwrap();
+                let label = Answer::Polished.label(native);
+                assert_eq!(p.alternatives(Answer::All, native), vec![format!("{label}: {pol}")]);
             }
         }
     }
@@ -664,13 +964,13 @@ mod tests {
             "every tier counts, shortest first"
         );
         assert_eq!(
-            tiered.alternatives(Answer::All),
+            tiered.alternatives(Answer::All, Native::PtBr),
             vec!["curta: Share your screen?", "polida: Would you mind sharing your screen?"]
         );
-        assert!(tiered.alternatives(Answer::Short).is_empty(), "one tier shows only itself");
+        assert!(tiered.alternatives(Answer::Short, Native::PtBr).is_empty(), "one tier shows only itself");
         for a in Answer::CHOICES {
             assert_eq!(plain.shown(a), "Hi", "{a:?} falls back to say");
-            assert!(plain.alternatives(a).is_empty());
+            assert!(plain.alternatives(a, Native::PtBr).is_empty());
         }
         assert_eq!(plain.tiers(), vec![(Answer::Complete, "Hi")]);
     }
@@ -724,7 +1024,7 @@ mod tests {
             "{HEAD}language_name='inglês'\n[[phrase]]\nsay='Can you share your screen?'\nmeaning='Pode compartilhar sua tela?'\nsituation='Na call.'"
         ))
         .unwrap();
-        let recall = d.phrases[0].recall_cue(&d.language_name);
+        let recall = d.phrases[0].recall_cue(&d.language_name, Native::PtBr);
         assert!(recall.iter().all(|s| !s.is_target()));
         let text = recall.iter().map(Segment::text).collect::<Vec<_>>().join(" ");
         assert!(!text.contains("share"), "{text}");
@@ -803,7 +1103,7 @@ mod tests {
     #[test]
     fn builtin_decks_start_from_single_words_and_short_chunks() {
         use crate::learn::path::Stage;
-        for lang in Deck::builtin_languages() {
+        for lang in PT_BR_DECKS {
             let d = Deck::builtin(lang).unwrap();
             let count = |st: Stage| d.phrases.iter().filter(|p| Stage::of(p) == st).count();
             assert!(count(Stage::Words) >= 40, "{lang}: {} first words", count(Stage::Words));
@@ -846,15 +1146,15 @@ mod tests {
     fn custom_deck_file_overrides_builtin() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("en.toml"), format!("{HEAD}[[phrase]]\nsay='Custom'\nmeaning='x'")).unwrap();
-        let d = Deck::load("en", dir.path()).unwrap();
+        let d = Deck::load("en", Native::PtBr, dir.path()).unwrap();
         assert_eq!(d.phrases[0].say, "Custom");
-        assert_eq!(Deck::load("es", dir.path()).unwrap().language, "es");
+        assert_eq!(Deck::load("es", Native::PtBr, dir.path()).unwrap().language, "es");
     }
 
     #[test]
     fn unknown_language_without_custom_file_explains_how_to_fix() {
         let dir = tempfile::tempdir().unwrap();
-        let err = format!("{:#}", Deck::load("fr", dir.path()).unwrap_err());
+        let err = format!("{:#}", Deck::load("fr", Native::PtBr, dir.path()).unwrap_err());
         assert!(err.contains("fr.toml"), "{err}");
     }
 }

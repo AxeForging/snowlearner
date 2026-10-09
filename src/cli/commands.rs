@@ -6,6 +6,7 @@ use crate::config::paths::Paths;
 use crate::config::settings::{MODELS, Settings};
 use crate::control::gnome;
 use crate::control::ipc::{self, Command};
+use crate::lang::{Native, T};
 use crate::learn::deck::Deck;
 use crate::render::{canvas::Canvas, png_out};
 use crate::scene::Scene;
@@ -17,13 +18,18 @@ use std::io::{Read, Write};
 
 pub fn dispatch(cli: Cli) -> Result<()> {
     let paths = Paths::resolve()?;
-    let settings = load_settings(&paths, &cli.run)?;
+    // `setup --lang es --native en` switches both at once: check them together.
+    let setup_lang = match &cli.command {
+        Some(Cmd::Setup { lang, .. }) => lang.clone(),
+        _ => None,
+    };
+    let settings = load_settings(&paths, &cli.run, setup_lang.as_deref())?;
     match cli.command.unwrap_or(Cmd::Run) {
         Cmd::Run => {
             crate::control::console::release_own_console(&paths.log_file());
             crate::app::run(settings, paths, cli.run.level)
         }
-        Cmd::Setup { lang, no_model } => setup(settings, &paths, lang.as_deref(), no_model),
+        Cmd::Setup { lang, no_model } => setup(settings, &paths, lang.as_deref(), cli.run.native.is_some(), no_model),
         Cmd::Say => remote(&settings, Command::Challenge),
         Cmd::Summary => remote(&settings, Command::Summary),
         Cmd::Quit => remote(&settings, Command::Quit),
@@ -67,7 +73,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
     }
 }
 
-fn load_settings(paths: &Paths, run: &RunArgs) -> Result<Settings> {
+fn load_settings(paths: &Paths, run: &RunArgs, setup_lang: Option<&str>) -> Result<Settings> {
     let mut s = Settings::load(&paths.config_file())?;
     if let Some(m) = run.mode {
         s.mode = m;
@@ -75,8 +81,11 @@ fn load_settings(paths: &Paths, run: &RunArgs) -> Result<Settings> {
     if let Some(l) = run.level {
         s.commitment = l;
     }
-    if let Some(lang) = &run.learning {
-        s.learning = lang.clone();
+    if let Some(lang) = run.learning.as_deref().or(setup_lang) {
+        s.learning = lang.to_string();
+    }
+    if let Some(n) = &run.native {
+        s.native = Native::parse(n).with_context(|| format!("--native must be pt-BR or en, got {n:?}"))?;
     }
     s.validate()?;
     Ok(s)
@@ -120,13 +129,14 @@ fn shortcut_list(settings: &Settings) -> Vec<gnome::Shortcut> {
 
 /// Everything a first start needs, each step idempotent and non-fatal: a
 /// missing network or desktop feature is reported, not an abort.
-fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, no_model: bool) -> Result<()> {
+fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, native: bool, no_model: bool) -> Result<()> {
     let file = paths.config_file();
     if let Some(lang) = lang {
-        Deck::load(lang, &paths.decks_dir()).with_context(|| format!("--lang {lang}"))?;
         settings.learning = lang.to_string();
     }
-    if lang.is_some() || !file.exists() {
+    Deck::load(&settings.learning, settings.native, &paths.decks_dir())
+        .with_context(|| format!("--lang {}", settings.learning))?;
+    if lang.is_some() || native || !file.exists() {
         settings.save(&file)?;
         println!("✓ configuração    {} (aprendendo: {})", file.display(), settings.learning);
     } else {
@@ -168,14 +178,6 @@ fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, no_model: bo
     Ok(())
 }
 
-fn sample_text(lang: &str) -> &'static str {
-    match lang.split('-').next().unwrap_or(lang) {
-        "pt" => "Olá! Esta é a voz em português.",
-        "es" => "¡Hola! Esta es la voz en español.",
-        _ => "Hello! This is the English voice.",
-    }
-}
-
 fn voices(settings: &Settings, action: VoicesAction) -> Result<()> {
     let voice = settings.voice();
     match action {
@@ -189,9 +191,9 @@ fn voices(settings: &Settings, action: VoicesAction) -> Result<()> {
         }
         VoicesAction::Test { lang, voice: name, text } => {
             let lang = lang.unwrap_or_else(|| settings.learning.clone());
-            let configured = if lang == settings.native { &settings.voice_native } else { &settings.voice_learning };
+            let configured = if settings.native.is(&lang) { &settings.voice_native } else { &settings.voice_learning };
             let name = name.unwrap_or_else(|| configured.clone());
-            let text = text.unwrap_or_else(|| sample_text(&lang).to_string());
+            let text = text.unwrap_or_else(|| crate::speech::voices::sample_text(&lang).to_string());
             println!("{} · {lang} · {}", voice.describe(), if name.is_empty() { "automatic voice" } else { &name });
             voice.speak(&text, &lang, &name, crate::speech::tts::Speed::Normal)?;
         }
@@ -282,8 +284,8 @@ fn report(settings: &Settings, paths: &Paths, date: Option<&str>, speak: bool) -
     if speak {
         let tts = settings.voice();
         tts.speak(
-            &format!("Hoje você praticou {learned} frases."),
-            &settings.native,
+            &T::RecapMany.fill(settings.native, &[&learned]),
+            settings.native.code(),
             &settings.voice_native,
             crate::speech::tts::Speed::Normal,
         )?;
@@ -300,17 +302,17 @@ fn report(settings: &Settings, paths: &Paths, date: Option<&str>, speak: bool) -
 }
 
 fn progress(settings: &Settings, paths: &Paths) -> Result<()> {
-    let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
+    let deck = Deck::load(&settings.learning, settings.native, &paths.decks_dir())?;
     let history = History::open(&paths.db_file())?;
     let stats = history.stats(&deck.language, Local::now().date_naive())?;
     let selection = deck.selection(settings.topic_filter().as_deref(), &settings.max_level);
     let report = crate::learn::progress::progress(&deck.phrases, &selection, &stats);
-    print!("{}", report.render_text(&deck.language_name));
+    print!("{}", report.render_text(&deck.language_name, settings.native));
     Ok(())
 }
 
 fn decks(settings: &Settings, paths: &Paths) -> Result<()> {
-    let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
+    let deck = Deck::load(&settings.learning, settings.native, &paths.decks_dir())?;
     println!("{} [{} → {}] {} phrases", deck.title, deck.native, deck.language, deck.phrases.len());
     for p in &deck.phrases {
         println!("  {:<32} {}", p.say, p.meaning);
@@ -415,7 +417,7 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
             if settings.mic.is_empty() { crate::speech::mic::default_input_name() } else { Some(settings.mic.clone()) };
         println!("{}microphone    {}", ok(mic.is_some()), mic.unwrap_or_else(|| "none found".into()));
     }
-    match Deck::load(&settings.learning, &paths.decks_dir()) {
+    match Deck::load(&settings.learning, settings.native, &paths.decks_dir()) {
         Ok(d) => println!(
             "{}deck          {} ({} phrases, {} → {})",
             ok(true),
@@ -433,7 +435,7 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
         cfg.display(),
         if cfg.exists() { "" } else { " (defaults; `snowlearner config init`)" }
     );
-    println!("{}commitment    {:?} ({})", ok(true), settings.commitment, settings.commitment.label_pt());
+    println!("{}commitment    {:?} ({})", ok(true), settings.commitment, settings.commitment.label(settings.native));
     if !hk {
         let exe = std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "snowlearner".into());
         let bindings = [
@@ -465,12 +467,14 @@ pub struct Shot {
     pub fps: u32,
 }
 
-fn lesson_caption(p: &crate::learn::deck::Phrase, status: Status) -> Caption {
+fn lesson_caption(p: &crate::learn::deck::Phrase, native: Native, status: Status) -> Caption {
+    let topic = crate::lang::text::topic(native, &p.topic);
+    let repeat = T::TagRepeat.get(native);
     Caption {
         segments: p.cue.clone(),
         say: p.say.clone(),
         active: p.cue.iter().position(|s| s.is_target()),
-        alts: p.alternatives(crate::learn::deck::Answer::All),
+        alts: p.alternatives(crate::learn::deck::Answer::All, native),
         counted: None,
         meaning: p.meaning.clone(),
         status,
@@ -478,8 +482,8 @@ fn lesson_caption(p: &crate::learn::deck::Phrase, status: Status) -> Caption {
         heard: None,
         footer: String::new(),
         tag: match &p.level {
-            Some(l) => format!("{} · {l} · repita", p.topic),
-            None => format!("{} · repita", p.topic),
+            Some(l) => format!("{topic} · {l} · {repeat}"),
+            None => format!("{topic} · {repeat}"),
         },
         listen: None,
     }
@@ -503,8 +507,9 @@ fn snapshot(
     }
     let pace = level.unwrap_or(settings.commitment).pace();
     let mut scene = Scene::new(width, height, seed, pace, overlay);
-    let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
-    scene.tips = vec![format!("Aperte {} e fale comigo!", settings.hotkey_challenge)];
+    scene.set_native(settings.native);
+    let deck = Deck::load(&settings.learning, settings.native, &paths.decks_dir())?;
+    scene.tips = vec![T::TipHotkey.fill(settings.native, &[&settings.hotkey_challenge])];
     scene.show_orb = !overlay;
     scene.hole = (10.0, 10.0);
     let step = |scene: &mut Scene, secs: f32| {
@@ -519,18 +524,21 @@ fn snapshot(
     match scenario {
         Scenario::Idle => {
             if caption {
-                scene.hud.caption = Some(lesson_caption(&phrase, Status::Speaking));
+                scene.hud.caption = Some(lesson_caption(&phrase, settings.native, Status::Speaking));
             }
         }
         Scenario::Lesson => {
-            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label: "EN · trabalho".into() });
+            let n = settings.native;
+            let label = format!("{} · {}", deck.language.to_uppercase(), crate::lang::text::topic(n, &phrase.topic));
+            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label });
             scene.set_practicing(true);
-            scene.mage_say("Repita, se for capaz!", 3.0);
+            scene.mage_say(crate::lang::Lines::MageAskRepeat.get(n)[0], 3.0);
             step(&mut scene, 1.0);
             scene.set_listening(true);
-            let mut cap = lesson_caption(&phrase, Status::Listening);
+            let mut cap = lesson_caption(&phrase, n, Status::Listening);
             cap.active = None;
-            cap.footer = format!("Terminou? {} · Esc: cancelar", settings.hotkey_challenge);
+            cap.footer = T::FooterDone.fill(n, &[&settings.hotkey_challenge]);
+            let next = T::FooterNext.fill(n, &[&settings.hotkey_challenge]);
             cap.listen = Some(Meter { level: 0.0, speaking: false, think_left: 6.0, think_total: 6.0 });
             scene.hud.caption = Some(cap);
             let say = phrase.say.clone();
@@ -553,7 +561,7 @@ fn snapshot(
                     if let Some(c) = s.hud.caption.as_mut() {
                         c.listen = None;
                         c.status = Status::Passed;
-                        c.footer = "Ctrl+Alt+M: próxima frase".into();
+                        c.footer = next.clone();
                         c.heard = Some(say.to_lowercase());
                         c.feedback = Some(
                             c.say
@@ -563,7 +571,7 @@ fn snapshot(
                         );
                     }
                     s.celebrate(1.0, crate::scene::pyro::Spell::Fireball);
-                    s.mage_say("Argh! Não!", 3.0);
+                    s.mage_say(crate::lang::Lines::MageGroan.get(n)[0], 3.0);
                 }),
             ));
         }

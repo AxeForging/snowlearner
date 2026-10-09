@@ -1,0 +1,405 @@
+# English for English speakers, overlaying decks/es.toml. Keyed by `say` (must match the deck exactly).
+language = "es"
+native = "en"
+language_name = "Spanish"
+title = "Spanish for real life"
+default_cue = "Repeat: {}"
+
+# ---------------------------------------------------------------- tips
+
+[[tip]]
+text = "False friend: 'embarazada' means PREGNANT, not embarrassed (avergonzado)."
+[[tip]]
+text = "False friend: 'constipado' means having a cold, not constipated (estreñido)."
+[[tip]]
+text = "False friend: 'éxito' means success. The way out is 'salida'."
+[[tip]]
+text = "False friend: 'librería' is a bookshop. A library is 'biblioteca'."
+[[tip]]
+text = "False friend: 'carpeta' is a folder. A carpet is 'alfombra'."
+[[tip]]
+text = "False friend: 'actual' means current. 'Actually' is 'en realidad'."
+[[tip]]
+text = "False friend: 'sensible' means sensitive. Sensible is 'sensato'."
+[[tip]]
+text = "False friend: 'asistir' means to attend. To assist is 'ayudar'."
+[[tip]]
+text = "Vowels: Spanish has five short, pure vowels. Never glide them: 'no' is not 'noh-oo'."
+[[tip]]
+text = "Pronunciation: 'rr' is a rolled r, and a single 'r' is a quick tap, like the 'tt' in 'butter'."
+[[tip]]
+text = "Pronunciation: 'j' (and 'g' before e/i) is a rough 'h' from the throat: 'jamón' = 'ha-MON'."
+[[tip]]
+text = "Pronunciation: 'h' is always silent: 'hola' = 'ola', 'hotel' = 'otel'."
+[[tip]]
+text = "Pronunciation: 'll' and 'y' sound like the 'y' in 'yes' in most places: 'calle' = 'ka-ye'."
+[[tip]]
+text = "Pronunciation: 'z' and 'c' before e/i sound like 'th' in Spain and like 's' in Latin America."
+[[tip]]
+text = "'Tú' is informal, 'usted' is formal. Use 'usted' with older people, officials and new clients."
+[[tip]]
+text = "In Spanish you 'have' hunger and cold: tengo hambre, tengo frío, tengo 30 años."
+[[tip]]
+text = "For weather, use 'hace': hace frío, hace calor, hace sol."
+[[tip]]
+text = "'Ser' is for what something is, 'estar' for where it is or how it is right now: estoy cansado."
+[[tip]]
+text = "Questions and exclamations open with an upside-down mark: ¿Qué tal? ¡Qué bien!"
+[[tip]]
+text = "Spanish often drops the subject: say 'Tengo una pregunta', not 'Yo tengo una pregunta'."
+
+# ---------------------------------------------------------------- work
+
+[[phrase]]
+say = "Perdón, estás en silencio"
+meaning = "Sorry, you're on mute"
+situation = "Your coworker is talking, but they're on mute."
+
+[[phrase]]
+say = "¿Puedes compartir tu pantalla?"
+meaning = "Can you share your screen?"
+situation = "You want to see what your coworker is showing."
+
+[[phrase]]
+say = "Voy a llegar unos minutos tarde"
+meaning = "I'm going to be a few minutes late"
+situation = "You're running late for the meeting."
+
+[[phrase]]
+say = "Déjame revisarlo y te aviso"
+meaning = "Let me check and I'll let you know"
+situation = "You need to confirm something before you answer."
+
+[[phrase]]
+say = "¿Me lo puedes explicar paso a paso?"
+meaning = "Can you explain it to me step by step?"
+situation = "You didn't understand the explanation."
+
+[[phrase]]
+say = "¿Cuál es la fecha de entrega?"
+meaning = "What's the deadline?"
+situation = "You're asked about the deadline for a task."
+
+[[phrase]]
+say = "¿Podemos pasarlo para mañana?"
+meaning = "Can we move it to tomorrow?"
+situation = "The meeting needs to be pushed back."
+
+[[phrase]]
+say = "Tiene sentido"
+meaning = "That makes sense"
+situation = "You agree with the idea."
+
+[[phrase]]
+say = "Creo que hay un error en producción"
+meaning = "I think there's a bug in production"
+situation = "You found a serious problem in production."
+
+[[phrase]]
+say = "Te mando un correo con el resumen"
+meaning = "I'll send you an email with the summary"
+situation = "You'll send a summary after the meeting."
+tip = "Email in Spanish is 'correo' (or just 'mail' in casual talk)."
+
+[[phrase]]
+say = "¿Me escuchas bien?"
+meaning = "Can you hear me okay?"
+situation = "You want to check that your audio is fine."
+
+[[phrase]]
+say = "Entiendo, pero no estoy seguro de que funcione"
+meaning = "I see, but I'm not sure it will work"
+situation = "You disagree, but politely."
+
+# ---------------------------------------------------------------- travel
+
+[[phrase]]
+say = "Tengo una reserva a mi nombre"
+meaning = "I have a reservation under my name"
+situation = "You've just arrived at the hotel."
+
+[[phrase]]
+say = "¿El desayuno está incluido?"
+meaning = "Is breakfast included?"
+situation = "You want to know if breakfast is included."
+
+[[phrase]]
+say = "Mi maleta no llegó"
+meaning = "My suitcase didn't arrive"
+situation = "Your suitcase never showed up."
+
+[[phrase]]
+say = "¿Cómo llego a la estación de metro?"
+meaning = "How do I get to the subway station?"
+situation = "You're lost, looking for the subway."
+
+[[phrase]]
+say = "¿Cuánto se tarda en llegar al centro?"
+meaning = "How long does it take to get downtown?"
+situation = "You want to know how long it takes to get to the city center."
+
+[[phrase]]
+say = "Estoy de vacaciones"
+meaning = "I'm on vacation"
+situation = "At immigration, they ask why you're traveling."
+
+[[phrase]]
+say = "¿Me puede pedir un taxi al aeropuerto?"
+meaning = "Could you call me a taxi to the airport?"
+situation = "You need a taxi to the airport."
+
+# ---------------------------------------------------------------- restaurant
+
+[[phrase]]
+say = "La cuenta, por favor"
+meaning = "The check, please"
+situation = "You've finished eating and want to pay."
+
+[[phrase]]
+say = "¿Me lo pone para llevar?"
+meaning = "Can I get it to go?"
+situation = "You want to take the food with you."
+
+[[phrase]]
+say = "Soy alérgico a los frutos secos"
+meaning = "I'm allergic to nuts"
+situation = "You're allergic to nuts."
+
+[[phrase]]
+say = "¿Qué me recomienda?"
+meaning = "What do you recommend?"
+situation = "You don't know what to order."
+
+[[phrase]]
+say = "Una mesa para dos, por favor"
+meaning = "A table for two, please"
+situation = "You arrive at a restaurant with a friend."
+
+[[phrase]]
+say = "¿Aceptan tarjeta?"
+meaning = "Do you take cards?"
+situation = "You want to know if they accept cards."
+
+# ---------------------------------------------------------------- shopping
+
+[[phrase]]
+say = "Solo estoy mirando, gracias"
+meaning = "I'm just looking, thanks"
+situation = "The salesperson offers help, but you're just browsing."
+
+[[phrase]]
+say = "¿Me lo puedo probar?"
+meaning = "Can I try it on?"
+situation = "You want to try on some clothes."
+
+[[phrase]]
+say = "¿Lo tiene en una talla más grande?"
+meaning = "Do you have it in a bigger size?"
+situation = "You need a different size."
+tip = "Clothing size is 'talla'; shoe size is 'número'."
+
+[[phrase]]
+say = "Quiero devolver esto"
+meaning = "I want to return this"
+situation = "You want to return a product."
+
+# ---------------------------------------------------------------- health
+
+[[phrase]]
+say = "Necesito ver a un médico"
+meaning = "I need to see a doctor"
+situation = "You're not feeling well."
+
+[[phrase]]
+say = "Me duele aquí"
+meaning = "It hurts here"
+situation = "Show where it hurts."
+
+[[phrase]]
+say = "¿Tiene algo para el dolor de cabeza?"
+meaning = "Do you have something for a headache?"
+situation = "At the pharmacy, with a headache."
+
+[[phrase]]
+say = "Me siento mal desde ayer"
+meaning = "I've been feeling sick since yesterday"
+situation = "Tell them since when you've been unwell."
+
+# ---------------------------------------------------------------- social
+
+[[phrase]]
+say = "Soy de Brasil"
+meaning = "I'm from Brazil"
+situation = "Someone asks where you're from."
+
+[[phrase]]
+say = "¿A qué te dedicas?"
+meaning = "What do you do for a living?"
+situation = "You want to know what the other person does for work."
+tip = "Much more natural than '¿Cuál es tu trabajo?', just like 'What do you do?' in English."
+
+[[phrase]]
+say = "¿Puedes hablar más despacio?"
+meaning = "Can you speak more slowly?"
+situation = "The person is talking way too fast."
+
+[[phrase]]
+say = "¿Cómo se dice esto en español?"
+meaning = "How do you say this in Spanish?"
+situation = "You don't know a word."
+
+[[phrase]]
+say = "No pasa nada"
+meaning = "No problem / don't worry about it"
+situation = "Someone apologizes for something small."
+
+[[phrase]]
+say = "Ya voy en camino"
+meaning = "I'm on my way"
+situation = "A friend asks if you're almost there."
+
+[[phrase]]
+say = "Me encantó verte"
+meaning = "It was great to see you"
+situation = "You're leaving the party."
+
+# ---------------------------------------------------------------- phone
+
+[[phrase]]
+say = "¿Puedo dejar un mensaje?"
+meaning = "Can I leave a message?"
+situation = "The person you're calling isn't there."
+
+[[phrase]]
+say = "Perdón, creo que me equivoqué de número"
+meaning = "Sorry, I think I have the wrong number"
+situation = "You called the wrong number."
+
+# ---------------------------------------------------------------- emergency
+
+[[phrase]]
+say = "Llame a una ambulancia, por favor"
+meaning = "Call an ambulance, please"
+situation = "There's been an accident."
+
+[[phrase]]
+say = "Perdí mi pasaporte"
+meaning = "I lost my passport"
+situation = "You've lost your passport."
+
+[[phrase]]
+say = "¿Me puede ayudar, por favor?"
+meaning = "Can you help me, please?"
+situation = "You need help on the street."
+
+# ---------------------------------------------------------------- work, first steps
+
+[[phrase]]
+say = "Estoy en una reunión."
+meaning = "I'm in a meeting."
+situation = "Your phone rings during a meeting and you answer quickly to say so."
+
+[[phrase]]
+say = "Estoy en una llamada."
+meaning = "I'm on a call."
+situation = "A coworker comes to your desk while you're on a call."
+
+[[phrase]]
+say = "Trabajo en informática."
+meaning = "I work in IT."
+situation = "At the company party, someone from another team asks what you do."
+
+[[phrase]]
+say = "La reunión es a las diez."
+meaning = "The meeting is at ten."
+situation = "A coworker asks what time today's meeting is."
+
+[[phrase]]
+say = "¿Dónde está la sala de reuniones?"
+meaning = "Where is the meeting room?"
+situation = "First day at the office, you're looking for where the meeting will be."
+
+[[phrase]]
+say = "¿Puede repetir, por favor?"
+meaning = "Could you repeat that, please?"
+situation = "On a call, the client spoke fast and you missed the order number."
+
+[[phrase]]
+say = "Este es mi jefe."
+meaning = "This is my boss."
+situation = "A client arrives and you introduce the person who leads your team."
+
+[[phrase]]
+say = "Tengo una pregunta."
+meaning = "I have a question."
+situation = "At the end of the presentation they ask if anyone has questions, and you do."
+
+[[phrase]]
+say = "Hoy estoy enfermo."
+meaning = "I'm sick today."
+situation = "You wake up with a fever and tell the team in chat you won't be working."
+
+[[phrase]]
+say = "Gracias por tu ayuda."
+meaning = "Thanks for your help."
+situation = "A coworker spent half an hour helping you set up your laptop."
+
+[[phrase]]
+say = "Nos vemos el lunes."
+meaning = "See you Monday."
+situation = "Friday afternoon, you leave the office and say bye to the team."
+
+[[phrase]]
+say = "¿Hablamos después del almuerzo?"
+meaning = "Can we talk after lunch?"
+situation = "A coworker wants to chat, but you're in the middle of a deliverable."
+
+[[phrase]]
+say = "Hoy te mando el correo."
+meaning = "I'll send you the email today."
+situation = "The client asks when they'll get the proposal."
+
+[[phrase]]
+say = "Hoy trabajo desde casa."
+meaning = "I'm working from home today."
+situation = "A coworker asks if you're coming to the office today."
+
+[[phrase]]
+say = "¿Me mandas el enlace?"
+meaning = "Can you send me the link?"
+situation = "The meeting already started and you can't find the invite in your calendar."
+
+[[phrase]]
+say = "No me funciona internet."
+meaning = "My internet isn't working."
+situation = "You join the call late and explain why."
+
+[[phrase]]
+say = "No te oigo."
+meaning = "I can't hear you."
+situation = "On the call, your coworker's audio suddenly cuts out."
+
+[[phrase]]
+say = "La reunión se movió al viernes."
+meaning = "The meeting was moved to Friday."
+situation = "You tell a coworker that Wednesday's meeting changed days."
+
+[[phrase]]
+say = "Llego cinco minutos tarde."
+meaning = "I'll be five minutes late."
+situation = "Traffic stopped and you post in chat that you'll be late."
+
+[[phrase]]
+say = "¿A qué hora te viene bien?"
+meaning = "What time works for you?"
+situation = "You want to set up a chat with a client and ask for the best time."
+
+[[phrase]]
+say = "Terminé el informe."
+meaning = "I finished the report."
+situation = "Your boss asks how the monthly report is going."
+
+[[phrase]]
+say = "Nos vemos mañana a las nueve."
+meaning = "See you tomorrow at nine."
+situation = "You agree with a coworker to review the project together."

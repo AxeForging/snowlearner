@@ -332,3 +332,41 @@ fn setup_rejects_an_unknown_language_before_changing_anything() {
     assert!(stderr(&o).contains("klingon"), "{}", stderr(&o));
     assert!(!home.dir.path().join("config/config.toml").exists());
 }
+
+#[test]
+fn an_english_speaker_gets_spanish_meanings_in_english() {
+    let o = Home::new().run(&["decks", "--native", "en", "--learning", "es"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let out = stdout(&o);
+    assert!(out.contains("[en → es]"), "{out}");
+    assert!(out.lines().any(|l| l.contains("Hola.") && l.contains("Hello.")), "{out}");
+    assert!(!out.contains("Olá."), "no Portuguese meanings: {out}");
+}
+
+#[test]
+fn an_english_speaker_can_learn_brazilian_portuguese() {
+    let home = Home::new();
+    let o = home.setup(&["--native", "en", "--lang", "pt-BR", "--no-model"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let config = std::fs::read_to_string(home.dir.path().join("config/config.toml")).unwrap();
+    assert!(config.contains("native = \"en\"") && config.contains("learning = \"pt-BR\""), "{config}");
+    let progress = stdout(&home.run(&["progress", "--print"]));
+    assert!(progress.contains("Progress in Portuguese"), "{progress}");
+    assert!(progress.contains("Current stage: words"), "{progress}");
+    let decks = stdout(&home.run(&["decks"]));
+    assert!(decks.lines().any(|l| l.contains("Oi.") && l.contains("Hi.")), "{decks}");
+}
+
+#[test]
+fn your_own_language_is_checked_before_anything_runs() {
+    let home = Home::new();
+    let o = home.run(&["decks", "--native", "fr"]);
+    assert!(!o.status.success());
+    assert!(stderr(&o).contains("--native"), "{}", stderr(&o));
+    let o = home.run(&["decks", "--native", "en"]);
+    assert!(!o.status.success(), "English is the default deck: an English speaker can't learn it");
+    assert!(stderr(&o).contains("own language"), "{}", stderr(&o));
+    let o = home.setup(&["--lang", "pt-BR", "--no-model"]);
+    assert!(!o.status.success(), "pt-BR speakers don't learn pt-BR");
+    assert!(!home.dir.path().join("config/config.toml").exists());
+}

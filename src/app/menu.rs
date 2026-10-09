@@ -6,8 +6,9 @@
 
 use crate::config::level::Commitment;
 use crate::config::settings::{Settings, WindowMode};
+use crate::lang::text::{language_name, topic};
+use crate::lang::{Native, T};
 use crate::learn::deck::{Answer, LEVELS, PRE_A1};
-use crate::learn::path::Stage;
 use crate::learn::picker::Practice;
 use crate::learn::progress::{Progress, Tally};
 use crate::render::canvas::{Canvas, Rgba, hex};
@@ -15,7 +16,7 @@ use crate::render::font;
 use crate::speech::voices::{TtsEngine, kokoro_default, kokoro_voice};
 
 pub const WIDTH: i32 = 232;
-pub const HEIGHT: i32 = 200;
+pub const HEIGHT: i32 = 212;
 const ROW_H: i32 = 12;
 const TABS_Y: i32 = 13;
 const TOP: i32 = 28;
@@ -23,6 +24,8 @@ const GOALS: &[u32] = &[3, 5, 10, 15, 20, 30, 50];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    /// The learner's own language: every text, meaning and the native voice.
+    Native,
     Language,
     Commitment,
     Topic,
@@ -54,9 +57,10 @@ pub enum Tab {
     Progress,
 }
 
-const TABS: [(Tab, &str); 3] = [(Tab::Game, "JOGO"), (Tab::Audio, "ÁUDIO"), (Tab::Progress, "PROGRESSO")];
+const TABS: [(Tab, T); 3] = [(Tab::Game, T::TabGame), (Tab::Audio, T::TabAudio), (Tab::Progress, T::TabProgress)];
 
 pub const GAME: &[Item] = &[
+    Item::Native,
     Item::Language,
     Item::Commitment,
     Item::Topic,
@@ -231,10 +235,10 @@ impl Menu {
                     s.tts_engine = TtsEngine::Http;
                     self.edit = None;
                     self.sel = self.items().iter().position(|i| *i == Item::TestVoices).unwrap_or(self.sel);
-                    self.test_result = "Endereço salvo. Enter: testar as vozes.".into();
+                    self.test_result = T::AddressSaved.get(s.native).into();
                     return Action::Changed(Item::Endpoint);
                 }
-                None => self.test_result = "Endereço inválido: use http://IP:porta/v1".into(),
+                None => self.test_result = T::AddressInvalid.get(s.native).into(),
             },
             Key::Esc => self.edit = None,
             _ => {}
@@ -266,7 +270,16 @@ impl Menu {
 
     fn change(&self, item: Item, s: &mut Settings, forward: bool) -> Action {
         match item {
-            Item::Language => s.learning = cycle(&self.languages, &s.learning, forward),
+            Item::Native => {
+                s.native = cycle(&Native::ALL, &s.native, forward);
+                // Nobody learns their own language: move on to one they can.
+                if s.native.is(&s.learning)
+                    && let Some(other) = self.learnable(s.native).first()
+                {
+                    s.learning = other.clone();
+                }
+            }
+            Item::Language => s.learning = cycle(&self.learnable(s.native), &s.learning, forward),
             Item::Commitment => {
                 let all = [Commitment::Chill, Commitment::Steady, Commitment::Committed, Commitment::Relentless];
                 s.commitment = cycle(&all, &s.commitment, forward);
@@ -321,7 +334,7 @@ impl Menu {
             Item::TestVoices => Action::TestVoices,
             Item::Endpoint => {
                 self.edit = Some(s.tts_url.clone());
-                self.test_result = "Digite o endereço · Enter salva · Esc cancela".into();
+                self.test_result = T::AddressTyping.get(s.native).into();
                 Action::None
             }
             other => self.change(other, s, true),
@@ -386,96 +399,107 @@ impl Menu {
             return None;
         }
         let (voice, lang) = match self.item() {
-            Item::VoiceNative => (&s.voice_native, &s.native),
-            Item::VoiceLearning => (&s.voice_learning, &s.learning),
+            Item::VoiceNative => (&s.voice_native, s.native.code()),
+            Item::VoiceLearning => (&s.voice_learning, s.learning.as_str()),
             _ => return None,
         };
         if voice.is_empty() {
-            return kokoro_voice(kokoro_default(lang)).map(|k| format!("Automática, usa {}", k.describe()));
+            return kokoro_voice(kokoro_default(lang))
+                .map(|k| T::VoiceAutoUses.fill(s.native, &[&k.describe(s.native)]));
         }
-        kokoro_voice(voice).map(|k| k.describe())
+        kokoro_voice(voice).map(|k| k.describe(s.native))
+    }
+
+    /// Languages this native can learn: never their own.
+    fn learnable(&self, native: Native) -> Vec<String> {
+        self.languages.iter().filter(|l| !native.is(l)).cloned().collect()
     }
 
     fn value(&self, item: Item, s: &Settings) -> String {
-        let auto = |v: &str, empty: &str| if v.is_empty() { empty.to_string() } else { shorten(v, 20) };
+        let n = s.native;
+        let auto = |v: &str, empty: T| if v.is_empty() { empty.get(n).to_string() } else { shorten(v, 20) };
         match item {
-            Item::Language => match s.learning.as_str() {
-                "en" => "inglês".into(),
-                "es" => "espanhol".into(),
-                other => other.into(),
-            },
-            Item::Commitment => s.commitment.label_pt().into(),
-            Item::Topic => auto(&s.topic, "todos"),
-            Item::Level if s.max_level == PRE_A1 => "pré-A1 · iniciante".into(),
-            Item::Level => format!("até {}", s.max_level),
+            Item::Native => language_name(n, n.code()),
+            Item::Language => language_name(n, &s.learning),
+            Item::Commitment => s.commitment.label(n).into(),
+            Item::Topic if s.topic.is_empty() => T::AllTopicsShort.get(n).into(),
+            Item::Topic => shorten(&topic(n, &s.topic), 20),
+            Item::Level if s.max_level == PRE_A1 => T::LevelBeginner.get(n).into(),
+            Item::Level => T::LevelUpTo.fill(n, &[&s.max_level]),
             Item::Practice => match s.practice {
-                Practice::Auto => "automático".into(),
-                Practice::Repeat => "repetir".into(),
-                Practice::Recall => "de memória".into(),
-            },
-            Item::Answer => s.answer.label_pt().into(),
-            Item::Goal => format!("{} frases", s.daily_goal),
+                Practice::Auto => T::PracticeAuto,
+                Practice::Repeat => T::PracticeRepeat,
+                Practice::Recall => T::PracticeRecall,
+            }
+            .get(n)
+            .into(),
+            Item::Answer => s.answer.label(n).into(),
+            Item::Goal => T::GoalPhrases.fill(n, &[&s.daily_goal]),
             Item::Mode => match s.mode {
-                WindowMode::Auto => "auto*".into(),
-                WindowMode::Window => "janela*".into(),
-                WindowMode::Overlay => "sobre a tela*".into(),
-            },
-            Item::Pause => if self.paused { "pausado" } else { "ativo" }.into(),
-            Item::Mic => auto(&s.mic, "padrão do sistema"),
-            Item::Speaker => auto(&s.speaker, "padrão do sistema"),
+                WindowMode::Auto => T::ModeAuto,
+                WindowMode::Window => T::ModeWindow,
+                WindowMode::Overlay => T::ModeOverlay,
+            }
+            .get(n)
+            .into(),
+            Item::Pause => if self.paused { T::Paused } else { T::Active }.get(n).into(),
+            Item::Mic => auto(&s.mic, T::SystemDefault),
+            Item::Speaker => auto(&s.speaker, T::SystemDefault),
             Item::Endpoint => {
                 let url = s.tts_url.split_once("://").map_or(s.tts_url.as_str(), |(_, r)| r);
                 shorten(url, 22)
             }
             Item::Engine => match s.tts_engine {
-                TtsEngine::System => "sistema".into(),
+                TtsEngine::System => T::EngineSystem.get(n).into(),
                 TtsEngine::Http => "HTTP (Kokoro…)".into(),
-                TtsEngine::Command => "comando".into(),
+                TtsEngine::Command => T::EngineCommand.get(n).into(),
             },
             Item::VoiceNative | Item::VoiceLearning => {
                 let v = if item == Item::VoiceNative { &s.voice_native } else { &s.voice_learning };
                 match kokoro_voice(v).filter(|_| s.tts_engine == TtsEngine::Http) {
-                    Some(k) => k.short(),
-                    None => auto(v, "automática"),
+                    Some(k) => k.short(n),
+                    None => auto(v, T::VoiceAuto),
                 }
             }
             _ => String::new(),
         }
     }
 
-    fn label(item: Item) -> &'static str {
+    fn label(item: Item, native: Native) -> &'static str {
         match item {
-            Item::Language => "Idioma",
-            Item::Commitment => "Compromisso",
-            Item::Topic => "Tema",
-            Item::Level => "Nível",
-            Item::Practice => "Prática",
-            Item::Answer => "Resposta",
-            Item::Goal => "Meta diária",
-            Item::Mode => "Tela",
-            Item::PracticeNow => "> Praticar agora",
-            Item::Summary => "> Resumo do dia",
-            Item::Pause => "Mago",
-            Item::Quit => "> Sair",
-            Item::Mic => "Microfone",
-            Item::TestMic => "> Testar microfone",
-            Item::Engine => "Motor de voz",
-            Item::Endpoint => "Endereço",
-            Item::VoiceNative => "Voz pt-BR",
-            Item::VoiceLearning => "Voz do idioma",
-            Item::TestVoices => "> Testar vozes",
-            Item::Speaker => "Alto-falante",
+            Item::Native => T::ItemNative,
+            Item::Language => T::ItemLanguage,
+            Item::Commitment => T::ItemCommitment,
+            Item::Topic => T::ItemTopic,
+            Item::Level => T::ItemLevel,
+            Item::Practice => T::ItemPractice,
+            Item::Answer => T::ItemAnswer,
+            Item::Goal => T::ItemGoal,
+            Item::Mode => T::ItemMode,
+            Item::PracticeNow => T::ItemPracticeNow,
+            Item::Summary => T::ItemSummary,
+            Item::Pause => T::ItemPause,
+            Item::Quit => T::ItemQuit,
+            Item::Mic => T::ItemMic,
+            Item::TestMic => T::ItemTestMic,
+            Item::Engine => T::ItemEngine,
+            Item::Endpoint => T::ItemEndpoint,
+            Item::VoiceNative => T::ItemVoiceNative,
+            Item::VoiceLearning => T::ItemVoiceLearning,
+            Item::TestVoices => T::ItemTestVoices,
+            Item::Speaker => T::ItemSpeaker,
         }
+        .get(native)
     }
 
-    fn draw_progress(&self, c: &mut Canvas, ink: Rgba, dim: Rgba, accent: Rgba) {
+    fn draw_progress(&self, c: &mut Canvas, n: Native, ink: Rgba, dim: Rgba, accent: Rgba) {
         let gold = hex(0xffd64a);
         let Some(p) = &self.progress else {
-            font::draw(c, 6, TOP - 2, "Carregando...", dim);
+            font::draw(c, 6, TOP - 2, T::Loading.get(n), dim);
             return;
         };
         let o = p.overall;
-        let head = format!("Sabe {} de {} ({}%) · aprendendo {}", o.known, o.total, o.percent(), o.learning);
+        let head = T::ProgressHead.fill(n, &[&o.known, &o.total, &o.percent(), &o.learning]);
         font::draw(c, 6, TOP - 2, &fit(&head, WIDTH - 12), ink);
         for (k, (stage, t)) in p.stages.iter().enumerate() {
             let y = TOP + (k as i32 + 1) * ROW_H;
@@ -483,17 +507,17 @@ impl Menu {
             if here {
                 font::draw(c, 3, y - 2, ">", gold);
             }
-            font::draw(c, 10, y - 2, Stage::label_pt(*stage), if here { gold } else { ink });
+            font::draw(c, 10, y - 2, stage.label(n), if here { gold } else { ink });
             meter(c, 76, y + 3, 100, *t);
             let n = format!("{}/{}", t.known, t.total);
             font::draw(c, WIDTH - font::text_width(&n) - 6, y - 2, &n, accent);
         }
         let mut y = TOP + 4 * ROW_H + 2;
         if p.learning.is_empty() && p.next_up.is_empty() {
-            font::draw(c, 6, y - 2, "Você já sabe tudo desta seleção!", gold);
+            font::draw(c, 6, y - 2, T::KnowsAll.get(n), gold);
             return;
         }
-        font::draw(c, 6, y - 2, "Aprendendo agora:", dim);
+        font::draw(c, 6, y - 2, T::LearningNow.get(n), dim);
         for it in p.learning.iter().take(4) {
             y += ROW_H - 1;
             font::draw(c, 10, y - 2, &fit(&format!("{} = {}", it.say, it.meaning), WIDTH - 16), ink);
@@ -501,11 +525,12 @@ impl Menu {
         if !p.next_up.is_empty() {
             y += ROW_H + 1;
             let next: Vec<&str> = p.next_up.iter().map(|i| i.say.as_str()).collect();
-            font::draw(c, 6, y - 2, &fit(&format!("Depois: {}", next.join(" · ")), WIDTH - 12), dim);
+            font::draw(c, 6, y - 2, &fit(&T::NextUp.fill(n, &[&next.join(" · ")]), WIDTH - 12), dim);
         }
     }
 
     pub fn draw(&self, c: &mut Canvas, s: &Settings, time: f32) {
+        let n = s.native;
         let (bg, ink, dim, accent, sel_bg): (Rgba, Rgba, Rgba, Rgba, Rgba) =
             (hex(0x0e0c2c), hex(0xe6ecff), hex(0x8f96d8), hex(0x9be8ff), hex(0x2a5a9a));
         c.clear(bg);
@@ -513,7 +538,7 @@ impl Menu {
             c.set(x, 0, hex(0x4ea2d8));
             c.set(x, c.h - 1, hex(0x4ea2d8));
         }
-        font::draw(c, 6, 1, "SNOWLEARNER · PAINEL", hex(0xffd64a));
+        font::draw(c, 6, 1, T::PanelTitle.get(n), hex(0xffd64a));
         let tab_w = WIDTH / TABS.len() as i32;
         for (i, (tab, name)) in TABS.iter().enumerate() {
             let x0 = i as i32 * tab_w;
@@ -522,12 +547,13 @@ impl Menu {
             if on {
                 c.rect(x0 + 2, TABS_Y + ROW_H - 1, tab_w - 4, 1, hex(0xb46cff));
             }
+            let name = name.get(n);
             let tw = font::text_width(name);
             font::draw(c, x0 + (tab_w - tw) / 2, TABS_Y - 2, name, if on { hex(0xffffff) } else { dim });
         }
         if self.tab == Tab::Progress {
-            self.draw_progress(c, ink, dim, accent);
-            font::draw(c, 6, c.h - 13, "Tab: aba  Esc: fechar", dim);
+            self.draw_progress(c, n, ink, dim, accent);
+            font::draw(c, 6, c.h - 13, T::ProgressFooter.get(n), dim);
             return;
         }
         for (i, item) in self.items().iter().enumerate() {
@@ -539,7 +565,7 @@ impl Menu {
                     font::draw(c, 3, y - 2, ">", hex(0xffffff));
                 }
             }
-            font::draw(c, 10, y - 2, Self::label(*item), if selected { hex(0xffffff) } else { ink });
+            font::draw(c, 10, y - 2, Self::label(*item, n), if selected { hex(0xffffff) } else { ink });
             if *item == Item::Endpoint
                 && let Some(buf) = &self.edit
             {
@@ -580,7 +606,7 @@ impl Menu {
                     };
                     c.rect(10 + i * 5, y + 2, 4, 6, col);
                 }
-                font::draw(c, 116, y - 1, "fale algo…", accent);
+                font::draw(c, 116, y - 1, T::SaySomething.get(n), accent);
             }
             let note = self.meter.is_none().then(|| self.voice_note(s)).flatten();
             let text = note.as_deref().unwrap_or(&self.test_result);
@@ -590,7 +616,7 @@ impl Menu {
         } else {
             font::draw(c, 6, foot_y - 2, &self.status, accent);
         }
-        font::draw(c, 6, c.h - 13, "*ao reiniciar  ↑↓ ←→ Enter  Tab: aba  Esc", dim);
+        font::draw(c, 6, c.h - 13, T::PanelFooter.get(n), dim);
     }
 }
 
@@ -616,6 +642,7 @@ mod tests {
     fn arrows_change_the_selected_setting_and_report_it() {
         let mut m = menu();
         let mut s = Settings::default();
+        select(&mut m, Item::Language);
         assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::Language));
         assert_eq!(s.learning, "es");
         assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::Language));
@@ -623,6 +650,72 @@ mod tests {
         m.key(Key::Down, &mut s);
         m.key(Key::Right, &mut s);
         assert_eq!(s.commitment, Commitment::Committed);
+    }
+
+    fn full_menu() -> Menu {
+        Menu::new(vec!["en".into(), "es".into(), "pt-BR".into()], vec!["trabalho".into()])
+    }
+
+    #[test]
+    fn my_language_cycles_and_never_leaves_you_learning_it() {
+        let mut m = full_menu();
+        let mut s = Settings::default();
+        assert_eq!(m.item(), Item::Native, "your own language comes first");
+        assert_eq!(m.value(Item::Native, &s), "português");
+        assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::Native));
+        assert_eq!(s.native, Native::En);
+        assert_eq!(s.learning, "es", "English speakers don't learn English: moved on to the next language");
+        s.validate().unwrap();
+        assert_eq!(m.value(Item::Native, &s), "English");
+        assert_eq!(m.value(Item::Language, &s), "Spanish");
+        assert_eq!(m.key(Key::Left, &mut s), Action::Changed(Item::Native));
+        assert_eq!((s.native, s.learning.as_str()), (Native::PtBr, "es"), "still learnable: kept");
+    }
+
+    #[test]
+    fn the_language_row_skips_your_own_language() {
+        let mut m = full_menu();
+        for native in Native::ALL {
+            let learning = if native == Native::En { "es" } else { "en" };
+            let mut s = Settings { native, learning: learning.into(), ..Default::default() };
+            select(&mut m, Item::Language);
+            let mut seen = Vec::new();
+            for _ in 0..4 {
+                m.key(Key::Right, &mut s);
+                seen.push(s.learning.clone());
+                s.validate().unwrap();
+            }
+            assert!(seen.iter().all(|l| !native.is(l)), "{native:?} offered {seen:?}");
+            assert_eq!(seen.iter().collect::<std::collections::HashSet<_>>().len(), 2, "{native:?}: {seen:?}");
+        }
+    }
+
+    #[test]
+    fn the_whole_panel_reads_in_english_for_an_english_speaker() {
+        let mut m = full_menu();
+        let s =
+            Settings { native: Native::En, learning: "pt-BR".into(), topic: "trabalho".into(), ..Default::default() };
+        assert_eq!(Menu::label(Item::Native, s.native), "My language");
+        assert_eq!(m.value(Item::Language, &s), "Portuguese");
+        assert_eq!(m.value(Item::Topic, &s), "work", "topic keys read in English");
+        assert_eq!(m.value(Item::Answer, &s), "all");
+        assert_eq!(m.value(Item::Goal, &s), "10 phrases");
+        select(&mut m, Item::Endpoint);
+        let mut s2 = s.clone();
+        m.key(Key::Enter, &mut s2);
+        assert_eq!(m.test_result, T::AddressTyping.get(Native::En));
+        for tab in [Tab::Game, Tab::Audio, Tab::Progress] {
+            m.tab = tab;
+            let mut c = Canvas::new(WIDTH, HEIGHT);
+            m.draw(&mut c, &s, 0.0);
+            assert_eq!(c.opaque_in(0, 0, WIDTH, HEIGHT), (WIDTH * HEIGHT) as usize);
+        }
+    }
+
+    #[test]
+    fn every_game_row_and_the_status_fit_above_the_footer() {
+        let status_y = TOP + GAME.len() as i32 * ROW_H + 2;
+        assert!(status_y + font::LINE_H <= HEIGHT - 13, "status row {status_y} runs into the footer");
     }
 
     #[test]
@@ -634,7 +727,7 @@ mod tests {
         m.key(Key::Tab, &mut s);
         assert_eq!(m.tab, Tab::Progress);
         m.key(Key::Tab, &mut s);
-        assert_eq!(m.item(), Item::Language);
+        assert_eq!(m.item(), Item::Native);
         assert_eq!(m.click(WIDTH / 2, TABS_Y + 3, &mut s), Action::None);
         assert_eq!(m.tab, Tab::Audio, "clicking the tab header switches");
         m.click(WIDTH - 10, TABS_Y + 3, &mut s);
@@ -911,8 +1004,11 @@ mod tests {
         m.test_result = "Ouvi: \"I'm hungry\" ✓".into();
         let s = Settings::default();
         for item in GAME.iter().chain(AUDIO) {
-            assert!(font::supports(Menu::label(*item)), "{item:?}");
-            assert!(font::supports(&m.value(*item, &s)), "{item:?}");
+            for native in Native::ALL {
+                let s = Settings { native, learning: "es".into(), ..s.clone() };
+                assert!(font::supports(Menu::label(*item, native)), "{item:?}");
+                assert!(font::supports(&m.value(*item, &s)), "{item:?}");
+            }
         }
         for tab in [Tab::Game, Tab::Audio, Tab::Progress] {
             m.tab = tab;

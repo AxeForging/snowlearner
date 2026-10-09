@@ -110,7 +110,7 @@ impl VoiceSettings {
         VoiceSettings {
             native_voice: s.voice_native.clone(),
             learning_voice: s.voice_learning.clone(),
-            native_lang: s.native.clone(),
+            native_lang: s.native.code().to_string(),
             model: paths.model_file(&s.model),
             engine: s.tts_engine,
             url: s.tts_url.clone(),

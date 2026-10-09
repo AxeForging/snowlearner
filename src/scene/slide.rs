@@ -14,9 +14,6 @@ pub const MIN_DEPTH: f32 = 0.1;
 /// Sliding speed, px/s, on top of their walk.
 pub const SPEED: f32 = 26.0;
 
-pub const WARRIOR_LINE: &str = "Uhuu! Escorregando!";
-pub const MAGE_LINE: &str = "Aaah! Escorrega!";
-
 /// Is the pile steep going down from `x` in direction `dir` (±1)?
 /// `ice_line` is the ice line's height in pixels.
 pub fn steep(snow: &Snow, x: f32, dir: f32, ice_line: f32) -> bool {
@@ -59,8 +56,9 @@ mod tests {
     }
 
     #[test]
-    fn slide_lines_are_short_pt_br_the_font_can_draw() {
-        for line in [WARRIOR_LINE, MAGE_LINE] {
+    fn slide_lines_are_short_and_the_font_can_draw_them() {
+        use crate::lang::{Native, T};
+        for line in Native::ALL.into_iter().flat_map(|n| [T::WarriorSlide.get(n), T::MageSlide.get(n)]) {
             assert!(font::supports(line), "{line}");
             assert!(line.len() <= 24, "{line}");
         }

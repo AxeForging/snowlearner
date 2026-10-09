@@ -24,6 +24,7 @@ pub mod warrior;
 use std::cell::RefCell;
 
 use crate::config::level::Pace;
+use crate::lang::{Lines, Native, T};
 use crate::render::canvas::{CLEAR, Canvas, hex};
 use backdrop::{Backdrop, GROUND_BAND};
 use blanket::Blanket;
@@ -133,7 +134,9 @@ pub struct Scene {
     warp_frames: RefCell<(Canvas, Canvas)>,
     pub fires: Vec<Fire>,
     pub hud: Hud,
-    /// Warrior tips (pt-BR), provided by the app (hotkey hints, phrase tips).
+    /// The learner's own language: what the actors say.
+    native: Native,
+    /// Warrior tips (in the learner's language), provided by the app (hotkey hints, phrase tips).
     pub tips: Vec<String>,
     cubes: Vec<Cube>,
     particles: Vec<Particle>,
@@ -220,6 +223,7 @@ impl Scene {
             warp_frames: RefCell::new((Canvas::new(1, 1), Canvas::new(1, 1))),
             fires: Vec::new(),
             hud: Hud::default(),
+            native: Native::default(),
             tips: Vec::new(),
             cubes: Vec::new(),
             particles: Vec::new(),
@@ -344,7 +348,7 @@ impl Scene {
     /// in on the other side, the warrior cheers you on.
     pub fn set_practicing(&mut self, on: bool) {
         if on && !self.practicing {
-            self.warrior.say("Vai lá, você consegue!", 3.0);
+            self.warrior.say(T::WarriorCheer.get(self.native), 3.0);
             let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
             let w = self.w as f32;
             let x = if mx < w / 2.0 { w * 0.72 } else { w * 0.18 };
@@ -369,7 +373,7 @@ impl Scene {
         self.mage.watch(on || self.practicing);
         self.vortex = if on { vortex::Phase::Closing(0.0) } else { vortex::Phase::Opening(0.0) };
         if on {
-            self.mage.say("Nããão! O buraco negro!", 1.5);
+            self.mage.say(T::MageBlackHole.get(self.native), 1.5);
         }
     }
 
@@ -413,14 +417,14 @@ impl Scene {
         if inside(self.mage.x, mfeet, mage::WIDTH, mage::HEIGHT) {
             self.grabbed = Some((hand::Who::Mage, x - self.mage.x, mfeet - y));
             self.lift_mage = Some(hand::Lift::new(mfeet));
-            let line = *self.rng.pick(hand::MAGE_HELD);
+            let line = *self.rng.pick(Lines::MageHeld.get(self.native));
             self.mage.say(line, 2.2);
             return Some(hand::Who::Mage);
         }
         if inside(self.warrior.x, wfeet, warrior::WIDTH, warrior::HEIGHT) && self.warrior.act != warrior::Act::Frozen {
             self.grabbed = Some((hand::Who::Warrior, x - self.warrior.x, wfeet - y));
             self.lift_warrior = Some(hand::Lift::new(wfeet));
-            let line = *self.rng.pick(hand::WARRIOR_HELD);
+            let line = *self.rng.pick(Lines::WarriorHeld.get(self.native));
             self.warrior.say(line, 2.2);
             return Some(hand::Who::Warrior);
         }
@@ -468,10 +472,10 @@ impl Scene {
         }
         for (who, held, x) in says {
             let line = match (who, held) {
-                (hand::Who::Mage, true) => *self.rng.pick(hand::MAGE_HELD),
-                (hand::Who::Mage, false) => *self.rng.pick(hand::MAGE_LANDED),
-                (hand::Who::Warrior, true) => *self.rng.pick(hand::WARRIOR_HELD),
-                (hand::Who::Warrior, false) => *self.rng.pick(hand::WARRIOR_LANDED),
+                (hand::Who::Mage, true) => *self.rng.pick(Lines::MageHeld.get(self.native)),
+                (hand::Who::Mage, false) => *self.rng.pick(Lines::MageLanded.get(self.native)),
+                (hand::Who::Warrior, true) => *self.rng.pick(Lines::WarriorHeld.get(self.native)),
+                (hand::Who::Warrior, false) => *self.rng.pick(Lines::WarriorLanded.get(self.native)),
             };
             match who {
                 hand::Who::Mage => self.mage.say(line, 2.2),
@@ -554,7 +558,7 @@ impl Scene {
             self.mage.stagger();
         }
         self.warrior.warm_burst();
-        self.warrior.say("Que calor bom! Valeu!", 3.0);
+        self.warrior.say(T::WarriorWarm.get(self.native), 3.0);
     }
 
     /// Combo reward: the sun shines for a while, melting a big chunk (never
@@ -564,12 +568,22 @@ impl Scene {
         self.stun_t = SUN_SECONDS * 2.5;
         self.snow.melt(SUN_MELT);
         self.frost.melt(SUN_MELT * 1.5);
-        self.mage.say("Aaah! O sol!!", 3.0);
-        self.warrior.say("Que solzão!", 3.0);
+        self.mage.say(T::MageSun.get(self.native), 3.0);
+        self.warrior.say(T::WarriorSun.get(self.native), 3.0);
     }
 
     pub fn sun_active(&self) -> bool {
         self.sun_t > 0.0
+    }
+
+    /// The learner's own language: the actors' lines and the HUD follow it.
+    pub fn set_native(&mut self, native: Native) {
+        self.native = native;
+        self.hud.native = native;
+    }
+
+    pub fn native(&self) -> Native {
+        self.native
     }
 
     pub fn mage_say(&mut self, text: impl Into<String>, seconds: f32) {
@@ -592,7 +606,7 @@ impl Scene {
         let mx = self.mage.x;
         if hit(mx, self.feet_y(mx + 8.0), mage::WIDTH, mage::HEIGHT + 6) {
             self.pokes += 1;
-            let lines = ["Ei! Não me cutuque!", "Mais neve pra você!", "Fale uma frase, se tiver coragem!"];
+            let lines = Lines::MagePoked.get(self.native);
             let line = lines[self.pokes as usize % lines.len()];
             self.mage.say(line, 2.0);
             self.mage.start_throw(self.pokes % 3 == 0);
@@ -602,7 +616,7 @@ impl Scene {
         if hit(wx, self.feet_y(wx + 6.0), warrior::WIDTH, warrior::HEIGHT + 6) {
             if self.warrior.act != warrior::Act::Frozen {
                 let tip = if self.tips.is_empty() {
-                    "Oi! Aperte o atalho e fale comigo!".to_string()
+                    T::WarriorHello.get(self.native).to_string()
                 } else {
                     self.rng.pick(&self.tips).clone()
                 };
@@ -734,7 +748,7 @@ impl Scene {
             self.mage.x = x;
             // Only when nobody talks: two bubbles at once overlap.
             if !self.mage.sliding && self.mage.bubble.is_none() && self.warrior.bubble.is_none() {
-                self.mage.say(slide::MAGE_LINE, 2.0);
+                self.mage.say(T::MageSlide.get(self.native), 2.0);
             }
         }
         self.mage.sliding = slid.is_some();
@@ -897,7 +911,7 @@ impl Scene {
         if self.warrior.warmth < 0.45 && !near_fire && self.fires.len() < 2 && self.warrior.act == warrior::Act::Wander
         {
             self.warrior.start_building();
-            self.warrior.say("Brrr... vou acender uma fogueira!", 3.0);
+            self.warrior.say(T::WarriorFire.get(self.native), 3.0);
         }
         let roll = self.rng.f32();
         let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
@@ -926,7 +940,7 @@ impl Scene {
         if let Some(x) = slid {
             self.warrior.x = x;
             if !self.warrior.sliding && self.warrior.bubble.is_none() && self.mage.bubble.is_none() {
-                self.warrior.say(slide::WARRIOR_LINE, 2.0);
+                self.warrior.say(T::WarriorSlide.get(self.native), 2.0);
             }
         }
         self.warrior.sliding = slid.is_some();
@@ -943,7 +957,7 @@ impl Scene {
         if bites > 0 && !frozen {
             self.warrior.warmth = (self.warrior.warmth - 0.06 * bites as f32).max(0.01);
             if self.rng.chance(0.4) {
-                self.warrior.say("Ai! Que frio!", 1.2);
+                self.warrior.say(T::WarriorCold.get(self.native), 1.2);
             }
         }
         self.next_tip -= dt;
@@ -1143,7 +1157,7 @@ impl Scene {
         let wx = self.warrior.x + warrior::WIDTH as f32 / 2.0;
         if (wx - x).abs() < 7.0 && self.warrior.act != warrior::Act::Frozen {
             self.warrior.warmth = (self.warrior.warmth - 0.1).max(0.01);
-            self.warrior.say("Ai! Gelado!", 1.5);
+            self.warrior.say(T::WarriorIce.get(self.native), 1.5);
         }
     }
 
@@ -1170,7 +1184,7 @@ impl Scene {
             mob.x = if from_left { -10.0 - late } else { w + 2.0 + late };
             self.mobs.push(mob);
         }
-        self.warrior.say("Monstros de gelo! Deixa comigo!", 2.5);
+        self.warrior.say(T::WarriorMobs.get(self.native), 2.5);
     }
 
     fn strike(&mut self, x: f32) {
@@ -1188,7 +1202,7 @@ impl Scene {
                 self.particles.push(Particle::new(Kind::Ember, mc, y, vx, vy, 0.8, col));
             }
             if self.rng.chance(0.5) {
-                self.warrior.say("Toma!", 1.0);
+                self.warrior.say(T::WarriorHit.get(self.native), 1.0);
             }
         } else {
             let y = self.feet_y(mc) - 5.0;
@@ -1207,10 +1221,11 @@ impl Scene {
         self.skill = skill;
         self.mage.start_summon();
         let line = match skill {
-            Skill::Friend => "Venham, amigos do gelo!",
-            Skill::IcicleRain => "Chuva de gelo!",
-            Skill::Owl => owl::LINE,
-        };
+            Skill::Friend => T::MageFriends,
+            Skill::IcicleRain => T::MageIcicles,
+            Skill::Owl => T::MageOwl,
+        }
+        .get(self.native);
         self.mage.say(line, 2.0);
     }
 
@@ -1239,7 +1254,7 @@ impl Scene {
         let wx = self.warrior.x + warrior::WIDTH as f32 / 2.0;
         if (wx - x).abs() < 6.0 && self.warrior.act != warrior::Act::Frozen {
             self.warrior.warmth = (self.warrior.warmth - 0.05).max(0.01);
-            self.warrior.say("Ai! Pingente!", 1.2);
+            self.warrior.say(T::WarriorIcicle.get(self.native), 1.2);
         }
     }
 
@@ -1746,7 +1761,7 @@ mod tests {
         run(&mut s, 1.0);
         let (mx, feet) = (s.mage.x + 8.0, s.feet_y(s.mage.x + 8.0));
         assert_eq!(s.grab_at(mx, feet - 10.0), Some(hand::Who::Mage));
-        assert!(hand::MAGE_HELD.contains(&s.mage_bubble().unwrap()), "pissy");
+        assert!(crate::lang::Lines::MageHeld.get(Native::PtBr).contains(&s.mage_bubble().unwrap()), "pissy");
         s.hand_move(150.0, 40.0);
         let before = s.snow.fill();
         run(&mut s, 3.0);
@@ -1764,7 +1779,11 @@ mod tests {
         let mut s = Scene::new(240, 135, 14, Commitment::Steady.pace(), true);
         let (wx, feet) = (s.warrior.x + 6.0, s.feet_y(s.warrior.x + 6.0));
         assert_eq!(s.grab_at(wx, feet - 8.0), Some(hand::Who::Warrior));
-        assert!(hand::WARRIOR_HELD.contains(&s.warrior.bubble.as_ref().unwrap().text.as_str()));
+        assert!(
+            crate::lang::Lines::WarriorHeld
+                .get(Native::PtBr)
+                .contains(&s.warrior.bubble.as_ref().unwrap().text.as_str())
+        );
         s.set_hand(false);
         assert!(s.holding().is_none(), "turning the hand off drops him");
         run(&mut s, 2.0);
@@ -2206,9 +2225,9 @@ mod tests {
         for _ in 0..30 {
             s.step(1.0 / 30.0);
             let (sliding, bubble, line) = if mage {
-                (s.mage.sliding, &mut s.mage.bubble, slide::MAGE_LINE)
+                (s.mage.sliding, &mut s.mage.bubble, T::MageSlide.get(Native::PtBr))
             } else {
-                (s.warrior.sliding, &mut s.warrior.bubble, slide::WARRIOR_LINE)
+                (s.warrior.sliding, &mut s.warrior.bubble, T::WarriorSlide.get(Native::PtBr))
             };
             slid |= sliding;
             if bubble.as_ref().is_some_and(|b| b.text == line) {
@@ -2289,7 +2308,7 @@ mod tests {
     fn the_ice_owl_never_comes_below_the_snow_threshold() {
         let mut s = snowed(20, owl::PILE_LEVEL * 0.5);
         s.cast_skill(Skill::Owl);
-        assert_ne!(s.mage_bubble(), Some(owl::LINE), "no summon on demand either");
+        assert_ne!(s.mage_bubble(), Some(T::MageOwl.get(Native::PtBr)), "no summon on demand either");
         for _ in 0..(20 * 30) {
             let level = s.pile_level();
             let had = s.owl.is_some();
@@ -2307,7 +2326,7 @@ mod tests {
         let (mut seen, mut said, mut max_balls) = (false, false, 0);
         for _ in 0..(5 * 30) {
             s.step(1.0 / 30.0);
-            said |= s.mage_bubble() == Some(owl::LINE);
+            said |= s.mage_bubble() == Some(T::MageOwl.get(Native::PtBr));
             seen |= s.owl.is_some();
             max_balls = max_balls.max(s.snowballs.len());
             if s.owl.is_some() {
@@ -2370,7 +2389,7 @@ mod tests {
         s.step(1.0 / 30.0);
         assert!(s.frozen_over, "the pile is at the ice line");
         s.cast_skill(Skill::Owl);
-        assert_ne!(s.mage_bubble(), Some(owl::LINE), "no owl over a frozen pile");
+        assert_ne!(s.mage_bubble(), Some(T::MageOwl.get(Native::PtBr)), "no owl over a frozen pile");
         s.owl = Some(owl::Owl::new(true, 240.0, 20.0));
         let before = s.snow.fill();
         let mut dropped = false;

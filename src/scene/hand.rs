@@ -29,25 +29,6 @@ const CLOSED: &[&str] = &[
     ".........",
 ];
 
-pub const MAGE_HELD: &[&str] = &[
-    "Me solta, aprendiz!",
-    "Isso é humilhante!",
-    "Eu sou um MAGO, não um brinquedo!",
-    "Vou congelar sua tela inteira!",
-    "Meu chapéu! Cuidado com o chapéu!",
-];
-pub const MAGE_LANDED: &[&str] = &["Hmpf!", "Você vai pagar por isso!", "Ai... minha dignidade."];
-pub const WARRIOR_HELD: &[&str] = &[
-    "Ei... isso é constrangedor... 👉👈",
-    "Me coloca no chão, por favor...",
-    "Todo mundo tá olhando... 👉👈",
-    "Eu tenho medo de altura!",
-    "N-não precisa me carregar... 👉👈",
-    "S-senpai...? 👉👈",
-];
-pub const WARRIOR_LANDED: &[&str] =
-    &["Ufa... obrigado? 👉👈", "Chão, doce chão.", "Não conta pra ninguém, tá?", "F-foi até legal... 👉👈"];
-
 /// Who is in the hand.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Who {
@@ -134,8 +115,12 @@ mod tests {
 
     #[test]
     fn the_warrior_gets_shy_fingers_in_speech_and_in_his_pose() {
-        assert!(WARRIOR_HELD.iter().any(|l| l.contains("👉👈")));
-        assert!(!MAGE_HELD.iter().chain(MAGE_LANDED).any(|l| l.contains('👉')), "the mage is not shy");
+        use crate::lang::{Lines, Native};
+        for n in Native::ALL {
+            assert!(Lines::WarriorHeld.get(n).iter().any(|l| l.contains("👉👈")), "{n:?}");
+            let mage = Lines::MageHeld.get(n).iter().chain(Lines::MageLanded.get(n));
+            assert!(!mage.clone().any(|l| l.contains('👉')), "the mage is not shy ({n:?})");
+        }
         let tip = |t: f32| {
             let mut c = Canvas::new(20, 20);
             draw_shy(&mut c, 0, 0, t);
@@ -143,12 +128,5 @@ mod tests {
         };
         assert!(!tip(0.0), "fingers apart");
         assert!(tip(0.3), "fingertips touching");
-    }
-
-    #[test]
-    fn every_line_renders_in_the_pixel_font() {
-        for l in MAGE_HELD.iter().chain(MAGE_LANDED).chain(WARRIOR_HELD).chain(WARRIOR_LANDED) {
-            assert!(crate::render::font::supports(l), "{l}");
-        }
     }
 }

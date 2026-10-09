@@ -1,0 +1,817 @@
+# Hand-curated beginner deck for English speakers: first Brazilian Portuguese words, then short chunks. Real situations only.
+language = "pt-BR"
+native = "en"
+language_name = "Portuguese"
+title = "First steps"
+
+# ---------------------------------------------------------------- first words
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You walk into a bakery and the clerk looks at you."
+say = "Oi."
+polished = "Oi, tudo bem?"
+meaning = "Hi."
+accept = ["Olá"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You leave the bakery and wave to the cashier."
+say = "Tchau."
+polished = "Tchau, bom dia pra você!"
+meaning = "Bye."
+accept = ["Até logo", "Até mais"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "The hotel receptionist asks if you have a reservation, and you do."
+say = "Sim."
+polished = "Sim, tenho uma reserva."
+meaning = "Yes."
+accept = ["Tenho"]
+tip = "The final 'm' is nasal: say 'see' through your nose, without closing on an 'm'."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "The shop assistant asks if you want anything else, and you don't."
+say = "Não."
+polished = "Não, obrigado, só isso."
+meaning = "No."
+accept = ["Não, obrigado", "Não, obrigada"]
+tip = "The 'ão' is nasal, like 'now' said through your nose: 'nown'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "A stranger holds the door open for you."
+say = "Obrigado."
+polished = "Muito obrigado pela gentileza."
+meaning = "Thank you."
+accept = ["Obrigada", "Muito obrigado", "Muito obrigada"]
+tip = "Men say 'obrigado', women say 'obrigada'. It agrees with the speaker, not the listener."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You bump into someone by accident in the supermarket line."
+say = "Desculpa."
+polished = "Ai, desculpa, não te vi."
+meaning = "Sorry."
+accept = ["Desculpe", "Foi mal"]
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "At the restaurant, the waiter asks what you'd like to drink."
+say = "Água."
+polished = "Uma água sem gás, por favor."
+meaning = "Water."
+accept = ["Água, por favor", "Uma água"]
+tip = "Waiters will ask 'com gás ou sem gás?': sparkling or still."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "After lunch, the waiter asks if you want anything else, and you want a coffee."
+say = "Café."
+polished = "Um cafezinho, por favor."
+meaning = "Coffee."
+accept = ["Cafezinho", "Um café"]
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "At a bar by the beach, the waiter asks what you'll have."
+say = "Cerveja."
+polished = "Uma cerveja bem gelada, por favor."
+meaning = "Beer."
+accept = ["Uma cerveja", "Cerveja, por favor"]
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "You're desperate at the airport and can only manage the essential question."
+say = "Banheiro?"
+polished = "Com licença, tem um banheiro aqui?"
+meaning = "Bathroom?"
+accept = ["Toalete?"]
+
+[[phrase]]
+topic = "emergência"
+level = "PRE-A1"
+situation = "You fell on the street and can't get up on your own."
+say = "Socorro!"
+polished = "Socorro, alguém me ajuda!"
+meaning = "Help!"
+accept = ["Me ajuda!"]
+tip = "The double 'rr' sounds like an English 'h': 'so-KOH-hoo'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "Your taxi is driving past your stop and you need it to stop."
+say = "Para!"
+polished = "Para aqui, por favor!"
+meaning = "Stop!"
+accept = ["Pare!", "Para aqui!"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "Your friend is getting on the bus and you're still grabbing your backpack."
+say = "Espera!"
+polished = "Espera, eu vou com você!"
+meaning = "Wait!"
+accept = ["Peraí!", "Espera aí!"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "Your ride-share driver asks which way to turn at the corner."
+say = "Esquerda."
+polished = "Vira à esquerda, por favor."
+meaning = "Left."
+accept = ["À esquerda"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "The driver asks again, and this time it's the other way."
+say = "Direita."
+polished = "Agora vira à direita, por favor."
+meaning = "Right."
+accept = ["À direita"]
+tip = "'Direita' sounds like 'jee-RAY-tah': in much of Brazil 'di' sounds like 'jee'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "The mechanic asks when you need your car back, and it's today."
+say = "Hoje."
+polished = "Eu preciso dele hoje."
+meaning = "Today."
+tip = "The 'h' is silent and the final 'e' sounds like 'ee': 'OH-zhee'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "The repair shop asks when you'll come back to pick it up."
+say = "Amanhã."
+polished = "Eu volto amanhã de manhã."
+meaning = "Tomorrow."
+tip = "The 'ã' is nasal: 'ah-mah-NYAH' through your nose."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "The doctor asks when the pain started."
+say = "Ontem."
+polished = "Começou ontem à noite."
+meaning = "Yesterday."
+tip = "The final 'em' is nasal, close to 'ON-teng' without the 'g'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "At the subway ticket booth, they ask how many tickets you want, and it's just for you."
+say = "Um."
+polished = "Só um, por favor."
+meaning = "One."
+accept = ["Uma", "Só um"]
+tip = "'Um' is nasal, almost 'oo' through the nose. Feminine things take 'uma'."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "You're with a friend and the waiter asks how many coffees."
+say = "Dois."
+polished = "Dois, por favor."
+meaning = "Two."
+accept = ["Duas"]
+tip = "'Dois' for masculine words like 'cafés', 'duas' for feminine ones like 'cervejas'."
+
+[[phrase]]
+topic = "comida e compras"
+level = "PRE-A1"
+situation = "At the street market, the seller asks how many mangoes you want."
+say = "Três."
+polished = "Três, por favor."
+meaning = "Three."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "In the hotel elevator, someone asks which floor you're going to."
+say = "Quatro."
+polished = "Quatro, por favor."
+meaning = "Four."
+tip = "Don't mix up 'quatro' (four) with 'quarto' (room, or fourth)."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "At the newsstand, you ask the price and need to check it's five reais."
+say = "Cinco?"
+polished = "São cinco reais?"
+meaning = "Five?"
+accept = ["Cinco reais?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "The clerk spoke too fast and you didn't catch the street name."
+say = "Como?"
+polished = "Como? Pode repetir, por favor?"
+meaning = "Sorry? / Pardon?"
+accept = ["Oi?", "Hein?"]
+tip = "Brazilians often say 'Oi?' or 'Como?' when they didn't hear you."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "Someone says the bus stop is close, but you can't see it."
+say = "Onde?"
+polished = "Desculpa, onde fica?"
+meaning = "Where?"
+accept = ["Onde fica?", "Cadê?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "The waiter arrives with the dish and doesn't know where to put it."
+say = "Aqui."
+polished = "Aqui mesmo, obrigado."
+meaning = "Here."
+accept = ["Aqui, por favor"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "A friend calls to chat, but you're at the supermarket checkout."
+say = "Depois."
+polished = "Te ligo depois, tá?"
+meaning = "Later."
+accept = ["Mais tarde"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "The cashier asks if it's card or cash, and you have cash."
+say = "Dinheiro."
+polished = "Vou pagar em dinheiro."
+meaning = "Cash."
+accept = ["Em dinheiro"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "The cashier asks how you'll pay, and it's by card."
+say = "Cartão."
+polished = "No cartão, por favor."
+meaning = "Card."
+accept = ["No cartão", "Crédito", "Débito"]
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "At the café, they ask if you want your tea hot or iced."
+say = "Quente."
+polished = "Quente, por favor."
+meaning = "Hot."
+tip = "In much of Brazil a final 'te' sounds like 'chee': 'KEN-chee'."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "You're very sleepy and want the biggest coffee they have."
+say = "Grande."
+polished = "O grande, por favor."
+meaning = "Large."
+accept = ["O grande"]
+tip = "A final 'de' sounds like 'jee': 'GRAN-jee'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "You get into a taxi and the driver asks where you're going."
+say = "Aeroporto."
+polished = "Para o aeroporto, por favor."
+meaning = "Airport."
+accept = ["Pro aeroporto", "O aeroporto"]
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "At check-in, they ask if you prefer window or aisle, and you want the aisle."
+say = "Corredor."
+polished = "No corredor, por favor."
+meaning = "Aisle."
+accept = ["No corredor", "Corredor, por favor"]
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "The concert is over and you can't find the way out of the stadium."
+say = "Saída?"
+polished = "Com licença, onde fica a saída?"
+meaning = "Exit?"
+accept = ["Onde é a saída?"]
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "On the plane, the flight attendant asks if you want chicken or pasta."
+say = "Frango."
+polished = "Frango, por favor."
+meaning = "Chicken."
+accept = ["Frango, por favor"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "Everyone raises their glass for a toast at dinner."
+say = "Saúde!"
+polished = "Saúde, pessoal!"
+meaning = "Cheers!"
+accept = ["Tim-tim!"]
+tip = "'Saúde' means 'health'. People also say it when you sneeze."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "A friend asks if they can sit next to you."
+say = "Claro."
+polished = "Claro, pode sentar."
+meaning = "Sure."
+accept = ["Pode", "Claro que pode"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "You're invited to a party, but you don't know yet if you'll go."
+say = "Talvez."
+polished = "Talvez, ainda não sei."
+meaning = "Maybe."
+tip = "'Talvez' sounds like 'tow-VEZ': an 'l' at the end of a syllable sounds like 'w'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "A friend passes you the salt at lunch."
+say = "Valeu!"
+polished = "Valeu, muito obrigado!"
+meaning = "Thanks!"
+tip = "The casual 'thanks' among friends. Sounds like 'vah-LEH-oo'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "The doctor asks how bad the pain is, from zero to ten: nine."
+say = "Nove."
+polished = "Nove. Está doendo muito."
+meaning = "Nine."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "The dentist asks which day you can come back: Monday."
+say = "Segunda."
+polished = "Segunda-feira, se der."
+meaning = "Monday."
+accept = ["Segunda-feira"]
+tip = "Weekdays are numbered: 'segunda' (Monday) is the second day, counting from Sunday."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "The hotel reception asks what time you want breakfast: at seven."
+say = "Sete."
+polished = "Às sete, por favor."
+meaning = "Seven."
+accept = ["Às sete"]
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "At the bakery, the clerk asks how many bread rolls you want: ten."
+say = "Dez."
+polished = "Dez pãezinhos, por favor."
+meaning = "Ten."
+accept = ["Dez, por favor"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "PRE-A1"
+situation = "The taxi driver confirms the address you showed him, and it's right."
+say = "Beleza."
+polished = "Beleza, é isso mesmo. Obrigado."
+meaning = "Okay."
+accept = ["Tá bom", "Ok", "Certo"]
+tip = "'Beleza' literally means 'beauty', but Brazilians use it all the time for 'okay, cool'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "A neighbor asks how you get to work every day: by bus."
+say = "Ônibus."
+polished = "Eu vou de ônibus."
+meaning = "Bus."
+accept = ["De ônibus"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "You need something for a headache and stop a person on the street."
+say = "Farmácia?"
+polished = "Com licença, tem farmácia aqui perto?"
+meaning = "Pharmacy?"
+accept = ["Uma farmácia?"]
+
+[[phrase]]
+topic = "emergência"
+level = "PRE-A1"
+situation = "Your friend fainted at the bus stop and people are gathering around."
+say = "Médico!"
+polished = "Ele precisa de um médico, rápido!"
+meaning = "A doctor!"
+accept = ["Um médico!", "Chama um médico!"]
+
+# ---------------------------------------------------------------- first words: at work
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "A coworker sees you leaving with your laptop and asks where you're going: a meeting."
+say = "Reunião."
+polished = "Estou indo para uma reunião."
+meaning = "Meeting."
+accept = ["Uma reunião"]
+tip = "The 'r' at the start sounds like an 'h': 'heh-oo-nee-OWN'."
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "The client asks how they can send you the contract: by email."
+say = "E-mail."
+polished = "Pode mandar por e-mail?"
+meaning = "Email."
+accept = ["Por e-mail", "Email"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "At noon, a coworker asks where everyone went: to lunch."
+say = "Almoço."
+polished = "Todo mundo foi almoçar."
+meaning = "Lunch."
+accept = ["No almoço"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Your boss asks if you've already finished the report, and you have."
+say = "Já."
+polished = "Já, está tudo pronto."
+meaning = "Already, yes."
+accept = ["Já terminei", "Terminei"]
+tip = "Brazilians rarely answer with a bare 'sim': they repeat the verb or say 'já'. Sounds like 'zhah'."
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Before the video call starts, they ask if you're ready."
+say = "Pronto."
+polished = "Sim, estou pronto."
+meaning = "Ready."
+accept = ["Pronta", "Estou pronto", "Estou pronta"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Your manager asks how you'll share the sales numbers: in a spreadsheet."
+say = "Planilha."
+polished = "Te mando numa planilha."
+meaning = "Spreadsheet."
+accept = ["Numa planilha"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "Your coworker suggests meeting at three, and that works for you."
+say = "Combinado."
+polished = "Combinado, às três então."
+meaning = "Deal. / Agreed."
+accept = ["Fechado", "Beleza"]
+
+# ---------------------------------------------------------------- short chunks
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "The waiter offers you more coffee and you accept politely."
+say = "Por favor."
+polished = "Sim, por favor. Obrigado."
+meaning = "Please."
+accept = ["Sim, por favor"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Someone thanks you for helping with their bags."
+say = "De nada."
+polished = "De nada, imagina!"
+meaning = "You're welcome."
+accept = ["Imagina", "Por nada"]
+tip = "'De nada' sounds like 'jee NAH-dah'. 'Imagina!' is a warm 'don't mention it'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You arrive at work at eight and greet the doorman."
+say = "Bom dia."
+polished = "Bom dia, tudo bem?"
+meaning = "Good morning."
+tip = "'Bom' is nasal and 'dia' sounds like 'JEE-ah'. Use it until about noon."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You walk into a shop at three in the afternoon and greet the clerk."
+say = "Boa tarde."
+polished = "Boa tarde, tudo bem?"
+meaning = "Good afternoon."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You arrive at a restaurant at eight at night and greet the host."
+say = "Boa noite."
+polished = "Boa noite, uma mesa para dois."
+meaning = "Good evening."
+accept = ["Boa noite, mesa para dois"]
+tip = "'Boa noite' works both arriving and leaving at night: 'BOH-ah NOY-chee'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You meet your neighbor in the elevator in the morning."
+say = "Tudo bem?"
+polished = "Oi, tudo bem com você?"
+meaning = "How are you?"
+accept = ["Tudo bom?", "Tudo certo?"]
+tip = "The usual reply is 'Tudo, e você?'. It's a greeting, not a real question."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "You need to get past someone standing in the supermarket aisle."
+say = "Com licença."
+polished = "Com licença, posso passar?"
+meaning = "Excuse me."
+accept = ["Licença"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "The clerk explains the directions way too fast for you."
+say = "Devagar, por favor."
+polished = "Pode falar mais devagar, por favor?"
+meaning = "Slowly, please."
+accept = ["Mais devagar, por favor", "Mais devagar"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "The clerk asks for your passport and you have to dig through your backpack."
+say = "Um momento."
+polished = "Só um momento, por favor."
+meaning = "One moment."
+accept = ["Só um minutinho", "Um minuto", "Só um momento"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "A taxi driver says something long and fast, and you understood nothing."
+say = "Não entendi."
+polished = "Desculpa, não entendi. Pode repetir?"
+meaning = "I didn't understand."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "At a party, someone hears your accent and asks where you're from."
+say = "Sou americano."
+polished = "Eu sou americano, de Chicago."
+meaning = "I'm American."
+accept = ["Sou americana", "Sou inglês", "Sou inglesa", "Sou canadense"]
+tip = "Women say 'americana'. Nationalities are lowercase in Portuguese."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "The shop owner starts chatting quickly and you want to warn them."
+say = "Falo pouco português."
+polished = "Desculpa, eu falo pouco português."
+meaning = "I speak little Portuguese."
+accept = ["Falo só um pouco", "Falo um pouco"]
+tip = "'Português' sounds like 'por-too-GAYS' (or 'GAYSH' in Rio)."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "You've finished dinner and want to pay."
+say = "A conta."
+polished = "A conta, por favor."
+meaning = "The check."
+accept = ["Conta, por favor", "Traz a conta, por favor"]
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "At the street market, you point at a jar of honey with no price."
+say = "Quanto custa?"
+polished = "Quanto custa esse aqui, por favor?"
+meaning = "How much?"
+accept = ["Quanto é?", "Quanto é isso?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "You just sat down at the restaurant and need to wash your hands."
+say = "Cadê o banheiro?"
+polished = "Com licença, onde fica o banheiro?"
+meaning = "Where's the bathroom?"
+accept = ["Onde fica o banheiro?", "Onde é o banheiro?"]
+tip = "'Cadê' is the casual 'where is'. With staff, 'onde fica' sounds more polite."
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "You leave class and say goodbye to classmates you'll see the next day."
+say = "Até amanhã!"
+polished = "Até amanhã, gente!"
+meaning = "See you tomorrow!"
+accept = ["Até amanhã"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "The waiter offers juice, soda and wine, but you only want water."
+say = "Só água."
+polished = "Só uma água, por favor."
+meaning = "Just water."
+accept = ["Só água, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "You order a soda, but you have a sore throat."
+say = "Sem gelo."
+polished = "Sem gelo pra mim, por favor."
+meaning = "No ice."
+accept = ["Sem gelo, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "At the snack bar, they ask if it's for here or to go."
+say = "Pra viagem."
+polished = "Pra viagem, por favor."
+meaning = "To go."
+accept = ["Para viagem", "Pra levar"]
+tip = "Literally 'for the trip'. 'Para' shrinks to 'pra' in speech."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "You're in the middle of an unknown city and stop someone on the street."
+say = "Estou perdido."
+polished = "Com licença, estou perdido. Pode ajudar?"
+meaning = "I'm lost."
+accept = ["Estou perdida", "Tô perdido", "Tô perdida"]
+tip = "Women say 'perdida'. In speech 'estou' often becomes 'tô'."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "The cashier is about to bag your two small things, but you don't need a bag."
+say = "Sem sacola."
+polished = "Não precisa de sacola, obrigado."
+meaning = "No bag."
+accept = ["Não precisa", "Sem sacola, obrigado", "Sem sacola, obrigada"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Someone just snatched a woman's purse right in front of you."
+say = "Chama a polícia!"
+polished = "Alguém chama a polícia, rápido!"
+meaning = "Call the police!"
+
+[[phrase]]
+topic = "comida e compras"
+level = "A1"
+situation = "Your friend asks if you want to stop somewhere to eat."
+say = "Estou com fome."
+polished = "Sim, estou morrendo de fome."
+meaning = "I'm hungry."
+accept = ["Tô com fome"]
+tip = "Portuguese says you are 'with hunger': 'estar com fome'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "After a whole day of walking, your friend wants to go out again."
+say = "Estou cansado."
+polished = "Hoje não, estou muito cansado."
+meaning = "I'm tired."
+accept = ["Estou cansada", "Tô cansado", "Tô cansada"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "The doctor asks where it hurts, and you point at your stomach."
+say = "Dói aqui."
+polished = "Doutor, está doendo aqui."
+meaning = "It hurts here."
+accept = ["Está doendo aqui", "Aqui dói"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "It's a coworker's birthday and they just walked into the office."
+say = "Feliz aniversário!"
+polished = "Parabéns! Feliz aniversário, tudo de bom!"
+meaning = "Happy birthday!"
+accept = ["Parabéns!"]
+tip = "Brazilians mostly just say 'Parabéns!' (congratulations)."
+
+# ---------------------------------------------------------------- short chunks: at work
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "You join the nine o'clock call with the whole team."
+say = "Bom dia, pessoal."
+polished = "Bom dia, pessoal. Tudo bem?"
+meaning = "Good morning, everyone."
+accept = ["Bom dia, gente", "Bom dia a todos"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "First day at the office, and your laptop has no internet."
+say = "Senha do wi-fi?"
+polished = "Qual é a senha do wi-fi?"
+meaning = "Wi-Fi password?"
+accept = ["A senha do wi-fi?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "On the call, your manager asks if you can hear them."
+say = "Estou aqui."
+polished = "Sim, estou aqui. Estou te ouvindo."
+meaning = "I'm here."
+accept = ["Tô aqui"]
+
+[[phrase]]
+topic = "trabalho"
+level = "PRE-A1"
+situation = "Your team lead asks if you can finish the task today."
+say = "Consigo, sim."
+polished = "Consigo, sim, termino hoje."
+meaning = "Yes, I can."
+accept = ["Consigo", "Sim, consigo"]
+tip = "Answer with the verb itself: 'consigo' means 'I can (manage)'."
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "The connection dropped for a moment during the call and you missed the question."
+say = "Pode repetir?"
+polished = "Desculpa, pode repetir, por favor?"
+meaning = "Can you repeat that?"
+accept = ["Pode repetir, por favor?"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "A client asks about an invoice you don't have in front of you."
+say = "Vou verificar."
+polished = "Vou verificar e te aviso."
+meaning = "I'll check."
+accept = ["Vou ver", "Vou conferir"]
+
+[[phrase]]
+topic = "trabalho"
+level = "A1"
+situation = "You join the meeting ten minutes late and everyone looks at you."
+say = "Estou atrasado."
+polished = "Desculpa, estou um pouco atrasado."
+meaning = "I'm late."
+accept = ["Estou atrasada", "Tô atrasado", "Tô atrasada"]

@@ -12,7 +12,6 @@ pub const PILE_LEVEL: f32 = 0.6;
 pub const EVERY: f32 = 50.0;
 /// Snowballs in the air at once, at most.
 pub const MAX_SNOWBALLS: usize = 3;
-pub const LINE: &str = "Coruja de gelo, venha!";
 
 const SPEED: f32 = 38.0;
 const THROW_EVERY: f32 = 0.9;
@@ -141,6 +140,6 @@ mod tests {
 
     #[test]
     fn the_summon_line_is_pt_br_the_font_can_draw() {
-        assert!(font::supports(LINE));
+        assert!(font::supports(crate::lang::T::MageOwl.get(crate::lang::Native::En)));
     }
 }

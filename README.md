@@ -23,6 +23,9 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
 - ⚔️ A **warrior** tries to survive: builds *fogueiras*, sword-fights frost slimes and bats,
   gives you tips (false friends, pronunciation traps), slides down steep snow piles — and freezes
   solid if you ignore him.
+- 🌎 Speak **Portuguese or English**: pick *My language* in the panel and everything — texts,
+  meanings, situations, the voice reading them — follows. Portuguese speakers learn English or
+  Spanish; English speakers learn Spanish or Brazilian Portuguese.
 - 🪜 You start from **zero**: first single words (*hello, water, thanks*), then short
   expressions (*good morning, the check please*), and only then full phrases — pre-A1 (no
   English at all) to B2. A few new items at a time; learning one opens the next, and it tells you so.
@@ -59,6 +62,7 @@ speech model adds ~150 MB during a lesson and is freed 2 minutes after).
 ```sh
 curl -fsSL https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.sh | sh
 curl -fsSL https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.sh | sh -s -- --lang es   # Spanish
+curl -fsSL https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.sh | sh -s -- --native en --lang pt-BR   # English speaker, Portuguese
 ```
 
 **Windows (PowerShell):**
@@ -71,7 +75,7 @@ The installer downloads the latest [release](https://github.com/AxeForging/snowl
 checks its SHA-256, puts `snowlearner` in `~/.local/bin` (Windows: your user programs + PATH +
 Start menu) and runs `snowlearner setup`, which is safe to run again any time:
 
-- writes the config (`--lang en|es`), downloads the ~142 MB offline speech model (`--no-model` skips it),
+- writes the config (`--lang en|es|pt-BR`, `--native pt-BR|en`), downloads the ~142 MB offline speech model (`--no-model` skips it),
 - registers the shortcuts on GNOME, adds Snowlearner to the app menu (Linux).
 
 Then start it from the app menu or with `snowlearner`. `snowlearner doctor` tells you what works
@@ -153,8 +157,8 @@ release workflow on every `v*` tag (CI itself runs on Linux: `gh workflow run ci
 Everything is editable live in the panel; it's saved to `config.toml` (`snowlearner config path`):
 
 ```toml
-learning = "en"          # "en" or "es" built in, or your own decks/<name>.toml
-native = "pt-BR"
+learning = "en"          # "en", "es" or "pt-BR" built in, or your own decks/<name>.toml
+native = "pt-BR"         # your own language: "pt-BR" or "en" (never the one you learn)
 commitment = "steady"    # chill | steady | committed | relentless
 practice = "auto"        # auto | repeat | recall
 topic = ""               # "" = all, or e.g. "trabalho", "viagem"

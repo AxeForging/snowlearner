@@ -2,6 +2,7 @@
 //! rejected so typos surface instead of being silently ignored.
 
 use super::level::Commitment;
+use crate::lang::Native;
 use crate::learn::deck::{Answer, LEVELS};
 use crate::learn::picker::Practice;
 use crate::speech::voices::TtsEngine;
@@ -27,8 +28,9 @@ pub enum WindowMode {
 pub struct Settings {
     /// Language you are learning (deck name): "en", "es", or a custom deck.
     pub learning: String,
-    /// Your language, used for cues and the voice that reads them.
-    pub native: String,
+    /// Your own language: every text, cue and meaning, and the voice that
+    /// reads them. "pt-BR" or "en"; never the language you are learning.
+    pub native: Native,
     pub commitment: Commitment,
     pub mode: WindowMode,
     /// Screen pixels per art pixel.
@@ -83,7 +85,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             learning: "en".into(),
-            native: "pt-BR".into(),
+            native: Native::PtBr,
             commitment: Commitment::Steady,
             mode: WindowMode::Auto,
             pixel_scale: 4,
@@ -119,7 +121,8 @@ impl Default for Settings {
 pub const MODELS: &[&str] = &["tiny", "base", "small"];
 
 const HEADER: &str = "# snowlearner config (also editable live: `snowlearner menu`)\n\
-    # learning: deck to practice (\"en\", \"es\" or a custom decks/<name>.toml)\n\
+    # learning: deck to practice (\"en\", \"es\", \"pt-BR\" or a custom decks/<name>.toml)\n\
+    # native: your own language, \"pt-BR\" or \"en\" (never the one you learn)\n\
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
     # answer: all | short | complete | polished\n\
@@ -141,6 +144,9 @@ impl Settings {
     pub fn validate(&self) -> Result<()> {
         if self.learning.trim().is_empty() {
             bail!("`learning` must name a deck, e.g. \"en\" or \"es\"");
+        }
+        if self.native.is(&self.learning) {
+            bail!("`learning` {:?} is your own language (`native`): pick another one to learn", self.learning);
         }
         if !(self.match_threshold > 0.0 && self.match_threshold <= 1.0) {
             bail!("`match_threshold` must be in (0, 1], got {}", self.match_threshold);
@@ -256,6 +262,7 @@ mod tests {
             ("tts_engine = 'http'\ntts_url = 'localhost'", "tts_url"),
             ("tts_engine = 'command'", "tts_command"),
             ("answer = 'longest'", "answer"),
+            ("native = 'fr'", "native"),
         ] {
             std::fs::write(&p, src).unwrap();
             let err = format!("{:#}", Settings::load(&p).unwrap_err());
@@ -309,6 +316,45 @@ mod tests {
             std::fs::write(&p, src).unwrap();
             assert_eq!(Settings::load(&p).unwrap().answer, want, "{src}");
         }
+    }
+
+    #[test]
+    fn your_own_language_round_trips_and_defaults_to_portuguese() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        assert_eq!(Settings::default().native, Native::PtBr);
+        let s = Settings { native: Native::En, learning: "pt-BR".into(), ..Default::default() };
+        s.save(&p).unwrap();
+        assert!(std::fs::read_to_string(&p).unwrap().contains("native = \"en\""));
+        assert_eq!(Settings::load(&p).unwrap(), s);
+        std::fs::write(&p, "native = 'en'\nlearning = 'es'\n").unwrap();
+        assert_eq!(Settings::load(&p).unwrap().native, Native::En);
+        std::fs::write(&p, "native = 'pt'\n").unwrap();
+        assert_eq!(Settings::load(&p).unwrap().native, Native::PtBr, "pt is read as pt-BR");
+    }
+
+    #[test]
+    fn an_unknown_native_language_is_rejected_with_the_key_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        for bad in ["native = 'fr'", "native = ''", "native = 'english'"] {
+            std::fs::write(&p, bad).unwrap();
+            let err = format!("{:#}", Settings::load(&p).unwrap_err());
+            assert!(err.contains("native"), "{bad} -> {err}");
+        }
+    }
+
+    #[test]
+    fn you_never_learn_your_own_language() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        for src in ["native = 'en'", "native = 'en'\nlearning = 'EN'", "learning = 'pt-BR'", "learning = 'pt'"] {
+            std::fs::write(&p, src).unwrap();
+            let err = format!("{:#}", Settings::load(&p).unwrap_err());
+            assert!(err.contains("own language"), "{src} -> {err}");
+        }
+        let s = Settings { native: Native::En, learning: "en".into(), ..Default::default() };
+        assert!(s.save(&dir.path().join("x.toml")).is_err(), "never persisted either");
     }
 
     #[test]
