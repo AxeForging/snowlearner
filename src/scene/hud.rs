@@ -334,9 +334,11 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     }
     let ph = rows * lh + 8;
     let px = (c.w - pw) / 2;
-    // Upper part of the screen: clear of the characters and their speech bubbles.
-    // Below the progress corner, above the characters and their bubbles.
-    let py = (c.h / 8).max(2 * font::LINE_H + 8).min(ground_y - ph - 50).max(4);
+    // Below the progress corner, above the characters and their bubbles. A
+    // tall caption (several answer tiers) gives up room over the bubbles, never
+    // the corner, unless it would not fit on screen at all.
+    let below_corner = 2 * font::LINE_H + 8;
+    let py = (c.h / 8).max(below_corner).min(ground_y - ph - 50).max(below_corner.min(c.h - ph)).max(4);
     panel(c, px, py, pw, ph);
 
     // Header: icon + status.
@@ -584,6 +586,27 @@ mod tests {
         let alts = vec!["curta: Hungry!".to_string(), "polida: I'm actually quite hungry, could we eat?".to_string()];
         assert!(alts.iter().all(|a| font::supports(a)));
         assert!(alt_px(alts) > 0);
+    }
+
+    #[test]
+    fn a_tall_caption_never_covers_the_progress_corner() {
+        let alts = vec!["curta: You're muted".to_string(), "polida: Sorry, I think you might be on mute".to_string()];
+        let cap =
+            Caption { alts, heard: Some("sorry you're on mute".into()), footer: "Ctrl+Alt+M".into(), ..caption(None) };
+        let draw = |caption: Option<Caption>| {
+            let stats = Some(Stats { done: 4, goal: 10, combo: 2, label: "EN · trabalho".into() });
+            let hud = Hud { caption, stats, ..Default::default() };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 170, 0.0);
+            c
+        };
+        let (alone, both) = (draw(None), draw(Some(cap)));
+        let corner = 2 * font::LINE_H + 6;
+        for y in 0..corner {
+            for x in 0..320 {
+                assert_eq!(alone.get(x, y), both.get(x, y), "caption drawn over the progress corner at {x},{y}");
+            }
+        }
     }
 
     #[test]
