@@ -485,7 +485,7 @@ impl Lesson {
                 let (phrase, tries) = (*phrase, *tries);
                 let p = self.phrase(phrase).clone();
                 let slack = if self.beginner() { matcher::BEGINNER_SLACK } else { 0 };
-                let (m, _) = matcher::score_any(&p.answers(), &text, slack);
+                let (m, _) = matcher::score_any(&p.answers(), &text, slack, &self.deck.language);
                 let passed = m.passed(self.opts.threshold);
                 if !passed && matcher::is_hallucination(&text) {
                     // Whisper invented "Thank you for watching" out of noise: that's silence.
@@ -496,7 +496,7 @@ impl Lesson {
                 let words = if passed {
                     p.say.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
                 } else {
-                    matcher::score_lenient(&p.say, &text, slack).words
+                    matcher::score_lenient(&p.say, &text, slack, &self.deck.language).words
                 };
                 if let Some(c) = &mut scene.hud.caption {
                     c.feedback = Some(words);
@@ -1339,6 +1339,19 @@ mod tests {
         let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
         assert!(parts.iter().any(|p| p.lang == "es"));
         assert!(f.scene.hud.stats.as_ref().unwrap().label.starts_with("ES"));
+    }
+
+    #[test]
+    fn after_switching_to_spanish_the_listener_and_the_check_use_spanish() {
+        let mut f = fixture_deck(
+            "language='es'\nnative='pt-BR'\ntitle='t'\nlanguage_name='espanhol'\n\
+             [[phrase]]\nsay='Pollo.'\nmeaning='Frango.'\nsituation='O garçom pergunta o prato.'\ntopic='restaurante'\nlevel='A1'",
+        );
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        let jobs = f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        assert!(matches!(jobs.as_slice(), [Job::Listen { lang, .. }] if lang == "es"), "{jobs:?}");
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "¡Poyo!".into() }));
+        assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Passed, "said right, spelled by sound");
     }
 
     #[test]

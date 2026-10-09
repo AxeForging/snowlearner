@@ -79,6 +79,57 @@ pub fn normalize(text: &str) -> Vec<String> {
     out
 }
 
+/// Letters whisper writes for a whole short word that sounds like their name.
+const SPANISH_LETTER_NAMES: &[(&str, &str)] = &[("c", "si")];
+
+/// How a (normalized) Spanish word sounds: b/v, ll/y, c(e,i)/z/s, silent h,
+/// j/g(e,i), qu/k/c(a,o,u) each fold to one letter.
+fn spanish_sound(w: &str) -> String {
+    if let Some((_, name)) = SPANISH_LETTER_NAMES.iter().find(|(l, _)| *l == w) {
+        return name.to_string();
+    }
+    let s: Vec<char> = w.chars().collect();
+    let at = |i: usize| s.get(i).copied().unwrap_or(' ');
+    let soft = |c: char| c == 'e' || c == 'i';
+    let mut out = String::with_capacity(w.len());
+    let mut i = 0;
+    while i < s.len() {
+        let (sound, used) = match (s[i], at(i + 1)) {
+            ('l', 'l') => ("y", 2),
+            ('c', 'h') => ("ch", 2),
+            ('c', n) if soft(n) => ("s", 1),
+            ('c', _) | ('k', _) => ("k", 1),
+            ('q', 'u') => ("k", 2),
+            ('g', 'u') if soft(at(i + 2)) => ("g", 2),
+            ('g', n) if soft(n) => ("j", 1),
+            ('z', _) => ("s", 1),
+            ('v', _) => ("b", 1),
+            ('h', _) => ("", 1),
+            _ => {
+                out.push(s[i]);
+                i += 1;
+                continue;
+            }
+        };
+        out.push_str(sound);
+        i += used;
+    }
+    out
+}
+
+/// True when `lang` (e.g. "es", "es-MX") gets words compared by sound.
+fn folds_sound(lang: &str) -> bool {
+    lang.split('-').next() == Some("es")
+}
+
+/// Words as they sound in `lang`; languages without a fold keep the spelling.
+fn sounds(words: Vec<String>, lang: &str) -> Vec<String> {
+    if !folds_sound(lang) {
+        return words;
+    }
+    words.iter().map(|w| spanish_sound(w)).collect()
+}
+
 /// Extra letter slips per word for a pre-A1 learner, who is still finding the
 /// sounds and says single words with no context to lean on.
 pub const BEGINNER_SLACK: usize = 1;
@@ -103,11 +154,11 @@ fn similar(a: &str, b: &str, slack: usize) -> bool {
 }
 
 /// Best score over several accepted answers; returns it with the answer's index.
-pub fn score_any(answers: &[&str], heard: &str, slack: usize) -> (MatchResult, usize) {
+pub fn score_any(answers: &[&str], heard: &str, slack: usize, lang: &str) -> (MatchResult, usize) {
     answers
         .iter()
         .enumerate()
-        .map(|(i, a)| (score_lenient(a, heard, slack), i))
+        .map(|(i, a)| (score_lenient(a, heard, slack, lang), i))
         .max_by(|a, b| a.0.score.total_cmp(&b.0.score))
         .unwrap_or_else(|| (score("", heard), 0))
 }
@@ -203,19 +254,21 @@ fn align_to_target(target: &[String], heard: Vec<String>) -> Vec<String> {
 }
 
 pub fn score(target: &str, heard: &str) -> MatchResult {
-    score_lenient(target, heard, 0)
+    score_lenient(target, heard, 0, "")
 }
 
-/// `score` with `slack` extra slips per word (`BEGINNER_SLACK` at pre-A1).
-pub fn score_lenient(target: &str, heard: &str, slack: usize) -> MatchResult {
+/// `score` with `slack` extra slips per word (`BEGINNER_SLACK` at pre-A1),
+/// comparing words by how they sound in `lang` (the deck language).
+pub fn score_lenient(target: &str, heard: &str, slack: usize, lang: &str) -> MatchResult {
     let t = normalize(target);
-    let h = align_to_target(&t, normalize(heard));
+    let h = sounds(align_to_target(&t, normalize(heard)), lang);
+    let t = sounds(t, lang);
 
     // Per original target word: is it (approximately) in what was heard?
     let words = target
         .split_whitespace()
         .map(|orig| {
-            let parts = normalize(orig);
+            let parts = sounds(normalize(orig), lang);
             let hit = !parts.is_empty() && parts.iter().all(|p| h.iter().any(|hw| similar(p, hw, slack)));
             WordHit { word: orig.to_string(), hit }
         })
@@ -286,10 +339,10 @@ mod tests {
 
     #[test]
     fn any_accepted_variant_can_win() {
-        let (m, i) = score_any(&["Could you repeat that?", "Can you repeat that?"], "can you repeat that", 0);
+        let (m, i) = score_any(&["Could you repeat that?", "Can you repeat that?"], "can you repeat that", 0, "en");
         assert!((m.score - 1.0).abs() < 1e-6);
         assert_eq!(i, 1);
-        let (m, _) = score_any(&["Could you repeat that?"], "pizza", 0);
+        let (m, _) = score_any(&["Could you repeat that?"], "pizza", 0, "en");
         assert!(!m.passed(PASS));
     }
 
@@ -325,11 +378,11 @@ mod tests {
     #[test]
     fn beginners_get_one_more_slip_per_word_but_short_words_stay_exact() {
         assert!(!score("Thanks.", "tenks").passed(PASS), "two slips: too far for everyone else");
-        assert!(score_lenient("Thanks.", "tenks", BEGINNER_SLACK).passed(PASS), "fine for a pre-A1 learner");
-        assert!(score_lenient("Tomorrow.", "tumorou", BEGINNER_SLACK).passed(PASS));
-        assert!(!score_lenient("No.", "so", BEGINNER_SLACK).passed(PASS), "no and so mean different things");
-        assert!(!score_lenient("Thanks.", "banana", BEGINNER_SLACK).passed(PASS));
-        assert_eq!(score_lenient("Hello.", "hello", 0).score, score("Hello.", "hello").score);
+        assert!(score_lenient("Thanks.", "tenks", BEGINNER_SLACK, "en").passed(PASS), "fine for a pre-A1 learner");
+        assert!(score_lenient("Tomorrow.", "tumorou", BEGINNER_SLACK, "en").passed(PASS));
+        assert!(!score_lenient("No.", "so", BEGINNER_SLACK, "en").passed(PASS), "no and so mean different things");
+        assert!(!score_lenient("Thanks.", "banana", BEGINNER_SLACK, "en").passed(PASS));
+        assert_eq!(score_lenient("Hello.", "hello", 0, "en").score, score("Hello.", "hello").score);
     }
 
     #[test]
@@ -367,5 +420,59 @@ mod tests {
         assert!(score("Yesterday.", "Yes,ter day.").passed(PASS));
         assert!(score("Good morning", "good mor ning").passed(PASS));
         assert!(!score("Yesterday.", "Yes, today.").passed(PASS), "joining must not invent a match");
+    }
+
+    #[test]
+    fn spanish_said_right_passes_however_whisper_spells_it() {
+        for (target, heard) in [
+            ("Pollo.", "¡Poyo!"),     // yeísmo: ll sounds like y
+            ("Cerveza.", "Servisa."), // seseo: c(e) and z sound like s
+            ("Cerveza.", "Serfesa."), // seseo plus one slip
+            ("Sí.", "C"),             // whisper writes the sound "sí" as the letter C
+            ("Hola.", "Ola."),        // silent h
+            ("¿Quién?", "kien"),      // qu sounds like k
+            ("Gente.", "jente"),      // g(e) sounds like j
+            ("Jugo.", "¡Hugo!"),      // j written as an English h: one slip
+            ("Vaca.", "baca"),        // b and v sound the same
+        ] {
+            for slack in [0, BEGINNER_SLACK] {
+                let r = score_lenient(target, heard, slack, "es");
+                assert!(r.passed(PASS), "{target:?} heard as {heard:?}: {r:?}");
+            }
+        }
+        assert!(score_any(&["Pollo.", "Pollo, por favor"], "Poyo, por favor", 0, "es").0.passed(PASS));
+    }
+
+    #[test]
+    fn one_or_two_slips_pass_when_most_of_the_word_is_right() {
+        for (target, heard) in [("Pollo.", "polo"), ("Vaca.", "boca"), ("Gracias.", "grasia")] {
+            assert!(score_lenient(target, heard, 0, "es").passed(PASS), "{target:?} heard as {heard:?}");
+        }
+    }
+
+    #[test]
+    fn accents_and_spanish_marks_never_matter() {
+        for (target, heard) in [("sí", "si"), ("Adiós.", "adios"), ("¿Quién?", "quien"), ("¡Pare!", "pare")] {
+            assert!(score_lenient(target, heard, 0, "es").passed(PASS), "{target:?} heard as {heard:?}");
+        }
+    }
+
+    #[test]
+    fn spanish_words_that_are_mostly_wrong_still_fail() {
+        assert!(!score_lenient("Cerveza.", "servicio", 0, "es").passed(PASS));
+        for (target, heard) in [("Sí.", "D"), ("Sí.", "no"), ("Gracias.", "banana")] {
+            for slack in [0, BEGINNER_SLACK] {
+                let r = score_lenient(target, heard, slack, "es");
+                assert!(!r.passed(PASS), "{target:?} must not pass as {heard:?}: {r:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn english_does_not_get_spanish_sound_folds() {
+        assert!(score_lenient("very", "berry", 0, "es").passed(PASS), "control: in Spanish they sound alike");
+        assert!(!score_lenient("very", "berry", 0, "en").passed(PASS));
+        assert!(!score_lenient("Sí.", "C", 0, "en").passed(PASS));
+        assert!(!score_lenient("Cerveza.", "Servisa.", 0, "en").passed(PASS));
     }
 }
