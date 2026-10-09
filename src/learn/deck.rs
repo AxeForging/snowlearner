@@ -33,6 +33,13 @@ const BUILTIN: &[(&str, &[&str])] = &[
     ),
 ];
 
+/// Answer tiers for the generated decks, hand-curated and keyed by `say`
+/// (`<lang>.lexicaster.tiers.toml`), so regenerating a deck never loses them.
+const TIERS: &[(&str, &str)] = &[
+    ("en", include_str!("../../decks/en.lexicaster.tiers.toml")),
+    ("es", include_str!("../../decks/es.lexicaster.tiers.toml")),
+];
+
 /// CEFR levels, easiest first. Pre-A1 (CEFR Companion Volume, 2020) is the
 /// learner who knows nothing yet: isolated words and set expressions.
 pub const LEVELS: &[&str] = &[PRE_A1, "A1", "A2", "B1", "B2", "C1", "C2"];
@@ -87,6 +94,39 @@ struct PhraseFile {
 #[serde(deny_unknown_fields)]
 struct TipFile {
     text: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TiersFile {
+    #[serde(rename = "tier", default)]
+    tiers: Vec<TierFile>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TierFile {
+    say: String,
+    #[serde(default)]
+    short: Option<String>,
+    #[serde(default)]
+    polished: Option<String>,
+}
+
+/// Same phrase once case, accents and punctuation go.
+fn same_key(s: &str) -> String {
+    crate::speech::matcher::normalize(s).join(" ")
+}
+
+/// Trimmed short and polished tiers; a tier equal to a lower one collapses.
+fn clean_tiers(say: &str, short: Option<String>, polished: Option<String>) -> (Option<String>, Option<String>) {
+    let tier = |t: Option<String>, below: &[Option<&str>]| {
+        t.map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty() && below.iter().flatten().all(|b| same_key(b) != same_key(t)))
+    };
+    let short = tier(short, &[Some(say)]);
+    let polished = tier(polished, &[Some(say), short.as_deref()]);
+    (short, polished)
 }
 
 fn default_cue() -> String {
@@ -261,14 +301,7 @@ impl Deck {
                 (None, None) => file.default_cue.clone(),
             };
             let cue = cue::parse(&cue_src, &say).with_context(|| format!("phrase #{} ({say:?})", i + 1))?;
-            // A tier equal to a lower one (ignoring case and punctuation) collapses.
-            let key = |s: &str| crate::speech::matcher::normalize(s).join(" ");
-            let tier = |t: Option<String>, below: &[Option<&str>]| {
-                t.map(|t| t.trim().to_string())
-                    .filter(|t| !t.is_empty() && below.iter().flatten().all(|b| key(b) != key(t)))
-            };
-            let short = tier(p.short, &[Some(&say)]);
-            let polished = tier(p.polished, &[Some(&say), short.as_deref()]);
+            let (short, polished) = clean_tiers(&say, p.short, p.polished);
             let topic = p.topic.map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty());
             let level = p.level.map(|l| l.trim().to_uppercase());
             if let Some(l) = &level
@@ -301,11 +334,29 @@ impl Deck {
         for more in decks {
             deck.merge(more);
         }
+        if let Some((_, overlay)) = TIERS.iter().find(|(l, _)| *l == language) {
+            deck.apply_tiers(overlay).expect("built-in tier overlay must match its deck");
+        }
         Some(deck)
     }
 
     pub fn builtin_languages() -> &'static [&'static str] {
         &["en", "es"]
+    }
+
+    /// Sets the short / polished tiers from an overlay (`[[tier]]` entries keyed
+    /// by `say`, compared ignoring case and punctuation). An entry whose `say`
+    /// is not in the deck is an error: a stale overlay must not go unnoticed.
+    pub fn apply_tiers(&mut self, src: &str) -> Result<()> {
+        let file: TiersFile = toml::from_str(src).context("invalid tier overlay TOML")?;
+        for t in file.tiers {
+            let key = same_key(&t.say);
+            let Some(p) = self.phrases.iter_mut().find(|p| same_key(&p.say) == key) else {
+                bail!("tier overlay entry {:?} matches no phrase in the deck (stale overlay?)", t.say);
+            };
+            (p.short, p.polished) = clean_tiers(&p.say, t.short, t.polished);
+        }
+        Ok(())
     }
 
     /// Appends phrases and tips from `other`, skipping phrases already present
@@ -536,6 +587,57 @@ mod tests {
                 assert_eq!(p.alternatives(Answer::All), vec![format!("polida: {pol}")]);
             }
         }
+    }
+
+    #[test]
+    fn every_builtin_item_offers_at_least_two_answers() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            for p in &deck.phrases {
+                assert!(p.polished.is_some(), "{lang}: {:?} has no polished answer", p.say);
+                assert!(p.tiers().len() >= 2, "{lang}: {:?} offers only {:?}", p.say, p.tiers());
+            }
+        }
+    }
+
+    /// The generated decks and their hand-curated tier overlays.
+    const GENERATED: &[(&str, &str, &str)] = &[
+        ("en", include_str!("../../decks/en.lexicaster.toml"), include_str!("../../decks/en.lexicaster.tiers.toml")),
+        ("es", include_str!("../../decks/es.lexicaster.toml"), include_str!("../../decks/es.lexicaster.tiers.toml")),
+    ];
+
+    #[test]
+    fn every_tier_overlay_entry_names_a_phrase_of_the_generated_deck() {
+        for (lang, deck, tiers) in GENERATED {
+            let mut d = Deck::parse(deck).unwrap();
+            if let Err(e) = d.apply_tiers(tiers) {
+                panic!("{lang}: {e:#}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_stale_tier_overlay_entry_fails_loudly() {
+        let mut d = Deck::parse(&format!("{HEAD}[[phrase]]\nsay='Thank you very much!'\nmeaning='x'")).unwrap();
+        let err = d.apply_tiers("[[tier]]\nsay='Thanks a ton!'\npolished='Thanks a ton, really!'").unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("Thanks a ton!") && msg.contains("stale"), "{msg}");
+        assert!(d.apply_tiers("[[tier]]\nsay='Hi'\npolishd='x'").is_err(), "typos in the overlay are rejected");
+    }
+
+    #[test]
+    fn a_tier_overlay_fills_tiers_by_say_ignoring_case_and_punctuation() {
+        let mut d = Deck::parse(&format!("{HEAD}[[phrase]]\nsay='Thank you very much!'\nmeaning='x'")).unwrap();
+        d.apply_tiers(
+            "[[tier]]\nsay='thank you very much'\nshort='Thanks a lot!'\npolished='Thank you so much, really!'",
+        )
+        .unwrap();
+        let p = &d.phrases[0];
+        assert_eq!(p.say, "Thank you very much!", "say is untouched");
+        assert_eq!(p.short.as_deref(), Some("Thanks a lot!"));
+        assert_eq!(p.polished.as_deref(), Some("Thank you so much, really!"));
+        d.apply_tiers("[[tier]]\nsay='Thank you very much!'\npolished='THANK YOU VERY MUCH'").unwrap();
+        assert_eq!(d.phrases[0].polished, None, "a tier equal to say collapses, as in decks");
     }
 
     #[test]

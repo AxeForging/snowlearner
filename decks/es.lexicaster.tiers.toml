@@ -1,0 +1,1237 @@
+# Answer tiers for decks/es.lexicaster.toml, hand-curated: that deck is
+# generated, so its short / polished forms live here and are merged at load
+# by `say` (learn/deck.rs). A `say` that no longer exists fails the deck tests.
+
+[[tier]]
+say = "De nada."
+polished = "De nada, ha sido un placer."
+
+[[tier]]
+say = "¡Muchas gracias!"
+short = "¡Gracias!"
+polished = "¡Muchísimas gracias, de verdad te lo agradezco!"
+
+[[tier]]
+say = "No, gracias."
+polished = "Muy amable, pero no, gracias."
+
+[[tier]]
+say = "¡Que tengas un buen día!"
+short = "¡Buen día!"
+polished = "Muchas gracias, ¡que tenga un buen día!"
+
+[[tier]]
+say = "¿Cómo te llamas?"
+short = "¿Tu nombre?"
+polished = "¿Me podrías decir tu nombre?"
+
+[[tier]]
+say = "¡Mucho gusto!"
+short = "¡Encantado!"
+polished = "¡Es un placer conocerte!"
+
+[[tier]]
+say = "¿Cómo estás?"
+short = "¿Qué tal?"
+polished = "¿Cómo está usted?"
+
+[[tier]]
+say = "Bien, gracias."
+short = "Bien."
+polished = "Muy bien, gracias. ¿Y tú?"
+
+[[tier]]
+say = "No entiendo."
+short = "¿Perdón?"
+polished = "Perdona, no lo entiendo bien."
+
+[[tier]]
+say = "¿Puedes repetir?"
+short = "¿Cómo?"
+polished = "Perdona, ¿podrías repetirlo, por favor?"
+
+[[tier]]
+say = "¿Cómo se dice esto?"
+short = "¿Cómo se llama?"
+polished = "Perdona, ¿cómo se dice esto en español?"
+
+[[tier]]
+say = "No sé."
+short = "Ni idea."
+polished = "Lo siento, no lo sé."
+
+[[tier]]
+say = "¿Cuál es tu teléfono?"
+short = "¿Tu número?"
+polished = "¿Me podrías dar tu número de teléfono?"
+
+[[tier]]
+say = "¿Cuántos años tienes?"
+polished = "Si no es indiscreción, ¿cuántos años tienes?"
+
+[[tier]]
+say = "Tengo veinte años."
+short = "Veinte."
+polished = "Tengo veinte años, ¿y tú?"
+
+[[tier]]
+say = "¿Puedes deletrear tu nombre?"
+short = "¿Me lo deletreas?"
+polished = "¿Podría deletrear su nombre, por favor?"
+
+[[tier]]
+say = "Esta es mi hermana."
+short = "Mi hermana."
+polished = "Te presento a mi hermana."
+
+[[tier]]
+say = "¿Tienes hijos?"
+polished = "¿Y tú tienes hijos?"
+
+[[tier]]
+say = "Es muy simpática."
+short = "Es un amor."
+polished = "Es una persona muy simpática."
+
+[[tier]]
+say = "¿Cuántos años tienen tus hijos?"
+short = "¿Qué edad tienen?"
+polished = "¿Y cuántos años tienen tus hijos ahora?"
+
+[[tier]]
+say = "Quisiera un café."
+short = "Un café."
+polished = "¿Me pone un café, por favor?"
+
+[[tier]]
+say = "¿Qué me recomiendas?"
+short = "¿Qué recomiendas?"
+polished = "¿Qué me recomendaría usted?"
+
+[[tier]]
+say = "¡La comida estaba deliciosa!"
+short = "¡Riquísimo!"
+polished = "Todo estaba delicioso, ¡muchas gracias!"
+
+[[tier]]
+say = "¿Cuánto cuesta?"
+short = "¿Cuánto es?"
+polished = "Disculpe, ¿cuánto cuesta esto?"
+
+[[tier]]
+say = "¿Puedo pagar con tarjeta?"
+short = "¿Con tarjeta?"
+polished = "Disculpe, ¿se puede pagar con tarjeta?"
+
+[[tier]]
+say = "Solo estoy mirando."
+short = "Solo mirando."
+polished = "Solo estoy mirando, muchas gracias."
+
+[[tier]]
+say = "Una mesa para dos."
+short = "Para dos."
+polished = "Buenas, ¿tiene una mesa para dos, por favor?"
+
+[[tier]]
+say = "Disculpe, ¿dónde está el baño?"
+short = "¿El baño?"
+polished = "Disculpe, ¿me podría decir dónde está el baño?"
+
+[[tier]]
+say = "Gira a la izquierda."
+short = "A la izquierda."
+polished = "Tiene que girar a la izquierda."
+
+[[tier]]
+say = "Está a la derecha."
+short = "A la derecha."
+polished = "Lo va a encontrar a la derecha."
+
+[[tier]]
+say = "¿Está lejos de aquí?"
+short = "¿Está lejos?"
+polished = "Disculpe, ¿está muy lejos de aquí?"
+
+[[tier]]
+say = "¿Dónde está la leche?"
+short = "¿La leche?"
+polished = "Disculpe, ¿me podría decir dónde está la leche?"
+
+[[tier]]
+say = "Quería medio kilo de tomates."
+short = "Medio kilo de tomates."
+polished = "¿Me pone medio kilo de tomates, por favor?"
+
+[[tier]]
+say = "Una botella de agua."
+short = "Un agua."
+polished = "¿Me da una botella de agua, por favor?"
+
+[[tier]]
+say = "¿Quiere bolsa?"
+short = "¿Bolsa?"
+polished = "¿Le pongo una bolsa?"
+
+[[tier]]
+say = "Eso es todo, gracias."
+short = "Nada más."
+polished = "Eso es todo, muchas gracias."
+
+[[tier]]
+say = "¿Cuánto cuesta esta chaqueta?"
+short = "¿Y esta chaqueta?"
+polished = "Disculpe, ¿cuánto cuesta esta chaqueta?"
+
+[[tier]]
+say = "Me queda pequeño."
+short = "Muy pequeño."
+polished = "Me queda un poco pequeño, ¿tiene una talla más?"
+
+[[tier]]
+say = "¿Lo tiene en azul?"
+short = "¿En azul?"
+polished = "¿Lo tendría también en azul?"
+
+[[tier]]
+say = "Me llevo la negra."
+short = "La negra."
+polished = "Creo que me voy a llevar la negra, gracias."
+
+[[tier]]
+say = "¿Qué hora es?"
+short = "¿La hora?"
+polished = "Perdone, ¿me podría decir la hora?"
+
+[[tier]]
+say = "¿Estás libre este fin de semana?"
+short = "¿Libre el finde?"
+polished = "¿Tienes algún plan para este fin de semana?"
+
+[[tier]]
+say = "Tengo que trabajar mañana."
+short = "Mañana trabajo."
+polished = "Me encantaría, pero mañana tengo que trabajar."
+
+[[tier]]
+say = "¡Hasta luego!"
+short = "¡Chao!"
+polished = "Ha sido un gusto verte, ¡hasta luego!"
+
+[[tier]]
+say = "Un boleto al aeropuerto, por favor."
+short = "Al aeropuerto."
+polished = "¿Me da un boleto al aeropuerto, por favor?"
+
+[[tier]]
+say = "¿A qué hora sale el tren?"
+short = "¿Cuándo sale?"
+polished = "Disculpe, ¿a qué hora sale el tren?"
+
+[[tier]]
+say = "¿Dónde está la parada de autobús?"
+short = "¿La parada?"
+polished = "Disculpe, ¿me podría decir dónde está la parada de autobús?"
+
+[[tier]]
+say = "¿Este autobús va al centro?"
+short = "¿Al centro?"
+polished = "Disculpe, ¿este autobús va al centro?"
+
+[[tier]]
+say = "Tengo una reserva."
+polished = "Buenas tardes, tengo una reserva a mi nombre."
+
+[[tier]]
+say = "Necesito una habitación para dos noches."
+short = "Habitación para dos noches."
+polished = "¿Tiene una habitación libre para dos noches?"
+
+[[tier]]
+say = "¿Cuál es la contraseña del wifi?"
+short = "¿La clave del wifi?"
+polished = "¿Me podría dar la contraseña del wifi, por favor?"
+
+[[tier]]
+say = "¿Me das otra toalla?"
+short = "Otra toalla, por favor."
+polished = "Perdone, ¿me podría dar otra toalla?"
+
+[[tier]]
+say = "¿Qué tiempo hace?"
+polished = "¿Sabes qué tiempo va a hacer hoy?"
+
+[[tier]]
+say = "Va a llover."
+short = "Parece lluvia."
+polished = "Creo que va a llover más tarde."
+
+[[tier]]
+say = "¡No olvides el paraguas!"
+short = "¡Lleva paraguas!"
+polished = "Mejor llévate el paraguas, por si acaso."
+
+[[tier]]
+say = "¡Hoy hace mucho calor!"
+short = "¡Qué calor!"
+polished = "Hoy hace muchísimo calor, ¿verdad?"
+
+[[tier]]
+say = "¿Qué haces en tu tiempo libre?"
+short = "¿Tienes hobbies?"
+polished = "¿Y qué te gusta hacer en tu tiempo libre?"
+
+[[tier]]
+say = "Me gusta jugar al fútbol."
+short = "Juego al fútbol."
+polished = "En mi tiempo libre me encanta jugar al fútbol."
+
+[[tier]]
+say = "¿Cada cuánto vas a nadar?"
+short = "¿Nadas mucho?"
+polished = "Por curiosidad, ¿cada cuánto vas a nadar?"
+
+[[tier]]
+say = "Voy al gimnasio dos veces por semana."
+short = "Dos veces por semana."
+polished = "Intento ir al gimnasio dos veces por semana."
+
+[[tier]]
+say = "Nunca tengo tiempo libre."
+short = "Siempre estoy ocupado."
+polished = "La verdad es que casi nunca tengo tiempo libre."
+
+[[tier]]
+say = "¿Puedes ayudarme?"
+short = "¿Me ayudas?"
+polished = "Disculpe, ¿me podría ayudar, por favor?"
+
+[[tier]]
+say = "¡Necesito un médico!"
+short = "¡Un médico!"
+polished = "Por favor, necesito ver a un médico urgentemente."
+
+[[tier]]
+say = "No me siento bien."
+short = "Estoy mal."
+polished = "Lo siento, no me encuentro muy bien."
+
+[[tier]]
+say = "¿De dónde eres?"
+polished = "¿Y usted de dónde es?"
+
+[[tier]]
+say = "¿Te gusta la música?"
+polished = "¿A ti te gusta escuchar música?"
+
+[[tier]]
+say = "¿Quieres venir?"
+short = "¿Vienes?"
+polished = "Nos encantaría que vinieras con nosotros."
+
+[[tier]]
+say = "¡Me encantaría!"
+short = "¡Claro!"
+polished = "¡Me encantaría, gracias por invitarme!"
+
+[[tier]]
+say = "¿Qué piensas?"
+short = "¿Y tú?"
+polished = "Me gustaría saber qué piensas tú."
+
+[[tier]]
+say = "Estoy de acuerdo contigo."
+short = "De acuerdo."
+polished = "Estoy totalmente de acuerdo contigo en eso."
+
+[[tier]]
+say = "Creo que no."
+short = "No creo."
+polished = "La verdad, no estoy muy seguro de eso."
+
+[[tier]]
+say = "¡Mándame un mensaje!"
+short = "¡Escríbeme!"
+polished = "Mándame un mensaje cuando quieras."
+
+[[tier]]
+say = "¡Gracias por todo!"
+short = "¡Gracias!"
+polished = "¡Muchísimas gracias por todo lo que has hecho!"
+
+[[tier]]
+say = "Mi piso tiene dos habitaciones."
+short = "Tiene dos habitaciones."
+polished = "Vivo en un piso de dos habitaciones."
+
+[[tier]]
+say = "No hay agua caliente."
+short = "Sin agua caliente."
+polished = "Disculpe, parece que no hay agua caliente en mi habitación."
+
+[[tier]]
+say = "La luz no se enciende."
+short = "No hay luz."
+polished = "Perdone, la luz de mi habitación no se enciende."
+
+[[tier]]
+say = "¿Puedo usar la cocina?"
+polished = "¿Te importaría si uso la cocina?"
+
+[[tier]]
+say = "La lavadora no funciona."
+short = "La lavadora falla."
+polished = "Te aviso de que la lavadora no funciona."
+
+[[tier]]
+say = "¿Qué hiciste el fin de semana?"
+short = "¿Qué tal el finde?"
+polished = "Oye, ¿y qué hiciste el fin de semana?"
+
+[[tier]]
+say = "Fui a la playa."
+short = "A la playa."
+polished = "Fui a la playa y lo pasé muy bien."
+
+[[tier]]
+say = "¡Fue increíble!"
+short = "¡Increíble!"
+polished = "¡Fue increíble, gracias por preguntar!"
+
+[[tier]]
+say = "¿Qué tal el viaje?"
+short = "¿Buen viaje?"
+polished = "¡Bienvenido! ¿Qué tal el viaje?"
+
+[[tier]]
+say = "Visité a mi familia."
+short = "Vi a mi familia."
+polished = "Fui a visitar a mi familia el fin de semana."
+
+[[tier]]
+say = "Perdón, ¿qué dijiste?"
+short = "¿Perdón?"
+polished = "Perdona, no te he oído bien. ¿Qué dijiste?"
+
+[[tier]]
+say = "¿Qué significa eso?"
+short = "¿Eso qué es?"
+polished = "Perdona, ¿qué significa esa palabra?"
+
+[[tier]]
+say = "¿Cómo se escribe eso?"
+short = "¿Cómo se escribe?"
+polished = "Perdona, ¿me podrías decir cómo se escribe eso?"
+
+[[tier]]
+say = "¿Me lo puedes escribir?"
+short = "¿Me lo escribes?"
+polished = "¿Te importaría escribírmelo, por favor?"
+
+[[tier]]
+say = "Estoy muy ocupado hoy."
+short = "Hoy no puedo."
+polished = "Lo siento, hoy estoy muy ocupado. ¿Otro día?"
+
+[[tier]]
+say = "¿Qué estás haciendo?"
+short = "¿Qué haces?"
+polished = "Oye, ¿qué estás haciendo ahora?"
+
+[[tier]]
+say = "Suelo levantarme temprano."
+short = "Madrugo mucho."
+polished = "Normalmente me levanto bastante temprano por la mañana."
+
+[[tier]]
+say = "Me voy a casa."
+short = "Me voy."
+polished = "Me voy a casa ya. ¡Hasta mañana!"
+
+[[tier]]
+say = "¡Voy en camino!"
+short = "¡Ya voy!"
+polished = "¡Ya voy de camino, llego en un rato!"
+
+[[tier]]
+say = "Voy a llegar tarde."
+short = "Llego tarde."
+polished = "Perdona, voy a llegar un poco tarde."
+
+[[tier]]
+say = "¿Te llamo luego?"
+polished = "Perdona, ¿te puedo llamar en un rato?"
+
+[[tier]]
+say = "Quisiera pedir una cita."
+short = "Una cita, por favor."
+polished = "Buenos días, quisiera pedir una cita, por favor."
+
+[[tier]]
+say = "Te mando la dirección por mensaje."
+short = "Te la mando."
+polished = "Ahora te mando la dirección por mensaje."
+
+[[tier]]
+say = "¿Me prestas tu cargador?"
+short = "¿Tienes cargador?"
+polished = "¿Te importaría prestarme tu cargador un momento?"
+
+[[tier]]
+say = "¿Te importa si me siento aquí?"
+short = "¿Está libre?"
+polished = "Disculpe, ¿le importa si me siento aquí?"
+
+[[tier]]
+say = "¿Me ayudas a llevar esto?"
+short = "¿Lo llevamos juntos?"
+polished = "Perdona, ¿me podrías ayudar a llevar esto?"
+
+[[tier]]
+say = "¡Claro, adelante!"
+short = "¡Claro!"
+polished = "¡Por supuesto, adelante!"
+
+[[tier]]
+say = "Lo siento, ahora no puedo."
+short = "Ahora no puedo."
+polished = "Lo siento mucho, ahora mismo no puedo. ¿Luego?"
+
+[[tier]]
+say = "No funciona."
+short = "Está roto."
+polished = "Disculpe, esto no funciona bien."
+
+[[tier]]
+say = "¡Perdí mi celular!"
+short = "¡Mi celular!"
+polished = "Disculpe, creo que perdí mi celular. ¿Me puede ayudar?"
+
+[[tier]]
+say = "¡Me robaron la cartera!"
+short = "¡Mi cartera!"
+polished = "Por favor, necesito ayuda. ¡Me robaron la cartera!"
+
+[[tier]]
+say = "Creo que hay un error."
+short = "¿Esto está bien?"
+polished = "Disculpe, creo que puede haber un error aquí."
+
+[[tier]]
+say = "Soy alérgico a los mariscos."
+short = "Sin mariscos, por favor."
+polished = "Le comento que soy alérgico a los mariscos."
+
+[[tier]]
+say = "Soy nuevo en el equipo."
+short = "Soy nuevo."
+polished = "Hola a todos, soy nuevo en el equipo. ¡Encantado!"
+
+[[tier]]
+say = "¡Un placer conocerlos!"
+short = "¡Hola a todos!"
+polished = "¡Es un verdadero placer conocerlos a todos!"
+
+[[tier]]
+say = "¿Cuál es tu puesto?"
+short = "¿Tu puesto?"
+polished = "Si no te importa, ¿cuál es tu puesto aquí?"
+
+[[tier]]
+say = "¿A quién le pregunto?"
+short = "¿A quién pregunto?"
+polished = "¿Sabes a quién le podría preguntar esto?"
+
+[[tier]]
+say = "¿Dónde está la impresora?"
+short = "¿La impresora?"
+polished = "Perdona, ¿sabes dónde está la impresora?"
+
+[[tier]]
+say = "¿Vamos a empezar?"
+short = "¿Empezamos?"
+polished = "Gracias a todos por venir. ¿Empezamos?"
+
+[[tier]]
+say = "¿Podemos cambiar la reunión?"
+short = "¿La cambiamos?"
+polished = "¿Sería posible cambiar la reunión a otro día?"
+
+[[tier]]
+say = "Estoy libre el lunes."
+short = "El lunes puedo."
+polished = "El lunes me viene bien, si te parece."
+
+[[tier]]
+say = "¡Perdón por llegar tarde!"
+short = "¡Perdón!"
+polished = "Disculpen el retraso, por favor, sigan."
+
+[[tier]]
+say = "La fecha límite es el viernes."
+short = "Es para el viernes."
+polished = "Les recuerdo que la fecha límite es este viernes."
+
+[[tier]]
+say = "¿Me echas una mano?"
+short = "¿Tienes un minuto?"
+polished = "¿Me podrías echar una mano con esto cuando puedas?"
+
+[[tier]]
+say = "Estoy atascado con esto."
+short = "Estoy atascado."
+polished = "Estoy un poco atascado con esto, ¿le echas un vistazo?"
+
+[[tier]]
+say = "Lo reviso."
+short = "Me encargo."
+polished = "Gracias por avisar, lo reviso ahora mismo."
+
+[[tier]]
+say = "Ya casi está."
+short = "Casi está."
+polished = "Ya casi está, te lo mando en un rato."
+
+[[tier]]
+say = "Si necesitas algo, avísame."
+short = "Avísame."
+polished = "Si necesitas cualquier cosa, no dudes en avisarme."
+
+[[tier]]
+say = "Le llamo por su correo."
+short = "Es por su correo."
+polished = "Buenos días, le llamo por el correo que me envió."
+
+[[tier]]
+say = "¿Me puedes enviar el archivo?"
+short = "¿Me mandas el archivo?"
+polished = "¿Me podrías enviar el archivo cuando puedas?"
+
+[[tier]]
+say = "Te respondo pronto."
+short = "Ya te digo."
+polished = "Lo consulto y te respondo lo antes posible."
+
+[[tier]]
+say = "Adjunto el informe."
+polished = "Le adjunto el informe. Quedo a su disposición para cualquier duda."
+
+[[tier]]
+say = "Trabajo de profesor."
+short = "Soy profesor."
+polished = "Actualmente trabajo como profesor en un colegio."
+
+[[tier]]
+say = "Tengo experiencia en ventas."
+short = "Vengo de ventas."
+polished = "Tengo varios años de experiencia en ventas."
+
+[[tier]]
+say = "¿Cuál es el horario de trabajo?"
+short = "¿Qué horario es?"
+polished = "¿Me podría decir cuál es el horario de trabajo?"
+
+[[tier]]
+say = "¿Cuándo puedo empezar?"
+short = "¿Cuándo empiezo?"
+polished = "¿Cuándo le gustaría que empezara?"
+
+[[tier]]
+say = "Estoy buscando trabajo."
+short = "Busco trabajo."
+polished = "Ahora mismo estoy buscando un nuevo trabajo."
+
+[[tier]]
+say = "Busco un apartamento."
+short = "Busco piso."
+polished = "Hola, estoy buscando un apartamento para alquilar."
+
+[[tier]]
+say = "¿Cuánto es el alquiler?"
+short = "¿Y el alquiler?"
+polished = "¿Me podría decir cuánto es el alquiler?"
+
+[[tier]]
+say = "¿Los servicios están incluidos?"
+short = "¿Gastos incluidos?"
+polished = "¿Los servicios están incluidos en el alquiler?"
+
+[[tier]]
+say = "¿Cuándo puedo mudarme?"
+short = "¿Cuándo entro?"
+polished = "¿A partir de cuándo podría mudarme?"
+
+[[tier]]
+say = "¿Hay que dejar fianza?"
+short = "¿Hay fianza?"
+polished = "¿Hay que dejar fianza? ¿De cuánto sería?"
+
+[[tier]]
+say = "Quisiera abrir una cuenta."
+short = "Abrir una cuenta."
+polished = "Buenos días, quisiera abrir una cuenta bancaria, por favor."
+
+[[tier]]
+say = "Necesito registrar mi dirección."
+short = "Vengo a registrarme."
+polished = "Buenos días, quisiera registrar mi nueva dirección, por favor."
+
+[[tier]]
+say = "¿Necesita mi pasaporte?"
+short = "¿El pasaporte?"
+polished = "¿Quiere ver mi pasaporte?"
+
+[[tier]]
+say = "¿Dónde firmo?"
+short = "¿Aquí?"
+polished = "¿Me indica dónde tengo que firmar?"
+
+[[tier]]
+say = "¿Qué documentos necesito?"
+short = "¿Qué documentos?"
+polished = "¿Me podría decir qué documentos tengo que traer?"
+
+[[tier]]
+say = "¡Hola, soy tu nuevo vecino!"
+short = "¡Me acabo de mudar!"
+polished = "Hola, soy tu nuevo vecino. ¡Me acabo de mudar al lado!"
+
+[[tier]]
+say = "La calefacción no funciona."
+short = "No hay calefacción."
+polished = "Perdone la molestia, pero la calefacción no funciona."
+
+[[tier]]
+say = "¿Podrían hacer menos ruido?"
+short = "¿Menos ruido?"
+polished = "Perdonen la molestia, ¿podrían hacer un poco menos de ruido?"
+
+[[tier]]
+say = "¿Qué día pasa la basura?"
+short = "¿Y la basura?"
+polished = "¿Sabes qué día pasan a recoger la basura?"
+
+[[tier]]
+say = "¿Me recomiendas un plomero?"
+short = "¿Conoces un plomero?"
+polished = "¿Conoces algún buen plomero que me puedas recomendar?"
+
+[[tier]]
+say = "¿Hay un supermercado cerca?"
+short = "¿Algún súper cerca?"
+polished = "Disculpe, ¿hay algún supermercado por aquí cerca?"
+
+[[tier]]
+say = "¿Dónde puedo comprar una tarjeta SIM?"
+short = "¿Dónde venden SIM?"
+polished = "Disculpe, ¿sabe dónde puedo comprar una tarjeta SIM?"
+
+[[tier]]
+say = "¿Tiene una talla más grande?"
+short = "¿Una talla más?"
+polished = "Disculpe, ¿tendría esto en una talla más grande?"
+
+[[tier]]
+say = "Quisiera enviar este paquete."
+short = "Este paquete, por favor."
+polished = "Buenos días, quisiera enviar este paquete, por favor."
+
+[[tier]]
+say = "¿Hay alguna farmacia abierta ahora?"
+short = "¿Alguna farmacia abierta?"
+polished = "Disculpe, ¿sabe si hay alguna farmacia abierta ahora?"
+
+[[tier]]
+say = "Quisiera ver a un médico."
+short = "Una consulta, por favor."
+polished = "Buenos días, quisiera ver a un médico hoy, si es posible."
+
+[[tier]]
+say = "Tengo fiebre desde ayer."
+short = "Fiebre desde ayer."
+polished = "Tengo fiebre desde ayer y no me baja."
+
+[[tier]]
+say = "¿Necesito receta?"
+short = "¿Con receta?"
+polished = "¿Necesito receta para esto o lo puedo comprar así?"
+
+[[tier]]
+say = "Todavía no tengo seguro médico."
+short = "No tengo seguro."
+polished = "Me temo que todavía no tengo seguro médico. ¿Puedo pagar yo?"
+
+[[tier]]
+say = "¿Dónde está el hospital más cercano?"
+short = "¿Hospital cercano?"
+polished = "Disculpe, ¿me podría decir dónde está el hospital más cercano?"
+
+[[tier]]
+say = "¿Qué pasa, tío?"
+short = "¿Qué pasa?"
+polished = "¡Hola! ¿Qué tal todo? Me alegro de verte."
+
+[[tier]]
+say = "¡Cuánto tiempo sin verte!"
+short = "¡Cuánto tiempo!"
+polished = "¡Cuánto tiempo sin verte! Qué alegría verte de nuevo."
+
+[[tier]]
+say = "Me piro, ¡nos vemos!"
+short = "¡Me piro!"
+polished = "Me tengo que ir ya. ¡Nos vemos pronto!"
+
+[[tier]]
+say = "Gracias, ¡te debo una!"
+short = "¡Te debo una!"
+polished = "Muchísimas gracias, de verdad te debo una."
+
+[[tier]]
+say = "¡No me digas! ¡Qué guay!"
+short = "¡Qué guay!"
+polished = "¡Qué noticia tan buena, enhorabuena!"
+
+[[tier]]
+say = "Espera, ¿va en serio?"
+short = "¿En serio?"
+polished = "Espera, ¿lo dices en serio? ¡No me lo puedo creer!"
+
+[[tier]]
+say = "Culpa mía, ¡se me olvidó!"
+short = "¡Culpa mía!"
+polished = "Lo siento muchísimo, se me olvidó por completo."
+
+[[tier]]
+say = "¡Qué locura, no me lo creo!"
+short = "¡Qué locura!"
+polished = "¡Es increíble, de verdad no me lo puedo creer!"
+
+[[tier]]
+say = "¿Quedamos luego?"
+short = "¿Luego?"
+polished = "¿Te apetece que quedemos luego?"
+
+[[tier]]
+say = "Me parece bien, ¡me apunto!"
+short = "¡Me apunto!"
+polished = "¡Me parece genial, cuenta conmigo!"
+
+[[tier]]
+say = "Paso, pero gracias."
+short = "Paso."
+polished = "Muy amable, pero esta vez paso, gracias."
+
+[[tier]]
+say = "Quizás otro día."
+short = "¿Otro día?"
+polished = "Hoy no puedo, pero quizás otro día."
+
+[[tier]]
+say = "¡No me dejes tirado otra vez!"
+short = "¡No me falles!"
+polished = "¡Prométeme que esta vez no me dejas tirado!"
+
+[[tier]]
+say = "¿Picamos algo? Estoy muerto de hambre."
+short = "¿Picamos algo?"
+polished = "Estoy muerto de hambre. ¿Te apetece picar algo?"
+
+[[tier]]
+say = "¿Unas cañas esta noche?"
+short = "¿Unas cañas?"
+polished = "¿Os apetece tomar unas cañas esta noche?"
+
+[[tier]]
+say = "¡Estaba petado!"
+short = "¡Petado!"
+polished = "¡Estaba tan lleno que no se podía ni andar!"
+
+[[tier]]
+say = "¡La fiesta de anoche fue brutal!"
+short = "¡Fiestón!"
+polished = "La fiesta de anoche fue increíble, ¡tenías que haber venido!"
+
+[[tier]]
+say = "No puedo, estoy sin blanca."
+short = "Estoy sin blanca."
+polished = "Me encantaría, pero este mes ando un poco justo de dinero."
+
+[[tier]]
+say = "Estoy hecho polvo, me quedo en casa."
+short = "Me quedo en casa."
+polished = "Estoy agotado, así que creo que esta noche me quedo en casa."
+
+[[tier]]
+say = "A ver, ¡cuéntame el cotilleo!"
+short = "¡Cuéntamelo todo!"
+polished = "A ver, cuéntamelo todo, ¿qué ha pasado?"
+
+[[tier]]
+say = "Estoy agobiado con lo de mañana."
+short = "Estoy agobiado."
+polished = "La verdad es que estoy muy nervioso por lo de mañana."
+
+[[tier]]
+say = "Tranqui, no pasa nada."
+short = "¡Tranqui!"
+polished = "No te preocupes por nada, tómatelo con calma."
+
+[[tier]]
+say = "¡Me ha hecho ghosting otra vez!"
+short = "¡Otra vez ghosting!"
+polished = "¡Ha vuelto a dejar de contestarme los mensajes!"
+
+[[tier]]
+say = "Quisiera facturar."
+polished = "Buenos días, quisiera facturar la maleta, por favor."
+
+[[tier]]
+say = "Un asiento de ventanilla, por favor."
+short = "Ventanilla, por favor."
+polished = "¿Me podría dar un asiento de ventanilla, por favor?"
+
+[[tier]]
+say = "¿Cuántas maletas puedo llevar?"
+short = "¿Cuántas maletas?"
+polished = "¿Me podría decir cuántas maletas puedo llevar?"
+
+[[tier]]
+say = "¿Es esta la fila correcta?"
+short = "¿Es esta la fila?"
+polished = "Disculpe, ¿es esta la fila correcta?"
+
+[[tier]]
+say = "¿Tengo que sacar el portátil?"
+short = "¿Saco el portátil?"
+polished = "Disculpe, ¿tengo que sacar el portátil de la mochila?"
+
+[[tier]]
+say = "¿Cuál es la puerta de embarque?"
+short = "¿Qué puerta?"
+polished = "Disculpe, ¿me podría decir cuál es la puerta de embarque?"
+
+[[tier]]
+say = "¿Ya empezó el embarque?"
+short = "¿Ya embarcan?"
+polished = "Disculpe, ¿ya ha empezado el embarque?"
+
+[[tier]]
+say = "Mi vuelo está retrasado."
+short = "Vuelo retrasado."
+polished = "Te aviso de que mi vuelo está retrasado."
+
+[[tier]]
+say = "Cancelaron mi vuelo."
+short = "Vuelo cancelado."
+polished = "Buenos días, cancelaron mi vuelo. ¿Qué opciones tengo?"
+
+[[tier]]
+say = "¿Cuál es el motivo de su viaje?"
+short = "¿Motivo del viaje?"
+polished = "¿Me podría decir cuál es el motivo de su viaje?"
+
+[[tier]]
+say = "¿Cuánto tiempo se va a quedar?"
+short = "¿Cuánto tiempo?"
+polished = "¿Cuánto tiempo tiene pensado quedarse en el país?"
+
+[[tier]]
+say = "Me quedo en un hotel."
+short = "En un hotel."
+polished = "Me quedo en un hotel del centro. Aquí tengo la reserva."
+
+[[tier]]
+say = "Es mi primera vez aquí."
+short = "Primera vez."
+polished = "Sí, de hecho, es mi primera vez aquí."
+
+[[tier]]
+say = "No tengo nada que declarar."
+short = "Nada que declarar."
+polished = "No, no tengo nada que declarar, solo cosas personales."
+
+[[tier]]
+say = "Mi equipaje no llegó."
+short = "Falta mi maleta."
+polished = "Disculpe, mi equipaje no llegó. ¿Dónde lo puedo reclamar?"
+
+[[tier]]
+say = "Perdí mi conexión."
+short = "Perdí el vuelo."
+polished = "Disculpe, perdí mi conexión. ¿Me puede ayudar?"
+
+[[tier]]
+say = "¿Dónde se recoge el equipaje?"
+short = "¿Las maletas?"
+polished = "Disculpe, ¿me podría decir dónde se recoge el equipaje?"
+
+[[tier]]
+say = "¿Me puede cambiar a otro vuelo?"
+short = "¿Otro vuelo?"
+polished = "¿Sería posible cambiarme a otro vuelo, por favor?"
+
+[[tier]]
+say = "¿Cómo llego al centro?"
+short = "¿Al centro?"
+polished = "Disculpe, ¿cuál es la mejor forma de ir al centro?"
+
+[[tier]]
+say = "¿Hay autobús al centro?"
+short = "¿Autobús al centro?"
+polished = "Disculpe, ¿hay algún autobús que vaya al centro?"
+
+[[tier]]
+say = "¿Me puede recomendar un buen hotel?"
+short = "¿Algún buen hotel?"
+polished = "¿Me podría recomendar un buen hotel por aquí cerca?"
+
+[[tier]]
+say = "¿Cuánto tarda?"
+polished = "¿Más o menos cuánto se tarda en llegar?"
+
+[[tier]]
+say = "¿Cuál es la mejor forma de llegar?"
+short = "¿Cómo llego?"
+polished = "En tu opinión, ¿cuál es la mejor forma de llegar?"
+
+[[tier]]
+say = "Quisiera reservar una mesa para esta noche."
+short = "Una mesa para esta noche."
+polished = "Buenas tardes, ¿sería posible reservar una mesa para esta noche?"
+
+[[tier]]
+say = "No tenemos reserva."
+short = "Sin reserva."
+polished = "Me temo que no tenemos reserva. ¿Tienen alguna mesa?"
+
+[[tier]]
+say = "¿Hay alguna mesa fuera?"
+short = "¿Fuera?"
+polished = "¿Sería posible sentarnos fuera, en la terraza?"
+
+[[tier]]
+say = "¿Cuánto hay que esperar?"
+short = "¿Cuánta espera?"
+polished = "¿Más o menos cuánto hay que esperar para una mesa?"
+
+[[tier]]
+say = "Somos un grupo de cuatro."
+short = "Somos cuatro."
+polished = "Hola, somos un grupo de cuatro. ¿Tienen mesa?"
+
+[[tier]]
+say = "¿Tienen opciones vegetarianas?"
+short = "¿Algo vegetariano?"
+polished = "Disculpe, ¿tienen opciones vegetarianas en la carta?"
+
+[[tier]]
+say = "No puedo comer gluten."
+short = "Sin gluten, por favor."
+polished = "Le comento que no puedo comer gluten por salud."
+
+[[tier]]
+say = "¿Lleva frutos secos?"
+short = "¿Frutos secos?"
+polished = "Disculpe, ¿este plato lleva frutos secos?"
+
+[[tier]]
+say = "¿Qué lleva este plato?"
+short = "¿Qué lleva?"
+polished = "¿Me podría decir qué lleva este plato?"
+
+[[tier]]
+say = "¿Cuál es el plato del día?"
+short = "¿Plato del día?"
+polished = "¿Me podría decir cuál es el plato del día?"
+
+[[tier]]
+say = "¿Me lo pone sin cebolla?"
+short = "Sin cebolla, por favor."
+polished = "¿Me lo podría poner sin cebolla, por favor?"
+
+[[tier]]
+say = "Muy hecha, por favor."
+short = "Muy hecha."
+polished = "La carne muy hecha, por favor."
+
+[[tier]]
+say = "El aliño aparte, por favor."
+short = "El aliño aparte."
+polished = "¿Me podría poner el aliño aparte, por favor?"
+
+[[tier]]
+say = "¿Me cambia las patatas por ensalada?"
+short = "¿Ensalada en vez de patatas?"
+polished = "¿Sería posible cambiar las patatas por ensalada?"
+
+[[tier]]
+say = "¿Pedimos un entrante para compartir?"
+short = "¿Un entrante?"
+polished = "¿Os parece si pedimos un entrante para compartir?"
+
+[[tier]]
+say = "Perdone, no pedí esto."
+short = "No pedí esto."
+polished = "Perdone, lo siento, pero creo que no pedí esto."
+
+[[tier]]
+say = "La comida está un poco fría."
+short = "Está un poco fría."
+polished = "Perdone, la comida está un poco fría. ¿Me la podría calentar?"
+
+[[tier]]
+say = "Llevamos mucho rato esperando."
+short = "Seguimos esperando."
+polished = "Perdone, llevamos bastante rato esperando la comida."
+
+[[tier]]
+say = "¿Nos trae más pan?"
+short = "Más pan, por favor."
+polished = "Cuando pueda, ¿nos trae un poco más de pan?"
+
+[[tier]]
+say = "Hay un error en la cuenta."
+short = "La cuenta está mal."
+polished = "Disculpe, creo que hay un error en la cuenta."
+
+[[tier]]
+say = "¿Podemos pagar cada uno lo suyo?"
+short = "¿Por separado?"
+polished = "¿Sería posible pagar por separado, por favor?"
+
+[[tier]]
+say = "¿Pagamos a medias?"
+short = "¿A medias?"
+polished = "¿Qué tal si pagamos la cuenta a medias?"
+
+[[tier]]
+say = "¿El servicio está incluido en la cuenta?"
+short = "¿Servicio incluido?"
+polished = "Disculpe, ¿el servicio ya está incluido en la cuenta?"
+
+[[tier]]
+say = "Quédese con el cambio."
+short = "Quédeselo."
+polished = "Muchas gracias, quédese con el cambio."
+
+[[tier]]
+say = "¿Qué te trae al congreso?"
+short = "¿Qué te trae aquí?"
+polished = "Y dime, ¿qué te trae al congreso este año?"
+
+[[tier]]
+say = "¿A qué sector te dedicas?"
+short = "¿Qué sector?"
+polished = "Si no es indiscreción, ¿a qué sector te dedicas?"
+
+[[tier]]
+say = "Me encantaría saber más sobre eso."
+short = "¡Cuéntame más!"
+polished = "Qué interesante, me encantaría saber más sobre eso."
+
+[[tier]]
+say = "¡Sigamos en contacto!"
+short = "¡Hablamos!"
+polished = "Ha sido un gusto hablar contigo. ¡Sigamos en contacto!"
+
+[[tier]]
+say = "¡Ha sido un placer!"
+short = "¡Un placer!"
+polished = "¡Ha sido un verdadero placer hablar contigo!"
+
+[[tier]]
+say = "¿Hay algo de margen en el precio?"
+short = "¿Hay margen?"
+polished = "Me preguntaba si habría algo de margen en el precio."
+
+[[tier]]
+say = "Se sale un poco de mi presupuesto."
+short = "Se me va del presupuesto."
+polished = "Me temo que se sale un poco de mi presupuesto ahora mismo."
+
+[[tier]]
+say = "¿Podemos llegar a un punto medio?"
+short = "¿Punto medio?"
+polished = "¿Estaría dispuesto a que lleguemos a un punto medio?"
+
+[[tier]]
+say = "Lo necesitaría por escrito."
+short = "Por escrito, por favor."
+polished = "¿Le importaría enviármelo por escrito, por favor?"
+
+[[tier]]
+say = "¿Podríamos ampliar el plazo?"
+short = "¿Más tiempo?"
+polished = "¿Sería posible ampliar el plazo unos días más?"
+
+[[tier]]
+say = "Entiendo tu punto de vista."
+short = "Te entiendo."
+polished = "Entiendo tu punto de vista y me parece válido."
+
+[[tier]]
+say = "Con todo el respeto..."
+polished = "Con todo el respeto, yo lo veo de otra manera."
+
+[[tier]]
+say = "Me temo que tengo que discrepar."
+short = "No estoy de acuerdo."
+polished = "Me temo que tengo que discrepar, con todo respeto."
+
+[[tier]]
+say = "Veámoslo desde otro ángulo."
+short = "Cambiemos de enfoque."
+polished = "Quizás podríamos verlo desde otro ángulo."
+
+[[tier]]
+say = "Entiendo su preocupación."
+short = "Le entiendo."
+polished = "Entiendo perfectamente su preocupación y lamento lo ocurrido."
+
+[[tier]]
+say = "Merece la pena considerarlo."
+short = "Vale la pena."
+polished = "Creo que merecería la pena considerarlo."
+
+[[tier]]
+say = "Por otro lado..."
+short = "Aunque..."
+polished = "Por otro lado, también deberíamos tener en cuenta los costes."
+
+[[tier]]
+say = "La principal ventaja es el precio."
+short = "Es más barato."
+polished = "Yo diría que la principal ventaja es sin duda el precio."
+
+[[tier]]
+say = "No estoy del todo convencido."
+short = "No sé yo."
+polished = "La verdad, todavía no estoy del todo convencido."
+
+[[tier]]
+say = "En eso tienes razón."
+short = "Tienes razón."
+polished = "En eso tienes toda la razón, no lo había pensado."
+
+[[tier]]
+say = "¿Te has enterado de la noticia?"
+short = "¿Te has enterado?"
+polished = "¿Te has enterado de la noticia de esta mañana?"
+
+[[tier]]
+say = "Al parecer, es solo un rumor."
+short = "Es solo un rumor."
+polished = "Al parecer es solo un rumor, así que mejor esperar."
+
+[[tier]]
+say = "Depende de cómo lo mires."
+short = "Depende."
+polished = "Supongo que todo depende de cómo lo mires."
+
+[[tier]]
+say = "Según el artículo..."
+polished = "Según el artículo que leí esta mañana..."
+
+[[tier]]
+say = "Toda historia tiene dos caras."
+polished = "Recordemos que toda historia tiene siempre dos caras."

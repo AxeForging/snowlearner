@@ -101,6 +101,7 @@ topic = "trabalho"
 situation = "Você está travado esperando outra equipe."
 say = "I'm blocked on this until they fix the API"
 short = "I'm blocked on this"
+polished = "I'm afraid I'm blocked on this until they fix the API"
 meaning = "Estou travado nisso até eles arrumarem a API"
 tip = "API em inglês se fala 'ei-pi-ai'."
 
@@ -188,6 +189,7 @@ topic = "trabalho"
 situation = "Na daily, conte o que fez ontem."
 say = "Yesterday I finished the login page"
 short = "The login page is done"
+polished = "Yesterday I finished the login page, and it's ready for review"
 meaning = "Ontem eu terminei a página de login"
 tip = "'Finished' termina com som de 't': 'fínisht'."
 
@@ -250,6 +252,7 @@ topic = "viagem"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "How long does it take to get downtown?"
 short = "How far is downtown?"
+polished = "Excuse me, do you know how long it takes to get downtown?"
 meaning = "Quanto tempo leva pra chegar no centro?"
 tip = "'Downtown' é o centro da cidade nos EUA."
 
@@ -368,6 +371,7 @@ topic = "saúde"
 situation = "Na consulta, mostre onde dói."
 say = "It hurts right here"
 short = "It hurts here"
+polished = "Doctor, it hurts right here when I press"
 meaning = "Dói bem aqui"
 accept = ["It hurts here"]
 
@@ -384,6 +388,7 @@ topic = "saúde"
 situation = "O médico pergunta há quanto tempo você está assim."
 say = "I've been feeling sick since yesterday"
 short = "I feel sick"
+polished = "I've been feeling quite sick since yesterday morning"
 meaning = "Estou me sentindo mal desde ontem"
 
 # ---------------------------------------------------------------- social
@@ -418,12 +423,15 @@ topic = "social"
 situation = "Não sabe uma palavra em inglês."
 say = "How do you say this in English?"
 short = "How do you say this?"
+polished = "Sorry, how do you say this in English?"
 meaning = "Como se diz isso em inglês?"
 
 [[phrase]]
 topic = "social"
 situation = "Alguém pede desculpas por algo pequeno."
 say = "No worries"
+short = "All good"
+polished = "No worries at all, it happens"
 meaning = "Sem problemas"
 accept = ["No problem"]
 
@@ -466,6 +474,7 @@ topic = "telefone"
 situation = "Ligou pro número errado."
 say = "Sorry, I think I have the wrong number"
 short = "Wrong number, sorry"
+polished = "I'm so sorry, I think I have the wrong number"
 meaning = "Desculpa, acho que liguei errado"
 
 [[phrase]]
@@ -473,6 +482,7 @@ topic = "telefone"
 situation = "Precisa soletrar seu nome."
 say = "Let me spell it for you"
 short = "Let me spell it"
+polished = "Sure, let me spell it for you"
 meaning = "Deixa eu soletrar pra você"
 tip = "Treine o alfabeto: o 'e' em inglês se fala 'í' e o 'i' se fala 'ái'."
 
@@ -483,6 +493,7 @@ topic = "emergência"
 situation = "Aconteceu um acidente."
 say = "Please call an ambulance"
 short = "Call an ambulance!"
+polished = "Please, someone call an ambulance right now!"
 meaning = "Por favor, chame uma ambulância"
 accept = ["Call an ambulance"]
 
@@ -518,6 +529,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um colega chega na sua mesa enquanto você está numa ligação."
 say = "I'm on a call."
+short = "On a call."
+polished = "Sorry, I'm on a call right now."
 meaning = "Estou numa ligação."
 accept = ["I'm on the phone"]
 
@@ -526,6 +539,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Na festa da empresa, alguém de outra área pergunta o que você faz."
 say = "I work in IT."
+short = "I'm in IT."
+polished = "I work in IT, on the software team."
 meaning = "Trabalho com TI."
 accept = ["I work in tech", "I work in technology"]
 
@@ -534,6 +549,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um colega pergunta a que horas é a reunião de hoje."
 say = "The meeting is at ten."
+short = "At ten."
+polished = "The meeting is at ten, in the main room."
 meaning = "A reunião é às dez."
 accept = ["It's at ten"]
 
@@ -542,6 +559,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Primeiro dia no escritório, você procura onde vai ser a reunião."
 say = "Where is the meeting room?"
+short = "Meeting room?"
+polished = "Excuse me, could you tell me where the meeting room is?"
 meaning = "Onde fica a sala de reunião?"
 accept = ["Where's the meeting room?"]
 
@@ -559,6 +578,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um cliente chega e você apresenta a pessoa que coordena o seu time."
 say = "This is my manager."
+short = "My manager."
+polished = "I'd like you to meet my manager."
 meaning = "Esse é o meu gerente."
 accept = ["This is my boss"]
 
@@ -567,6 +588,8 @@ topic = "trabalho"
 level = "A1"
 situation = "No fim da apresentação, perguntam se alguém tem dúvidas, e você tem."
 say = "I have a question."
+short = "Quick question."
+polished = "Sorry, I have a quick question, if I may."
 meaning = "Tenho uma pergunta."
 accept = ["I've got a question"]
 
@@ -575,6 +598,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Você acorda com febre e avisa o time no chat que não vai trabalhar."
 say = "I'm sick today."
+short = "Out sick today."
+polished = "Hi team, I'm sick today, so I won't be working."
 meaning = "Estou doente hoje."
 accept = ["I'm ill today"]
 
@@ -612,6 +637,8 @@ topic = "trabalho"
 level = "A2"
 situation = "O cliente pergunta quando vai receber a proposta."
 say = "I'll send the email today."
+short = "Sending it today."
+polished = "I'll send you the email by the end of today."
 meaning = "Mando o e-mail hoje."
 accept = ["I will send the email today"]
 
@@ -620,6 +647,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Um colega pergunta se você vai ao escritório hoje."
 say = "I'm working from home today."
+short = "Working from home."
+polished = "I'm working from home today, but I'm online if you need me."
 meaning = "Hoje estou trabalhando de casa."
 accept = ["I'm working remotely today"]
 
@@ -638,6 +667,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Você entra atrasado na call e explica o motivo."
 say = "My internet is down."
+short = "Internet's down."
+polished = "Sorry for the delay, my internet is down."
 meaning = "Minha internet caiu."
 accept = ["My internet isn't working"]
 
@@ -655,6 +686,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Você avisa um colega que a reunião de quarta mudou de dia."
 say = "The meeting was moved to Friday."
+short = "Moved to Friday."
+polished = "Just so you know, the meeting was moved to Friday."
 meaning = "A reunião mudou pra sexta."
 accept = ["They moved the meeting to Friday"]
 
@@ -682,6 +715,8 @@ topic = "trabalho"
 level = "A2"
 situation = "O chefe pergunta como está o relatório do mês."
 say = "I finished the report."
+short = "Report's done."
+polished = "I finished the report, I'll send it to you now."
 meaning = "Terminei o relatório."
 accept = ["I've finished the report"]
 
