@@ -44,6 +44,7 @@ try {
 
     $setupArgs = @('setup')
     if ($env:SNOWLEARNER_LANG) { $setupArgs += @('--lang', $env:SNOWLEARNER_LANG) }
+    if ($env:SNOWLEARNER_NATIVE) { $setupArgs += @('--native', $env:SNOWLEARNER_NATIVE) }
     & "$dir\snowlearner.exe" @setupArgs
 }
 finally {
