@@ -138,6 +138,17 @@ pub fn shortcut_help(exe: &str, bindings: &[(&str, crate::control::ipc::Command)
     out.trim_end().to_string()
 }
 
+/// A window's screen rect (physical pixels) in the overlay's scene pixels:
+/// relative to the overlay's `origin`, divided by its `scale`, rounded outward
+/// so nothing is left half covered.
+pub fn to_scene(win: Rect, origin: (i32, i32), scale: u32) -> (i32, i32, i32, i32) {
+    let s = scale.max(1) as i32;
+    let (x, y) = (win.x - origin.0, win.y - origin.1);
+    let (x0, y0) = (x.div_euclid(s), y.div_euclid(s));
+    let (x1, y1) = ((x + win.w as i32 + s - 1).div_euclid(s), (y + win.h as i32 + s - 1).div_euclid(s));
+    (x0, y0, x1 - x0, y1 - y0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -274,5 +285,15 @@ mod tests {
     fn hotkeys_are_only_promised_where_they_work() {
         assert!(Session::X11.global_hotkeys());
         assert!(!Session::Wayland.global_hotkeys());
+    }
+
+    #[test]
+    fn a_window_maps_into_scene_pixels_rounded_outward() {
+        let panel = Rect { x: 1002, y: 401, w: 600, h: 301 };
+        assert_eq!(to_scene(panel, (0, 0), 4), (250, 100, 151, 76));
+        assert_eq!(to_scene(panel, (1000, 400), 1), (2, 1, 600, 301), "relative to the overlay's monitor");
+        let left = Rect { x: -10, y: 0, w: 20, h: 8 };
+        assert_eq!(to_scene(left, (0, 0), 4), (-3, 0, 6, 2), "partly left of the overlay");
+        assert_eq!(to_scene(left, (0, 0), 0), (-10, 0, 20, 8), "a zero scale is treated as 1");
     }
 }

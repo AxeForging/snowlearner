@@ -175,6 +175,10 @@ pub struct Scene {
     /// The orb's radius in scene pixels (the overlay's orb window may be drawn
     /// at a bigger scale than the scene).
     pub orb_r: f32,
+    /// Over the desktop: a rect (x, y, w, h, scene pixels) left clear, where the
+    /// panel window sits. The overlay stacks above every managed window on X11,
+    /// so drawing there would cover the panel.
+    pub keep_clear: Option<(i32, i32, i32, i32)>,
     practicing: bool,
     throws: u32,
     next_throw: f32,
@@ -246,6 +250,7 @@ impl Scene {
             hole: (w as f32 - 14.0, 14.0),
             show_orb: false,
             orb_r: ORB_R,
+            keep_clear: None,
             practicing: false,
             throws: 0,
             next_throw: 1.5,
@@ -1277,6 +1282,7 @@ impl Scene {
     pub fn draw(&self, c: &mut Canvas) {
         if self.weather.is_some() {
             self.draw_weather(c);
+            self.clear_kept(c);
             return;
         }
         if let Some(b) = &self.backdrop {
@@ -1323,6 +1329,7 @@ impl Scene {
             // included) clear, so nothing here paints over it however deep the snow.
             clear_disc(c, self.hole, self.orb_r * 2.0);
         }
+        self.clear_kept(c);
         if let Some((hx, hy)) = self.hand {
             hand::draw_hand(c, hx, hy, self.grabbed.is_some(), self.time);
         }
@@ -1342,6 +1349,12 @@ impl Scene {
         self.blanket.borrow_mut().draw(c, &self.snow, &self.frost, self.ground_y() as i32, self.time, self.transparent);
         for f in self.flakes.iter().filter(|f| f.falling) {
             c.dot(f.x, f.y, if f.speed > 13.0 { hex(0xffffff) } else { hex(0xc9d0f2) });
+        }
+    }
+
+    fn clear_kept(&self, c: &mut Canvas) {
+        if let (true, Some((x, y, w, h))) = (self.transparent, self.keep_clear) {
+            c.rect(x, y, w, h, CLEAR);
         }
     }
 
@@ -2117,6 +2130,29 @@ mod tests {
         assert!(drawn > 100, "orb pixels: {drawn}");
         assert_eq!(covered, 0, "{covered} of {drawn} orb pixels hidden");
         assert_eq!(s.poke(10.0, 10.0), Poke::Orb, "still clickable under the snow");
+    }
+
+    #[test]
+    fn over_the_desktop_deep_snow_leaves_the_panel_window_uncovered() {
+        let mut s = Scene::new(240, 135, 17, Commitment::Steady.pace(), true);
+        bury(&mut s);
+        s.warrior.say("Uma frase bem comprida para cobrir o painel", 9.0);
+        s.keep_clear = Some((150, 60, 80, 70)); // the panel window, in scene pixels
+        let mut c = Canvas::new(240, 135);
+        s.draw(&mut c);
+        assert_eq!(c.opaque_in(150, 60, 80, 70), 0, "snow painted over the panel window");
+        assert!(c.opaque_in(0, 100, 140, 35) > 0, "the rest of the screen still has its snow");
+        let mut w = Scene::weather(240, 135, 17, Commitment::Steady.pace(), true);
+        w.set_freeze_target(1.0);
+        w.keep_clear = Some((150, 60, 80, 70));
+        for _ in 0..(60 * 30) {
+            w.step(1.0 / 30.0);
+        }
+        let mut cw = Canvas::new(240, 135);
+        w.draw(&mut cw);
+        assert_eq!(cw.opaque_in(150, 60, 80, 70), 0, "the panel on another monitor stays clear too");
+        s.keep_clear = Some((-20, 120, 80, 80)); // partly off screen
+        s.draw(&mut c);
     }
 
     #[test]

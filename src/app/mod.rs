@@ -265,6 +265,12 @@ struct Weather {
     last: Instant,
 }
 
+/// A window's outer rect (title bar included) in physical screen pixels.
+fn panel_rect(w: &Window) -> Option<Rect> {
+    let (pos, size) = (w.outer_position().ok()?, w.outer_size());
+    Some(Rect { x: pos.x, y: pos.y, w: size.width, h: size.height })
+}
+
 /// The monitors as winit reports them, for `platform::overlay_layout`.
 fn monitors(el: &ActiveEventLoop) -> Vec<platform::Monitor> {
     let primary = el.primary_monitor();
@@ -474,14 +480,24 @@ impl App {
         }
     }
 
+    /// The panel window on screen, while the overlay could cover it.
+    fn panel_rect(&self) -> Option<Rect> {
+        self.menu_win.as_ref().filter(|_| self.resolved.overlay).and_then(|m| panel_rect(&m.window))
+    }
+
     /// Steps and draws the weather window `i` at the primary's freeze level.
     fn draw_weather(&mut self, i: usize) {
         let level = self.scene.as_ref().map(Scene::freeze_level).unwrap_or(0.0);
+        let panel = self.panel_rect();
         let Some(wx) = self.weather.get_mut(i) else { return };
         let now = Instant::now();
         let dt = (now - wx.last).as_secs_f32().min(0.2);
         wx.last = now;
         wx.scene.set_freeze_target(level);
+        wx.scene.keep_clear = panel.and_then(|win| {
+            let at = wx.surface.window.outer_position().ok()?;
+            Some(platform::to_scene(win, (at.x, at.y), wx.surface.scale))
+        });
         wx.scene.step(dt);
         wx.scene.draw(&mut wx.surface.canvas);
         wx.surface.screen.present(&wx.surface.canvas, wx.surface.scale);
@@ -778,6 +794,11 @@ impl App {
             scene.step(dt);
         }
         self.input(Input::Tick { dt, now: chrono::Local::now() });
+        // The overlay stacks above the panel on X11: leave its spot clear.
+        let panel = self.panel_rect();
+        if let (Some(scene), Some(main)) = (&mut self.scene, &self.main) {
+            scene.keep_clear = panel.map(|win| platform::to_scene(win, self.overlay_origin, main.scale));
+        }
         if let (Some(scene), Some(main)) = (&self.scene, &mut self.main) {
             scene.draw(&mut main.canvas);
             main.screen.present(&main.canvas, main.scale);
