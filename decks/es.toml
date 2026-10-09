@@ -178,6 +178,7 @@ topic = "viagem"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "¿Cuánto se tarda en llegar al centro?"
 short = "¿Está lejos el centro?"
+polished = "Disculpe, ¿sabe cuánto se tarda en llegar al centro?"
 meaning = "Quanto tempo leva pra chegar no centro?"
 accept = ["¿Cuánto tiempo se tarda al centro?"]
 
@@ -312,6 +313,7 @@ topic = "saúde"
 situation = "Conte desde quando está mal."
 say = "Me siento mal desde ayer"
 short = "Me siento mal"
+polished = "Me siento bastante mal desde ayer por la mañana"
 meaning = "Estou me sentindo mal desde ontem"
 
 # ---------------------------------------------------------------- social
@@ -345,12 +347,15 @@ topic = "social"
 situation = "Não sabe uma palavra."
 say = "¿Cómo se dice esto en español?"
 short = "¿Cómo se dice?"
+polished = "Perdona, ¿me podrías decir cómo se dice esto en español?"
 meaning = "Como se diz isso em espanhol?"
 
 [[phrase]]
 topic = "social"
 situation = "Alguém pede desculpas por algo pequeno."
 say = "No pasa nada"
+short = "Tranqui"
+polished = "No te preocupes, no pasa nada"
 meaning = "Não tem problema"
 accept = ["No te preocupes"]
 
@@ -385,6 +390,7 @@ topic = "telefone"
 situation = "Ligou pro número errado."
 say = "Perdón, creo que me equivoqué de número"
 short = "Número equivocado, perdón"
+polished = "Disculpe la molestia, creo que me equivoqué de número"
 meaning = "Desculpa, acho que liguei errado"
 
 # ---------------------------------------------------------------- emergencia
@@ -394,6 +400,7 @@ topic = "emergência"
 situation = "Aconteceu um acidente."
 say = "Llame a una ambulancia, por favor"
 short = "Una ambulancia"
+polished = "Por favor, ¡que alguien llame a una ambulancia ya!"
 meaning = "Chame uma ambulância, por favor"
 accept = ["Llamen a una ambulancia"]
 
@@ -429,6 +436,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um colega chega na sua mesa enquanto você está numa ligação."
 say = "Estoy en una llamada."
+short = "En una llamada."
+polished = "Perdona, ahora mismo estoy en una llamada."
 meaning = "Estou numa ligação."
 accept = ["Estoy al teléfono"]
 
@@ -437,6 +446,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Na festa da empresa, alguém de outra área pergunta o que você faz."
 say = "Trabajo en informática."
+short = "En informática."
+polished = "Trabajo en informática, en el equipo de software."
 meaning = "Trabalho com TI."
 accept = ["Trabajo en tecnología", "Trabajo en sistemas"]
 
@@ -445,6 +456,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um colega pergunta a que horas é a reunião de hoje."
 say = "La reunión es a las diez."
+short = "A las diez."
+polished = "La reunión es a las diez, en la sala grande."
 meaning = "A reunião é às dez."
 accept = ["Es a las diez"]
 
@@ -453,6 +466,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Primeiro dia no escritório, você procura onde vai ser a reunião."
 say = "¿Dónde está la sala de reuniones?"
+short = "¿La sala de reuniones?"
+polished = "Disculpa, ¿me podrías decir dónde está la sala de reuniones?"
 meaning = "Onde fica a sala de reunião?"
 accept = ["¿Dónde es la sala de reuniones?"]
 
@@ -471,6 +486,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um cliente chega e você apresenta a pessoa que coordena o seu time."
 say = "Este es mi jefe."
+short = "Mi jefe."
+polished = "Le presento a mi jefe."
 meaning = "Esse é o meu gerente."
 accept = ["Esta es mi jefa"]
 
@@ -479,6 +496,8 @@ topic = "trabalho"
 level = "A1"
 situation = "No fim da apresentação, perguntam se alguém tem dúvidas, e você tem."
 say = "Tengo una pregunta."
+short = "Una pregunta."
+polished = "Perdón, tengo una pregunta, si me permiten."
 meaning = "Tenho uma pergunta."
 accept = ["Tengo una duda"]
 
@@ -487,6 +506,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Você acorda com febre e avisa o time no chat que não vai trabalhar."
 say = "Hoy estoy enfermo."
+short = "Estoy enfermo."
+polished = "Hola a todos, hoy estoy enfermo y no voy a trabajar."
 meaning = "Estou doente hoje."
 accept = ["Hoy estoy enferma", "Estoy enfermo hoy"]
 
@@ -524,6 +545,8 @@ topic = "trabalho"
 level = "A2"
 situation = "O cliente pergunta quando vai receber a proposta."
 say = "Hoy te mando el correo."
+short = "Hoy te lo mando."
+polished = "Le mando el correo hoy antes de que termine el día."
 meaning = "Mando o e-mail hoje."
 accept = ["Te envío el correo hoy"]
 
@@ -532,6 +555,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Um colega pergunta se você vai ao escritório hoje."
 say = "Hoy trabajo desde casa."
+short = "Teletrabajo hoy."
+polished = "Hoy trabajo desde casa, pero estoy conectado si me necesitas."
 meaning = "Hoje estou trabalhando de casa."
 accept = ["Hoy trabajo en remoto"]
 
@@ -550,6 +575,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Você entra atrasado na call e explica o motivo."
 say = "No me funciona internet."
+short = "Sin internet."
+polished = "Perdón por el retraso, no me funciona internet."
 meaning = "Minha internet caiu."
 accept = ["Se me cayó internet"]
 
@@ -567,6 +594,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Você avisa um colega que a reunião de quarta mudou de dia."
 say = "La reunión se movió al viernes."
+short = "Pasó al viernes."
+polished = "Te aviso de que la reunión se movió al viernes."
 meaning = "A reunião mudou pra sexta."
 accept = ["Cambiaron la reunión al viernes"]
 
@@ -594,6 +623,8 @@ topic = "trabalho"
 level = "A2"
 situation = "O chefe pergunta como está o relatório do mês."
 say = "Terminé el informe."
+short = "Informe listo."
+polished = "Terminé el informe, ahora mismo se lo envío."
 meaning = "Terminei o relatório."
 accept = ["Ya terminé el informe"]
 
