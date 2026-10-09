@@ -692,7 +692,8 @@ impl Scene {
         let slid = self.slide(can, self.mage.x, mage::WIDTH, self.mage.dir, 2.0, dt);
         if let Some(x) = slid {
             self.mage.x = x;
-            if !self.mage.sliding && self.mage.bubble.is_none() {
+            // Only when nobody talks: two bubbles at once overlap.
+            if !self.mage.sliding && self.mage.bubble.is_none() && self.warrior.bubble.is_none() {
                 self.mage.say(slide::MAGE_LINE, 2.0);
             }
         }
@@ -880,7 +881,7 @@ impl Scene {
         let slid = self.slide(can, self.warrior.x, warrior::WIDTH, self.warrior.dir, 4.0, dt);
         if let Some(x) = slid {
             self.warrior.x = x;
-            if !self.warrior.sliding && self.warrior.bubble.is_none() {
+            if !self.warrior.sliding && self.warrior.bubble.is_none() && self.mage.bubble.is_none() {
                 self.warrior.say(slide::WARRIOR_LINE, 2.0);
             }
         }
@@ -2091,6 +2092,15 @@ mod tests {
         assert!(slid);
         assert_eq!(lines, 0);
         assert_eq!(s.warrior.bubble.as_ref().unwrap().text, "Dica importante");
+    }
+
+    #[test]
+    fn a_slide_shout_waits_while_the_other_one_is_talking() {
+        let mut s = on_a_peak(18, false, 0.8);
+        s.mage.say("Vou congelar tudo!", 9.0);
+        let (slid, lines, _) = ride(&mut s, false);
+        assert!(slid);
+        assert_eq!(lines, 0, "two bubbles at once overlap on screen");
     }
 
     /// A scene whose pile is `level` of the way to the ice line, owl summon due now.
