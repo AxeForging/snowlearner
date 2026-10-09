@@ -426,6 +426,7 @@ impl Lesson {
     }
 
     fn after_cue(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
+        let slack = if self.beginner() { matcher::BEGINNER_SLACK } else { 0 };
         let State::Challenge { phrase, mode, stage, job, .. } = &mut self.state else { return };
         // Room for the longest tier: any of them is a right answer.
         let words = self.deck.phrases[*phrase].tiers().iter().map(|(_, s)| s.split_whitespace().count()).max();
@@ -445,7 +446,8 @@ impl Lesson {
                 c.footer = format!("Terminou? {} · Esc: cancelar", self.opts.hotkey);
                 c.listen = Some(Meter { level: 0.0, speaking: false, think_left: plan.think, think_total: plan.think });
             }
-            jobs.push(Job::Listen { id: *job, lang: self.deck.language.clone(), plan });
+            let expect = expect(&self.deck, *phrase, slack, self.opts.threshold);
+            jobs.push(Job::Listen { id: *job, lang: self.deck.language.clone(), plan, expect: Some(expect) });
         } else {
             *stage = Stage::Confirm;
             if let Some(c) = cap {
@@ -799,6 +801,22 @@ pub fn spell_for(said: Answer) -> Spell {
 /// How the target language is read: slower for a pre-A1 learner.
 pub fn target_speed(max_level: &str) -> Speed {
     if max_level == PRE_A1 { Speed::Slower } else { Speed::Slow }
+}
+
+/// What the listener should expect: every right answer, and as a hint for a
+/// second pass, deck phrases around this one with the target last.
+fn expect(deck: &Deck, i: usize, slack: usize, threshold: f32) -> matcher::Expect {
+    let p = &deck.phrases[i];
+    let around = deck.phrases.iter().enumerate().skip(i.saturating_sub(3)).take(7).filter(|(j, _)| *j != i);
+    let mut hint: Vec<&str> = around.map(|(_, q)| q.say.as_str()).collect();
+    hint.push(&p.say);
+    matcher::Expect {
+        answers: p.answers().into_iter().map(|(_, a)| a.to_string()).collect(),
+        lang: deck.language.clone(),
+        slack,
+        threshold,
+        hint: hint.join(" "),
+    }
 }
 
 #[cfg(test)]
@@ -1516,6 +1534,24 @@ mod tests {
         assert!(matches!(jobs.as_slice(), [Job::Listen { lang, .. }] if lang == "es"), "{jobs:?}");
         f.send(Input::Speech(SpeechEvent::Heard { id, text: "¡Poyo!".into() }));
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Passed, "said right, spelled by sound");
+    }
+
+    #[test]
+    fn the_listener_gets_the_answers_and_the_deck_vocabulary_as_a_hint() {
+        let mut f = fixture_deck(
+            "language='es'\nnative='pt-BR'\ntitle='t'\nlanguage_name='espanhol'\n\
+             [[phrase]]\nsay='¡Pare!'\nmeaning='Pare!'\nsituation='O táxi passou do destino.'\ntopic='viagem'\nlevel='A1'\n\
+             [[phrase]]\nsay='Leche.'\nmeaning='Leite.'\nsituation='No café.'\ntopic='comida'\nlevel='A1'",
+        );
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        let jobs = f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        let [Job::Listen { expect: Some(e), .. }] = jobs.as_slice() else { panic!("{jobs:?}") };
+        let target = &f.scene.hud.caption.as_ref().unwrap().say;
+        assert_eq!(&e.answers, &vec![target.clone()]);
+        assert_eq!(e.lang, "es");
+        assert!(e.hint.ends_with(target.as_str()), "target last, where whisper weighs it most: {:?}", e.hint);
+        assert!(e.hint.contains("Leche.") || e.hint.contains("¡Pare!"), "neighbours give context: {:?}", e.hint);
+        assert!(e.hint.matches(target.as_str()).count() == 1, "{:?}", e.hint);
     }
 
     #[test]

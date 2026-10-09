@@ -31,6 +31,8 @@ pub enum Job {
         id: u64,
         lang: String,
         plan: ListenPlan,
+        /// The answers, for a hinted second pass when the first one misses.
+        expect: Option<super::matcher::Expect>,
     },
     /// Microphone check from the panel/CLI: record, then transcribe.
     MicTest {
@@ -193,15 +195,16 @@ impl Speech {
                             notify(SpeechEvent::Spoken { id });
                         }
                         #[cfg(feature = "stt")]
-                        Job::Listen { id, lang, plan } => {
-                            let ev = listen(id, &lang, plan, &cfg, &mut recognizer, &stop_worker, &notify);
+                        Job::Listen { id, lang, plan, expect } => {
+                            let ev =
+                                listen(id, &lang, expect.as_ref(), plan, &cfg, &mut recognizer, &stop_worker, &notify);
                             recognizer.touch(Instant::now());
                             notify(ev);
                         }
                         #[cfg(feature = "stt")]
                         Job::MicTest { id, lang } => {
                             let plan = ListenPlan { think: 6.0, expected: 3.0 };
-                            let ev = listen(id, &lang, plan, &cfg, &mut recognizer, &stop_worker, &notify);
+                            let ev = listen(id, &lang, None, plan, &cfg, &mut recognizer, &stop_worker, &notify);
                             recognizer.touch(Instant::now());
                             notify(ev);
                         }
@@ -228,9 +231,12 @@ impl Speech {
 }
 
 #[cfg(feature = "stt")]
+/// `expect`: what the lesson expects to hear, for a hinted second pass.
+#[allow(clippy::too_many_arguments)]
 fn listen(
     id: u64,
     lang: &str,
+    expect: Option<&super::matcher::Expect>,
     plan: ListenPlan,
     cfg: &VoiceSettings,
     recognizer: &mut Resident<super::stt::Recognizer>,
@@ -263,7 +269,7 @@ fn listen(
         notify(SpeechEvent::Thinking { id });
         let started = Instant::now();
         let model = recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
-        let text = model.transcribe(&rec.samples, lang)?;
+        let text = model.transcribe_expecting(&rec.samples, lang, expect)?;
         trace::line(format_args!("heard {text:?} (transcribed in {:.1} s)", started.elapsed().as_secs_f32()));
         Ok(Some(text))
     })();

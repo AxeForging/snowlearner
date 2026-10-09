@@ -153,6 +153,40 @@ fn similar(a: &str, b: &str, slack: usize) -> bool {
     strsim::levenshtein(a, b) <= allowed
 }
 
+/// What a listen is expected to hear, so the recognizer can take a second,
+/// hinted pass when the first one misses. Whisper mishears a lone short word
+/// with no context ("¡Pare!" came back as "body", "¿Vale?", "*Suscríbete*");
+/// a vocabulary hint (like phrase hints in phone dictation) fixes most of it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Expect {
+    pub answers: Vec<String>,
+    pub lang: String,
+    pub slack: usize,
+    pub threshold: f32,
+    /// Initial prompt for the second pass: deck vocabulary around the target.
+    pub hint: String,
+}
+
+impl Expect {
+    pub fn accepts(&self, heard: &str) -> bool {
+        let answers: Vec<&str> = self.answers.iter().map(String::as_str).collect();
+        score_any(&answers, heard, self.slack, &self.lang).0.passed(self.threshold)
+    }
+
+    /// The first transcript, unless it misses and the hinted one (`hinted`,
+    /// only run then) is accepted. A hinted miss never replaces the first:
+    /// the learner sees what was really heard.
+    pub fn pick(&self, first: String, hinted: impl FnOnce(&str) -> Option<String>) -> String {
+        if self.accepts(&first) {
+            return first;
+        }
+        match hinted(&self.hint) {
+            Some(second) if self.accepts(&second) => second,
+            _ => first,
+        }
+    }
+}
+
 /// Best score over several accepted answers; returns it with the answer's index.
 pub fn score_any(answers: &[&str], heard: &str, slack: usize, lang: &str) -> (MatchResult, usize) {
     answers
@@ -296,6 +330,44 @@ mod tests {
     use super::*;
 
     const PASS: f32 = 0.72;
+
+    fn expect_pare() -> Expect {
+        Expect {
+            answers: vec!["¡Pare!".into()],
+            lang: "es".into(),
+            slack: 0,
+            threshold: PASS,
+            hint: "Leche. Correo. ¡Pare!".into(),
+        }
+    }
+
+    #[test]
+    fn a_first_transcript_that_passes_skips_the_hinted_pass() {
+        let mut ran = false;
+        let heard = expect_pare().pick("¡Pare!".into(), |_| {
+            ran = true;
+            None
+        });
+        assert_eq!(heard, "¡Pare!");
+        assert!(!ran, "no second transcription when the first one is right");
+    }
+
+    #[test]
+    fn a_miss_gets_a_hinted_second_pass_that_can_rescue_it() {
+        let mut prompt = String::new();
+        let heard = expect_pare().pick("¿Vale?".into(), |hint| {
+            prompt = hint.to_string();
+            Some("¡Paré!".into())
+        });
+        assert_eq!(heard, "¡Paré!");
+        assert_eq!(prompt, "Leche. Correo. ¡Pare!");
+    }
+
+    #[test]
+    fn a_hinted_pass_that_still_misses_keeps_what_was_really_heard() {
+        assert_eq!(expect_pare().pick("¿Vale?".into(), |_| Some("Vale.".into())), "¿Vale?");
+        assert_eq!(expect_pare().pick("¿Vale?".into(), |_| None), "¿Vale?", "recognizer error on the second pass");
+    }
 
     #[test]
     fn exact_answer_scores_perfectly() {

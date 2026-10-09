@@ -245,7 +245,7 @@ fn test_mic(settings: &Settings, paths: &Paths) -> Result<()> {
         return Ok(());
     }
     let recognizer = crate::speech::stt::Recognizer::load(&paths.model_file(&settings.model))?;
-    let text = recognizer.transcribe(&rec.samples, &settings.learning)?;
+    let text = recognizer.transcribe(&rec.samples, &settings.learning, None)?;
     println!("Heard: \"{text}\"");
     Ok(())
 }
