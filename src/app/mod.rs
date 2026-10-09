@@ -171,6 +171,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         summary_at: settings.summary_at()?,
         ask_every: commitment.pace().ask_every,
         practice: settings.practice,
+        answer: settings.answer,
         topic: settings.topic_filter(),
         max_level: settings.max_level.clone(),
         daily_goal: settings.daily_goal,
@@ -562,6 +563,10 @@ impl App {
             Item::Practice => {
                 let p = self.settings.practice;
                 self.lesson.set_options(|o| o.practice = p, scene);
+            }
+            Item::Answer => {
+                let a = self.settings.answer;
+                self.lesson.set_options(|o| o.answer = a, scene);
             }
             Item::Goal => {
                 let g = self.settings.daily_goal;

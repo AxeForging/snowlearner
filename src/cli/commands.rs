@@ -470,6 +470,7 @@ fn lesson_caption(p: &crate::learn::deck::Phrase, status: Status) -> Caption {
         segments: p.cue.clone(),
         say: p.say.clone(),
         active: p.cue.iter().position(|s| s.is_target()),
+        alts: p.alternatives(crate::learn::deck::Answer::All),
         meaning: p.meaning.clone(),
         status,
         feedback: None,
@@ -560,7 +561,7 @@ fn snapshot(
                                 .collect(),
                         );
                     }
-                    s.celebrate(1.0);
+                    s.celebrate(1.0, crate::scene::pyro::Spell::Fireball);
                     s.mage_say("Argh! Não!", 3.0);
                 }),
             ));

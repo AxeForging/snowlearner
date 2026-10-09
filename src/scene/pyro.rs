@@ -34,6 +34,39 @@ pub enum Act {
     Leave,
 }
 
+/// What the fire mage casts for a right answer: the fuller the answer, the
+/// bigger the spell. Same fireball art, scaled; one fireball per answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Spell {
+    /// Short answer: a small fireball.
+    Spark,
+    /// Complete answer: the usual fireball.
+    #[default]
+    Fireball,
+    /// Polished answer: a big fireball.
+    Blaze,
+}
+
+impl Spell {
+    /// Share of `Pace::melt_fraction` this spell melts.
+    pub fn melt(self) -> f32 {
+        match self {
+            Spell::Spark => 0.6,
+            Spell::Fireball => 1.0,
+            Spell::Blaze => 1.5,
+        }
+    }
+
+    /// Half-size of the fireball in art pixels; also scales the impact embers.
+    pub fn radius(self) -> i32 {
+        match self {
+            Spell::Spark => 1,
+            Spell::Fireball => 2,
+            Spell::Blaze => 3,
+        }
+    }
+}
+
 pub enum Event {
     /// Fireball leaves the staff here.
     Release { x: f32, y: f32 },
