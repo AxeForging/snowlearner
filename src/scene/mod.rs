@@ -994,6 +994,11 @@ impl Scene {
     /// share. Snowfall is as thick as `target` says.
     fn step_weather(&mut self, dt: f32, target: f32) {
         self.time += dt;
+        // Paused on the main monitor: this screen's snow is in the black hole too.
+        self.vortex = self.vortex.step(dt);
+        if self.vortex != vortex::Phase::Open {
+            return;
+        }
         let k = (WEATHER_FOLLOW * dt).min(1.0);
         let (w, h) = (self.w as f32, self.h as f32);
         // A little past the line, so a pile meant to be at it gets there.
@@ -1281,7 +1286,22 @@ impl Scene {
 
     pub fn draw(&self, c: &mut Canvas) {
         if self.weather.is_some() {
-            self.draw_weather(c);
+            if self.vortex == vortex::Phase::Open {
+                self.draw_weather(c);
+            } else {
+                // Sucked toward the black hole on the main monitor (`hole` may
+                // be off this screen); the hole itself is drawn over there.
+                let (k, swirl, _) = self.vortex.params();
+                let mut frames = self.warp_frames.borrow_mut();
+                let (world, warped) = &mut *frames;
+                if (world.w, world.h) != (c.w, c.h) {
+                    (*world, *warped) = (Canvas::new(c.w, c.h), Canvas::new(c.w, c.h));
+                }
+                self.draw_weather(world);
+                vortex::warp(world, warped, self.hole, k, swirl);
+                c.clear(CLEAR);
+                c.blit(warped, 0, 0);
+            }
             self.clear_kept(c);
             return;
         }
@@ -2363,6 +2383,32 @@ mod tests {
     }
 
     // ---- weather-only scenes (the other monitors in overlay mode) ----
+
+    #[test]
+    fn pausing_sucks_the_snow_of_a_weather_screen_into_the_black_hole_and_back() {
+        let mut s = Scene::weather(240, 135, 5, Commitment::Steady.pace(), true);
+        s.set_freeze_target(0.5);
+        let run = |s: &mut Scene, secs: f32| {
+            for _ in 0..(secs * 30.0) as i32 {
+                s.step(1.0 / 30.0);
+            }
+        };
+        let snow = |s: &Scene| {
+            let mut c = Canvas::new(240, 135);
+            s.draw(&mut c);
+            c.opaque_in(0, 0, 240, 135)
+        };
+        run(&mut s, 60.0);
+        let before = snow(&s);
+        assert!(before > 1000, "a pile to suck in: {before}");
+        s.hole = (-200.0, 20.0); // the black hole sits on the main monitor, to the left
+        s.set_paused(true);
+        run(&mut s, 4.0);
+        assert!(snow(&s) < before / 10, "paused: the snow is gone into the hole ({} of {before})", snow(&s));
+        s.set_paused(false);
+        run(&mut s, 4.0);
+        assert!(snow(&s) > before / 2, "back after the pause: {} of {before}", snow(&s));
+    }
 
     #[test]
     fn a_weather_screen_never_spawns_actors_whatever_the_freeze() {

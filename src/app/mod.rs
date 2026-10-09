@@ -516,16 +516,22 @@ impl App {
     /// Steps and draws the weather window `i` at the primary's freeze level.
     fn draw_weather(&mut self, i: usize) {
         let level = self.scene.as_ref().map(Scene::freeze_level).unwrap_or(0.0);
+        let paused = self.scene.as_ref().is_some_and(Scene::paused);
+        // The black hole in screen pixels: this screen's snow is pulled toward it.
+        let main_scale = self.main.as_ref().map_or(1.0, |m| m.scale as f32);
+        let (hx, hy) = self.scene.as_ref().map_or((0.0, 0.0), |s| s.hole);
+        let hole = (hx * main_scale + self.overlay_origin.0 as f32, hy * main_scale + self.overlay_origin.1 as f32);
         let panel = self.panel_rect();
         let Some(wx) = self.weather.get_mut(i) else { return };
         let now = Instant::now();
         let dt = (now - wx.last).as_secs_f32().min(0.2);
         wx.last = now;
         wx.scene.set_freeze_target(level);
-        wx.scene.keep_clear = panel.and_then(|win| {
-            let at = wx.surface.window.outer_position().ok()?;
-            Some(platform::to_scene(win, (at.x, at.y), wx.surface.scale))
-        });
+        let at = wx.surface.window.outer_position().map(|p| (p.x, p.y)).unwrap_or_default();
+        let s = wx.surface.scale as f32;
+        wx.scene.hole = ((hole.0 - at.0 as f32) / s, (hole.1 - at.1 as f32) / s);
+        wx.scene.set_paused(paused);
+        wx.scene.keep_clear = panel.map(|win| platform::to_scene(win, at, wx.surface.scale));
         wx.scene.step(dt);
         wx.scene.draw(&mut wx.surface.canvas);
         wx.surface.screen.present(&wx.surface.canvas, wx.surface.scale);
