@@ -5,6 +5,8 @@
 //! - `command`: your own command (Piper, a script…), run without a shell.
 
 use super::tts::{Speed, Tts, command_no_window, locale};
+use crate::lang::text::kokoro_language;
+use crate::lang::{Native, T};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -30,10 +32,8 @@ pub struct KokoroVoice {
     id: String,
     name: String,
     female: bool,
-    /// Language (and accent), in pt-BR words.
-    language: &'static str,
-    /// Where the accent is from, only where one language has several (English).
-    region: Option<&'static str>,
+    /// Kokoro's language letter (`a` American English, `p` pt-BR…).
+    letter: char,
     /// `v0` voices: the first model's version of a voice.
     old: bool,
 }
@@ -52,42 +52,33 @@ pub fn kokoro_voice(id: &str) -> Option<KokoroVoice> {
         'm' => false,
         _ => return None,
     };
-    let (language, region) = match lang {
-        'a' => ("inglês americano", Some("EUA")),
-        'b' => ("inglês britânico", Some("RU")),
-        'e' => ("espanhol", None),
-        'f' => ("francês", None),
-        'h' => ("hindi", None),
-        'i' => ("italiano", None),
-        'j' => ("japonês", None),
-        'p' => ("português do Brasil", None),
-        'z' => ("chinês mandarim", None),
-        _ => return None,
-    };
+    kokoro_language(Native::PtBr, lang)?;
     let (old, bare) = match rest.strip_prefix("v0") {
         Some(n) if !n.is_empty() => (true, n.to_string()),
         _ => (false, rest),
     };
     let mut name = bare.clone();
     name[..1].make_ascii_uppercase();
-    Some(KokoroVoice { id: id.to_string(), name, female, language, region, old })
+    Some(KokoroVoice { id: id.to_string(), name, female, letter: lang, old })
 }
 
 impl KokoroVoice {
     /// For the panel row: `Heart · EUA`, `Isabella v0 · RU`, `Dora`.
-    pub fn short(&self) -> String {
+    pub fn short(&self, native: Native) -> String {
         let v0 = if self.old { " v0" } else { "" };
-        match self.region {
+        let (_, region) = kokoro_language(native, self.letter).unwrap_or_default();
+        match region {
             Some(r) => format!("{}{v0} · {r}", self.name),
             None => format!("{}{v0}", self.name),
         }
     }
 
-    /// `Emma: voz feminina, inglês britânico (bf_emma)`.
-    pub fn describe(&self) -> String {
-        let gender = if self.female { "feminina" } else { "masculina" };
-        let old = if self.old { ", versão antiga" } else { "" };
-        format!("{}: voz {gender}, {}{old} ({})", self.name, self.language, self.id)
+    /// `Emma: voz feminina, inglês britânico (bf_emma)` / `Emma: female voice, British English (bf_emma)`.
+    pub fn describe(&self, native: Native) -> String {
+        let gender = if self.female { T::VoiceFemale } else { T::VoiceMale }.get(native);
+        let old = if self.old { T::VoiceOld.get(native) } else { "" };
+        let (language, _) = kokoro_language(native, self.letter).unwrap_or_default();
+        format!("{}: {gender}, {language}{old} ({})", self.name, self.id)
     }
 }
 
@@ -570,18 +561,23 @@ mod tests {
 
     #[test]
     fn kokoro_voice_names_say_language_accent_and_gender() {
+        let pt = Native::PtBr;
         let v = kokoro_voice("af_heart").unwrap();
-        assert_eq!(v.short(), "Heart · EUA");
-        assert_eq!(v.describe(), "Heart: voz feminina, inglês americano (af_heart)");
-        assert_eq!(kokoro_voice("bm_george").unwrap().short(), "George · RU");
-        assert_eq!(kokoro_voice("bf_v0isabella").unwrap().short(), "Isabella v0 · RU");
-        assert_eq!(kokoro_voice("bf_emma").unwrap().describe(), "Emma: voz feminina, inglês britânico (bf_emma)");
-        assert_eq!(kokoro_voice("pf_dora").unwrap().short(), "Dora", "one Portuguese: no region");
-        assert_eq!(kokoro_voice("pm_alex").unwrap().describe(), "Alex: voz masculina, português do Brasil (pm_alex)");
-        assert_eq!(kokoro_voice("em_santa").unwrap().describe(), "Santa: voz masculina, espanhol (em_santa)");
+        assert_eq!(v.short(pt), "Heart · EUA");
+        assert_eq!(v.describe(pt), "Heart: voz feminina, inglês americano (af_heart)");
+        assert_eq!(kokoro_voice("bm_george").unwrap().short(pt), "George · RU");
+        assert_eq!(kokoro_voice("bf_v0isabella").unwrap().short(pt), "Isabella v0 · RU");
+        assert_eq!(kokoro_voice("bf_emma").unwrap().describe(pt), "Emma: voz feminina, inglês britânico (bf_emma)");
+        assert_eq!(kokoro_voice("pf_dora").unwrap().short(pt), "Dora", "one Portuguese: no region");
+        assert_eq!(kokoro_voice("pm_alex").unwrap().describe(pt), "Alex: voz masculina, português do Brasil (pm_alex)");
+        assert_eq!(kokoro_voice("em_santa").unwrap().describe(pt), "Santa: voz masculina, espanhol (em_santa)");
         let old = kokoro_voice("af_v0bella").unwrap();
-        assert_eq!(old.short(), "Bella v0 · EUA");
-        assert_eq!(old.describe(), "Bella: voz feminina, inglês americano, versão antiga (af_v0bella)");
+        assert_eq!(old.short(pt), "Bella v0 · EUA");
+        assert_eq!(old.describe(pt), "Bella: voz feminina, inglês americano, versão antiga (af_v0bella)");
+        let en = Native::En;
+        assert_eq!(v.short(en), "Heart · US");
+        assert_eq!(old.describe(en), "Bella: female voice, American English, old version (af_v0bella)");
+        assert_eq!(kokoro_voice("pm_alex").unwrap().describe(en), "Alex: male voice, Brazilian Portuguese (pm_alex)");
     }
 
     #[test]
@@ -603,8 +599,10 @@ mod tests {
             zf_xiaoyi zm_yunjian zm_yunxi zm_yunxia zm_yunyang";
         for id in ids.split_whitespace() {
             let v = kokoro_voice(id).unwrap_or_else(|| panic!("{id} has no label"));
-            assert!(crate::render::font::supports(&v.describe()), "{id}: {}", v.describe());
-            assert!(v.short().chars().count() <= 18, "{id}: {:?} too long for the panel row", v.short());
+            for n in Native::ALL {
+                assert!(crate::render::font::supports(&v.describe(n)), "{id}: {}", v.describe(n));
+                assert!(v.short(n).chars().count() <= 18, "{id}: {:?} too long for the panel row", v.short(n));
+            }
         }
     }
 

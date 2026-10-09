@@ -86,6 +86,9 @@ texts! {
     EngineCommand => "comando", "command";
     VoiceAuto => "automática", "automatic";
     VoiceAutoUses => "Automática, usa {0}", "Automatic, uses {0}";
+    VoiceFemale => "voz feminina", "female voice";
+    VoiceMale => "voz masculina", "male voice";
+    VoiceOld => ", versão antiga", ", old version";
     AddressSaved => "Endereço salvo. Enter: testar as vozes.", "Address saved. Enter: test the voices.";
     AddressInvalid => "Endereço inválido: use http://IP:porta/v1", "Invalid address: use http://IP:port/v1";
     AddressTyping => "Digite o endereço · Enter salva · Esc cancela", "Type the address · Enter saves · Esc cancels";
@@ -320,6 +323,26 @@ pub fn language_name(native: Native, code: &str) -> String {
         _ => return code.to_string(),
     };
     name.to_string()
+}
+
+/// A Kokoro voice's language letter in the learner's words, with the accent's
+/// region where one language has several: `a` → ("American English", "US").
+pub fn kokoro_language(native: Native, letter: char) -> Option<(&'static str, Option<&'static str>)> {
+    let pt = native == Native::PtBr;
+    Some(match letter {
+        'a' if pt => ("inglês americano", Some("EUA")),
+        'a' => ("American English", Some("US")),
+        'b' if pt => ("inglês britânico", Some("RU")),
+        'b' => ("British English", Some("UK")),
+        'e' => (if pt { "espanhol" } else { "Spanish" }, None),
+        'f' => (if pt { "francês" } else { "French" }, None),
+        'h' => (if pt { "hindi" } else { "Hindi" }, None),
+        'i' => (if pt { "italiano" } else { "Italian" }, None),
+        'j' => (if pt { "japonês" } else { "Japanese" }, None),
+        'p' => (if pt { "português do Brasil" } else { "Brazilian Portuguese" }, None),
+        'z' => (if pt { "chinês mandarim" } else { "Mandarin Chinese" }, None),
+        _ => return None,
+    })
 }
 
 /// Topic keys stay as the decks write them (pt-BR); this is how they read.

@@ -404,9 +404,10 @@ impl Menu {
             _ => return None,
         };
         if voice.is_empty() {
-            return kokoro_voice(kokoro_default(lang)).map(|k| T::VoiceAutoUses.fill(s.native, &[&k.describe()]));
+            return kokoro_voice(kokoro_default(lang))
+                .map(|k| T::VoiceAutoUses.fill(s.native, &[&k.describe(s.native)]));
         }
-        kokoro_voice(voice).map(|k| k.describe())
+        kokoro_voice(voice).map(|k| k.describe(s.native))
     }
 
     /// Languages this native can learn: never their own.
@@ -456,7 +457,7 @@ impl Menu {
             Item::VoiceNative | Item::VoiceLearning => {
                 let v = if item == Item::VoiceNative { &s.voice_native } else { &s.voice_learning };
                 match kokoro_voice(v).filter(|_| s.tts_engine == TtsEngine::Http) {
-                    Some(k) => k.short(),
+                    Some(k) => k.short(n),
                     None => auto(v, T::VoiceAuto),
                 }
             }
