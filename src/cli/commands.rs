@@ -305,7 +305,7 @@ fn progress(settings: &Settings, paths: &Paths) -> Result<()> {
     let deck = Deck::load(&settings.learning, settings.native, &paths.decks_dir())?;
     let history = History::open(&paths.db_file())?;
     let stats = history.stats(&deck.language, Local::now().date_naive())?;
-    let selection = deck.selection(settings.topic_filter().as_deref(), &settings.max_level);
+    let selection = deck.selection(&settings.topics, &settings.max_level);
     let report = crate::learn::progress::progress(&deck.phrases, &selection, &stats);
     print!("{}", report.render_text(&deck.language_name, settings.native));
     Ok(())

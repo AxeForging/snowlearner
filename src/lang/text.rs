@@ -70,6 +70,10 @@ texts! {
     ItemTestVoices => "> Testar vozes", "> Test voices";
     ItemSpeaker => "Alto-falante", "Speaker";
     AllTopicsShort => "todos", "all";
+    TopicsCount => "{0} temas", "{0} topics";
+    PickerFooter => "↑↓ Enter: escolher  Esc: voltar", "↑↓ Enter: pick  Esc: back";
+    ChecklistFooter => "↑↓ Enter: marcar  Esc: pronto", "↑↓ Enter: tick  Esc: done";
+    ChecklistNoneIsAll => "Nada marcado = todos os temas", "Nothing ticked = all topics";
     LevelBeginner => "pré-A1 · iniciante", "pre-A1 · beginner";
     LevelUpTo => "até {0}", "up to {0}";
     PracticeAuto => "automático", "automatic";
@@ -374,6 +378,17 @@ pub fn topic(native: Native, key: &str) -> String {
     }
 }
 
+/// Ticked topics as one short label: "trabalho", "trabalho + viagem",
+/// "3 temas". None when nothing is ticked (= every topic).
+pub fn topics_label(native: Native, topics: &[String]) -> Option<String> {
+    match topics {
+        [] => None,
+        [one] => Some(topic(native, one)),
+        [a, b] => Some(format!("{} + {}", topic(native, a), topic(native, b))),
+        many => Some(T::TopicsCount.fill(native, &[&many.len()])),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -433,6 +448,11 @@ mod tests {
         assert_eq!(topic(Native::En, "trabalho"), "work");
         assert_eq!(topic(Native::PtBr, "trabalho"), "trabalho");
         assert_eq!(topic(Native::En, "meu tema"), "meu tema");
+        let t = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(topics_label(Native::En, &[]), None, "nothing ticked = all topics");
+        assert_eq!(topics_label(Native::En, &t(&["trabalho"])).as_deref(), Some("work"));
+        assert_eq!(topics_label(Native::PtBr, &t(&["trabalho", "viagem"])).as_deref(), Some("trabalho + viagem"));
+        assert_eq!(topics_label(Native::En, &t(&["a", "b", "c"])).as_deref(), Some("3 topics"));
         for (k, en) in TOPICS {
             assert!(font::supports(k) && font::supports(en), "{k}");
         }

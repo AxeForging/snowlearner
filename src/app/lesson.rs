@@ -62,8 +62,8 @@ pub struct Options {
     pub practice: Practice,
     /// Which answer tier is asked (and shown); every tier always counts.
     pub answer: Answer,
-    /// Only practice this topic (None = all).
-    pub topic: Option<String>,
+    /// Only practice these topics (empty = all).
+    pub topics: Vec<String>,
     /// Highest CEFR level to practice.
     pub max_level: String,
     pub daily_goal: u32,
@@ -167,9 +167,8 @@ impl Lesson {
             .map(|rows| rows.iter().filter(|r| r.successes > 0).count() as u32)
             .unwrap_or(0);
         self.goal_celebrated = self.done_today >= self.opts.daily_goal;
-        if self.opts.topic.as_ref().is_some_and(|t| !deck.topics().contains(t)) {
-            self.opts.topic = None;
-        }
+        let known = deck.topics();
+        self.opts.topics.retain(|t| known.contains(t)); // another deck's (or a typo'd) topics mean nothing here
         self.deck = deck;
         self.last_phrase = None;
         self.combo = 0;
@@ -177,20 +176,25 @@ impl Lesson {
         self.refresh_stats(scene);
     }
 
-    /// Topics with something at the current level: what the panel offers.
-    pub fn topics(&self) -> Vec<String> {
-        self.deck.topics_at(&self.opts.max_level)
+    /// Topics with something at the current level and how many items each
+    /// has there: what the panel's checklist offers.
+    pub fn topics(&self) -> Vec<(String, usize)> {
+        self.deck.topic_counts(&self.opts.max_level)
     }
 
-    /// Drops a topic with nothing at the current level ("trabalho" at pre-A1)
-    /// and returns it, so the caller can say so and save the setting.
-    pub fn drop_empty_topic(&mut self, scene: &mut Scene) -> Option<String> {
-        let topic = self.opts.topic.clone()?;
-        if self.topics().contains(&topic) {
-            return None;
+    /// Unticks topics with nothing at the current level ("trabalho" at
+    /// pre-A1) and returns them, so the caller can say so and save the
+    /// setting. Topics the deck doesn't have at all are unticked quietly.
+    /// Untick them all and every topic is in again.
+    pub fn drop_empty_topics(&mut self, scene: &mut Scene) -> Vec<String> {
+        let open: Vec<String> = self.topics().into_iter().map(|(t, _)| t).collect();
+        let (keep, gone): (Vec<String>, Vec<String>) = self.opts.topics.iter().cloned().partition(|t| open.contains(t));
+        if gone.is_empty() {
+            return gone;
         }
-        self.set_options(|o| o.topic = None, scene);
-        Some(topic)
+        self.set_options(|o| o.topics = keep, scene);
+        let known = self.deck.topics();
+        gone.into_iter().filter(|t| known.contains(t)).collect()
     }
 
     pub fn set_options(&mut self, f: impl FnOnce(&mut Options), scene: &mut Scene) {
@@ -208,7 +212,7 @@ impl Lesson {
 
     /// Phrases currently in rotation (topic + level filters).
     pub fn selection(&self) -> Vec<usize> {
-        self.deck.selection(self.opts.topic.as_deref(), &self.opts.max_level)
+        self.deck.selection(&self.opts.topics, &self.opts.max_level)
     }
 
     /// Warrior tips built from the hotkeys and the deck.
@@ -310,10 +314,8 @@ impl Lesson {
             label: format!(
                 "{} · {}",
                 self.deck.language.to_uppercase(),
-                self.opts
-                    .topic
-                    .as_deref()
-                    .map_or_else(|| T::AllTopics.get(self.opts.native).into(), |t| text::topic(self.opts.native, t))
+                text::topics_label(self.opts.native, &self.opts.topics)
+                    .unwrap_or_else(|| T::AllTopics.get(self.opts.native).into())
             ),
         });
     }
@@ -813,10 +815,15 @@ impl Lesson {
     }
 }
 
-/// Says a topic had nothing at the level (the HUD then shows "todos os
-/// temas"); short enough for a 320 px window.
-pub fn topic_dropped(native: Native, topic: &str) -> String {
-    T::TopicDropped.fill(native, &[&text::topic(native, topic)])
+/// Says which ticked topics had nothing at the level (the HUD then shows
+/// what is left, or "todos os temas"); short enough for a 320 px window:
+/// names that don't fit become a count ("Sem 2 temas nesse nível.").
+pub fn topic_dropped(native: Native, dropped: &[String]) -> String {
+    let named = T::TopicDropped.fill(native, &[&text::topics_label(native, dropped).unwrap_or_default()]);
+    if crate::render::font::text_width(&named) <= 316 {
+        return named;
+    }
+    T::TopicDropped.fill(native, &[&T::TopicsCount.fill(native, &[&dropped.len()])])
 }
 
 /// The fire mage's spell for the tier the learner said: fuller answer, bigger spell.
@@ -879,7 +886,7 @@ mod tests {
             ask_every: 60.0,
             practice: Practice::Repeat,
             answer: Answer::All,
-            topic: None,
+            topics: Vec::new(),
             max_level: "B1".into(),
             daily_goal: 2,
         }
@@ -1233,7 +1240,7 @@ mod tests {
         for native in Native::ALL {
             for topic in Deck::languages_for(native).iter().flat_map(|l| Deck::builtin_for(l, native).unwrap().topics())
             {
-                let text = topic_dropped(native, &topic);
+                let text = topic_dropped(native, std::slice::from_ref(&topic));
                 assert!(text.contains(&crate::lang::text::topic(native, &topic)), "{text}");
                 assert!(crate::render::font::text_width(&text) <= 316, "{text:?} overflows a 320 px window");
                 assert!(crate::render::font::supports(&text), "{text:?}");
@@ -1244,16 +1251,24 @@ mod tests {
     #[test]
     fn a_topic_with_nothing_at_the_level_is_dropped_and_named() {
         let mut o = options(true);
-        o.topic = Some("trabalho".into());
+        o.topics = vec!["trabalho".into()];
         o.max_level = "B2".into();
         let mut f = fixture_with(o);
-        assert_eq!(f.lesson.drop_empty_topic(&mut f.scene), None, "trabalho has B2 phrases");
+        assert!(f.lesson.drop_empty_topics(&mut f.scene).is_empty(), "trabalho has B2 phrases");
         f.lesson.set_options(|o| o.max_level = PRE_A1.into(), &mut f.scene);
-        f.lesson.set_deck(Deck::parse(PRE_DECK).unwrap(), &mut f.scene);
-        f.lesson.set_options(|o| o.topic = Some("trabalho".into()), &mut f.scene);
-        assert_eq!(f.lesson.topics(), vec!["restaurante"], "the panel offers only what exists at pre-A1");
-        assert_eq!(f.lesson.drop_empty_topic(&mut f.scene).as_deref(), Some("trabalho"));
-        assert_eq!(f.lesson.options().topic, None);
+        let deck = format!(
+            "{PRE_DECK}\n[[phrase]]\nsay='Could you repeat that?'\nmeaning='Pode repetir?'\nsituation='Na call.'\n\
+             topic='trabalho'\nlevel='A2'"
+        );
+        f.lesson.set_deck(Deck::parse(&deck).unwrap(), &mut f.scene);
+        let ticked = ["trabalho", "restaurante", "sumido"].map(String::from).to_vec();
+        f.lesson.set_options(|o| o.topics = ticked, &mut f.scene);
+        assert_eq!(f.lesson.topics(), vec![("restaurante".into(), 1)], "the panel offers only what exists at pre-A1");
+        assert_eq!(f.lesson.drop_empty_topics(&mut f.scene), ["trabalho"], "a topic the deck lacks goes quietly");
+        assert_eq!(f.lesson.options().topics, ["restaurante"], "what still has items stays ticked");
+        f.lesson.set_options(|o| o.topics = vec!["trabalho".into()], &mut f.scene);
+        assert_eq!(f.lesson.drop_empty_topics(&mut f.scene), ["trabalho"]);
+        assert!(f.lesson.options().topics.is_empty(), "nothing left ticked = every topic");
         let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
         assert!(!parts.is_empty(), "a lesson starts instead of 'Nenhuma frase com esse tema/nível'");
     }
@@ -1319,7 +1334,7 @@ mod tests {
     #[test]
     fn an_accepted_variant_counts_and_lights_every_word_green() {
         let mut o = options(true);
-        o.topic = Some("trabalho".into());
+        o.topics = vec!["trabalho".into()];
         let mut f = fixture_with(o);
         let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
         assert_eq!(f.current_say(), "Could you repeat that?");
@@ -1392,7 +1407,7 @@ mod tests {
             f.send(Input::Dismiss);
         }
         let mut o = options(true);
-        o.topic = Some("nada".into());
+        o.topics = vec!["nada".into()];
         let mut f = fixture_with(o);
         assert!(f.send(Input::Primary).is_empty());
         assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("menu"));
@@ -1752,6 +1767,90 @@ mod tests {
             f.finish();
         }
         assert!(f.lesson.deck().phrases.iter().all(|p| p.situation.is_some()));
+    }
+
+    /// A pt-BR learner of English with `topics` ticked, at `max_level`.
+    fn ticked_fixture(topics: &[&str], max_level: &str) -> Fixture {
+        let o = Options {
+            max_level: max_level.into(),
+            topics: topics.iter().map(|t| t.to_string()).collect(),
+            ..options(true)
+        };
+        let mut f = fixture_with(o);
+        let dir = tempfile::tempdir().unwrap();
+        f.lesson.set_deck(Deck::load("en", Native::PtBr, dir.path()).unwrap(), &mut f.scene);
+        f
+    }
+
+    fn topic_of(f: &Fixture, say: &str) -> String {
+        f.lesson.deck().phrases.iter().find(|p| p.say == say).unwrap().topic.clone()
+    }
+
+    #[test]
+    fn lessons_ask_only_from_the_ticked_topics() {
+        let mut f = ticked_fixture(&["restaurante", "viagem"], "B1");
+        assert_eq!(f.lesson.topics().len(), f.lesson.deck().topics_at("B1").len(), "the panel still lists every topic");
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..12 {
+            let say = f.answer(true);
+            seen.insert(topic_of(&f, &say));
+            f.finish();
+        }
+        assert!(seen.iter().all(|t| t == "restaurante" || t == "viagem"), "{seen:?}");
+        let sel = f.lesson.selection();
+        let in_sel = |t: &str| sel.iter().any(|&i| f.lesson.deck().phrases[i].topic == t);
+        assert!(in_sel("restaurante") && in_sel("viagem"), "both ticked topics are in rotation");
+        let label = &f.scene.hud.stats.as_ref().unwrap().label;
+        assert!(label.ends_with("restaurante + viagem"), "{label}");
+    }
+
+    #[test]
+    fn a_beginner_with_ticked_topics_still_starts_from_single_words() {
+        let mut f = ticked_fixture(&["restaurante", "trabalho"], PRE_A1);
+        let sel = f.lesson.selection();
+        assert!(!sel.is_empty());
+        for &i in &sel {
+            let p = &f.lesson.deck().phrases[i];
+            assert!(p.topic == "restaurante" || p.topic == "trabalho", "{:?}", p.say);
+            assert_eq!(p.level.as_deref(), Some(PRE_A1), "{:?}: nothing above the level", p.say);
+        }
+        let first = path::ordered(&f.lesson.deck().phrases, &sel)[0];
+        assert_eq!(
+            path::Stage::of(&f.lesson.deck().phrases[first]),
+            path::Stage::Words,
+            "the path still starts at words"
+        );
+        let say = f.answer(true);
+        assert_eq!(say.split_whitespace().count(), 1, "{say:?} is not a first word");
+    }
+
+    #[test]
+    fn nothing_ticked_asks_from_every_topic() {
+        let f = ticked_fixture(&[], "B1");
+        let all = f.lesson.deck().selection(&[], "B1");
+        assert_eq!(f.lesson.selection(), all);
+        let label = &f.scene.hud.stats.as_ref().unwrap().label;
+        assert!(label.ends_with("todos os temas"), "{label}");
+    }
+
+    #[test]
+    fn the_notice_for_two_dropped_topics_fits_the_narrowest_screen() {
+        for native in Native::ALL {
+            for lang in Deck::languages_for(native) {
+                let topics = Deck::builtin_for(lang, native).unwrap().topics();
+                for pair in topics.windows(2) {
+                    let text = topic_dropped(native, pair);
+                    assert!(crate::render::font::text_width(&text) <= 316, "{text:?} overflows a 320 px window");
+                    assert!(crate::render::font::supports(&text), "{text:?}");
+                }
+            }
+        }
+        let two = ["social".to_string(), "viagem".to_string()];
+        assert_eq!(topic_dropped(Native::PtBr, &two), "Sem social + viagem nesse nível.", "named when they fit");
+        let long: Vec<String> = ["negociação e opinião", "casa e burocracia", "gírias e conversa", "vida no exterior"]
+            .map(String::from)
+            .to_vec();
+        assert_eq!(topic_dropped(Native::PtBr, &long), "Sem 4 temas nesse nível.");
     }
 
     #[test]

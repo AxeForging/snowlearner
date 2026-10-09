@@ -508,9 +508,9 @@ impl Deck {
         self.tips.extend(other.tips);
     }
 
-    /// Phrases at or below `max_level` (unleveled phrases always count) and,
-    /// when given, in `topic`. Returns indices into `phrases`.
-    pub fn selection(&self, topic: Option<&str>, max_level: &str) -> Vec<usize> {
+    /// Phrases at or below `max_level` (unleveled phrases always count) and in
+    /// one of `topics` (empty = every topic). Returns indices into `phrases`.
+    pub fn selection(&self, topics: &[String], max_level: &str) -> Vec<usize> {
         let max = LEVELS.iter().position(|l| *l == max_level).unwrap_or(LEVELS.len() - 1);
         (0..self.phrases.len())
             .filter(|&i| {
@@ -521,7 +521,7 @@ impl Deck {
                     Some(l) => l <= max,
                     None => max_level != PRE_A1,
                 };
-                level_ok && topic.is_none_or(|t| p.topic == t)
+                level_ok && (topics.is_empty() || topics.contains(&p.topic))
             })
             .collect()
     }
@@ -554,11 +554,18 @@ impl Deck {
 
     /// Topics with something to practice at `max_level`, in deck order.
     pub fn topics_at(&self, max_level: &str) -> Vec<String> {
-        let mut out: Vec<String> = Vec::new();
-        for i in self.selection(None, max_level) {
+        self.topic_counts(max_level).into_iter().map(|(t, _)| t).collect()
+    }
+
+    /// Each topic with something at `max_level` and how many items it has
+    /// there, in deck order: what the panel's topic checklist shows.
+    pub fn topic_counts(&self, max_level: &str) -> Vec<(String, usize)> {
+        let mut out: Vec<(String, usize)> = Vec::new();
+        for i in self.selection(&[], max_level) {
             let t = &self.phrases[i].topic;
-            if !out.contains(t) {
-                out.push(t.clone());
+            match out.iter_mut().find(|(k, _)| k == t) {
+                Some((_, n)) => *n += 1,
+                None => out.push((t.clone(), 1)),
             }
         }
         out
@@ -662,9 +669,9 @@ mod tests {
         for t in &en.tips {
             assert!(crate::render::font::supports(t), "{t}");
         }
-        let pre = en.selection(None, PRE_A1);
+        let pre = en.selection(&[], PRE_A1);
         assert!(pre.len() >= 40, "an English beginner has {} first items", pre.len());
-        let first = crate::learn::path::ordered(&en.phrases, &en.selection(None, "C2"))[0];
+        let first = crate::learn::path::ordered(&en.phrases, &en.selection(&[], "C2"))[0];
         assert_eq!(crate::learn::path::Stage::of(&en.phrases[first]), crate::learn::path::Stage::Words);
     }
 
@@ -678,7 +685,7 @@ mod tests {
         assert!(count(Stage::Words) >= 40, "{} first words", count(Stage::Words));
         assert!(count(Stage::Chunks) >= 20, "{} short chunks", count(Stage::Chunks));
         assert_eq!(count(Stage::Phrases), 0, "a first-steps deck has no full phrases");
-        let order = crate::learn::path::ordered(&d.phrases, &d.selection(None, "C2"));
+        let order = crate::learn::path::ordered(&d.phrases, &d.selection(&[], "C2"));
         assert_eq!(Stage::of(&d.phrases[order[0]]), Stage::Words, "the path starts with a word");
         for p in &d.phrases {
             assert!(p.situation.is_some() && !p.meaning.is_empty(), "{:?}", p.say);
@@ -753,7 +760,7 @@ mod tests {
     fn builtin_decks_give_a_pre_a1_learner_words_and_set_expressions_only() {
         for lang in PT_BR_DECKS {
             let deck = Deck::builtin(lang).unwrap();
-            let pre = deck.selection(None, PRE_A1);
+            let pre = deck.selection(&[], PRE_A1);
             assert!(pre.len() >= 60, "{lang}: only {} pre-A1 items", pre.len());
             for &i in &pre {
                 let p = &deck.phrases[i];
@@ -1065,12 +1072,8 @@ mod tests {
         .unwrap();
         assert_eq!(LEVELS[0], PRE_A1);
         assert_eq!(d.phrases[0].level.as_deref(), Some(PRE_A1), "any case is read as PRE-A1");
-        assert_eq!(
-            d.selection(None, PRE_A1),
-            vec![0],
-            "neither A1 nor unleveled phrases for someone who knows nothing"
-        );
-        assert_eq!(d.selection(None, "A1"), vec![0, 1, 2], "A1 and up still take pre-A1 and unleveled phrases");
+        assert_eq!(d.selection(&[], PRE_A1), vec![0], "neither A1 nor unleveled phrases for someone who knows nothing");
+        assert_eq!(d.selection(&[], "A1"), vec![0, 1, 2], "A1 and up still take pre-A1 and unleveled phrases");
     }
 
     #[test]
@@ -1094,10 +1097,40 @@ mod tests {
              [[phrase]]\nsay='c'\nmeaning='x'\ntopic='trabalho'"
         ))
         .unwrap();
-        assert_eq!(d.selection(None, "C2"), vec![0, 1, 2]);
-        assert_eq!(d.selection(None, "A2"), vec![0, 2], "unleveled phrases are always in");
-        assert_eq!(d.selection(Some("viagem"), "C2"), vec![0, 1]);
-        assert!(d.selection(Some("nada"), "C2").is_empty());
+        assert_eq!(d.selection(&[], "C2"), vec![0, 1, 2]);
+        assert_eq!(d.selection(&[], "A2"), vec![0, 2], "unleveled phrases are always in");
+        assert_eq!(d.selection(&["viagem".into()], "C2"), vec![0, 1]);
+        assert!(d.selection(&["nada".into()], "C2").is_empty());
+    }
+
+    #[test]
+    fn selection_takes_every_ticked_topic_at_once() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='a'\nmeaning='x'\ntopic='viagem'\nlevel='A1'\n\
+             [[phrase]]\nsay='b'\nmeaning='x'\ntopic='comida'\nlevel='A1'\n\
+             [[phrase]]\nsay='c'\nmeaning='x'\ntopic='trabalho'\nlevel='A1'\n\
+             [[phrase]]\nsay='d'\nmeaning='x'\ntopic='trabalho'\nlevel='B2'"
+        ))
+        .unwrap();
+        let ticked = ["trabalho".to_string(), "viagem".to_string()];
+        assert_eq!(d.selection(&ticked, "C2"), vec![0, 2, 3], "work + travel, never food");
+        assert_eq!(d.selection(&ticked, "A1"), vec![0, 2], "the level still applies to each topic");
+        assert_eq!(d.selection(&[], "A1"), vec![0, 1, 2], "nothing ticked = every topic");
+        assert_eq!(d.selection(&["nada".into(), "viagem".into()], "C2"), vec![0], "an unknown topic adds nothing");
+    }
+
+    #[test]
+    fn topic_counts_say_how_many_items_each_topic_has_at_the_level() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='a'\nmeaning='x'\ntopic='viagem'\nlevel='PRE-A1'\n\
+             [[phrase]]\nsay='b'\nmeaning='x'\ntopic='trabalho'\nlevel='B1'\n\
+             [[phrase]]\nsay='c'\nmeaning='x'\ntopic='viagem'\nlevel='A1'\n\
+             [[phrase]]\nsay='d'\nmeaning='x'\ntopic='trabalho'\nlevel='A1'"
+        ))
+        .unwrap();
+        assert_eq!(d.topic_counts(PRE_A1), vec![("viagem".to_string(), 1)]);
+        assert_eq!(d.topic_counts("A1"), vec![("viagem".to_string(), 2), ("trabalho".to_string(), 1)]);
+        assert_eq!(d.topic_counts("C2"), vec![("viagem".to_string(), 2), ("trabalho".to_string(), 2)]);
     }
 
     #[test]
@@ -1108,7 +1141,7 @@ mod tests {
             let count = |st: Stage| d.phrases.iter().filter(|p| Stage::of(p) == st).count();
             assert!(count(Stage::Words) >= 40, "{lang}: {} first words", count(Stage::Words));
             assert!(count(Stage::Chunks) >= 40, "{lang}: {} short chunks", count(Stage::Chunks));
-            let first = crate::learn::path::ordered(&d.phrases, &d.selection(None, "C2"))[0];
+            let first = crate::learn::path::ordered(&d.phrases, &d.selection(&[], "C2"))[0];
             assert_eq!(Stage::of(&d.phrases[first]), Stage::Words, "{lang} path starts with a word");
         }
     }
@@ -1116,8 +1149,8 @@ mod tests {
     #[test]
     fn builtin_decks_cover_beginner_to_advanced() {
         let d = Deck::builtin("en").unwrap();
-        assert!(d.selection(None, "A1").len() >= 40);
-        assert!(d.selection(None, "A1").len() < d.selection(None, "B2").len());
+        assert!(d.selection(&[], "A1").len() >= 40);
+        assert!(d.selection(&[], "A1").len() < d.selection(&[], "B2").len());
         assert!(d.topics().contains(&"trabalho".to_string()));
     }
 
