@@ -124,6 +124,8 @@ pub struct Scene {
     glass: Glass,
     /// The snow blanket as last drawn; redrawn only when the snow moves.
     blanket: RefCell<Blanket>,
+    /// Reused frames for the black-hole warp (world, warped): no allocation per frame.
+    warp_frames: RefCell<(Canvas, Canvas)>,
     pub fires: Vec<Fire>,
     pub hud: Hud,
     /// Warrior tips (pt-BR), provided by the app (hotkey hints, phrase tips).
@@ -159,6 +161,9 @@ pub struct Scene {
     pub hole: (f32, f32),
     /// Draw the orb inside the scene (window mode; overlay has its own orb window).
     pub show_orb: bool,
+    /// The orb's radius in scene pixels (the overlay's orb window may be drawn
+    /// at a bigger scale than the scene).
+    pub orb_r: f32,
     practicing: bool,
     throws: u32,
     next_throw: f32,
@@ -194,6 +199,7 @@ impl Scene {
             frozen_over: false,
             glass: Glass::new(w, h),
             blanket: RefCell::default(),
+            warp_frames: RefCell::new((Canvas::new(1, 1), Canvas::new(1, 1))),
             fires: Vec::new(),
             hud: Hud::default(),
             tips: Vec::new(),
@@ -221,6 +227,7 @@ impl Scene {
             vortex: vortex::Phase::Open,
             hole: (w as f32 - 14.0, 14.0),
             show_orb: false,
+            orb_r: ORB_R,
             practicing: false,
             throws: 0,
             next_throw: 1.5,
@@ -440,9 +447,10 @@ impl Scene {
         self.vortex == vortex::Phase::Closed
     }
 
-    /// In-scene orb position when `show_orb` (window mode).
+    /// On the orb: drawn in-scene (window mode) or its own window over the
+    /// overlay. The snow never takes this spot (`draw`), so it stays clickable.
     pub fn orb_at(&self, x: f32, y: f32) -> bool {
-        self.show_orb && ((x - self.hole.0).powi(2) + (y - self.hole.1).powi(2)).sqrt() <= ORB_R + 2.0
+        ((x - self.hole.0).powi(2) + (y - self.hole.1).powi(2)).sqrt() <= self.orb_r + 2.0
     }
 
     pub fn paused(&self) -> bool {
@@ -1117,27 +1125,36 @@ impl Scene {
             self.draw_world(c);
         } else {
             let (k, swirl, tremble) = self.vortex.params();
-            let mut world = Canvas::new(c.w, c.h);
-            self.draw_world(&mut world);
+            let mut frames = self.warp_frames.borrow_mut();
+            let (world, warped) = &mut *frames;
+            if (world.w, world.h) != (c.w, c.h) {
+                (*world, *warped) = (Canvas::new(c.w, c.h), Canvas::new(c.w, c.h));
+            }
+            world.clear(CLEAR);
+            self.draw_world(world);
             if tremble > 0 && k >= 1.0 {
                 let t = (self.time * 40.0) as i32;
-                c.blit(&world, (t % 3 - 1) * tremble, ((t / 3) % 3 - 1) * tremble);
+                c.blit(world, (t % 3 - 1) * tremble, ((t / 3) % 3 - 1) * tremble);
             } else {
-                let mut warped = Canvas::new(c.w, c.h);
-                vortex::warp(&world, &mut warped, self.hole, k, swirl);
-                c.blit(&warped, 0, 0);
+                vortex::warp(world, warped, self.hole, k, swirl);
+                c.blit(warped, 0, 0);
             }
             let size = 4.0 + (1.0 - k) * 12.0;
             if !(self.transparent && self.vortex == vortex::Phase::Closed) {
                 vortex::draw_hole(c, self.hole, size, self.time);
             }
         }
+        self.hud.draw(c, gy as i32, self.time);
+        // The orb is on top of everything: snow, characters, bubbles, HUD.
         if self.show_orb && self.vortex == vortex::Phase::Open {
             vortex::draw_orb(c, self.hole, ORB_R, self.time, false);
         } else if self.show_orb && self.vortex == vortex::Phase::Closed {
             vortex::draw_orb(c, self.hole, ORB_R, self.time, true);
+        } else if self.transparent && !self.show_orb {
+            // Over the desktop the orb is its own window; leave its spot (glow
+            // included) clear, so nothing here paints over it however deep the snow.
+            clear_disc(c, self.hole, self.orb_r * 2.0);
         }
-        self.hud.draw(c, gy as i32, self.time);
         if let Some((hx, hy)) = self.hand {
             hand::draw_hand(c, hx, hy, self.grabbed.is_some(), self.time);
         }
@@ -1264,6 +1281,16 @@ const GLASS_FULL_AT: f32 = 0.6;
 /// Pace amounts are pixels on a 270-px-tall scene (1080p at the default pixel
 /// scale); scaled by this, the pile rises the same share of any screen.
 const PACE_HEIGHT: f32 = 270.0;
+
+fn clear_disc(c: &mut Canvas, (cx, cy): (f32, f32), r: f32) {
+    for y in (cy - r).floor() as i32..=(cy + r).ceil() as i32 {
+        for x in (cx - r).floor() as i32..=(cx + r).ceil() as i32 {
+            if (x as f32 - cx).powi(2) + (y as f32 - cy).powi(2) <= r * r {
+                c.set(x, y, CLEAR);
+            }
+        }
+    }
+}
 
 /// Peaks may rise well past the ice line; it is the mean that counts.
 fn snow_cap(h: i32) -> f32 {
@@ -1841,5 +1868,66 @@ mod tests {
         };
         let (small, big) = (share(480, 270), share(960, 540));
         assert!((big / small - 1.0).abs() < 0.05, "480x270 {small:.5} vs 960x540 {big:.5}");
+    }
+
+    /// Buries every edge and the ground as deep as they go.
+    fn bury(s: &mut Scene) {
+        s.snow.dust(1000.0);
+        for y in 0..s.h {
+            while s.frost.add_grain(Edge::Left, y as f32) {}
+            while s.frost.add_grain(Edge::Right, y as f32) {}
+        }
+        for x in 0..s.w {
+            while s.frost.add_grain(Edge::Top, x as f32) {}
+        }
+    }
+
+    #[test]
+    fn the_in_scene_orb_stays_on_top_of_deep_snow_and_the_hud() {
+        let mut s = Scene::new(120, 90, 16, Commitment::Steady.pace(), false);
+        s.show_orb = true;
+        s.hole = (10.0, 10.0);
+        bury(&mut s);
+        s.hud.toast("Snowlearner · Constante · ajuda/painel: H", 5.0);
+        let mut c = Canvas::new(120, 90);
+        s.draw(&mut c);
+        let mut orb = Canvas::new(120, 90);
+        vortex::draw_orb(&mut orb, s.hole, ORB_R, s.time, false);
+        let (mut drawn, mut covered) = (0, 0);
+        for y in 0..20 {
+            for x in 0..20 {
+                if let Some(p) = orb.get(x, y).filter(|p| p[3] != 0) {
+                    drawn += 1;
+                    covered += usize::from(c.get(x, y) != Some(p));
+                }
+            }
+        }
+        assert!(drawn > 100, "orb pixels: {drawn}");
+        assert_eq!(covered, 0, "{covered} of {drawn} orb pixels hidden");
+        assert_eq!(s.poke(10.0, 10.0), Poke::Orb, "still clickable under the snow");
+    }
+
+    #[test]
+    fn over_the_desktop_deep_snow_leaves_the_orb_window_uncovered_and_clickable() {
+        let mut s = Scene::new(240, 135, 17, Commitment::Steady.pace(), true);
+        s.hole = (226.0, 14.0); // the orb window's default corner
+        bury(&mut s);
+        s.warrior.x = 220.0;
+        s.warrior.say("Uma frase bem comprida para cobrir o canto da tela", 9.0);
+        let mut c = Canvas::new(240, 135);
+        s.draw(&mut c);
+        let r = (s.orb_r * 2.0) as i32;
+        let (hx, hy) = (s.hole.0 as i32, s.hole.1 as i32);
+        let mut over = 0;
+        for y in hy - r..=hy + r {
+            for x in hx - r..=hx + r {
+                if ((x - hx).pow(2) + (y - hy).pow(2)) <= r * r {
+                    over += c.opaque_in(x, y, 1, 1);
+                }
+            }
+        }
+        assert_eq!(over, 0, "{over} scene pixels painted over the orb window");
+        assert!(s.orb_at(226.0, 14.0), "the orb's spot answers clicks in overlay mode too");
+        assert!(!s.orb_at(120.0, 60.0));
     }
 }

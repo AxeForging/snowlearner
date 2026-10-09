@@ -422,6 +422,7 @@ impl App {
         let half = (ORB_ART as u32 * orb.scale / 2) as i32;
         let (sx, sy) = (orb_x + half - self.overlay_origin.0, orb_y + half - self.overlay_origin.1);
         scene.hole = (sx as f32 / main.scale as f32, sy as f32 / main.scale as f32);
+        scene.orb_r = crate::scene::ORB_R * orb.scale as f32 / main.scale as f32;
     }
 
     fn draw_orb(&mut self) {
@@ -956,20 +957,19 @@ impl ApplicationHandler<UserEvent> for App {
                     scene.release();
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } if self.hand_on => {
-                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
-                let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
-                if let Some(scene) = &mut self.scene {
-                    scene.grab_at(x, y);
-                }
-            }
             WindowEvent::MouseInput { state: ElementState::Pressed, button, .. } => {
                 let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
                 let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
+                // The orb wins over the hand and the snow: always reachable.
                 let on_orb = self.scene.as_ref().is_some_and(|s| s.orb_at(x, y));
                 match (button, on_orb) {
                     (MouseButton::Left, true) => self.orb_click(),
                     (MouseButton::Right, true) => self.toggle_pause(),
+                    (MouseButton::Left, false) if self.hand_on => {
+                        if let Some(scene) = &mut self.scene {
+                            scene.grab_at(x, y);
+                        }
+                    }
                     (MouseButton::Left, false) => {
                         if let Some(scene) = &mut self.scene {
                             scene.poke(x, y);
