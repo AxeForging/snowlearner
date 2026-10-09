@@ -35,6 +35,8 @@ pub struct Settings {
     pub mode: WindowMode,
     /// Screen pixels per art pixel.
     pub pixel_scale: u32,
+    /// Overlay mode: one scene across every monitor (false = the main one only).
+    pub all_monitors: bool,
     pub hotkey_challenge: String,
     pub hotkey_summary: String,
     /// Opens the control panel (settings, pause, practice now).
@@ -91,6 +93,7 @@ impl Default for Settings {
             commitment: Commitment::Steady,
             mode: WindowMode::Auto,
             pixel_scale: 4,
+            all_monitors: true,
             hotkey_challenge: "Ctrl+Alt+M".into(),
             hotkey_summary: "Ctrl+Alt+J".into(),
             hotkey_menu: "Ctrl+Alt+K".into(),
@@ -264,6 +267,7 @@ mod tests {
         assert_eq!(s.learning, "es");
         assert_eq!(s.commitment, Commitment::Relentless);
         assert_eq!(s.pixel_scale, Settings::default().pixel_scale);
+        assert!(s.all_monitors, "a config from before the option still covers every monitor");
     }
 
     #[test]

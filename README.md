@@ -44,7 +44,7 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
   **pause** — everything gets sucked into a black hole until you're back.
 - ✋ Hold **Ctrl+Alt** (or `snowlearner grab`) and a magic hand lets you pick the mage (grumpy)
   or the warrior (shy) up and drop them in the snow.
-- 🖥️ Every monitor gets its own snow; the mage and the lesson stay on the main one.
+- 🖥️ One scene across every monitor: the mage and the warrior walk from screen to screen; the lesson stays on the orb's.
 - 🌙 At the end of the day it shows and **reads back** everything you practiced.
 
 | A lesson (window mode) | Icicle rain, summons, mobs | Deep snow: ice owl, sliding | Pause = black hole |
@@ -172,6 +172,7 @@ tts_engine = "system"    # system | http | command
 voice_native = ""        # "" = automatic
 voice_learning = ""
 mode = "auto"            # auto | window | overlay
+all_monitors = true      # overlay: one scene across every monitor
 summary_time = "21:00"
 model = "base"           # tiny | base | small
 ```

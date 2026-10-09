@@ -16,7 +16,7 @@ use crate::render::font;
 use crate::speech::voices::{TtsEngine, kokoro_default, kokoro_voice};
 
 pub const WIDTH: i32 = 232;
-pub const HEIGHT: i32 = 212;
+pub const HEIGHT: i32 = 224;
 const ROW_H: i32 = 12;
 const TABS_Y: i32 = 13;
 const TOP: i32 = 28;
@@ -39,6 +39,8 @@ pub enum Item {
     Answer,
     Goal,
     Mode,
+    /// Overlay across every monitor, or the main one only.
+    Monitors,
     PracticeNow,
     Summary,
     Pause,
@@ -73,6 +75,7 @@ pub const GAME: &[Item] = &[
     Item::Answer,
     Item::Goal,
     Item::Mode,
+    Item::Monitors,
     Item::PracticeNow,
     Item::Summary,
     Item::Pause,
@@ -330,6 +333,7 @@ impl Menu {
             Item::Answer => each(s, Answer::CHOICES, |c, a| c.answer = a),
             Item::Goal => each(s, GOALS.iter().copied(), |c, g| c.daily_goal = g),
             Item::Mode => each(s, [WindowMode::Auto, WindowMode::Window, WindowMode::Overlay], |c, m| c.mode = m),
+            Item::Monitors => each(s, [true, false], |c, all| c.all_monitors = all),
             Item::Mic => each(s, with_default(&self.mics), |c, m| c.mic = m),
             Item::Speaker => each(s, with_default(&self.speakers), |c, m| c.speaker = m),
             Item::Engine => {
@@ -591,6 +595,7 @@ impl Menu {
             }
             .get(n)
             .into(),
+            Item::Monitors => if s.all_monitors { T::MonitorsAll } else { T::MonitorsMain }.get(n).into(),
             Item::Pause => if self.paused { T::Paused } else { T::Active }.get(n).into(),
             Item::Mic => auto(&s.mic, T::SystemDefault),
             Item::Speaker => auto(&s.speaker, T::SystemDefault),
@@ -625,6 +630,7 @@ impl Menu {
             Item::Answer => T::ItemAnswer,
             Item::Goal => T::ItemGoal,
             Item::Mode => T::ItemMode,
+            Item::Monitors => T::ItemMonitors,
             Item::PracticeNow => T::ItemPracticeNow,
             Item::Summary => T::ItemSummary,
             Item::Pause => T::ItemPause,
@@ -1278,6 +1284,7 @@ mod tests {
         Item::Answer,
         Item::Goal,
         Item::Mode,
+        Item::Monitors,
         Item::Mic,
         Item::Engine,
         Item::VoiceNative,
@@ -1560,6 +1567,21 @@ mod tests {
             crate::render::png_out::write(&checklist, 3, &dir.join("panel-topics.png")).unwrap();
             crate::render::png_out::write(&levels, 3, &dir.join("panel-levels.png")).unwrap();
             crate::render::png_out::write(&scrolled, 3, &dir.join("panel-topics-scrolled.png")).unwrap();
+        }
+    }
+
+    #[test]
+    fn the_monitors_row_turns_snow_on_every_monitor_on_and_off() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        assert!(s.all_monitors, "every monitor unless turned off");
+        select(&mut m, Item::Monitors);
+        assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::Monitors));
+        assert!(!s.all_monitors);
+        for native in [Native::PtBr, Native::En] {
+            for t in [T::ItemMonitors, T::MonitorsAll, T::MonitorsMain, T::MonitorsOverlayOnly] {
+                assert!(font::supports(t.get(native)), "{t:?} {native:?}");
+            }
         }
     }
 }

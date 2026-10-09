@@ -10,7 +10,8 @@ src/
   lib.rs             module list only
   cli/               mod.rs = clap definitions, commands.rs = subcommand bodies
   app/               mod.rs = winit loop + windows (main, orb, panel), lesson.rs = lesson state
-                     machine (pure), menu.rs = control panel (pure), platform.rs = session decisions
+                     machine (pure), menu.rs = control panel (pure), platform.rs = session decisions,
+                     layout.rs = monitors → one wide scene, a slice per monitor (pure)
   scene/             pure seeded simulation; one file per actor/element
                      (mage, pyro = fire mage, warrior, mobs, friends, fire, ice, snow, frost,
                      blanket = pile + edge snow drawn as one, glass = frost crystals on the glass,

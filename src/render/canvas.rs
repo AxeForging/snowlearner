@@ -118,6 +118,22 @@ impl Canvas {
         }
     }
 
+    /// Fills self with the self-sized region of `src` starting at (x,y), clear
+    /// where that falls outside `src`: one monitor's slice of the scene.
+    pub fn copy_from(&mut self, src: &Canvas, x: i32, y: i32) {
+        self.px.fill(0);
+        let (from, to) = (x.max(0), (x + self.w).min(src.w));
+        if from >= to {
+            return;
+        }
+        for row in y.max(0)..(y + self.h).min(src.h) {
+            let s = ((row * src.w + from) * 4) as usize;
+            let d = (((row - y) * self.w + from - x) * 4) as usize;
+            let n = ((to - from) * 4) as usize;
+            self.px[d..d + n].copy_from_slice(&src.px[s..s + n]);
+        }
+    }
+
     /// Number of non-transparent pixels in a region (used by tests and the
     /// scene to reason about what is on screen).
     pub fn opaque_in(&self, x: i32, y: i32, w: i32, h: i32) -> usize {
@@ -178,5 +194,20 @@ mod tests {
         dst.blit(&src, 0, 0);
         assert_eq!(dst.get(0, 0), Some(hex(0x0000ff)));
         assert_eq!(dst.get(1, 0), Some(hex(0xff0000)));
+    }
+
+    #[test]
+    fn copy_from_takes_one_slice_of_a_wider_canvas() {
+        let mut wide = Canvas::new(6, 3);
+        wide.set(4, 2, hex(0xff0000));
+        wide.set(1, 0, hex(0x00ff00));
+        let mut right = Canvas::new(3, 3);
+        right.set(0, 0, hex(0xffffff));
+        right.copy_from(&wide, 3, 0);
+        assert_eq!(right.get(1, 2), Some(hex(0xff0000)), "column 4 of the scene is column 1 of the slice");
+        assert_eq!(right.opaque_in(0, 0, 3, 3), 1, "nothing left from before, nothing from the left slice");
+        let mut low = Canvas::new(3, 2);
+        low.copy_from(&wide, 3, 1);
+        assert_eq!(low.get(1, 1), Some(hex(0xff0000)), "a shorter slice shows the bottom rows");
     }
 }

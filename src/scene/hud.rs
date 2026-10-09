@@ -102,6 +102,9 @@ pub struct Toast {
 
 #[derive(Default)]
 pub struct Hud {
+    /// The monitor the HUD lives on, in scene pixels (None = the whole scene):
+    /// across several monitors, panels and text stay on one of them.
+    pub screen: Option<Area>,
     pub caption: Option<Caption>,
     pub summary: Option<SummaryPanel>,
     pub toast: Option<Toast>,
@@ -112,6 +115,15 @@ pub struct Hud {
     pub cheats: Option<Cheats>,
     /// The learner's own language, for the HUD's own words ("OUÇA", "Ouvi:").
     pub native: Native,
+}
+
+/// A rectangle of the scene, in scene pixels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Area {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
 }
 
 /// Shortcut sheet: a prefix ("Ctrl+Alt +") and key → action rows, drawn next to `anchor`.
@@ -174,29 +186,30 @@ impl Hud {
     }
 
     pub fn draw(&self, c: &mut Canvas, ground_y: i32, time: f32) {
+        let a = self.screen.unwrap_or(Area { x: 0, y: 0, w: c.w, h: c.h });
         if let Some(cap) = &self.caption {
-            draw_caption(c, cap, self.native, ground_y, time);
+            draw_caption(c, a, cap, self.native, ground_y, time);
         }
         if let Some(s) = &self.summary {
-            draw_summary(c, s, time);
+            draw_summary(c, a, s, time);
         }
         if let Some(st) = &self.stats {
-            draw_stats(c, st);
+            draw_stats(c, a, st);
         }
         if let Some(lines) = &self.help {
-            draw_help(c, lines);
+            draw_help(c, a, lines);
         }
         if let Some(ch) = &self.cheats {
-            draw_cheats(c, ch);
+            draw_cheats(c, a, ch);
         }
         if let Some(t) = &self.toast {
             let w = font::text_width(&t.text);
-            font::draw_outlined(c, (c.w - w) / 2, 6, &t.text, hex(0xffffff), hex(0x1b1942));
+            font::draw_outlined(c, a.x + (a.w - w) / 2, a.y + 6, &t.text, hex(0xffffff), hex(0x1b1942));
         }
     }
 }
 
-fn draw_stats(c: &mut Canvas, st: &Stats) {
+fn draw_stats(c: &mut Canvas, a: Area, st: &Stats) {
     let outline = hex(0x1b1942);
     let goal = format!("{}/{}", st.done, st.goal);
     let mut text = format!("{} · {goal}", st.label);
@@ -204,7 +217,7 @@ fn draw_stats(c: &mut Canvas, st: &Stats) {
         text.push_str(&format!(" · x{}", st.combo));
     }
     let w = font::text_width(&text);
-    let (x, y) = (c.w - w - 6, 4 + font::LINE_H);
+    let (x, y) = (a.x + a.w - w - 6, a.y + 4 + font::LINE_H);
     font::draw_outlined(c, x, y, &text, hex(0xe6ecff), outline);
     // Goal bar under the text.
     let bar_w = w.min(60);
@@ -214,7 +227,7 @@ fn draw_stats(c: &mut Canvas, st: &Stats) {
     c.rect(x + w - bar_w, by, fill, 2, if st.done >= st.goal { hex(0x7dff9b) } else { hex(0xffb03a) });
 }
 
-fn draw_cheats(c: &mut Canvas, ch: &Cheats) {
+fn draw_cheats(c: &mut Canvas, a: Area, ch: &Cheats) {
     let lh = font::LINE_H - 2;
     let key_w = ch.rows.iter().map(|(k, _)| font::text_width(k)).max().unwrap_or(0);
     let mut lines = ch.rows.len() as i32;
@@ -229,9 +242,10 @@ fn draw_cheats(c: &mut Canvas, ch: &Cheats) {
     let h = lines * lh + 8;
     // Open toward the middle of the screen from the orb.
     let (ax, ay) = (ch.anchor.0 as i32, ch.anchor.1 as i32);
-    let x = if ax > c.w / 2 { ax - w - 10 } else { ax + 10 };
-    let y = if ay > c.h / 2 { ay - h } else { ay - 4 };
-    let (x, y) = (x.clamp(2, (c.w - w - 2).max(2)), y.clamp(2, (c.h - h - 2).max(2)));
+    let x = if ax > a.x + a.w / 2 { ax - w - 10 } else { ax + 10 };
+    let y = if ay > a.y + a.h / 2 { ay - h } else { ay - 4 };
+    let x = x.clamp(a.x + 2, (a.x + a.w - w - 2).max(a.x + 2));
+    let y = y.clamp(a.y + 2, (a.y + a.h - h - 2).max(a.y + 2));
     panel(c, x, y, w, h);
     let mut yy = y + 3;
     if !ch.prefix.is_empty() {
@@ -253,12 +267,12 @@ fn draw_cheats(c: &mut Canvas, ch: &Cheats) {
     }
 }
 
-fn draw_help(c: &mut Canvas, lines: &[String]) {
+fn draw_help(c: &mut Canvas, a: Area, lines: &[String]) {
     let lh = font::LINE_H - 1;
     let w = lines.iter().map(|l| font::text_width(l)).max().unwrap_or(0) + 12;
     let h = lines.len() as i32 * lh + 8;
-    let (x, y) = (6, (c.h - h) / 2);
-    panel(c, x, y, w.min(c.w - 12), h);
+    let (x, y) = (a.x + 6, a.y + (a.h - h) / 2);
+    panel(c, x, y, w.min(a.w - 12), h);
     for (i, l) in lines.iter().enumerate() {
         let col = if i == 0 { hex(0xffd64a) } else { INK };
         font::draw(c, x + 6, y + 3 + i as i32 * lh, l, col);
@@ -322,8 +336,8 @@ fn layout(tokens: &[Token], max_w: i32) -> Vec<Vec<usize>> {
     lines
 }
 
-fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, time: f32) {
-    let pw = (c.w - 16).min(300);
+fn draw_caption(c: &mut Canvas, a: Area, cap: &Caption, native: Native, ground_y: i32, time: f32) {
+    let pw = (a.w - 16).min(300);
     let inner = pw - 12;
     let toks = tokens(cap);
     let lines = layout(&toks, inner);
@@ -345,12 +359,13 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, ti
         rows += 1;
     }
     let ph = rows * lh + 8;
-    let px = (c.w - pw) / 2;
+    let px = a.x + (a.w - pw) / 2;
     // Below the progress corner, above the characters and their bubbles. A
     // tall caption (several answer tiers) gives up room over the bubbles, never
     // the corner, unless it would not fit on screen at all.
     let below_corner = 2 * font::LINE_H + 8;
-    let py = (c.h / 8).max(below_corner).min(ground_y - ph - 50).max(below_corner.min(c.h - ph)).max(4);
+    let ground = ground_y - a.y;
+    let py = a.y + (a.h / 8).max(below_corner).min(ground - ph - 50).max(below_corner.min(a.h - ph)).max(4);
     panel(c, px, py, pw, ph);
 
     // Header: icon + status.
@@ -443,8 +458,8 @@ fn draw_meter(c: &mut Canvas, x: i32, y: i32, w: i32, m: &Meter, native: Native,
     }
 }
 
-fn draw_summary(c: &mut Canvas, s: &SummaryPanel, time: f32) {
-    let pw = (c.w - 16).min(320);
+fn draw_summary(c: &mut Canvas, a: Area, s: &SummaryPanel, time: f32) {
+    let pw = (a.w - 16).min(320);
     let inner = pw - 22;
     let lh = font::LINE_H - 1;
     let mut rows: Vec<(Vec<String>, Rgba, Option<bool>, bool)> = Vec::new();
@@ -460,13 +475,13 @@ fn draw_summary(c: &mut Canvas, s: &SummaryPanel, time: f32) {
         };
         rows.push((font::wrap(&text, inner), color, Some(l.ok), active));
     }
-    let max_rows = ((c.h - 40) / lh).max(3) as usize;
+    let max_rows = ((a.h - 40) / lh).max(3) as usize;
     let mut body_lines: usize = rows.iter().map(|r| r.0.len()).sum();
     while body_lines > max_rows && !rows.is_empty() {
         body_lines -= rows.remove(0).0.len(); // keep the most recent phrases
     }
     let ph = (body_lines as i32 + 3) * lh + 8;
-    let (px, py) = ((c.w - pw) / 2, ((c.h - ph) / 2).max(4));
+    let (px, py) = (a.x + (a.w - pw) / 2, a.y + ((a.h - ph) / 2).max(4));
     panel(c, px, py, pw, ph);
     let mut y = py + 3;
     let title_w = font::text_width(&s.title);
@@ -650,5 +665,22 @@ mod tests {
         let mut c = Canvas::new(200, 120);
         hud.draw(&mut c, 120, 0.0);
         assert!(c.opaque_in(0, 0, 200, 120) > 500);
+    }
+
+    #[test]
+    fn on_a_scene_across_monitors_everything_shows_on_the_one_screen_it_lives_on() {
+        let mut hud = Hud {
+            caption: Some(caption(None)),
+            stats: Some(Stats { label: "EN".into(), done: 2, goal: 10, combo: 3 }),
+            help: Some(vec!["TECLAS".into(), "Espaço: praticar".into()]),
+            screen: Some(Area { x: 480, y: 30, w: 480, h: 240 }),
+            ..Default::default()
+        };
+        hud.toast("Snowlearner · ajuda/painel: Ctrl+Alt+K", 3.0);
+        let mut c = Canvas::new(960, 270);
+        hud.draw(&mut c, 270, 0.0);
+        assert_eq!(c.opaque_in(0, 0, 480, 270), 0, "nothing on the other monitor, nothing cut at the seam");
+        assert_eq!(c.opaque_in(480, 0, 480, 30), 0, "nor above a shorter monitor's top");
+        assert!(c.opaque_in(480, 30, 480, 240) > 0);
     }
 }

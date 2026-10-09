@@ -57,6 +57,7 @@ texts! {
     ItemAnswer => "Resposta", "Answer";
     ItemGoal => "Meta diária", "Daily goal";
     ItemMode => "Tela", "Screen";
+    ItemMonitors => "Monitores", "Monitors";
     ItemPracticeNow => "> Praticar agora", "> Practice now";
     ItemSummary => "> Resumo do dia", "> Today's recap";
     ItemPause => "Mago", "Mage";
@@ -83,6 +84,8 @@ texts! {
     ModeAuto => "auto*", "auto*";
     ModeWindow => "janela*", "window*";
     ModeOverlay => "sobre a tela*", "over the screen*";
+    MonitorsAll => "todos", "all";
+    MonitorsMain => "só o principal", "main only";
     Paused => "pausado", "paused";
     Active => "ativo", "active";
     SystemDefault => "padrão do sistema", "system default";
@@ -201,6 +204,7 @@ texts! {
     PauseOff => "O mago voltou!", "The mage is back!";
     DeckUnavailable => "Deck indisponível: {0}", "Deck unavailable: {0}";
     CommitmentToast => "Compromisso: {0}", "Commitment: {0}";
+    MonitorsOverlayOnly => "Monitores: vale no modo sobre a tela", "Monitors: for the over-the-screen mode";
     ModeRestart => "Modo de tela muda ao reiniciar o Snowlearner", "The screen mode changes when Snowlearner restarts";
     VoiceToast => "Voz: {0}", "Voice: {0}";
     NativeToast => "Minha língua: português · aprendendo {0}", "My language: English · learning {0}";

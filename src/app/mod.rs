@@ -1,6 +1,7 @@
 //! The desktop app: window/overlay, the control panel window, frame loop,
 //! hotkeys, IPC and speech — wired to the scene and the lesson controller.
 
+pub mod layout;
 pub mod lesson;
 pub mod menu;
 pub mod platform;
@@ -16,12 +17,13 @@ use crate::learn::deck::Deck;
 use crate::render::canvas::Canvas;
 use crate::render::screen::Screen;
 use crate::scene::Scene;
-use crate::scene::hud::Cheats;
+use crate::scene::hud::{Area, Cheats};
 use crate::speech::tts::Speed;
 use crate::speech::voices::sample_text;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
 use crate::store::history::History;
 use anyhow::{Context, Result};
+use layout::{Layout, Slice};
 use lesson::{Input, Lesson, Options};
 use menu::{Action, Item, Menu};
 use platform::{Rect, Resolved, Session};
@@ -42,9 +44,6 @@ const MENU_SCALE: u32 = 3;
 const TEST_IDS: u64 = 1 << 40;
 /// Orb window size in art pixels.
 const ORB_ART: i32 = 22;
-/// Weather-only monitors redraw every this many frames (snow drifts slowly;
-/// half the frames is half the canvas diffing on every extra monitor).
-const WEATHER_EVERY: u64 = 2;
 /// How often the monitor list is re-read (one cheap query to the display).
 const MONITOR_CHECK: Duration = Duration::from_secs(2);
 
@@ -183,14 +182,15 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         lesson,
         speech,
         hotkeys,
-        main: None,
+        panes: Vec::new(),
+        strip: layout::layout(&[], 1),
+        world: Canvas::new(1, 1),
+        cursor_pane: 0,
         scene: None,
         screen: platform::FALLBACK_SCREEN,
-        weather: Vec::new(),
-        layout: platform::Overlay { primary: platform::FALLBACK_SCREEN, weather: Vec::new() },
+        planned: platform::Overlay { primary: platform::FALLBACK_SCREEN, weather: Vec::new() },
+        want_relayout: false,
         next_monitor_check: Instant::now(),
-        seed: 1,
-        frames: 0,
         menu,
         menu_win: None,
         want_menu: false,
@@ -199,7 +199,6 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         orb: None,
         orb_press: None,
         orb_cursor: (0.0, 0.0),
-        overlay_origin: (0, 0),
         save_orb_at: None,
         orb_hover: false,
         mods_held: false,
@@ -253,12 +252,11 @@ struct Surface {
     scale: u32,
 }
 
-/// An overlay window on one of the other monitors: weather only, following
-/// the primary scene's freeze level.
-struct Weather {
+/// A window on the scene: all of it in window mode, one monitor's slice of
+/// it in overlay mode.
+struct Pane {
     surface: Surface,
-    scene: Scene,
-    last: Instant,
+    slice: Slice,
 }
 
 /// A window's outer rect (title bar included) in physical screen pixels.
@@ -292,18 +290,25 @@ struct App {
     lesson: Lesson,
     speech: Speech,
     hotkeys: Option<Hotkeys>,
-    main: Option<Surface>,
+    /// The scene's windows: one per monitor in overlay mode, the first one
+    /// drives the frame.
+    panes: Vec<Pane>,
+    /// Which part of the scene each pane shows: the monitors side by side,
+    /// one scene the characters walk across.
+    strip: Layout,
+    /// The whole scene, drawn once a frame and sliced into the panes.
+    world: Canvas,
+    /// Pane the cursor was last seen over.
+    cursor_pane: usize,
     scene: Option<Scene>,
-    /// The monitor the main window (overlay) and the orb sit on.
+    /// The primary monitor: where the orb starts.
     screen: Rect,
-    /// Overlay mode: weather-only windows on the other monitors.
-    weather: Vec<Weather>,
     /// The monitors the overlay was laid out for; re-checked every few
     /// seconds so a monitor plugged in, unplugged or resized is followed.
-    layout: platform::Overlay,
+    planned: platform::Overlay,
+    /// Lay the overlay out again on the next loop turn (the Monitors setting changed).
+    want_relayout: bool,
     next_monitor_check: Instant,
-    seed: u64,
-    frames: u64,
     menu: Menu,
     menu_win: Option<Surface>,
     /// Open the panel on the next loop turn (needs the ActiveEventLoop).
@@ -316,8 +321,6 @@ struct App {
     orb: Option<Surface>,
     orb_press: Option<(f64, f64)>,
     orb_cursor: (f64, f64),
-    /// Top-left of the overlay window in screen pixels (maps the orb to the scene).
-    overlay_origin: (i32, i32),
     save_orb_at: Option<Instant>,
     /// Why the cheat sheet is up: hovering the orb and/or Ctrl+Alt held.
     orb_hover: bool,
@@ -363,18 +366,95 @@ impl App {
             .with_min_inner_size(PhysicalSize::new(WINDOW_VIRTUAL.0, WINDOW_VIRTUAL.1))
     }
 
+    /// Window mode: the art scale follows the window size.
     fn fit(&mut self, width: u32, height: u32) {
-        let Some(main) = &mut self.main else { return };
-        main.scale = if self.resolved.overlay {
-            self.settings.pixel_scale
-        } else {
-            (width / WINDOW_VIRTUAL.0).min(height / WINDOW_VIRTUAL.1).max(1)
-        };
-        let (vw, vh) = (width.div_ceil(main.scale) as i32, height.div_ceil(main.scale) as i32);
-        main.canvas = Canvas::new(vw, vh);
+        let Some(pane) = self.panes.first_mut() else { return };
+        let scale = (width / WINDOW_VIRTUAL.0).min(height / WINDOW_VIRTUAL.1).max(1);
+        self.strip = layout::layout(&[Rect { x: 0, y: 0, w: width, h: height }], scale);
+        pane.slice = self.strip.slices[0];
+        pane.surface.scale = scale;
+        pane.surface.canvas = Canvas::new(self.strip.w, self.strip.h);
+        self.world = Canvas::new(self.strip.w, self.strip.h);
         if let Some(scene) = &mut self.scene {
-            scene.resize(vw, vh);
+            scene.resize(self.strip.w, self.strip.h);
         }
+    }
+
+    /// The monitors the overlay covers: every one, or the primary only when
+    /// the panel says so.
+    fn covered(&self) -> Vec<Rect> {
+        let plan = &self.planned;
+        let others = if self.settings.all_monitors { plan.weather.as_slice() } else { &[] };
+        std::iter::once(plan.primary).chain(others.iter().copied()).collect()
+    }
+
+    /// Opens the scene's windows: one per monitor in overlay mode, side by
+    /// side as one scene, or one resizable window. False when none opened.
+    fn open_panes(&mut self, el: &ActiveEventLoop) -> bool {
+        self.panes.clear();
+        let wanted: Vec<(WindowAttributes, Option<Slice>)> = if self.resolved.overlay {
+            self.strip = layout::layout(&self.covered(), self.settings.pixel_scale);
+            self.strip.slices.iter().map(|sl| (Self::overlay_attributes(sl.monitor), Some(*sl))).collect()
+        } else {
+            vec![(self.window_attributes(), None)]
+        };
+        for (attrs, slice) in wanted {
+            let window = match el.create_window(attrs) {
+                Ok(w) => Arc::new(w),
+                Err(e) => {
+                    eprintln!("could not create window: {e}");
+                    continue;
+                }
+            };
+            if self.resolved.overlay && window.set_cursor_hittest(false).is_err() {
+                eprintln!("This desktop cannot make the overlay click-through.");
+            }
+            let screen = match Screen::new(window.clone(), self.resolved.overlay) {
+                Ok(g) => g,
+                Err(e) => {
+                    eprintln!("could not draw the window: {e:#}");
+                    continue;
+                }
+            };
+            let slice = slice.unwrap_or(Slice { monitor: self.screen, col: 0, row: 0, cols: 1, rows: 1 });
+            let canvas = Canvas::new(slice.cols, slice.rows);
+            let surface = Surface { window, screen, canvas, scale: self.settings.pixel_scale };
+            self.panes.push(Pane { surface, slice });
+        }
+        if self.resolved.overlay {
+            let n = self.panes.len();
+            eprintln!("Overlay over {n} monitor(s); one scene of {}x{} art pixels.", self.strip.w, self.strip.h);
+            self.world = Canvas::new(self.strip.w, self.strip.h);
+            if let Some(scene) = &mut self.scene {
+                scene.resize(self.strip.w, self.strip.h);
+            }
+        } else if let Some(p) = self.panes.first() {
+            let size = p.surface.window.inner_size();
+            self.fit(size.width, size.height);
+        }
+        self.place_hud();
+        !self.panes.is_empty()
+    }
+
+    /// Where the cursor is in the scene.
+    fn scene_cursor(&self) -> (f32, f32) {
+        match self.panes.get(self.cursor_pane) {
+            Some(p) => self.strip.in_slice(&p.slice, self.cursor.0, self.cursor.1),
+            None => (0.0, 0.0),
+        }
+    }
+
+    /// Across several monitors, panels and text live on the one with the orb
+    /// (the primary unless you drag it), never cut by the seam between two.
+    fn place_hud(&mut self) {
+        let Some(scene) = &mut self.scene else { return };
+        let several = self.resolved.overlay && self.strip.slices.len() > 1;
+        scene.hud.screen = several.then(|| self.strip.slice_at(scene.hole.0)).flatten().map(|s| Area {
+            x: s.col,
+            y: s.row,
+            w: s.cols,
+            h: s.rows,
+        });
     }
 
     fn input(&mut self, input: Input) {
@@ -451,90 +531,35 @@ impl App {
         }
     }
 
-    /// One click-through weather window per extra monitor. Skipped where the
-    /// desktop can't show through: an opaque window would black out a screen.
-    fn open_weather(&mut self, el: &ActiveEventLoop, rects: &[Rect], seed: u64) {
-        let scale = self.settings.pixel_scale.max(1);
-        for (i, &rect) in rects.iter().enumerate() {
-            let Ok(window) = el.create_window(Self::overlay_attributes(rect)).map(Arc::new) else {
-                eprintln!("could not open the snow on the monitor at {},{}", rect.x, rect.y);
-                continue;
-            };
-            let _ = window.set_cursor_hittest(false);
-            let screen = match Screen::new(window.clone(), true) {
-                Ok(s) if s.transparent() => s,
-                Ok(_) => {
-                    eprintln!("No transparent windows: the other monitors stay without snow.");
-                    return;
-                }
-                Err(e) => {
-                    eprintln!("could not draw the snow on another monitor: {e:#}");
-                    continue;
-                }
-            };
-            let size = window.inner_size();
-            let (w, h) = (size.width.div_ceil(scale) as i32, size.height.div_ceil(scale) as i32);
-            let scene = Scene::weather(w, h, seed.wrapping_add(i as u64 + 1), self.commitment.pace(), true);
-            let surface = Surface { window, screen, canvas: Canvas::new(w, h), scale };
-            self.weather.push(Weather { surface, scene, last: Instant::now() });
-        }
-    }
-
     /// The panel window on screen, while the overlay could cover it.
     fn panel_rect(&self) -> Option<Rect> {
         self.menu_win.as_ref().filter(|_| self.resolved.overlay).and_then(|m| panel_rect(&m.window))
     }
 
-    /// Follows a monitor change: the main overlay moves/resizes onto the
-    /// primary monitor (a `Resized` event refits the scene) and the weather
-    /// windows are rebuilt for the other monitors.
-    fn relayout(&mut self, el: &ActiveEventLoop, new: platform::Overlay) {
-        let p = new.primary;
-        if let Some(m) = &self.main {
-            m.window.set_outer_position(PhysicalPosition::new(p.x, p.y));
-            let _ = m.window.request_inner_size(PhysicalSize::new(p.w, p.h));
+    /// Follows a monitor change (or the Monitors setting): the windows are
+    /// reopened over the new set and the scene stretches to its width;
+    /// everyone in it carries on.
+    fn relayout(&mut self, el: &ActiveEventLoop, plan: platform::Overlay) {
+        self.screen = plan.primary;
+        self.planned = plan;
+        if !self.open_panes(el) {
+            el.exit();
+            return;
         }
-        self.screen = p;
-        self.overlay_origin = (p.x, p.y);
-        self.weather.clear();
-        self.open_weather(el, &new.weather, self.seed);
         if let Some(pos) = self.orb.as_ref().and_then(|o| o.window.outer_position().ok()) {
             self.sync_hole(pos.x, pos.y);
         }
-        self.layout = new;
-    }
-
-    /// Steps and draws the weather window `i` at the primary's freeze level.
-    fn draw_weather(&mut self, i: usize) {
-        let level = self.scene.as_ref().map(Scene::freeze_level).unwrap_or(0.0);
-        let paused = self.scene.as_ref().is_some_and(Scene::paused);
-        // The black hole in screen pixels: this screen's snow is pulled toward it.
-        let main_scale = self.main.as_ref().map_or(1.0, |m| m.scale as f32);
-        let (hx, hy) = self.scene.as_ref().map_or((0.0, 0.0), |s| s.hole);
-        let hole = (hx * main_scale + self.overlay_origin.0 as f32, hy * main_scale + self.overlay_origin.1 as f32);
-        let panel = self.panel_rect();
-        let Some(wx) = self.weather.get_mut(i) else { return };
-        let now = Instant::now();
-        let dt = (now - wx.last).as_secs_f32().min(0.2);
-        wx.last = now;
-        wx.scene.set_freeze_target(level);
-        let at = wx.surface.window.outer_position().map(|p| (p.x, p.y)).unwrap_or_default();
-        let s = wx.surface.scale as f32;
-        wx.scene.hole = ((hole.0 - at.0 as f32) / s, (hole.1 - at.1 as f32) / s);
-        wx.scene.set_paused(paused);
-        wx.scene.keep_clear = panel.map(|win| platform::to_scene(win, at, wx.surface.scale));
-        wx.scene.step(dt);
-        wx.scene.draw(&mut wx.surface.canvas);
-        wx.surface.screen.present(&wx.surface.canvas, wx.surface.scale);
     }
 
     /// Points the black hole at the orb's center (screen → scene coordinates).
     fn sync_hole(&mut self, orb_x: i32, orb_y: i32) {
-        let (Some(orb), Some(main), Some(scene)) = (&self.orb, &self.main, &mut self.scene) else { return };
+        let (Some(orb), Some(scene)) = (&self.orb, &mut self.scene) else { return };
         let half = (ORB_ART as u32 * orb.scale / 2) as i32;
-        let (sx, sy) = (orb_x + half - self.overlay_origin.0, orb_y + half - self.overlay_origin.1);
-        scene.hole = (sx as f32 / main.scale as f32, sy as f32 / main.scale as f32);
-        scene.orb_r = crate::scene::ORB_R * orb.scale as f32 / main.scale as f32;
+        if let Some(hole) = self.strip.to_scene(orb_x + half, orb_y + half) {
+            scene.hole = hole;
+        }
+        scene.orb_r = crate::scene::ORB_R * orb.scale as f32 / self.strip.scale as f32;
+        self.place_hud();
     }
 
     fn draw_orb(&mut self) {
@@ -627,6 +652,8 @@ impl App {
                 self.lesson.set_options(|o| o.daily_goal = g, scene);
             }
             Item::Mode => scene.hud.toast(T::ModeRestart.get(n), 3.0),
+            Item::Monitors if !self.resolved.overlay => scene.hud.toast(T::MonitorsOverlayOnly.get(n), 3.0),
+            Item::Monitors => self.want_relayout = true,
             Item::Mic | Item::Speaker | Item::Engine | Item::Endpoint | Item::VoiceNative | Item::VoiceLearning => {
                 self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
                 if matches!(item, Item::Engine | Item::Endpoint) {
@@ -759,17 +786,17 @@ impl App {
             return;
         }
         self.hand_on = want;
-        if let Some(main) = &self.main {
+        for p in &self.panes {
             if self.resolved.overlay {
-                let _ = main.window.set_cursor_hittest(want);
+                let _ = p.surface.window.set_cursor_hittest(want);
             }
-            main.window.set_cursor_visible(!want);
+            p.surface.window.set_cursor_visible(!want);
         }
+        let at = self.scene_cursor();
         if let Some(scene) = &mut self.scene {
             scene.set_hand(want);
             if want {
-                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
-                scene.hand_move((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
+                scene.hand_move(at.0, at.1);
             }
         }
     }
@@ -835,12 +862,15 @@ impl App {
         self.input(Input::Tick { dt, now: chrono::Local::now() });
         // The overlay stacks above the panel on X11: leave its spot clear.
         let panel = self.panel_rect();
-        if let (Some(scene), Some(main)) = (&mut self.scene, &self.main) {
-            scene.keep_clear = panel.map(|win| platform::to_scene(win, self.overlay_origin, main.scale));
+        if let Some(scene) = &mut self.scene {
+            scene.keep_clear = panel.and_then(|win| self.strip.rect_to_scene(win));
         }
-        if let (Some(scene), Some(main)) = (&self.scene, &mut self.main) {
-            scene.draw(&mut main.canvas);
-            main.screen.present(&main.canvas, main.scale);
+        if let Some(scene) = &self.scene {
+            scene.draw(&mut self.world);
+            for p in &mut self.panes {
+                p.surface.canvas.copy_from(&self.world, p.slice.col, p.slice.row);
+                p.surface.screen.present(&p.surface.canvas, p.surface.scale);
+            }
         }
     }
 
@@ -927,50 +957,24 @@ fn menu_key(key: &Key, editing: bool, ctrl: bool) -> Option<menu::Key> {
 
 impl ApplicationHandler<UserEvent> for App {
     fn resumed(&mut self, el: &ActiveEventLoop) {
-        if self.main.is_some() {
+        if !self.panes.is_empty() {
             return;
         }
-        let layout = platform::overlay_layout(&monitors(el));
-        self.screen = layout.primary;
-        self.layout = layout.clone();
-        let attrs =
-            if self.resolved.overlay { Self::overlay_attributes(layout.primary) } else { self.window_attributes() };
-        let window = match el.create_window(attrs) {
-            Ok(w) => Arc::new(w),
-            Err(e) => {
-                eprintln!("could not create window: {e}");
-                el.exit();
-                return;
-            }
-        };
-        if self.resolved.overlay && window.set_cursor_hittest(false).is_err() {
-            eprintln!("This desktop cannot make the overlay click-through.");
+        self.planned = platform::overlay_layout(&monitors(el));
+        self.screen = self.planned.primary;
+        if !self.open_panes(el) {
+            el.exit();
+            return;
         }
-        let screen = match Screen::new(window.clone(), self.resolved.overlay) {
-            Ok(g) => g,
-            Err(e) => {
-                eprintln!("could not draw the window: {e:#}");
-                el.exit();
-                return;
-            }
-        };
-        let transparent = screen.transparent();
+        let transparent = self.panes[0].surface.screen.transparent();
         if self.resolved.overlay && !transparent {
             eprintln!("This compositor has no transparent windows; drawing the full winter scene instead.");
         }
-        let size = window.inner_size();
-        self.main = Some(Surface { window, screen, canvas: Canvas::new(1, 1), scale: 1 });
-        self.fit(size.width, size.height);
         let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(1);
-        self.seed = seed;
-        let (w, h) = self.main.as_ref().map(|m| (m.canvas.w, m.canvas.h)).unwrap_or((320, 180));
-        let mut scene = Scene::new(w, h, seed, self.commitment.pace(), transparent);
+        let mut scene = Scene::new(self.strip.w, self.strip.h, seed, self.commitment.pace(), transparent);
         scene.set_native(self.settings.native);
         self.lesson.attach(&mut scene);
-        if self.resolved.overlay {
-            self.overlay_origin =
-                self.main.as_ref().and_then(|m| m.window.outer_position().ok()).map(|p| (p.x, p.y)).unwrap_or((0, 0));
-        } else {
+        if !self.resolved.overlay {
             scene.show_orb = true;
             scene.hole = (10.0, 10.0);
         }
@@ -981,7 +985,6 @@ impl ApplicationHandler<UserEvent> for App {
         self.fit_topic();
         if self.resolved.overlay {
             self.open_orb(el);
-            self.open_weather(el, &layout.weather, seed);
         }
         self.last = Instant::now();
     }
@@ -995,31 +998,12 @@ impl ApplicationHandler<UserEvent> for App {
             event,
             WindowEvent::Focused(_) | WindowEvent::Occluded(false) | WindowEvent::ScaleFactorChanged { .. }
         ) {
-            for s in [&mut self.main, &mut self.menu_win, &mut self.orb].into_iter().flatten() {
+            let panes = self.panes.iter_mut().map(|p| &mut p.surface);
+            for s in panes.chain([&mut self.menu_win, &mut self.orb].into_iter().flatten()) {
                 if s.window.id() == id {
                     s.screen.invalidate();
                 }
             }
-            for wx in &mut self.weather {
-                if wx.surface.window.id() == id {
-                    wx.surface.screen.invalidate();
-                }
-            }
-        }
-        if let Some(i) = self.weather.iter().position(|wx| wx.surface.window.id() == id) {
-            match event {
-                WindowEvent::RedrawRequested => self.draw_weather(i),
-                WindowEvent::Resized(size) => {
-                    let wx = &mut self.weather[i];
-                    let s = wx.surface.scale;
-                    let (w, h) = (size.width.div_ceil(s) as i32, size.height.div_ceil(s) as i32);
-                    wx.surface.screen.resize(size.width, size.height);
-                    wx.surface.canvas = Canvas::new(w, h);
-                    wx.scene.resize(w, h);
-                }
-                _ => {}
-            }
-            return;
         }
         let is_orb = self.orb.as_ref().is_some_and(|o| o.window.id() == id);
         if is_orb {
@@ -1087,19 +1071,24 @@ impl ApplicationHandler<UserEvent> for App {
             }
             return;
         }
+        let Some(pane) = self.panes.iter().position(|p| p.surface.window.id() == id) else { return };
         match event {
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::Resized(size) => {
-                if let Some(main) = &mut self.main {
-                    main.screen.resize(size.width, size.height);
+                self.panes[pane].surface.screen.resize(size.width, size.height);
+                if !self.resolved.overlay {
+                    self.fit(size.width, size.height);
                 }
-                self.fit(size.width, size.height);
             }
-            WindowEvent::RedrawRequested => self.frame(),
+            // The first pane drives the frame and presents every pane.
+            WindowEvent::RedrawRequested if pane == 0 => self.frame(),
+            WindowEvent::RedrawRequested => {
+                let s = &mut self.panes[pane].surface;
+                s.screen.present(&s.canvas, s.scale);
+            }
             WindowEvent::CursorMoved { position, .. } => {
-                self.cursor = (position.x, position.y);
-                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
-                let (x, y) = ((position.x / scale) as f32, (position.y / scale) as f32);
+                (self.cursor, self.cursor_pane) = ((position.x, position.y), pane);
+                let (x, y) = self.scene_cursor();
                 self.orb_hover = self.scene.as_ref().is_some_and(|sc| sc.orb_at(x, y));
                 if self.hand_on
                     && let Some(scene) = &mut self.scene
@@ -1117,8 +1106,7 @@ impl ApplicationHandler<UserEvent> for App {
                 }
             }
             WindowEvent::MouseInput { state: ElementState::Pressed, button, .. } => {
-                let scale = self.main.as_ref().map(|m| m.scale).unwrap_or(1) as f64;
-                let (x, y) = ((self.cursor.0 / scale) as f32, (self.cursor.1 / scale) as f32);
+                let (x, y) = self.scene_cursor();
                 // The orb wins over the hand and the snow: always reachable.
                 let on_orb = self.scene.as_ref().is_some_and(|s| s.orb_at(x, y));
                 match (button, on_orb) {
@@ -1185,28 +1173,23 @@ impl ApplicationHandler<UserEvent> for App {
             }
         }
         let now = Instant::now();
-        if self.resolved.overlay && now >= self.next_monitor_check {
+        if self.resolved.overlay && !self.panes.is_empty() && (self.want_relayout || now >= self.next_monitor_check) {
             self.next_monitor_check = now + MONITOR_CHECK;
-            if let Some(new) = platform::replan(&self.layout, &monitors(el)) {
-                self.relayout(el, new);
+            let forced = std::mem::take(&mut self.want_relayout).then(|| self.planned.clone());
+            if let Some(plan) = platform::replan(&self.planned, &monitors(el)).or(forced) {
+                self.relayout(el, plan);
             }
         }
         if now >= self.next_frame {
             self.next_frame = now + Duration::from_secs_f32(1.0 / FPS);
-            if let Some(m) = &self.main {
-                m.window.request_redraw();
+            if let Some(p) = self.panes.first() {
+                p.surface.window.request_redraw();
             }
             if let Some(m) = &self.menu_win {
                 m.window.request_redraw();
             }
             if let Some(o) = &self.orb {
                 o.window.request_redraw();
-            }
-            self.frames += 1;
-            if self.frames % WEATHER_EVERY == 0 {
-                for wx in &self.weather {
-                    wx.surface.window.request_redraw();
-                }
             }
         }
         el.set_control_flow(ControlFlow::WaitUntil(self.next_frame));

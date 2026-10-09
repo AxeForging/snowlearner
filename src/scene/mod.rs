@@ -2550,4 +2550,18 @@ mod tests {
         run(&mut s, 30.0);
         assert!(s.freeze_level() < 0.05, "a negative level means clear: {}", s.freeze_level());
     }
+
+    #[test]
+    fn across_two_monitors_the_mage_and_the_warrior_roam_both_screens() {
+        let mut s = Scene::new(960, 270, 21, Commitment::Steady.pace(), true);
+        let (mut mage, mut warrior) = ((f32::MAX, f32::MIN), (f32::MAX, f32::MIN));
+        for _ in 0..(20 * 60 * 10) {
+            s.step(0.1);
+            mage = (mage.0.min(s.mage.x), mage.1.max(s.mage.x));
+            warrior = (warrior.0.min(s.warrior.x), warrior.1.max(s.warrior.x));
+        }
+        for (who, (lo, hi)) in [("mage", mage), ("warrior", warrior)] {
+            assert!(lo < 240.0 && hi > 720.0, "the {who} stayed on one screen: x {lo:.0}..{hi:.0}");
+        }
+    }
 }
