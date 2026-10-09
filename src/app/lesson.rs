@@ -505,13 +505,20 @@ impl Lesson {
                 let (phrase, tries) = (*phrase, *tries);
                 let p = self.phrase(phrase).clone();
                 let slack = if self.beginner() { matcher::BEGINNER_SLACK } else { 0 };
-                // Every tier counts; the best match tells which one was said
-                // (shortest first, so a tie goes to the higher tier).
+                // Every tier counts. The one said is the highest whose words were
+                // all heard, not the best score: the shorter tiers sit inside the
+                // polished one, so a slip in the long answer must not hand the
+                // reward to them; the best score decides when none is whole.
                 let answers = p.answers();
                 let texts: Vec<&str> = answers.iter().map(|(_, a)| *a).collect();
-                let (m, best) = matcher::score_any(&texts, &text, slack, &self.deck.language);
+                let lang = &self.deck.language;
+                let (m, best) = matcher::score_any(&texts, &text, slack, lang);
                 let passed = m.passed(self.opts.threshold);
-                let said = passed.then(|| answers[best].0);
+                let whole = answers
+                    .iter()
+                    .rev()
+                    .find(|(_, a)| matcher::score_lenient(a, &text, slack, lang).words.iter().all(|w| w.hit));
+                let said = passed.then(|| whole.unwrap_or(&answers[best]).0);
                 if !passed && matcher::is_hallucination(&text) {
                     // Whisper invented "Thank you for watching" out of noise: that's silence.
                     self.silence(scene);
@@ -616,7 +623,10 @@ impl Lesson {
         });
         let tries = tries + 1;
         let (stage, footer) = if passed {
-            (Stage::Result { until: self.clock + RESULT_SECONDS }, format!("{}: próxima frase", self.opts.hotkey))
+            // With options on screen, tell which one counted (it picks the spell).
+            let counted = said.filter(|_| p.tiers().len() > 1).map(|t| format!("Resposta {}! · ", t.label_pt()));
+            let next = format!("{}{}: próxima frase", counted.unwrap_or_default(), self.opts.hotkey);
+            (Stage::Result { until: self.clock + RESULT_SECONDS }, next)
         } else if tries < MAX_TRIES {
             let hint = if mode == Mode::Recall { "Era assim: ouça e repita..." } else { "Ouça de novo..." };
             (Stage::RetryPause { until: self.clock + RETRY_PAUSE }, format!("Tentativa {tries}/{MAX_TRIES}. {hint}"))
@@ -1017,6 +1027,34 @@ mod tests {
         let (passed, spell, missed) = say_tier(Answer::Polished, "banana split");
         assert!(!passed && spell.is_none());
         assert!(missed <= 1e-6, "a miss melts nothing: {missed}");
+    }
+
+    #[test]
+    fn the_longest_answer_said_counts_even_with_a_recognizer_slip() {
+        // The shorter tiers sit inside the polished one and score a perfect
+        // window; a slip in the long answer must not hand the reward to them.
+        let (passed, spell, _) = say_tier(Answer::Short, "Could you plese share your screen");
+        assert!(passed);
+        assert_eq!(spell, Some(Spell::Blaze), "the learner said the polished answer");
+        let (_, spell, _) = say_tier(Answer::Short, "Can yu share your screen");
+        assert_eq!(spell, Some(Spell::Fireball));
+    }
+
+    #[test]
+    fn the_caption_says_which_answer_counted() {
+        let footer = |heard: &str| {
+            let mut f = tier_fixture(Answer::All);
+            let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: heard.into() }));
+            f.scene.hud.caption.as_ref().unwrap().footer.clone()
+        };
+        assert!(footer("Could you please share your screen").starts_with("Resposta polida!"));
+        assert!(footer("Share your screen").starts_with("Resposta curta!"));
+        assert!(footer("Can you share your screen").starts_with("Resposta completa!"));
+        let mut f = fixture(true);
+        f.answer(true);
+        assert!(!f.scene.hud.caption.as_ref().unwrap().footer.starts_with("Resposta"), "no tiers, nothing to tell");
     }
 
     #[test]
