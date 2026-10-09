@@ -6,7 +6,7 @@
 
 use crate::config::level::Commitment;
 use crate::config::settings::{Settings, WindowMode};
-use crate::lang::text::{language_name, topic};
+use crate::lang::text::{language_name, topic, topics_label};
 use crate::lang::{Native, T};
 use crate::learn::deck::{Answer, LEVELS, PRE_A1};
 use crate::learn::picker::Practice;
@@ -21,6 +21,10 @@ const ROW_H: i32 = 12;
 const TABS_Y: i32 = 13;
 const TOP: i32 = 28;
 const GOALS: &[u32] = &[3, 5, 10, 15, 20, 30, 50];
+/// First row of an open list (its header sits on the first menu row).
+const LIST_TOP: i32 = TOP + ROW_H;
+/// Rows an open list shows at once; longer lists scroll.
+pub const LIST_ROWS: usize = ((HEIGHT - 15 - LIST_TOP) / ROW_H) as usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Item {
@@ -118,8 +122,9 @@ pub struct Menu {
     pub tab: Tab,
     pub sel: usize,
     pub languages: Vec<String>,
-    /// Topics of the current deck ("" = all is added automatically).
-    pub topics: Vec<String>,
+    /// Topics with something at the current level, each with how many
+    /// items it has there (the checklist adds "all topics" itself).
+    pub topics: Vec<(String, usize)>,
     pub mics: Vec<String>,
     pub speakers: Vec<String>,
     pub voices_native: Vec<String>,
@@ -135,6 +140,41 @@ pub struct Menu {
     pub progress: Option<Progress>,
     /// The address being typed; keys go to it until Enter or Esc.
     edit: Option<String>,
+    /// The list open over the rows (every option of one item at once).
+    list: Option<List>,
+}
+
+/// A choice row opened as a list: every option at once, or, for topics, a
+/// checklist. Keys and clicks go to it until a pick or Esc.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct List {
+    item: Item,
+    /// Row under the cursor.
+    cursor: usize,
+    /// First row shown (lists longer than [`LIST_ROWS`] scroll).
+    top: usize,
+}
+
+impl List {
+    /// Keeps the cursor on screen, scrolling as little as possible.
+    fn scrolled(mut self, len: usize) -> List {
+        self.cursor = self.cursor.min(len.saturating_sub(1));
+        self.top = self.top.min(self.cursor).max((self.cursor + 1).saturating_sub(LIST_ROWS));
+        self.top = self.top.min(len.saturating_sub(LIST_ROWS));
+        self
+    }
+}
+
+/// Every value of one setting as the settings it would make, in order.
+fn each<V>(s: &Settings, values: impl IntoIterator<Item = V>, set: impl Fn(&mut Settings, V)) -> Vec<Settings> {
+    values
+        .into_iter()
+        .map(|v| {
+            let mut c = s.clone();
+            set(&mut c, v);
+            c
+        })
+        .collect()
 }
 
 /// Completes a typed voice server address: `192.168.0.10:8880` becomes
@@ -156,16 +196,6 @@ pub fn normalize_url(raw: &str) -> Option<String> {
     }
     let path = if rest.contains('/') { "" } else { "/v1" };
     Some(format!("{}://{rest}{path}", scheme.to_ascii_lowercase()))
-}
-
-fn cycle<T: PartialEq + Clone>(options: &[T], current: &T, forward: bool) -> T {
-    let n = options.len();
-    if n == 0 {
-        return current.clone();
-    }
-    let i = options.iter().position(|o| o == current).unwrap_or(0);
-    let j = if forward { (i + 1) % n } else { (i + n - 1) % n };
-    options[j].clone()
 }
 
 /// "" (automatic/default) first, then the given names.
@@ -199,7 +229,7 @@ fn meter(c: &mut Canvas, x: i32, y: i32, w: i32, t: Tally) {
 }
 
 impl Menu {
-    pub fn new(languages: Vec<String>, topics: Vec<String>) -> Menu {
+    pub fn new(languages: Vec<String>, topics: Vec<(String, usize)>) -> Menu {
         Menu {
             tab: Tab::Game,
             sel: 0,
@@ -215,6 +245,7 @@ impl Menu {
             status: String::new(),
             progress: None,
             edit: None,
+            list: None,
         }
     }
 
@@ -266,62 +297,161 @@ impl Menu {
     pub fn show(&mut self, tab: Tab) {
         self.tab = tab;
         self.sel = 0;
+        self.list = None;
     }
 
-    fn change(&self, item: Item, s: &mut Settings, forward: bool) -> Action {
+    /// What each option of a choice row would make the settings, in the
+    /// order ← → step through them and its list shows them. Empty for rows
+    /// that are not choices (actions, the address field).
+    fn choices(&self, item: Item, s: &Settings) -> Vec<Settings> {
         match item {
-            Item::Native => {
-                s.native = cycle(&Native::ALL, &s.native, forward);
+            Item::Native => each(s, Native::ALL, |c, n| {
+                c.native = n;
                 // Nobody learns their own language: move on to one they can.
-                if s.native.is(&s.learning)
-                    && let Some(other) = self.learnable(s.native).first()
+                if n.is(&c.learning)
+                    && let Some(other) = self.learnable(n).first()
                 {
-                    s.learning = other.clone();
+                    c.learning = other.clone();
                 }
+            }),
+            Item::Language => each(s, self.learnable(s.native), |c, l| c.learning = l),
+            Item::Commitment => each(
+                s,
+                [Commitment::Chill, Commitment::Steady, Commitment::Committed, Commitment::Relentless],
+                |c, v| c.commitment = v,
+            ),
+            // ← → pick one topic at a time; the checklist ticks several.
+            Item::Topic => {
+                let one = self.topics.iter().map(|(t, _)| vec![t.clone()]);
+                each(s, std::iter::once(Vec::new()).chain(one), |c, t| c.topics = t)
             }
-            Item::Language => s.learning = cycle(&self.learnable(s.native), &s.learning, forward),
-            Item::Commitment => {
-                let all = [Commitment::Chill, Commitment::Steady, Commitment::Committed, Commitment::Relentless];
-                s.commitment = cycle(&all, &s.commitment, forward);
-            }
-            Item::Topic => s.topic = cycle(&with_default(&self.topics), &s.topic, forward),
-            Item::Level => {
-                let all: Vec<String> = LEVELS.iter().map(|l| l.to_string()).collect();
-                s.max_level = cycle(&all, &s.max_level, forward);
-            }
-            Item::Practice => {
-                s.practice = cycle(&[Practice::Auto, Practice::Repeat, Practice::Recall], &s.practice, forward)
-            }
-            Item::Answer => s.answer = cycle(&Answer::CHOICES, &s.answer, forward),
-            Item::Goal => {
-                s.daily_goal = if forward {
-                    GOALS.iter().copied().find(|g| *g > s.daily_goal).unwrap_or(GOALS[0])
-                } else {
-                    GOALS.iter().rev().copied().find(|g| *g < s.daily_goal).unwrap_or(*GOALS.last().unwrap())
-                };
-            }
-            Item::Mode => {
-                s.mode = cycle(&[WindowMode::Auto, WindowMode::Window, WindowMode::Overlay], &s.mode, forward)
-            }
-            Item::Mic => s.mic = cycle(&with_default(&self.mics), &s.mic, forward),
-            Item::Speaker => s.speaker = cycle(&with_default(&self.speakers), &s.speaker, forward),
+            Item::Level => each(s, LEVELS, |c, l| c.max_level = l.to_string()),
+            Item::Practice => each(s, [Practice::Auto, Practice::Repeat, Practice::Recall], |c, p| c.practice = p),
+            Item::Answer => each(s, Answer::CHOICES, |c, a| c.answer = a),
+            Item::Goal => each(s, GOALS.iter().copied(), |c, g| c.daily_goal = g),
+            Item::Mode => each(s, [WindowMode::Auto, WindowMode::Window, WindowMode::Overlay], |c, m| c.mode = m),
+            Item::Mic => each(s, with_default(&self.mics), |c, m| c.mic = m),
+            Item::Speaker => each(s, with_default(&self.speakers), |c, m| c.speaker = m),
             Item::Engine => {
                 // Only offer engines that can work with the current config.
                 let mut all = vec![TtsEngine::System, TtsEngine::Http];
                 if !s.tts_command.trim().is_empty() {
                     all.push(TtsEngine::Command);
                 }
-                s.tts_engine = cycle(&all, &s.tts_engine, forward);
-                s.voice_native.clear();
-                s.voice_learning.clear();
+                each(s, all, |c, e| {
+                    c.tts_engine = e;
+                    c.voice_native.clear(); // voices belong to the old engine
+                    c.voice_learning.clear();
+                })
             }
-            Item::VoiceNative => s.voice_native = cycle(&with_default(&self.voices_native), &s.voice_native, forward),
-            Item::VoiceLearning => {
-                s.voice_learning = cycle(&with_default(&self.voices_learning), &s.voice_learning, forward)
-            }
-            _ => return Action::None,
+            Item::VoiceNative => each(s, with_default(&self.voices_native), |c, v| c.voice_native = v),
+            Item::VoiceLearning => each(s, with_default(&self.voices_learning), |c, v| c.voice_learning = v),
+            _ => Vec::new(),
         }
+    }
+
+    /// Which of `options` the settings hold now. None for a value no option
+    /// has (a goal of 12 written in the config file).
+    fn current(&self, item: Item, s: &Settings, options: &[Settings]) -> Option<usize> {
+        if item == Item::Goal {
+            return GOALS.iter().position(|g| *g == s.daily_goal);
+        }
+        options.iter().position(|o| o == s).or_else(|| {
+            let shown = self.value(item, s);
+            options.iter().position(|o| self.value(item, o) == shown)
+        })
+    }
+
+    /// ← →: the next or previous option of a choice row.
+    fn change(&self, item: Item, s: &mut Settings, forward: bool) -> Action {
+        let options = self.choices(item, s);
+        let n = options.len();
+        if n == 0 {
+            return Action::None;
+        }
+        let j = match self.current(item, s, &options) {
+            Some(i) if forward => (i + 1) % n,
+            Some(i) => (i + n - 1) % n,
+            None if item == Item::Goal && forward => GOALS.iter().position(|g| *g > s.daily_goal).unwrap_or(0),
+            None if item == Item::Goal => GOALS.iter().rposition(|g| *g < s.daily_goal).unwrap_or(n - 1),
+            None => 0,
+        };
+        *s = options[j].clone();
         Action::Changed(item)
+    }
+
+    /// The item whose list is open, if any.
+    pub fn list_open(&self) -> Option<Item> {
+        self.list.map(|l| l.item)
+    }
+
+    /// Closes an open list without picking (the panel was reopened).
+    pub fn close_list(&mut self) {
+        self.list = None;
+    }
+
+    /// Rows of an open list: "all topics" plus each topic, or every option.
+    fn list_len(&self, item: Item, s: &Settings) -> usize {
+        if item == Item::Topic { self.topics.len() + 1 } else { self.choices(item, s).len() }
+    }
+
+    /// Enter on a choice row: its list opens on the current option.
+    fn open_list(&mut self, item: Item, s: &Settings) {
+        let cursor = if item == Item::Topic {
+            s.topics.first().and_then(|t| self.topics.iter().position(|(k, _)| k == t)).map_or(0, |i| i + 1)
+        } else {
+            self.current(item, s, &self.choices(item, s)).unwrap_or(0)
+        };
+        let len = self.list_len(item, s);
+        self.list = Some(List { item, cursor, top: 0 }.scrolled(len));
+    }
+
+    /// Picks row `row` of the open list. A topic row ticks or unticks it and
+    /// the checklist stays open; "all topics" clears every tick (nothing
+    /// ticked = all). Any other list sets that option and closes.
+    fn pick(&mut self, row: usize, s: &mut Settings) -> Action {
+        let Some(list) = self.list else { return Action::None };
+        if list.item == Item::Topic {
+            match row.checked_sub(1).and_then(|i| self.topics.get(i)) {
+                None => s.topics.clear(),
+                Some((clicked, _)) => {
+                    let ticked = |t: &String| s.topics.contains(t) != (t == clicked);
+                    s.topics = self.topics.iter().map(|(t, _)| t).filter(|t| ticked(t)).cloned().collect();
+                }
+            }
+            self.list = Some(List { cursor: row, ..list }.scrolled(self.list_len(Item::Topic, s)));
+            return Action::Changed(Item::Topic);
+        }
+        self.list = None;
+        match self.choices(list.item, s).into_iter().nth(row) {
+            Some(option) => {
+                *s = option;
+                Action::Changed(list.item)
+            }
+            None => Action::None,
+        }
+    }
+
+    /// Keys while a list is open: move, pick, or go back.
+    fn list_key(&mut self, key: Key, s: &mut Settings) -> Action {
+        let Some(mut list) = self.list else { return Action::None };
+        let n = self.list_len(list.item, s);
+        if n == 0 {
+            self.list = None;
+            return Action::None;
+        }
+        match key {
+            Key::Up => list.cursor = (list.cursor.min(n - 1) + n - 1) % n,
+            Key::Down => list.cursor = (list.cursor + 1) % n,
+            Key::Enter => return self.pick(list.cursor.min(n - 1), s),
+            Key::Esc | Key::Tab => {
+                self.list = None;
+                return Action::None;
+            }
+            Key::Left | Key::Right | Key::Char(_) | Key::Backspace => {}
+        }
+        self.list = Some(list.scrolled(n));
+        Action::None
     }
 
     fn activate(&mut self, item: Item, s: &mut Settings) -> Action {
@@ -337,13 +467,21 @@ impl Menu {
                 self.test_result = T::AddressTyping.get(s.native).into();
                 Action::None
             }
-            other => self.change(other, s, true),
+            other => {
+                if other == Item::Topic || !self.choices(other, s).is_empty() {
+                    self.open_list(other, s);
+                }
+                Action::None
+            }
         }
     }
 
     pub fn key(&mut self, key: Key, s: &mut Settings) -> Action {
         if self.edit.is_some() {
             return self.edit_key(key, s);
+        }
+        if self.list.is_some() {
+            return self.list_key(key, s);
         }
         let n = self.items().len();
         match key {
@@ -369,17 +507,27 @@ impl Menu {
         }
     }
 
-    /// Click at art coordinates: tabs switch pages; rows select and activate.
+    /// Click at art coordinates: tabs switch pages; rows select and activate
+    /// (a choice row opens its list); a click on an open list's row picks it.
     pub fn click(&mut self, x: i32, y: i32, s: &mut Settings) -> Action {
         if !(0..WIDTH).contains(&x) {
             return Action::None;
         }
         if (TABS_Y..TABS_Y + ROW_H).contains(&y) {
+            self.list = None;
             let want = TABS[(x * TABS.len() as i32 / WIDTH) as usize].0;
             if want != self.tab {
                 self.show(want);
             }
             return Action::None;
+        }
+        if let Some(list) = self.list {
+            let shown = (y >= LIST_TOP).then(|| ((y - LIST_TOP) / ROW_H) as usize).filter(|r| *r < LIST_ROWS);
+            let Some(row) = shown.map(|r| list.top + r).filter(|r| *r < self.list_len(list.item, s)) else {
+                return Action::None;
+            };
+            self.list = Some(List { cursor: row, ..list });
+            return self.pick(row, s);
         }
         if y < TOP {
             return Action::None;
@@ -422,8 +570,9 @@ impl Menu {
             Item::Native => language_name(n, n.code()),
             Item::Language => language_name(n, &s.learning),
             Item::Commitment => s.commitment.label(n).into(),
-            Item::Topic if s.topic.is_empty() => T::AllTopicsShort.get(n).into(),
-            Item::Topic => shorten(&topic(n, &s.topic), 20),
+            Item::Topic => {
+                topics_label(n, &s.topics).map_or_else(|| T::AllTopicsShort.get(n).into(), |l| shorten(&l, 20))
+            }
             Item::Level if s.max_level == PRE_A1 => T::LevelBeginner.get(n).into(),
             Item::Level => T::LevelUpTo.fill(n, &[&s.max_level]),
             Item::Practice => match s.practice {
@@ -529,6 +678,92 @@ impl Menu {
         }
     }
 
+    /// Row `row` of an open list: its text, whether it is the current option
+    /// (or ticked), and the item count a topic has at this level.
+    fn list_row(&self, item: Item, row: usize, s: &Settings, options: &[Settings]) -> (String, bool, Option<usize>) {
+        let n = s.native;
+        if item != Item::Topic {
+            return (self.value(item, &options[row]), Some(row) == self.current(item, s, options), None);
+        }
+        match row.checked_sub(1).and_then(|i| self.topics.get(i)) {
+            None => (T::AllTopics.get(n).into(), s.topics.is_empty(), Some(self.topics.iter().map(|(_, k)| k).sum())),
+            Some((t, count)) => (topic(n, t), s.topics.contains(t), Some(*count)),
+        }
+    }
+
+    /// An open list over the rows: header, every option (scrolling when
+    /// long), the current one marked; topics as a checklist with counts.
+    fn draw_list(&self, c: &mut Canvas, list: List, s: &Settings, time: f32) {
+        let n = s.native;
+        let (ink, dim, accent, gold, sel_bg) =
+            (hex(0xe6ecff), hex(0x8f96d8), hex(0x9be8ff), hex(0xffd64a), hex(0x2a5a9a));
+        let checklist = list.item == Item::Topic;
+        let label = Self::label(list.item, n);
+        font::draw(c, 6, TOP - 2, label, gold);
+        if checklist {
+            let x = 6 + font::text_width(label) + 8;
+            let hint = fit(T::ChecklistNoneIsAll.get(n), WIDTH - x - 6);
+            font::draw(c, WIDTH - font::text_width(&hint) - 6, TOP - 2, &hint, dim);
+        }
+        let options = if checklist { Vec::new() } else { self.choices(list.item, s) };
+        let len = self.list_len(list.item, s);
+        let scrolls = len > LIST_ROWS;
+        let right = WIDTH - if scrolls { 10 } else { 6 };
+        for row in list.top..(list.top + LIST_ROWS).min(len) {
+            let y = LIST_TOP + (row - list.top) as i32 * ROW_H;
+            let here = row == list.cursor;
+            if here {
+                c.rect(2, y, right - 1, ROW_H, sel_bg);
+                if (time * 3.0) as i32 % 2 == 0 {
+                    font::draw(c, 3, y - 2, ">", hex(0xffffff));
+                }
+            }
+            let (text, on, count) = self.list_row(list.item, row, s, &options);
+            let count = count.map(|k| k.to_string()).unwrap_or_default();
+            let mut x = 10;
+            if checklist {
+                let col = if on { gold } else { dim };
+                c.rect(x, y + 2, 8, 1, col);
+                c.rect(x, y + 9, 8, 1, col);
+                c.rect(x, y + 2, 1, 8, col);
+                c.rect(x + 7, y + 2, 1, 8, col);
+                if on {
+                    c.rect(x + 2, y + 4, 4, 4, gold);
+                }
+                x += 12;
+            } else if on {
+                font::draw(c, right - font::text_width("✓"), y - 2, "✓", gold);
+            }
+            let room = right - x - font::text_width(&count) - 6 - if on && !checklist { 10 } else { 0 };
+            let col = if here {
+                hex(0xffffff)
+            } else if on {
+                gold
+            } else {
+                ink
+            };
+            font::draw(c, x, y - 2, &fit(&text, room), col);
+            if !count.is_empty() {
+                font::draw(
+                    c,
+                    right - font::text_width(&count),
+                    y - 2,
+                    &count,
+                    if here { hex(0xffffff) } else { accent },
+                );
+            }
+        }
+        if scrolls {
+            let track = LIST_ROWS as i32 * ROW_H;
+            let thumb = (track * LIST_ROWS as i32 / len as i32).max(6);
+            let at = (track - thumb) * list.top as i32 / (len - LIST_ROWS) as i32;
+            c.rect(WIDTH - 6, LIST_TOP, 3, track, hex(0x1d2a5a));
+            c.rect(WIDTH - 6, LIST_TOP + at, 3, thumb, accent);
+        }
+        let foot = if checklist { T::ChecklistFooter } else { T::PickerFooter };
+        font::draw(c, 6, c.h - 13, &fit(foot.get(n), WIDTH - 12), dim);
+    }
+
     pub fn draw(&self, c: &mut Canvas, s: &Settings, time: f32) {
         let n = s.native;
         let (bg, ink, dim, accent, sel_bg): (Rgba, Rgba, Rgba, Rgba, Rgba) =
@@ -554,6 +789,10 @@ impl Menu {
         if self.tab == Tab::Progress {
             self.draw_progress(c, n, ink, dim, accent);
             font::draw(c, 6, c.h - 13, T::ProgressFooter.get(n), dim);
+            return;
+        }
+        if let Some(list) = self.list {
+            self.draw_list(c, list, s, time);
             return;
         }
         for (i, item) in self.items().iter().enumerate() {
@@ -625,7 +864,7 @@ mod tests {
     use super::*;
 
     fn menu() -> Menu {
-        let mut m = Menu::new(vec!["en".into(), "es".into()], vec!["trabalho".into(), "viagem".into()]);
+        let mut m = Menu::new(vec!["en".into(), "es".into()], vec![("trabalho".into(), 12), ("viagem".into(), 8)]);
         m.mics = vec!["USB Mic".into(), "Laptop Mic".into()];
         m.voices_learning = vec!["af_heart".into(), "am_adam".into()];
         m
@@ -653,7 +892,7 @@ mod tests {
     }
 
     fn full_menu() -> Menu {
-        Menu::new(vec!["en".into(), "es".into(), "pt-BR".into()], vec!["trabalho".into()])
+        Menu::new(vec!["en".into(), "es".into(), "pt-BR".into()], vec![("trabalho".into(), 5)])
     }
 
     #[test]
@@ -693,8 +932,12 @@ mod tests {
     #[test]
     fn the_whole_panel_reads_in_english_for_an_english_speaker() {
         let mut m = full_menu();
-        let s =
-            Settings { native: Native::En, learning: "pt-BR".into(), topic: "trabalho".into(), ..Default::default() };
+        let s = Settings {
+            native: Native::En,
+            learning: "pt-BR".into(),
+            topics: vec!["trabalho".into()],
+            ..Default::default()
+        };
         assert_eq!(Menu::label(Item::Native, s.native), "My language");
         assert_eq!(m.value(Item::Language, &s), "Portuguese");
         assert_eq!(m.value(Item::Topic, &s), "work", "topic keys read in English");
@@ -1022,5 +1265,301 @@ mod tests {
     fn long_device_names_are_shortened() {
         assert_eq!(shorten("Built-in Audio Analog Stereo Microphone", 10), "Built-in …");
         assert_eq!(shorten("USB", 10), "USB");
+    }
+
+    /// Every row of both tabs that holds a setting with options to choose.
+    const CHOICE_ROWS: &[Item] = &[
+        Item::Native,
+        Item::Language,
+        Item::Commitment,
+        Item::Topic,
+        Item::Level,
+        Item::Practice,
+        Item::Answer,
+        Item::Goal,
+        Item::Mode,
+        Item::Mic,
+        Item::Engine,
+        Item::VoiceNative,
+        Item::VoiceLearning,
+        Item::Speaker,
+    ];
+
+    /// The options an open list shows, as the panel reads them.
+    fn list_texts(m: &Menu, s: &Settings) -> Vec<String> {
+        let item = m.list_open().expect("a list is open");
+        let options = m.choices(item, s);
+        (0..m.list_len(item, s)).map(|r| m.list_row(item, r, s, &options).0).collect()
+    }
+
+    fn render(m: &Menu, s: &Settings) -> Canvas {
+        let mut c = Canvas::new(WIDTH, HEIGHT);
+        m.draw(&mut c, s, 0.0);
+        assert_eq!(c.opaque_in(0, 0, WIDTH, HEIGHT), (WIDTH * HEIGHT) as usize);
+        c
+    }
+
+    #[test]
+    fn enter_on_every_choice_row_opens_a_list_with_every_option_and_esc_goes_back() {
+        let mut m = menu();
+        m.languages.push("pt-BR".into());
+        m.speakers = vec!["HDMI".into()];
+        m.voices_native = vec!["pf_dora".into()];
+        for &item in CHOICE_ROWS {
+            for native in Native::ALL {
+                let mut s = Settings { native, learning: "es".into(), ..Default::default() };
+                let before = s.clone();
+                select(&mut m, item);
+                assert_eq!(m.key(Key::Enter, &mut s), Action::None, "{item:?}: opening changes nothing");
+                assert_eq!(m.list_open(), Some(item), "{item:?}");
+                let texts = list_texts(&m, &s);
+                let want = if item == Item::Topic { 3 } else { m.choices(item, &s).len() };
+                assert_eq!(texts.len(), want, "{item:?}: {texts:?}");
+                assert!(texts.len() >= 2, "{item:?} offers a choice: {texts:?}");
+                for t in &texts {
+                    assert!(font::supports(t), "{item:?} {native:?}: {t:?}");
+                }
+                render(&m, &s);
+                assert_eq!(m.key(Key::Esc, &mut s), Action::None, "{item:?}: Esc leaves the list, not the panel");
+                assert_eq!(m.list_open(), None);
+                assert_eq!(s, before, "{item:?}: backing out keeps the setting");
+                assert_eq!(m.item(), item, "back on the row it came from");
+            }
+        }
+    }
+
+    #[test]
+    fn a_list_shows_every_level_at_once_and_enter_picks_the_highlighted_one() {
+        let mut m = menu();
+        let mut s = Settings { max_level: "A2".into(), ..Default::default() };
+        select(&mut m, Item::Level);
+        m.key(Key::Enter, &mut s);
+        assert_eq!(
+            list_texts(&m, &s),
+            ["pré-A1 · iniciante", "até A1", "até A2", "até B1", "até B2", "até C1", "até C2"]
+        );
+        assert_eq!(m.list.unwrap().cursor, 2, "opens on the current level");
+        m.key(Key::Down, &mut s);
+        m.key(Key::Down, &mut s);
+        m.key(Key::Left, &mut s); // ← → don't change anything while the list is open
+        assert_eq!(s.max_level, "A2", "moving doesn't change the setting yet");
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::Level));
+        assert_eq!(s.max_level, "B2");
+        assert_eq!(m.list_open(), None, "picking closes the list");
+        m.key(Key::Enter, &mut s);
+        m.key(Key::Up, &mut s);
+        m.key(Key::Up, &mut s);
+        m.key(Key::Up, &mut s);
+        m.key(Key::Up, &mut s);
+        m.key(Key::Up, &mut s);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::Level));
+        assert_eq!(s.max_level, "C2", "up from the top wraps to the bottom");
+        s.validate().unwrap();
+    }
+
+    #[test]
+    fn the_current_option_is_marked_in_its_list() {
+        let mut m = menu();
+        let mut s = Settings { answer: Answer::Complete, ..Default::default() };
+        select(&mut m, Item::Answer);
+        m.key(Key::Enter, &mut s);
+        let options = m.choices(Item::Answer, &s);
+        let marked: Vec<String> = (0..options.len())
+            .filter(|&r| m.list_row(Item::Answer, r, &s, &options).1)
+            .map(|r| list_texts(&m, &s)[r].clone())
+            .collect();
+        assert_eq!(marked, ["completa"]);
+    }
+
+    #[test]
+    fn clicking_an_option_in_the_list_picks_it() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        let row = GAME.iter().position(|i| *i == Item::Commitment).unwrap() as i32;
+        assert_eq!(m.click(50, TOP + row * ROW_H + 3, &mut s), Action::None, "a click on the row opens its list");
+        assert_eq!(m.list_open(), Some(Item::Commitment));
+        assert_eq!(m.click(50, LIST_TOP + 3 * ROW_H + 5, &mut s), Action::Changed(Item::Commitment));
+        assert_eq!(s.commitment, Commitment::Relentless);
+        assert_eq!(m.list_open(), None);
+        m.click(50, TOP + row * ROW_H + 3, &mut s);
+        assert_eq!(m.click(50, LIST_TOP + 9 * ROW_H, &mut s), Action::None, "below the last option: nothing");
+        assert_eq!(m.click(50, TOP + 2, &mut s), Action::None, "the header: nothing");
+        assert_eq!(m.list_open(), Some(Item::Commitment));
+        assert_eq!(m.click(WIDTH / 2, TABS_Y + 3, &mut s), Action::None);
+        assert_eq!((m.list_open(), m.tab), (None, Tab::Audio), "a tab click leaves the list for that tab");
+        assert_eq!(s.commitment, Commitment::Relentless);
+    }
+
+    #[test]
+    fn arrows_on_a_row_still_cycle_without_opening_a_list() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Goal);
+        assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::Goal));
+        assert_eq!(s.daily_goal, 15);
+        assert_eq!(m.list_open(), None);
+        s.daily_goal = 12; // hand-written in the config: not one of the options
+        m.key(Key::Right, &mut s);
+        assert_eq!(s.daily_goal, 15, "the next goal up");
+        s.daily_goal = 12;
+        m.key(Key::Left, &mut s);
+        assert_eq!(s.daily_goal, 10, "the next goal down");
+        select(&mut m, Item::Topic);
+        m.key(Key::Right, &mut s);
+        assert_eq!(s.topics, ["trabalho"], "one topic at a time");
+        m.key(Key::Right, &mut s);
+        assert_eq!(s.topics, ["viagem"]);
+        m.key(Key::Right, &mut s);
+        assert!(s.topics.is_empty(), "then back to all");
+    }
+
+    #[test]
+    fn the_topic_checklist_ticks_several_topics_and_none_means_all() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Topic);
+        m.key(Key::Enter, &mut s);
+        assert_eq!(list_texts(&m, &s), ["todos os temas", "trabalho", "viagem"]);
+        let ticked =
+            |m: &Menu, s: &Settings| -> Vec<bool> { (0..3).map(|r| m.list_row(Item::Topic, r, s, &[]).1).collect() };
+        assert_eq!(ticked(&m, &s), [true, false, false], "nothing ticked = all topics");
+        m.key(Key::Down, &mut s);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::Topic), "each tick applies at once");
+        m.key(Key::Down, &mut s);
+        m.key(Key::Enter, &mut s);
+        assert_eq!(s.topics, ["trabalho", "viagem"]);
+        assert_eq!(m.list_open(), Some(Item::Topic), "the checklist stays open to tick more");
+        assert_eq!(ticked(&m, &s), [false, true, true]);
+        assert_eq!(m.value(Item::Topic, &s), "trabalho + viagem");
+        m.key(Key::Enter, &mut s);
+        assert_eq!(s.topics, ["trabalho"], "Enter again unticks");
+        m.key(Key::Up, &mut s);
+        m.key(Key::Up, &mut s);
+        m.key(Key::Enter, &mut s);
+        assert!(s.topics.is_empty(), "'all topics' clears every tick");
+        assert_eq!(m.value(Item::Topic, &s), "todos");
+        assert_eq!(m.key(Key::Esc, &mut s), Action::None);
+        assert_eq!(m.list_open(), None);
+        s.validate().unwrap();
+    }
+
+    #[test]
+    fn checklist_ticks_by_click_keep_deck_order_and_drop_topics_not_offered() {
+        let mut m = menu();
+        let mut s = Settings { topics: vec!["sumido".into()], ..Default::default() };
+        select(&mut m, Item::Topic);
+        m.key(Key::Enter, &mut s);
+        assert_eq!(m.click(60, LIST_TOP + 2 * ROW_H + 4, &mut s), Action::Changed(Item::Topic));
+        assert_eq!(s.topics, ["viagem"], "a topic this level doesn't offer goes on the first tick");
+        m.click(60, LIST_TOP + ROW_H + 4, &mut s);
+        assert_eq!(s.topics, ["trabalho", "viagem"], "deck order, not click order");
+        assert_eq!(m.list_open(), Some(Item::Topic), "clicks keep the checklist open");
+        assert_eq!(m.list.unwrap().cursor, 1, "the cursor follows the click");
+    }
+
+    #[test]
+    fn the_checklist_counts_items_per_topic_at_the_level() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Topic);
+        m.key(Key::Enter, &mut s);
+        let counts: Vec<Option<usize>> = (0..3).map(|r| m.list_row(Item::Topic, r, &s, &[]).2).collect();
+        assert_eq!(counts, [Some(20), Some(12), Some(8)], "all = the sum");
+        m.key(Key::Esc, &mut s);
+        select(&mut m, Item::Level);
+        m.key(Key::Enter, &mut s);
+        assert!(
+            (0..7).all(|r| m.list_row(Item::Level, r, &s, &m.choices(Item::Level, &s)).2.is_none()),
+            "only topics count"
+        );
+    }
+
+    #[test]
+    fn a_long_list_scrolls_to_keep_the_cursor_on_screen() {
+        let topics: Vec<(String, usize)> = (0..30).map(|i| (format!("tema {i:02}"), i + 1)).collect();
+        let mut m = Menu::new(vec!["en".into()], topics);
+        let mut s = Settings::default();
+        select(&mut m, Item::Topic);
+        m.key(Key::Enter, &mut s);
+        assert_eq!(m.list.unwrap().top, 0);
+        m.key(Key::Up, &mut s);
+        let l = m.list.unwrap();
+        assert_eq!((l.cursor, l.top), (30, 31 - LIST_ROWS), "wrapped to the last row, scrolled to show it");
+        render(&m, &s);
+        assert_eq!(m.click(60, LIST_TOP + 4, &mut s), Action::Changed(Item::Topic));
+        assert_eq!(s.topics, [format!("tema {:02}", 31 - LIST_ROWS - 1)], "a click picks the row shown there");
+        m.key(Key::Down, &mut s);
+        m.key(Key::Down, &mut s);
+        for _ in 0..LIST_ROWS {
+            m.key(Key::Down, &mut s);
+        }
+        let l = m.list.unwrap();
+        assert!(l.top <= l.cursor && l.cursor < l.top + LIST_ROWS, "{l:?}");
+        assert_eq!(
+            m.click(60, LIST_TOP + LIST_ROWS as i32 * ROW_H + 2, &mut s),
+            Action::None,
+            "the footer isn't a row"
+        );
+        render(&m, &s);
+    }
+
+    #[test]
+    fn an_open_list_fits_the_panel_in_both_languages() {
+        assert!(LIST_TOP + LIST_ROWS as i32 * ROW_H <= HEIGHT - 13, "rows run into the footer");
+        for native in Native::ALL {
+            for t in [T::PickerFooter, T::ChecklistFooter] {
+                assert!(font::text_width(t.get(native)) <= WIDTH - 12, "{t:?} {native:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_panel_is_reopened_on_its_rows_not_a_stale_list() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::Mode);
+        m.key(Key::Enter, &mut s);
+        m.close_list();
+        assert_eq!(m.list_open(), None);
+        m.key(Key::Enter, &mut s);
+        m.show(Tab::Progress);
+        assert_eq!(m.list_open(), None, "switching tabs leaves the list");
+    }
+
+    /// Renders the topic checklist with the real English deck at A1 (and the
+    /// level list) to PNGs when `SNOWLEARNER_PANEL_PNG` names a directory.
+    #[test]
+    fn the_topic_checklist_renders_with_the_real_deck() {
+        let deck = crate::learn::deck::Deck::builtin("en").unwrap();
+        let mut m = Menu::new(vec!["en".into(), "es".into()], deck.topic_counts("A1"));
+        let mut s = Settings { max_level: "A1".into(), ..Default::default() };
+        select(&mut m, Item::Topic);
+        m.key(Key::Enter, &mut s);
+        m.key(Key::Down, &mut s);
+        m.key(Key::Enter, &mut s);
+        m.key(Key::Down, &mut s);
+        m.key(Key::Down, &mut s);
+        m.key(Key::Enter, &mut s);
+        assert_eq!(s.topics.len(), 2);
+        let checklist = render(&m, &s);
+        m.key(Key::Esc, &mut s);
+        select(&mut m, Item::Level);
+        m.key(Key::Enter, &mut s);
+        let levels = render(&m, &s);
+        m.key(Key::Esc, &mut s);
+        m.topics = deck.topic_counts("C2");
+        assert!(m.topics.len() + 1 > LIST_ROWS, "every topic at C2 needs scrolling");
+        select(&mut m, Item::Topic);
+        m.key(Key::Enter, &mut s);
+        m.key(Key::Up, &mut s);
+        m.key(Key::Up, &mut s); // from the first ticked topic, past "all", wraps to the last
+        assert!(m.list.unwrap().top > 0, "scrolled down to the last topic");
+        let scrolled = render(&m, &s);
+        if let Ok(dir) = std::env::var("SNOWLEARNER_PANEL_PNG") {
+            let dir = std::path::Path::new(&dir);
+            crate::render::png_out::write(&checklist, 3, &dir.join("panel-topics.png")).unwrap();
+            crate::render::png_out::write(&levels, 3, &dir.join("panel-levels.png")).unwrap();
+            crate::render::png_out::write(&scrolled, 3, &dir.join("panel-topics-scrolled.png")).unwrap();
+        }
     }
 }

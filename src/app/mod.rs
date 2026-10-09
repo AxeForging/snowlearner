@@ -165,12 +165,12 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         ask_every: commitment.pace().ask_every,
         practice: settings.practice,
         answer: settings.answer,
-        topic: settings.topic_filter(),
+        topics: settings.topics.clone(),
         max_level: settings.max_level.clone(),
         daily_goal: settings.daily_goal,
     };
     let languages = available_languages(&paths, &settings.learning);
-    let menu = Menu::new(languages, deck.topics());
+    let menu = Menu::new(languages, deck.topic_counts(&settings.max_level));
     let lesson = Lesson::new(deck, opts, history);
 
     let mut app = App {
@@ -584,9 +584,9 @@ impl App {
                 self.lesson.set_options(|o| o.native = n, scene);
                 match Deck::load(&self.settings.learning, n, &self.paths.decks_dir()) {
                     Ok(deck) => {
-                        self.menu.topics = deck.topics();
-                        self.settings.topic.clear();
-                        self.lesson.set_options(|o| o.topic = None, scene);
+                        self.menu.topics = deck.topic_counts(&self.settings.max_level);
+                        self.settings.topics.clear();
+                        self.lesson.set_options(|o| o.topics.clear(), scene);
                         self.lesson.set_deck(deck, scene);
                         if item == Item::Native {
                             let learning = crate::lang::text::language_name(n, &self.settings.learning);
@@ -605,8 +605,8 @@ impl App {
                 scene.hud.toast(T::CommitmentToast.fill(n, &[&self.commitment.label(n)]), 2.5);
             }
             Item::Topic => {
-                let topic = self.settings.topic_filter();
-                self.lesson.set_options(|o| o.topic = topic, scene);
+                let topics = self.settings.topics.clone();
+                self.lesson.set_options(|o| o.topics = topics, scene);
             }
             Item::Level => {
                 let lvl = self.settings.max_level.clone();
@@ -640,18 +640,23 @@ impl App {
         }
     }
 
-    /// Keeps topic and level compatible: the panel lists only topics with
-    /// something at this level, and a topic left with nothing is dropped
-    /// (saved, and said) instead of every lesson failing to find a phrase.
+    /// Keeps topics and level compatible: the panel lists only topics with
+    /// something at this level (and how much), and ticked topics left with
+    /// nothing are unticked (saved, and said) instead of every lesson failing
+    /// to find a phrase. Topics the deck doesn't have are dropped quietly.
     fn fit_topic(&mut self) {
         self.menu.topics = self.lesson.topics();
         let Some(scene) = &mut self.scene else { return };
-        if let Some(topic) = self.lesson.drop_empty_topic(scene) {
-            self.settings.topic.clear();
+        let dropped = self.lesson.drop_empty_topics(scene);
+        let kept = &self.lesson.options().topics;
+        if *kept != self.settings.topics {
+            self.settings.topics = kept.clone();
             if let Err(e) = self.settings.save(&self.paths.config_file()) {
                 eprintln!("could not save settings: {e:#}");
             }
-            scene.hud.toast(crate::app::lesson::topic_dropped(self.settings.native, &topic), 6.0);
+        }
+        if !dropped.is_empty() {
+            scene.hud.toast(crate::app::lesson::topic_dropped(self.settings.native, &dropped), 6.0);
         }
     }
 
@@ -795,6 +800,7 @@ impl App {
             return;
         }
         self.refresh_audio_lists();
+        self.menu.close_list(); // a fresh panel opens on its rows
         let size = PhysicalSize::new(menu::WIDTH as u32 * MENU_SCALE, menu::HEIGHT as u32 * MENU_SCALE);
         let attrs = Window::default_attributes()
             .with_title(T::PanelWindow.get(self.settings.native))

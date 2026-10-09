@@ -245,6 +245,29 @@ fn progress_without_the_app_prints_a_path_that_starts_with_words() {
     assert!(out.contains("Aprendendo agora:"), "{out}");
 }
 
+/// Topic names under "Por tema:" in `progress --print`.
+fn progress_topics(home: &Home) -> Vec<String> {
+    let o = home.run(&["progress", "--print"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let out = stdout(&o);
+    let (_, by_topic) = out.split_once("Por tema:\n").expect("a per-topic section");
+    by_topic.lines().filter_map(|l| l.split("  ").map(str::trim).find(|w| !w.is_empty())).map(String::from).collect()
+}
+
+#[test]
+fn progress_covers_only_the_ticked_topics_and_an_old_single_topic_config_still_works() {
+    let home = Home::new();
+    let port = free_port();
+    home.config(&format!("ipc_port = {port}\ntopic = 'restaurante'\nmax_level = 'B1'\n"));
+    assert_eq!(progress_topics(&home), ["restaurante"], "the old `topic` key still loads");
+    home.config(&format!("ipc_port = {port}\ntopics = ['viagem', 'Restaurante']\nmax_level = 'B1'\n"));
+    let mut both = progress_topics(&home);
+    both.sort();
+    assert_eq!(both, ["restaurante", "viagem"], "several topics at once");
+    home.config(&format!("ipc_port = {port}\ntopics = []\nmax_level = 'B1'\n"));
+    assert!(progress_topics(&home).len() > 5, "nothing ticked = every topic");
+}
+
 #[test]
 fn progress_counts_a_word_as_known_after_two_successes() {
     let home = Home::new();
