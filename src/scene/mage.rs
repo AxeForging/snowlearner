@@ -41,6 +41,8 @@ pub(crate) const BODY: &[&str] = &[
     ".TTTTTTTTTTTTTTT",
 ];
 pub(crate) const FEET: [&str; 3] = ["....KK.....KK", ".....KK..KK..", "...KK......KK"];
+/// Boots together, riding the snow down a pile.
+const FEET_SLIDE: &str = "..KKKKKKKKKKKK";
 
 pub const WIDTH: i32 = 16;
 pub const HEIGHT: i32 = 22;
@@ -78,6 +80,8 @@ pub struct Mage {
     /// A lesson (or pause) is on: return to watching after any action.
     watching: bool,
     pub bubble: Option<super::warrior::Bubble>,
+    /// Sliding down a steep pile (set by the scene): no steps, no bob.
+    pub sliding: bool,
 }
 
 const CHARGE: f32 = 0.7;
@@ -105,6 +109,7 @@ impl Mage {
             volley: false,
             watching: false,
             bubble: None,
+            sliding: false,
         }
     }
 
@@ -244,7 +249,7 @@ impl Mage {
     }
 
     fn origin(&self, feet_y: f32) -> (f32, f32) {
-        let bob = if self.act == Act::Walk && (self.walk_t * 6.0).sin() < 0.0 { 1.0 } else { 0.0 };
+        let bob = if self.act == Act::Walk && !self.sliding && (self.walk_t * 6.0).sin() < 0.0 { 1.0 } else { 0.0 };
         (self.x.round(), (feet_y - HEIGHT as f32 + bob).round())
     }
 
@@ -292,7 +297,13 @@ impl Mage {
         let stagger_x = if self.act == Act::Stagger { ((time * 40.0).sin() * 1.5).round() } else { 0.0 };
         let bx = (ox + stagger_x) as i32;
         c.sprite(BODY, PAL, bx, oy as i32, flip);
-        let feet = if self.act == Act::Walk { FEET[1 + ((self.walk_t * 6.0) as usize % 2)] } else { FEET[0] };
+        let feet = if self.sliding {
+            FEET_SLIDE
+        } else if self.act == Act::Walk {
+            FEET[1 + ((self.walk_t * 6.0) as usize % 2)]
+        } else {
+            FEET[0]
+        };
         c.sprite(&[feet], PAL, bx, oy as i32 + 21, flip);
         if self.blink > 0.0 || self.act == Act::Stagger {
             let ex = self.world(ox, 10.0) + stagger_x;
@@ -403,5 +414,33 @@ mod tests {
         let (left, _) = m.hand(100.0);
         assert!(right > 100.0 + WIDTH as f32 / 2.0);
         assert!(left < 100.0 + WIDTH as f32 / 2.0);
+    }
+
+    #[test]
+    fn sliding_is_its_own_pose_without_a_walk_cycle() {
+        let draw = |m: &Mage| {
+            let mut c = Canvas::new(40, 40);
+            m.draw(&mut c, 32.0, 0.0);
+            c.bytes().to_vec()
+        };
+        let mut m = Mage::new(10.0);
+        let walking: Vec<Vec<u8>> = [0.1, 0.3]
+            .iter()
+            .map(|t| {
+                m.walk_t = *t;
+                draw(&m)
+            })
+            .collect();
+        assert_ne!(walking[0], walking[1], "walking moves the feet");
+        m.sliding = true;
+        let sliding: Vec<Vec<u8>> = [0.1, 0.3]
+            .iter()
+            .map(|t| {
+                m.walk_t = *t;
+                draw(&m)
+            })
+            .collect();
+        assert_eq!(sliding[0], sliding[1], "no steps while sliding");
+        assert!(!walking.contains(&sliding[0]), "a pose of its own");
     }
 }

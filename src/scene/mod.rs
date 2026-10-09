@@ -15,6 +15,7 @@ pub mod mage;
 pub mod mobs;
 pub mod pyro;
 pub mod rng;
+pub mod slide;
 pub mod snow;
 pub mod vortex;
 pub mod warrior;
@@ -666,6 +667,15 @@ impl Scene {
             }
             None => {}
         }
+        let can = self.lift_mage.is_none() && self.mage.act == mage::Act::Walk;
+        let slid = self.slide(can, self.mage.x, mage::WIDTH, self.mage.dir, 2.0, dt);
+        if let Some(x) = slid {
+            self.mage.x = x;
+            if !self.mage.sliding && self.mage.bubble.is_none() {
+                self.mage.say(slide::MAGE_LINE, 2.0);
+            }
+        }
+        self.mage.sliding = slid.is_some();
         let charge = self.mage.charge_level();
         if charge > 0.0 && self.rng.chance(0.8) {
             let feet = self.feet_y(self.mage.x + mage::WIDTH as f32 / 2.0);
@@ -822,6 +832,15 @@ impl Scene {
             Some(warrior::Event::Strike { x }) => self.strike(x),
             None => {}
         }
+        let can = self.lift_warrior.is_none() && self.warrior.act == warrior::Act::Wander;
+        let slid = self.slide(can, self.warrior.x, warrior::WIDTH, self.warrior.dir, 4.0, dt);
+        if let Some(x) = slid {
+            self.warrior.x = x;
+            if !self.warrior.sliding && self.warrior.bubble.is_none() {
+                self.warrior.say(slide::WARRIOR_LINE, 2.0);
+            }
+        }
+        self.warrior.sliding = slid.is_some();
         let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
         let frozen = self.warrior.act == warrior::Act::Frozen;
         let mut bites = 0;
@@ -944,6 +963,23 @@ impl Scene {
             }
         }
         settled
+    }
+
+    /// Where someone at `x` heading `dir` ends up this frame if the pile ahead
+    /// is steep enough to slide (`slide::steep`), kicking up a little snow;
+    /// None when they just walk. `margin` keeps them on screen.
+    fn slide(&mut self, can: bool, x: f32, width: i32, dir: f32, margin: f32, dt: f32) -> Option<f32> {
+        let feet = x + width as f32 / 2.0;
+        if !can || !slide::steep(&self.snow, feet, dir) {
+            return None;
+        }
+        let to = (x + dir * slide::SPEED * dt).clamp(margin, self.w as f32 - width as f32 - margin);
+        if self.rng.chance(0.5) {
+            let (vx, vy) = (-dir * self.rng.range(10.0, 30.0), self.rng.range(-30.0, -10.0));
+            let y = self.feet_y(feet);
+            self.particles.push(Particle::new(Kind::Shard, feet - dir * 4.0, y - 1.0, vx, vy, 0.5, hex(0xffffff)));
+        }
+        Some(to)
     }
 
     /// Somewhere across the screen, not right on top of the mage.
@@ -1929,5 +1965,74 @@ mod tests {
         assert_eq!(over, 0, "{over} scene pixels painted over the orb window");
         assert!(s.orb_at(226.0, 14.0), "the orb's spot answers clicks in overlay mode too");
         assert!(!s.orb_at(120.0, 60.0));
+    }
+
+    /// Steps 1 s; returns (ever sliding, slide lines said, how far it moved).
+    fn ride(s: &mut Scene, mage: bool) -> (bool, usize, f32) {
+        let x0 = if mage { s.mage.x } else { s.warrior.x };
+        let (mut slid, mut lines) = (false, 0);
+        for _ in 0..30 {
+            s.step(1.0 / 30.0);
+            let (sliding, bubble, line) = if mage {
+                (s.mage.sliding, &mut s.mage.bubble, slide::MAGE_LINE)
+            } else {
+                (s.warrior.sliding, &mut s.warrior.bubble, slide::WARRIOR_LINE)
+            };
+            slid |= sliding;
+            if bubble.as_ref().is_some_and(|b| b.text == line) {
+                lines += 1;
+                *bubble = None; // a second shout would show up again
+            }
+        }
+        let x1 = if mage { s.mage.x } else { s.warrior.x };
+        (slid, lines, (x1 - x0).abs())
+    }
+
+    fn on_a_peak(seed: u64, mage: bool, slope: f32) -> Scene {
+        let mut s = Scene::new(240, 135, seed, Commitment::Steady.pace(), true);
+        let at = if mage { s.mage.x + mage::WIDTH as f32 / 2.0 } else { s.warrior.x + warrior::WIDTH as f32 / 2.0 };
+        s.snow = slide::peak(240, s.snow.cap(), at, slope, 28.0);
+        s
+    }
+
+    #[test]
+    fn the_warrior_slides_down_a_steep_pile_and_shouts_once() {
+        let (slid, lines, moved) = ride(&mut on_a_peak(18, false, 0.8), false);
+        assert!(slid, "slides instead of walking");
+        assert_eq!(lines, 1, "one shout per slide");
+        assert!(moved > 12.0, "faster than his walk: {moved}");
+    }
+
+    #[test]
+    fn the_warrior_walks_down_a_gentle_pile() {
+        let (slid, lines, moved) = ride(&mut on_a_peak(18, false, 0.25), false);
+        assert!(!slid);
+        assert_eq!(lines, 0);
+        assert!(moved < 8.0, "walking pace: {moved}");
+    }
+
+    #[test]
+    fn the_frost_mage_slides_down_a_steep_pile_and_shouts_once() {
+        let (slid, lines, moved) = ride(&mut on_a_peak(19, true, 0.8), true);
+        assert!(slid);
+        assert_eq!(lines, 1);
+        assert!(moved > 12.0, "{moved}");
+    }
+
+    #[test]
+    fn the_frost_mage_walks_down_a_gentle_pile() {
+        let (slid, lines, _) = ride(&mut on_a_peak(19, true, 0.25), true);
+        assert!(!slid);
+        assert_eq!(lines, 0);
+    }
+
+    #[test]
+    fn a_slide_never_talks_over_what_they_are_already_saying() {
+        let mut s = on_a_peak(18, false, 0.8);
+        s.warrior.say("Dica importante", 9.0);
+        let (slid, lines, _) = ride(&mut s, false);
+        assert!(slid);
+        assert_eq!(lines, 0);
+        assert_eq!(s.warrior.bubble.as_ref().unwrap().text, "Dica importante");
     }
 }
