@@ -91,6 +91,15 @@ impl KokoroVoice {
     }
 }
 
+/// A line to try a voice with, in its own language.
+pub fn sample_text(lang: &str) -> &'static str {
+    match lang.split(['-', '_']).next().unwrap_or(lang).to_ascii_lowercase().as_str() {
+        "pt" => "Olá! Esta é a voz em português.",
+        "es" => "¡Hola! Esta es la voz en español.",
+        _ => "Hello! This is the English voice.",
+    }
+}
+
 /// Sensible Kokoro voice when none is configured.
 pub fn kokoro_default(lang: &str) -> &'static str {
     match locale(lang).split('-').next().unwrap_or("") {

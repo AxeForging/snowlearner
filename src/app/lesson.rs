@@ -3,6 +3,8 @@
 //! retry) → record; plus combos, the daily goal, nudges and the end-of-day
 //! recap. It drives the scene and asks the app to run speech jobs.
 
+use crate::lang::text;
+use crate::lang::{Lines, Native, T};
 use crate::learn::cue::Segment;
 use crate::learn::deck::{Answer, Deck, PRE_A1, Phrase};
 use crate::learn::path;
@@ -29,11 +31,6 @@ const WAIT_USER: f32 = 25.0;
 const SUMMARY_LINGER: f32 = 8.0;
 const LAST_SUMMARY_KEY: &str = "last_summary_day";
 
-const MAGE_ASK_REPEAT: &[&str] = &["Repita, se for capaz!", "Hah! Diga isso!", "Vamos ver essa pronúncia!"];
-const MAGE_ASK_RECALL: &[&str] = &["Duvido que lembre essa!", "Sem cola agora!", "Essa você já viu. E aí?"];
-const MAGE_LAUGH: &[&str] = &["Hahaha! Errou!", "Mais neve pra você!", "Quase... mas não!"];
-const MAGE_GROAN: &[&str] = &["Argh! Não!", "Impossível!", "Grrr... sorte!"];
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Input {
     /// Main hotkey: start a challenge, confirm (no mic), or skip ahead.
@@ -51,7 +48,8 @@ pub enum Input {
 
 #[derive(Debug, Clone)]
 pub struct Options {
-    pub native: String,
+    /// The learner's own language: every text here and the cue's native parts.
+    pub native: Native,
     pub threshold: f32,
     pub can_listen: bool,
     /// Seconds you get to start answering (recall gets +4).
@@ -215,17 +213,17 @@ impl Lesson {
 
     /// Warrior tips built from the hotkeys and the deck.
     pub fn tips(&self) -> Vec<String> {
-        let hk = &self.opts.hotkey;
+        let (hk, n) = (&self.opts.hotkey, self.opts.native);
         let mut tips = vec![
-            format!("Aperte {hk} e fale uma frase pra me esquentar!"),
-            format!("Se a neve subir demais eu congelo! {hk} e fale!"),
-            format!("No fim do dia eu leio tudo o que você praticou ({}).", self.opts.summary_hotkey),
-            format!("Acerte {SUN_COMBO} seguidas e o sol aparece!"),
+            T::TipHotkey.fill(n, &[hk]),
+            T::TipFreeze.fill(n, &[hk]),
+            T::TipRecap.fill(n, &[&self.opts.summary_hotkey]),
+            T::TipSun.fill(n, &[&SUN_COMBO]),
         ];
         tips.extend(self.deck.tips.iter().cloned());
         for &i in self.selection().iter().take(80) {
             if let Some(t) = &self.deck.phrases[i].tip {
-                tips.push(format!("Dica: {t}"));
+                tips.push(T::TipPrefix.fill(n, &[t]));
             }
         }
         tips
@@ -253,7 +251,8 @@ impl Lesson {
         ((self.roll >> 8) % 1000) as f32 / 1000.0
     }
 
-    fn line(&mut self, lines: &[&str]) -> String {
+    fn line(&mut self, lines: Lines) -> String {
+        let lines = lines.get(self.opts.native);
         let r = self.roll();
         lines[((r * lines.len() as f32) as usize).min(lines.len() - 1)].to_string()
     }
@@ -267,7 +266,7 @@ impl Lesson {
             .iter()
             .map(|s| match s {
                 Segment::Native(t) => {
-                    Utterance { text: t.clone(), lang: self.opts.native.clone(), speed: Speed::Normal }
+                    Utterance { text: t.clone(), lang: self.opts.native.code().into(), speed: Speed::Normal }
                 }
                 Segment::Target(t) => {
                     Utterance { text: t.clone(), lang: self.deck.language.clone(), speed: self.target_speed() }
@@ -279,7 +278,7 @@ impl Lesson {
     fn cue_for(&self, p: &Phrase, mode: Mode) -> Vec<Segment> {
         match mode {
             Mode::Repeat => p.cue_for(self.opts.answer),
-            Mode::Recall => p.recall_cue(&self.deck.language_name),
+            Mode::Recall => p.recall_cue(&self.deck.language_name, self.opts.native),
         }
     }
 
@@ -295,11 +294,12 @@ impl Lesson {
     }
 
     fn tag(&self, p: &Phrase, mode: Mode) -> String {
+        let n = self.opts.native;
         let mode = match mode {
-            Mode::Repeat => "repita",
-            Mode::Recall => "de memória",
+            Mode::Repeat => T::TagRepeat,
+            Mode::Recall => T::TagRecall,
         };
-        format!("{} · {} · {mode}", path::Stage::of(p).singular_pt(), p.topic)
+        format!("{} · {} · {}", path::Stage::of(p).singular(n), text::topic(n, &p.topic), mode.get(n))
     }
 
     fn refresh_stats(&self, scene: &mut Scene) {
@@ -310,7 +310,10 @@ impl Lesson {
             label: format!(
                 "{} · {}",
                 self.deck.language.to_uppercase(),
-                self.opts.topic.clone().unwrap_or_else(|| "todos os temas".into())
+                self.opts
+                    .topic
+                    .as_deref()
+                    .map_or_else(|| T::AllTopics.get(self.opts.native).into(), |t| text::topic(self.opts.native, t))
             ),
         });
     }
@@ -329,9 +332,7 @@ impl Lesson {
         if self.paused {
             match input {
                 Input::Tick { dt, .. } => self.clock += dt,
-                Input::Primary | Input::Summary => {
-                    scene.hud.toast("Em pausa: botão direito no orbe (ou P) para voltar", 3.0)
-                }
+                Input::Primary | Input::Summary => scene.hud.toast(T::PausedToast.get(self.opts.native), 3.0),
                 _ => {}
             }
             return jobs;
@@ -370,7 +371,7 @@ impl Lesson {
                 // "I'm done talking": stop the mic now instead of waiting for silence.
                 jobs.push(Job::StopListening);
                 if let Some(c) = &mut scene.hud.caption {
-                    c.footer = "Ok, analisando...".into();
+                    c.footer = T::Analyzing.get(self.opts.native).into();
                 }
             }
             State::Challenge { phrase, stage: Stage::Confirm, tries, .. } => {
@@ -393,7 +394,7 @@ impl Lesson {
         // The path opens words first, then chunks, then phrases.
         let open = path::unlocked(&self.deck.phrases, &self.selection(), &stats);
         let Some(i) = picker::pick(&self.deck.phrases, &open, &stats, self.last_phrase.as_deref(), roll) else {
-            scene.hud.toast("Nenhuma frase com esse tema/nível. Mude no menu.", 4.0);
+            scene.hud.toast(T::NoPhrases.get(self.opts.native), 4.0);
             return;
         };
         let p = self.phrase(i).clone();
@@ -405,7 +406,7 @@ impl Lesson {
         self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job };
         self.idle_for = 0.0;
         scene.set_practicing(true);
-        let ask = self.line(if mode == Mode::Recall { MAGE_ASK_RECALL } else { MAGE_ASK_REPEAT });
+        let ask = self.line(if mode == Mode::Recall { Lines::MageAskRecall } else { Lines::MageAskRepeat });
         scene.mage_say(ask, 3.0);
         scene.hud.summary = None;
         let cue = self.cue_for(&p, mode);
@@ -413,7 +414,7 @@ impl Lesson {
             segments: cue.clone(),
             say: self.shown(&p),
             active: None,
-            alts: if mode == Mode::Repeat { p.alternatives(self.opts.answer) } else { Vec::new() },
+            alts: if mode == Mode::Repeat { p.alternatives(self.opts.answer, self.opts.native) } else { Vec::new() },
             counted: None,
             meaning: if mode == Mode::Repeat { p.meaning.clone() } else { String::new() },
             status: Status::Speaking,
@@ -444,7 +445,7 @@ impl Lesson {
             if let Some(c) = cap {
                 c.active = None;
                 c.status = Status::Listening;
-                c.footer = format!("Terminou? {} · Esc: cancelar", self.opts.hotkey);
+                c.footer = T::FooterDone.fill(self.opts.native, &[&self.opts.hotkey]);
                 c.listen = Some(Meter { level: 0.0, speaking: false, think_left: plan.think, think_total: plan.think });
             }
             let expect = expect(&self.deck, *phrase, slack, self.opts.threshold);
@@ -454,7 +455,7 @@ impl Lesson {
             if let Some(c) = cap {
                 c.active = None;
                 c.status = Status::Confirm;
-                c.footer = format!("Fale em voz alta e aperte {} para confirmar", self.opts.hotkey);
+                c.footer = T::FooterConfirm.fill(self.opts.native, &[&self.opts.hotkey]);
             }
         }
     }
@@ -488,7 +489,7 @@ impl Lesson {
                 self.after_cue(scene, jobs)
             }
             (State::Challenge { stage: Stage::Speaking, .. }, SpeechEvent::Failed { error, .. }) => {
-                scene.hud.toast(format!("Voz indisponível: {error}"), 5.0);
+                scene.hud.toast(T::VoiceUnavailable.fill(self.opts.native, &[&error]), 5.0);
                 self.after_cue(scene, jobs);
             }
             (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::Level { level, speaking, .. }) => {
@@ -544,7 +545,7 @@ impl Lesson {
                             .tiers()
                             .iter()
                             .filter(|(_, s)| *s != shown)
-                            .map(|(t, s)| format!("{}: {s}", t.label_pt()))
+                            .map(|(t, s)| format!("{}: {s}", t.label(self.opts.native)))
                             .collect();
                     }
                     c.counted = other.and_then(|(_, s)| c.alts.iter().position(|a| a.ends_with(s)));
@@ -555,11 +556,11 @@ impl Lesson {
             (State::Challenge { stage, .. }, SpeechEvent::Failed { error, .. }) if *stage == Stage::Listening => {
                 // Mic or model trouble: fall back to self-confirmation.
                 *stage = Stage::Confirm;
-                scene.hud.toast(format!("Microfone/reconhecimento indisponível: {error}"), 6.0);
+                scene.hud.toast(T::MicUnavailable.fill(self.opts.native, &[&error]), 6.0);
                 if let Some(c) = &mut scene.hud.caption {
                     c.listen = None;
                     c.status = Status::Confirm;
-                    c.footer = format!("Fale em voz alta e aperte {} para confirmar", self.opts.hotkey);
+                    c.footer = T::FooterConfirm.fill(self.opts.native, &[&self.opts.hotkey]);
                 }
             }
             _ => {}
@@ -573,12 +574,13 @@ impl Lesson {
             *stage = Stage::WaitUser { until: self.clock + WAIT_USER };
         }
         scene.set_listening(false);
-        scene.mage_say("Hã? Não ouvi nada!", 2.5);
+        let n = self.opts.native;
+        scene.mage_say(T::MageHeardNothing.get(n), 2.5);
         if let Some(c) = &mut scene.hud.caption {
             c.status = Status::Failed;
             c.listen = None;
-            c.heard = Some("(silêncio)".into());
-            c.footer = format!("Não ouvi nada. {} ou clique no orbe para tentar de novo", self.opts.hotkey);
+            c.heard = Some(T::Silence.get(n).into());
+            c.footer = T::FooterSilence.fill(n, &[&self.opts.hotkey]);
         }
     }
 
@@ -592,15 +594,16 @@ impl Lesson {
             .into_iter()
             .filter(|i| !open_before.contains(i))
             .collect();
-        let mut news = format!("Aprendeu: {}", p.say);
+        let n = self.opts.native;
+        let mut news = T::Learned.fill(n, &[&p.say]);
         if let Some(&i) = opened.first() {
             let next = &self.deck.phrases[i];
             let stage = path::Stage::of(next);
             let reached = open_before.iter().all(|&j| path::Stage::of(&self.deck.phrases[j]) < stage);
             news = if reached {
-                format!("{} Primeira: {}", stage.welcome_pt(), next.say)
+                T::StageFirst.fill(n, &[&stage.welcome(n), &next.say])
             } else {
-                format!("{news} · Nova {}: {}", stage.singular_pt(), next.say)
+                T::NewItem.fill(n, &[&news, &stage.singular(n), &next.say])
             };
         }
         scene.hud.toast(news, 5.0);
@@ -636,16 +639,17 @@ impl Lesson {
             success: passed,
         });
         let tries = tries + 1;
+        let n = self.opts.native;
         let (stage, footer) = if passed {
             // With options on screen, tell which one counted (it picks the spell).
-            let counted = said.filter(|_| p.tiers().len() > 1).map(|t| format!("Resposta {}! · ", t.label_pt()));
-            let next = format!("{}{}: próxima frase", counted.unwrap_or_default(), self.opts.hotkey);
+            let counted = said.filter(|_| p.tiers().len() > 1).map(|t| T::AnswerCounted.fill(n, &[&t.label(n)]));
+            let next = format!("{}{}", counted.unwrap_or_default(), T::FooterNext.fill(n, &[&self.opts.hotkey]));
             (Stage::Result { until: self.clock + RESULT_SECONDS }, next)
         } else if tries < MAX_TRIES {
-            let hint = if mode == Mode::Recall { "Era assim: ouça e repita..." } else { "Ouça de novo..." };
-            (Stage::RetryPause { until: self.clock + RETRY_PAUSE }, format!("Tentativa {tries}/{MAX_TRIES}. {hint}"))
+            let hint = if mode == Mode::Recall { T::RetryRecall } else { T::RetryRepeat }.get(n);
+            (Stage::RetryPause { until: self.clock + RETRY_PAUSE }, T::Attempt.fill(n, &[&tries, &MAX_TRIES, &hint]))
         } else {
-            (Stage::Result { until: self.clock + RESULT_SECONDS }, "Tudo bem, vamos praticar outra depois!".into())
+            (Stage::Result { until: self.clock + RESULT_SECONDS }, T::GiveUp.get(n).into())
         };
         if let State::Challenge { stage: s, tries: t, .. } = &mut self.state {
             *s = stage;
@@ -666,20 +670,20 @@ impl Lesson {
             // Remembering from scratch is worth more than repeating.
             let power = if mode == Mode::Recall && tries == 1 { 1.5 } else { 1.0 };
             scene.celebrate(power, spell_for(said.unwrap_or(Answer::Complete)));
-            let groan = self.line(MAGE_GROAN);
+            let groan = self.line(Lines::MageGroan);
             scene.mage_say(groan, 3.5);
             if self.combo >= SUN_COMBO && self.combo % SUN_COMBO == 0 {
                 scene.sun();
-                scene.hud.toast(format!("COMBO x{}! O SOL APARECEU!", self.combo), 4.0);
+                scene.hud.toast(T::ComboSun.fill(n, &[&self.combo]), 4.0);
             }
             self.path_news(&p, &open_before, scene);
             if self.done_today >= self.opts.daily_goal && !self.goal_celebrated {
                 self.goal_celebrated = true;
-                scene.hud.toast(format!("META DO DIA: {} frases! Mandou bem!", self.opts.daily_goal), 5.0);
-                scene.warrior.say("Meta do dia batida! Tô quentinho!", 5.0);
+                scene.hud.toast(T::GoalToast.fill(n, &[&self.opts.daily_goal]), 5.0);
+                scene.warrior.say(T::GoalWarrior.get(n), 5.0);
             }
         } else {
-            let laugh = self.line(MAGE_LAUGH);
+            let laugh = self.line(Lines::MageLaugh);
             scene.miss();
             scene.mage_say(laugh, 3.5);
             if tries >= MAX_TRIES {
@@ -695,7 +699,7 @@ impl Lesson {
             if !passed && mode == Mode::Recall {
                 // Reveal the answer so the retry becomes a repeat.
                 c.segments = p.cue_for(self.opts.answer);
-                c.alts = p.alternatives(self.opts.answer);
+                c.alts = p.alternatives(self.opts.answer, self.opts.native);
                 c.meaning = p.meaning.clone();
             }
         }
@@ -714,9 +718,10 @@ impl Lesson {
                 self.idle_for += dt;
                 if self.idle_for >= self.opts.ask_every {
                     self.idle_for = 0.0;
-                    scene.mage_say("Ninguém vai me enfrentar? Hahaha!", 4.0);
-                    scene.warrior.say(format!("Hora de praticar! Aperte {}", self.opts.hotkey), 6.0);
-                    scene.hud.toast(format!("O mago está vencendo... {} para enfrentar!", self.opts.hotkey), 5.0);
+                    let n = self.opts.native;
+                    scene.mage_say(T::MageIdle.get(n), 4.0);
+                    scene.warrior.say(T::WarriorIdle.fill(n, &[&self.opts.hotkey]), 6.0);
+                    scene.hud.toast(T::ToastIdle.fill(n, &[&self.opts.hotkey]), 5.0);
                 }
                 self.maybe_auto_summary(now, scene, jobs);
             }
@@ -744,7 +749,7 @@ impl Lesson {
             c.footer = String::new();
             c.tag = tag;
             c.segments = p.cue_for(self.opts.answer);
-            c.alts = p.alternatives(self.opts.answer);
+            c.alts = p.alternatives(self.opts.answer, self.opts.native);
             c.meaning = p.meaning.clone();
             c.active = c.segments.iter().position(|s| matches!(s, Segment::Target(t) if *t == shown));
         }
@@ -769,13 +774,14 @@ impl Lesson {
         let rows = self.history.day_summary(&self.deck.language, day).unwrap_or_default();
         let learned: Vec<_> = rows.iter().filter(|r| r.successes > 0).collect();
         let job = self.job_id();
+        let n = self.opts.native;
         let mut parts = vec![Utterance {
             text: match learned.len() {
-                0 => "Hoje você ainda não praticou nenhuma frase. O guerreiro está com frio!".to_string(),
-                1 => "Resumo de hoje: você praticou uma frase.".to_string(),
-                n => format!("Resumo de hoje: você praticou {n} frases."),
+                0 => T::RecapNone.get(n).to_string(),
+                1 => T::RecapOne.get(n).to_string(),
+                k => T::RecapMany.fill(n, &[&k]),
             },
-            lang: self.opts.native.clone(),
+            lang: n.code().into(),
             speed: Speed::Normal,
         }];
         parts.extend(rows.iter().map(|r| Utterance {
@@ -785,13 +791,13 @@ impl Lesson {
         }));
         scene.hud.caption = None;
         scene.hud.summary = Some(SummaryPanel {
-            title: format!("RESUMO DE HOJE · {}", day.format("%d/%m")),
+            title: T::RecapTitle.fill(n, &[&day.format(T::RecapDate.get(n))]),
             lines: rows
                 .iter()
                 .map(|r| SummaryLine { say: r.say.clone(), meaning: r.meaning.clone(), ok: r.successes > 0 })
                 .collect(),
             active: None,
-            footer: format!("{} de {} frases acertadas · meta {}", learned.len(), rows.len(), self.opts.daily_goal),
+            footer: T::RecapFooter.fill(n, &[&learned.len(), &rows.len(), &self.opts.daily_goal]),
         });
         self.state = State::Summary { job, lines: rows.len(), close_at: None };
         scene.set_practicing(true);
@@ -809,8 +815,8 @@ impl Lesson {
 
 /// Says a topic had nothing at the level (the HUD then shows "todos os
 /// temas"); short enough for a 320 px window.
-pub fn topic_dropped(topic: &str) -> String {
-    format!("Sem {topic} nesse nível.")
+pub fn topic_dropped(native: Native, topic: &str) -> String {
+    T::TopicDropped.fill(native, &[&text::topic(native, topic)])
 }
 
 /// The fire mage's spell for the tier the learner said: fuller answer, bigger spell.
@@ -863,7 +869,7 @@ mod tests {
 
     fn options(can_listen: bool) -> Options {
         Options {
-            native: "pt-BR".into(),
+            native: Native::PtBr,
             threshold: 0.72,
             can_listen,
             listen_seconds: 7.0,
@@ -1224,10 +1230,11 @@ mod tests {
 
     #[test]
     fn the_dropped_topic_notice_fits_the_narrowest_screen_for_every_topic() {
-        for lang in Deck::builtin_languages() {
-            for topic in Deck::builtin(lang).unwrap().topics() {
-                let text = topic_dropped(&topic);
-                assert!(text.contains(&topic));
+        for native in Native::ALL {
+            for topic in Deck::languages_for(native).iter().flat_map(|l| Deck::builtin_for(l, native).unwrap().topics())
+            {
+                let text = topic_dropped(native, &topic);
+                assert!(text.contains(&crate::lang::text::topic(native, &topic)), "{text}");
                 assert!(crate::render::font::text_width(&text) <= 316, "{text:?} overflows a 320 px window");
                 assert!(crate::render::font::supports(&text), "{text:?}");
             }
@@ -1272,11 +1279,11 @@ mod tests {
         f.send(Input::Dismiss);
         f.answer(false);
         let laugh = f.scene.mage_bubble().unwrap().to_string();
-        assert!(MAGE_LAUGH.contains(&laugh.as_str()), "{laugh}");
+        assert!(Lines::MageLaugh.get(Native::PtBr).contains(&laugh.as_str()), "{laugh}");
         f.tick(RETRY_PAUSE + 0.2);
         f.send(Input::Dismiss);
         f.answer(true);
-        assert!(MAGE_GROAN.contains(&f.scene.mage_bubble().unwrap()));
+        assert!(Lines::MageGroan.get(Native::PtBr).contains(&f.scene.mage_bubble().unwrap()));
     }
 
     #[test]
@@ -1685,5 +1692,83 @@ mod tests {
         let tips = f.lesson.tips();
         assert!(tips.iter().any(|t| t.contains("Ctrl+Alt+M")));
         assert!(tips.iter().any(|t| t.contains("Falso amigo")));
+    }
+
+    /// An English speaker learning `language` from the built-in decks.
+    fn english_fixture(language: &str, max_level: &str) -> Fixture {
+        let opts = Options { native: Native::En, max_level: max_level.into(), ..options(true) };
+        let mut f = fixture_with(opts);
+        f.scene.set_native(Native::En);
+        let dir = tempfile::tempdir().unwrap();
+        let deck = Deck::load(language, Native::En, dir.path()).unwrap();
+        f.lesson.set_deck(deck, &mut f.scene);
+        f
+    }
+
+    #[test]
+    fn an_english_speaker_learning_spanish_reads_and_hears_english() {
+        let mut f = english_fixture("es", "A1");
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        let p = f.lesson.deck().phrases.iter().find(|p| p.say == cap.say).unwrap().clone();
+        let situation = p.situation.clone().unwrap();
+        assert!(cap.meaning == p.meaning && !cap.meaning.is_empty());
+        assert_eq!(parts[0].text, format!("{situation} Say:"), "the cue is English");
+        assert_eq!(parts[0].lang, "en", "and read by the English voice");
+        assert_eq!(parts[1].lang, "es");
+        assert!(cap.tag.ends_with("· repeat"), "{}", cap.tag);
+        let pt_meaning = Deck::builtin("es").unwrap().phrases.into_iter().find(|q| q.say == p.say).unwrap().meaning;
+        assert_ne!(cap.meaning, pt_meaning, "not the Portuguese meaning");
+        let bubble = f.scene.mage_bubble().unwrap().to_string();
+        assert!(Lines::MageAskRepeat.get(Native::En).contains(&bubble.as_str()), "{bubble}");
+    }
+
+    #[test]
+    fn english_feedback_footers_and_recap_follow_the_native_language() {
+        let mut f = english_fixture("es", "A1");
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        assert_eq!(f.scene.hud.caption.as_ref().unwrap().footer, "Done? Ctrl+Alt+M · Esc: cancel");
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.heard.as_deref(), Some("(silence)"));
+        assert_eq!(f.scene.mage_bubble(), Some("Huh? I heard nothing!"));
+        f.send(Input::Dismiss);
+        f.send(Input::Summary);
+        let summary = f.scene.hud.summary.as_ref().unwrap();
+        assert!(summary.title.starts_with("TODAY'S RECAP"), "{}", summary.title);
+        assert!(f.lesson.tips().iter().any(|t| t.starts_with("Press Ctrl+Alt+M")));
+        for t in f.lesson.tips() {
+            assert!(!t.starts_with("Dica:") && !t.contains("Aperte"), "Portuguese tip for an English speaker: {t}");
+        }
+    }
+
+    #[test]
+    fn an_english_beginner_starts_brazilian_portuguese_with_single_words() {
+        let mut f = english_fixture("pt-BR", PRE_A1);
+        for _ in 0..6 {
+            let say = f.answer(true);
+            assert_eq!(say.split_whitespace().count(), 1, "{say:?} is not a first word");
+            f.finish();
+        }
+        assert!(f.lesson.deck().phrases.iter().all(|p| p.situation.is_some()));
+    }
+
+    #[test]
+    fn untranslated_phrases_never_reach_an_english_speakers_path() {
+        let f = english_fixture("es", "C2");
+        let deck = f.lesson.deck();
+        let curated: std::collections::HashSet<String> = [
+            Deck::parse(include_str!("../../decks/es.toml")).unwrap(),
+            Deck::parse(include_str!("../../decks/es.basics.toml")).unwrap(),
+        ]
+        .into_iter()
+        .flat_map(|d| d.phrases.into_iter().map(|p| p.say))
+        .collect();
+        let open = path::ordered(&deck.phrases, &f.lesson.selection());
+        assert!(!open.is_empty());
+        for i in open {
+            assert!(curated.contains(&deck.phrases[i].say), "{:?} has no English translation", deck.phrases[i].say);
+        }
     }
 }

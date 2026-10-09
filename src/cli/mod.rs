@@ -28,9 +28,12 @@ pub struct RunArgs {
     /// Commitment level / compromisso (overrides config).
     #[arg(long, value_enum, global = true)]
     pub level: Option<Commitment>,
-    /// Deck/language to practice, e.g. en or es (overrides config).
+    /// Deck/language to practice, e.g. en, es or pt-BR (overrides config).
     #[arg(long, global = true)]
     pub learning: Option<String>,
+    /// Your own language: pt-BR or en (overrides config; `setup` saves it).
+    #[arg(long, global = true)]
+    pub native: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -39,7 +42,7 @@ pub enum Cmd {
     Run,
     /// One-time setup, safe to repeat: config, speech model, shortcuts, app launcher.
     Setup {
-        /// Language to learn: en or es (default: keep the current one, English at first).
+        /// Language to learn: en, es or pt-BR (default: keep the current one, English at first).
         #[arg(long)]
         lang: Option<String>,
         /// Skip the ~142 MB speech model (you'll confirm phrases with the hotkey).

@@ -80,13 +80,15 @@ impl Commitment {
         }
     }
 
-    pub fn label_pt(self) -> &'static str {
+    pub fn label(self, native: crate::lang::Native) -> &'static str {
+        use crate::lang::T;
         match self {
-            Commitment::Chill => "Tranquilo",
-            Commitment::Steady => "Constante",
-            Commitment::Committed => "Comprometido",
-            Commitment::Relentless => "Implacável",
+            Commitment::Chill => T::CommitChill,
+            Commitment::Steady => T::CommitSteady,
+            Commitment::Committed => T::CommitCommitted,
+            Commitment::Relentless => T::CommitRelentless,
         }
+        .get(native)
     }
 }
 

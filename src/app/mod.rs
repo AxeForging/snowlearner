@@ -11,12 +11,14 @@ use crate::config::paths::Paths;
 use crate::config::settings::Settings;
 use crate::control::hotkeys::Hotkeys;
 use crate::control::ipc::{self, Command};
+use crate::lang::{Lines, T};
 use crate::learn::deck::Deck;
 use crate::render::canvas::Canvas;
 use crate::render::screen::Screen;
 use crate::scene::Scene;
 use crate::scene::hud::Cheats;
 use crate::speech::tts::Speed;
+use crate::speech::voices::sample_text;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
 use crate::store::history::History;
 use anyhow::{Context, Result};
@@ -45,17 +47,6 @@ const ORB_ART: i32 = 22;
 const WEATHER_EVERY: u64 = 2;
 /// How often the monitor list is re-read (one cheap query to the display).
 const MONITOR_CHECK: Duration = Duration::from_secs(2);
-
-const HELP: &[&str] = &[
-    "TECLAS",
-    "Espaço: praticar    S: resumo do dia",
-    "M: painel           P: pausar o mago",
-    "1-4: compromisso    L: trocar idioma",
-    "H: esta ajuda       Esc: cancelar",
-    "Orbe: clique = praticar · Ctrl+clique = painel",
-    "      botão direito = pausar (buraco negro!)",
-    "Clique no mago, no guerreiro, na fogueira...",
-];
 
 #[derive(Debug)]
 enum UserEvent {
@@ -91,7 +82,7 @@ impl AudioLists {
         AudioLists {
             mics,
             speakers,
-            voices_native: short(voice.voices(&settings.native).unwrap_or_default()),
+            voices_native: short(voice.voices(settings.native.code()).unwrap_or_default()),
             voices_learning: short(voice.voices(&settings.learning).unwrap_or_default()),
         }
     }
@@ -105,7 +96,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         eprintln!("{note}");
     }
 
-    let deck = Deck::load(&settings.learning, &paths.decks_dir())?;
+    let deck = Deck::load(&settings.learning, settings.native, &paths.decks_dir())?;
     let history = History::open(&paths.db_file())?;
     let event_loop = build_event_loop(&resolved)?;
     let proxy = event_loop.create_proxy();
@@ -164,7 +155,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
 
     let commitment = level.unwrap_or(settings.commitment);
     let opts = Options {
-        native: settings.native.clone(),
+        native: settings.native,
         threshold: settings.match_threshold,
         can_listen: speech.can_listen,
         listen_seconds: settings.listen_seconds,
@@ -571,8 +562,8 @@ impl App {
         if let Some(scene) = &mut self.scene {
             self.lesson.set_paused(self.menu.paused, scene);
             scene.set_paused(self.menu.paused);
-            let msg = if self.menu.paused { "Mago pausado. Bom foco!" } else { "O mago voltou!" };
-            scene.hud.toast(msg, 3.0);
+            let msg = if self.menu.paused { T::PauseOn } else { T::PauseOff };
+            scene.hud.toast(msg.get(self.settings.native), 3.0);
         }
     }
 
@@ -581,26 +572,37 @@ impl App {
         if let Err(e) = self.settings.save(&self.paths.config_file()) {
             eprintln!("could not save settings: {e:#}");
         }
-        if item == Item::Language {
-            self.refresh_audio_lists(); // the learning voices follow the language
+        if matches!(item, Item::Language | Item::Native) {
+            self.refresh_audio_lists(); // the voices follow the languages
         }
+        let n = self.settings.native;
         let Some(scene) = &mut self.scene else { return };
         match item {
-            Item::Language => match Deck::load(&self.settings.learning, &self.paths.decks_dir()) {
-                Ok(deck) => {
-                    self.menu.topics = deck.topics();
-                    self.settings.topic.clear();
-                    self.lesson.set_options(|o| o.topic = None, scene);
-                    self.lesson.set_deck(deck, scene);
+            Item::Language | Item::Native => {
+                // Your own language changes every text, the cue voice and the deck's meanings.
+                scene.set_native(n);
+                self.lesson.set_options(|o| o.native = n, scene);
+                match Deck::load(&self.settings.learning, n, &self.paths.decks_dir()) {
+                    Ok(deck) => {
+                        self.menu.topics = deck.topics();
+                        self.settings.topic.clear();
+                        self.lesson.set_options(|o| o.topic = None, scene);
+                        self.lesson.set_deck(deck, scene);
+                        if item == Item::Native {
+                            let learning = crate::lang::text::language_name(n, &self.settings.learning);
+                            scene.hud.toast(T::NativeToast.fill(n, &[&learning]), 3.0);
+                        }
+                    }
+                    Err(e) => scene.hud.toast(T::DeckUnavailable.fill(n, &[&format!("{e:#}")]), 5.0),
                 }
-                Err(e) => scene.hud.toast(format!("Deck indisponível: {e:#}"), 5.0),
-            },
+                self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
+            }
             Item::Commitment => {
                 self.commitment = self.settings.commitment;
                 let pace = self.commitment.pace();
                 scene.set_pace(pace);
                 self.lesson.set_options(|o| o.ask_every = pace.ask_every, scene);
-                scene.hud.toast(format!("Compromisso: {}", self.commitment.label_pt()), 2.5);
+                scene.hud.toast(T::CommitmentToast.fill(n, &[&self.commitment.label(n)]), 2.5);
             }
             Item::Topic => {
                 let topic = self.settings.topic_filter();
@@ -622,18 +624,18 @@ impl App {
                 let g = self.settings.daily_goal;
                 self.lesson.set_options(|o| o.daily_goal = g, scene);
             }
-            Item::Mode => scene.hud.toast("Modo de tela muda ao reiniciar o Snowlearner", 3.0),
+            Item::Mode => scene.hud.toast(T::ModeRestart.get(n), 3.0),
             Item::Mic | Item::Speaker | Item::Engine | Item::Endpoint | Item::VoiceNative | Item::VoiceLearning => {
                 self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
                 if matches!(item, Item::Engine | Item::Endpoint) {
                     let desc = self.settings.voice().describe();
-                    scene.hud.toast(format!("Voz: {desc}"), 3.0);
+                    scene.hud.toast(T::VoiceToast.fill(n, &[&desc]), 3.0);
                     self.refresh_audio_lists();
                 }
             }
             _ => {}
         }
-        if matches!(item, Item::Language | Item::Level) {
+        if matches!(item, Item::Language | Item::Native | Item::Level) {
             self.fit_topic();
         }
     }
@@ -649,7 +651,7 @@ impl App {
             if let Err(e) = self.settings.save(&self.paths.config_file()) {
                 eprintln!("could not save settings: {e:#}");
             }
-            scene.hud.toast(crate::app::lesson::topic_dropped(&topic), 6.0);
+            scene.hud.toast(crate::app::lesson::topic_dropped(self.settings.native, &topic), 6.0);
         }
     }
 
@@ -669,24 +671,17 @@ impl App {
             Action::TestMic => {
                 self.test_id += 1;
                 self.menu.meter = Some(0.0);
-                self.menu.test_result = "Ouvindo... fale uma frase em voz alta.".into();
+                self.menu.test_result = T::TestListening.get(self.settings.native).into();
                 self.speech.send(Job::MicTest { id: self.test_id, lang: self.settings.learning.clone() });
             }
             Action::TestVoices => {
                 self.test_id += 1;
-                self.menu.test_result = "Tocando as duas vozes...".into();
-                let sample = match self.settings.learning.as_str() {
-                    "es" => "¡Hola! Esta es la voz en español.",
-                    _ => "Hello! This is the English voice.",
-                };
+                self.menu.test_result = T::TestPlaying.get(self.settings.native).into();
+                let native = self.settings.native.code();
                 let parts = vec![
+                    Utterance { text: sample_text(native).into(), lang: native.into(), speed: Speed::Normal },
                     Utterance {
-                        text: "Olá! Esta é a voz em português.".into(),
-                        lang: self.settings.native.clone(),
-                        speed: Speed::Normal,
-                    },
-                    Utterance {
-                        text: sample.into(),
+                        text: sample_text(&self.settings.learning).into(),
                         lang: self.settings.learning.clone(),
                         speed: target_speed(&self.settings.max_level),
                     },
@@ -719,24 +714,26 @@ impl App {
         if ev.id() != self.test_id {
             return;
         }
+        let n = self.settings.native;
+        let failed = T::TestError.fill(n, &[&""]);
         match ev {
             SpeechEvent::Level { level, .. } => self.menu.meter = Some(level),
-            SpeechEvent::Thinking { .. } => self.menu.test_result = "Analisando...".into(),
+            SpeechEvent::Thinking { .. } => self.menu.test_result = T::TestThinking.get(n).into(),
             SpeechEvent::Heard { text, .. } => {
                 self.menu.meter = None;
-                self.menu.test_result = format!("✓ Ouvi: \"{text}\"");
+                self.menu.test_result = T::TestHeard.fill(n, &[&text]);
             }
             SpeechEvent::NoSpeech { .. } => {
                 self.menu.meter = None;
-                self.menu.test_result = "Não ouvi nada. Confira o microfone escolhido e o volume.".into();
+                self.menu.test_result = T::TestNothing.get(n).into();
             }
             SpeechEvent::Failed { error, .. } => {
                 self.menu.meter = None;
-                self.menu.test_result = format!("Erro: {error}");
+                self.menu.test_result = T::TestError.fill(n, &[&error]);
             }
             // The worker reports Spoken even after a part failed: keep the error.
-            SpeechEvent::Spoken { .. } if !self.menu.test_result.starts_with("Erro:") => {
-                self.menu.test_result = "✓ Vozes tocadas. Troque em Voz pt-BR / Voz do idioma.".into()
+            SpeechEvent::Spoken { .. } if !self.menu.test_result.starts_with(&failed) => {
+                self.menu.test_result = T::TestVoicesDone.get(n).into()
             }
             SpeechEvent::Spoken { .. } => {}
             SpeechEvent::Part { .. } => {}
@@ -781,15 +778,15 @@ impl App {
         if scene.hud.cheats.is_some() {
             return;
         }
+        let n = self.settings.native;
         let keys = [
-            (self.settings.hotkey_challenge.as_str(), "praticar / terminei"),
-            (self.settings.hotkey_menu.as_str(), "painel"),
-            (self.settings.hotkey_summary.as_str(), "resumo do dia"),
-            (self.settings.hotkey_grab.as_str(), "mão mágica"),
-            (self.settings.hotkey_progress.as_str(), "progresso"),
+            (self.settings.hotkey_challenge.as_str(), T::CheatPractice.get(n)),
+            (self.settings.hotkey_menu.as_str(), T::CheatPanel.get(n)),
+            (self.settings.hotkey_summary.as_str(), T::CheatRecap.get(n)),
+            (self.settings.hotkey_grab.as_str(), T::CheatHand.get(n)),
+            (self.settings.hotkey_progress.as_str(), T::CheatProgress.get(n)),
         ];
-        scene.hud.cheats =
-            Some(Cheats::from_hotkeys(scene.hole, &keys, "Orbe: clique pratica · Ctrl+clique painel · direito pausa"));
+        scene.hud.cheats = Some(Cheats::from_hotkeys(scene.hole, &keys, T::CheatFooter.get(n)));
     }
 
     fn open_menu(&mut self, el: &ActiveEventLoop) {
@@ -800,7 +797,7 @@ impl App {
         self.refresh_audio_lists();
         let size = PhysicalSize::new(menu::WIDTH as u32 * MENU_SCALE, menu::HEIGHT as u32 * MENU_SCALE);
         let attrs = Window::default_attributes()
-            .with_title("Snowlearner · Painel")
+            .with_title(T::PanelWindow.get(self.settings.native))
             .with_inner_size(size)
             .with_resizable(false)
             .with_window_level(WindowLevel::AlwaysOnTop);
@@ -849,12 +846,8 @@ impl App {
             self.menu.progress = Some(self.lesson.progress());
             self.progress_at = Instant::now();
         }
-        self.menu.status = format!(
-            "Hoje: {}/{}  ·  combo x{}",
-            self.lesson.done_today(),
-            self.settings.daily_goal,
-            self.lesson.combo()
-        );
+        self.menu.status = T::Today
+            .fill(self.settings.native, &[&self.lesson.done_today(), &self.settings.daily_goal, &self.lesson.combo()]);
         if let Some(m) = &mut self.menu_win {
             self.menu.draw(&mut m.canvas, &self.settings, time);
             m.screen.present(&m.canvas, m.scale);
@@ -874,13 +867,13 @@ impl App {
                     if let Some(scene) = &mut self.scene {
                         scene.hud.help = match scene.hud.help {
                             Some(_) => None,
-                            None => Some(HELP.iter().map(|s| s.to_string()).collect()),
+                            None => Some(Lines::Help.get(self.settings.native).iter().map(|s| s.to_string()).collect()),
                         };
                     }
                 }
                 "l" => {
                     let mut s = self.settings.clone();
-                    self.menu.sel = 0;
+                    self.menu.sel = menu::GAME.iter().position(|i| *i == Item::Language).unwrap_or(0);
                     if let Action::Changed(item) = self.menu.key(menu::Key::Right, &mut s) {
                         self.settings = s;
                         self.apply(item);
@@ -964,6 +957,7 @@ impl ApplicationHandler<UserEvent> for App {
         self.seed = seed;
         let (w, h) = self.main.as_ref().map(|m| (m.canvas.w, m.canvas.h)).unwrap_or((320, 180));
         let mut scene = Scene::new(w, h, seed, self.commitment.pace(), transparent);
+        scene.set_native(self.settings.native);
         self.lesson.attach(&mut scene);
         if self.resolved.overlay {
             self.overlay_origin =
@@ -973,7 +967,8 @@ impl ApplicationHandler<UserEvent> for App {
             scene.hole = (10.0, 10.0);
         }
         let hint = if self.resolved.overlay { self.settings.hotkey_menu.clone() } else { "H".into() };
-        scene.hud.toast(format!("Snowlearner · {} · ajuda/painel: {hint}", self.commitment.label_pt()), 5.0);
+        let n = self.settings.native;
+        scene.hud.toast(T::Welcome.fill(n, &[&self.commitment.label(n), &hint]), 5.0);
         self.scene = Some(scene);
         self.fit_topic();
         if self.resolved.overlay {

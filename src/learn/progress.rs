@@ -4,6 +4,7 @@
 use super::deck::Phrase;
 use super::path::{self, Stage};
 use super::picker::PhraseStats;
+use crate::lang::{Native, T};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -88,36 +89,33 @@ pub fn progress(phrases: &[Phrase], selection: &[usize], stats: &HashMap<String,
 
 impl Progress {
     /// Plain-text report for the terminal.
-    pub fn render_text(&self, language_name: &str) -> String {
-        let mut out = format!(
-            "Progresso em {language_name}: {} de {} sabidas ({}%), {} aprendendo\n",
-            self.overall.known,
-            self.overall.total,
-            self.overall.percent(),
-            self.overall.learning
-        );
+    pub fn render_text(&self, language_name: &str, native: Native) -> String {
+        let o = self.overall;
+        let mut out = T::ProgressReport.fill(native, &[&language_name, &o.known, &o.total, &o.percent(), &o.learning]);
+        out += "\n";
         out += &match self.current {
-            Some(s) => format!("Etapa atual: {}\n\n", s.label_pt()),
-            None => "Você já sabe tudo desta seleção!\n\n".to_string(),
+            Some(s) => format!("{}\n\n", T::StageNow.fill(native, &[&s.label(native)])),
+            None => format!("{}\n\n", T::KnowsAll.get(native)),
         };
         for (stage, t) in &self.stages {
             let mark = if Some(*stage) == self.current { ">" } else { " " };
-            out += &format!("{mark} {:<11} {} {:>3}/{:<3}\n", stage.label_pt(), bar(*t, 20), t.known, t.total);
+            out += &format!("{mark} {:<11} {} {:>3}/{:<3}\n", stage.label(native), bar(*t, 20), t.known, t.total);
         }
         if !self.learning.is_empty() {
-            out += "\nAprendendo agora:\n";
+            out += &format!("\n{}\n", T::LearningNow.get(native));
             for i in &self.learning {
                 out += &format!("  {}  ({})\n", i.say, i.meaning);
             }
         }
         if !self.next_up.is_empty() {
-            out += "\nDepois:\n";
+            out += &format!("\n{}\n", T::NextUp.fill(native, &[&""]).trim_end());
             for i in &self.next_up {
                 out += &format!("  {}  ({})\n", i.say, i.meaning);
             }
         }
-        out += "\nPor tema:\n";
+        out += &format!("\n{}\n", T::ByTopic.get(native));
         for (topic, t) in &self.topics {
+            let topic = crate::lang::text::topic(native, topic);
             out += &format!("  {:<22} {} {:>3}/{:<3}\n", topic, bar(*t, 12), t.known, t.total);
         }
         out
@@ -210,14 +208,14 @@ mod tests {
         let pr = progress(&p, &all(&p), &stats);
         assert_eq!(pr.current, None);
         assert!(pr.learning.is_empty() && pr.next_up.is_empty());
-        assert!(pr.render_text("inglês").contains("Você já sabe tudo"));
+        assert!(pr.render_text("inglês", Native::PtBr).contains("Você já sabe tudo"));
     }
 
     #[test]
     fn empty_selection_renders_without_dividing_by_zero() {
         let pr = progress(&deck(), &[], &HashMap::new());
         assert_eq!(pr.overall.total, 0);
-        assert!(pr.render_text("inglês").contains("0 de 0"));
+        assert!(pr.render_text("inglês", Native::PtBr).contains("0 de 0"));
     }
 
     #[test]
@@ -230,7 +228,7 @@ mod tests {
     #[test]
     fn the_text_report_marks_the_current_stage_and_lists_items() {
         let p = deck();
-        let text = progress(&p, &all(&p), &HashMap::new()).render_text("inglês");
+        let text = progress(&p, &all(&p), &HashMap::new()).render_text("inglês", Native::PtBr);
         assert!(text.contains("> palavras"), "{text}");
         assert!(text.contains("Aprendendo agora:\n  Water.  (<Water.>)"), "{text}");
         assert!(text.contains("Depois:"), "{text}");
