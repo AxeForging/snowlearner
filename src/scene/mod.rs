@@ -67,7 +67,7 @@ struct Fireball {
 pub enum Skill {
     Friend,
     IcicleRain,
-    /// One ice owl, only once the pile is deep (`owl::SNOW_FILL`).
+    /// One ice owl, only once the pile is deep (`owl::PILE_LEVEL`).
     Owl,
 }
 
@@ -673,13 +673,13 @@ impl Scene {
                     self.icicles.push(Icicle::new(x, delay));
                 }
             }
-            Some(mage::Event::Summoned) if self.skill == Skill::Owl => {
-                if self.owl_ready() {
-                    let from_left = self.rng.chance(0.5);
-                    let y = self.rng.range(h * 0.1, h * 0.25);
-                    self.owl = Some(owl::Owl::new(from_left, w, y));
-                }
+            Some(mage::Event::Summoned) if self.skill == Skill::Owl && self.owl_ready() => {
+                let from_left = self.rng.chance(0.5);
+                let y = self.rng.range(h * 0.1, h * 0.25);
+                self.owl = Some(owl::Owl::new(from_left, w, y));
             }
+            // The pile froze over (or melted) mid-summon: the owl stays away.
+            Some(mage::Event::Summoned) if self.skill == Skill::Owl => {}
             Some(mage::Event::Summoned) => {
                 let kind = if self.rng.chance(0.5) { friends::Kind::Snowman } else { friends::Kind::Penguin };
                 let x = self.rng.range(w * 0.1, w * 0.9 - kind.width() as f32);
@@ -1014,7 +1014,7 @@ impl Scene {
     /// None when they just walk. `margin` keeps them on screen.
     fn slide(&mut self, can: bool, x: f32, width: i32, dir: f32, margin: f32, dt: f32) -> Option<f32> {
         let feet = x + width as f32 / 2.0;
-        if !can || !slide::steep(&self.snow, feet, dir) {
+        if !can || !slide::steep(&self.snow, feet, dir, self.h as f32 * ICE_LINE) {
             return None;
         }
         let to = (x + dir * slide::SPEED * dt).clamp(margin, self.w as f32 - width as f32 - margin);
@@ -1127,9 +1127,10 @@ impl Scene {
         self.mage.say(line, 2.0);
     }
 
-    /// The owl may come: deep snow and none flying yet.
+    /// The owl may come: deep snow, the pile not frozen over yet (its
+    /// snowballs could add nothing) and none flying yet.
     fn owl_ready(&self) -> bool {
-        self.owl.is_none() && self.snow.fill() >= owl::SNOW_FILL
+        self.owl.is_none() && !self.frozen_over && self.pile_level() >= owl::PILE_LEVEL
     }
 
     pub fn icicles_falling(&self) -> usize {
@@ -2092,33 +2093,33 @@ mod tests {
         assert_eq!(s.warrior.bubble.as_ref().unwrap().text, "Dica importante");
     }
 
-    /// A scene whose pile is `fill` full, owl summon due now.
-    fn snowed(seed: u64, fill: f32) -> Scene {
+    /// A scene whose pile is `level` of the way to the ice line, owl summon due now.
+    fn snowed(seed: u64, level: f32) -> Scene {
         let mut s = Scene::new(240, 135, seed, Commitment::Chill.pace(), true);
-        s.snow.dust(s.snow.cap() * fill);
+        s.snow.dust(s.h as f32 * ICE_LINE * level);
         s.next_owl = 0.0;
         s
     }
 
     #[test]
     fn the_ice_owl_never_comes_below_the_snow_threshold() {
-        let mut s = snowed(20, owl::SNOW_FILL * 0.5);
+        let mut s = snowed(20, owl::PILE_LEVEL * 0.5);
         s.cast_skill(Skill::Owl);
         assert_ne!(s.mage_bubble(), Some(owl::LINE), "no summon on demand either");
         for _ in 0..(20 * 30) {
-            let fill = s.snow.fill();
+            let level = s.pile_level();
             let had = s.owl.is_some();
             s.step(1.0 / 30.0);
             if s.owl.is_some() && !had {
-                assert!(fill >= owl::SNOW_FILL, "owl came at fill {fill}");
+                assert!(level >= owl::PILE_LEVEL, "owl came at pile level {level}");
             }
         }
-        assert!(s.owl.is_none(), "the pile stayed below the threshold: {}", s.snow.fill());
+        assert!(s.owl.is_none(), "the pile stayed below the threshold: {}", s.pile_level());
     }
 
     #[test]
     fn above_the_threshold_the_mage_summons_one_ice_owl_at_a_time_and_it_leaves() {
-        let mut s = snowed(21, 0.5);
+        let mut s = snowed(21, 0.8);
         let (mut seen, mut said, mut max_balls) = (false, false, 0);
         for _ in 0..(5 * 30) {
             s.step(1.0 / 30.0);
@@ -2149,8 +2150,8 @@ mod tests {
 
     #[test]
     fn the_owls_snowballs_raise_the_pile() {
-        let mut with = snowed(22, 0.5);
-        let mut without = snowed(22, 0.5);
+        let mut with = snowed(22, 0.8);
+        let mut without = snowed(22, 0.8);
         for s in [&mut with, &mut without] {
             s.stun_t = 1000.0; // the mage himself throws nothing
         }
@@ -2169,12 +2170,31 @@ mod tests {
 
     #[test]
     fn a_lesson_stops_the_owls_snowballs() {
-        let mut s = snowed(23, 0.5);
+        let mut s = snowed(23, 0.8);
         s.owl = Some(owl::Owl::new(true, 240.0, 20.0));
         s.set_practicing(true);
         for _ in 0..(3 * 30) {
             s.step(1.0 / 30.0);
             assert!(s.snowballs.is_empty());
         }
+    }
+
+    #[test]
+    fn a_frozen_pile_gets_no_owl_and_no_snow_from_its_snowballs() {
+        let mut s = snowed(24, 1.0);
+        s.stun_t = 1000.0;
+        s.step(1.0 / 30.0);
+        assert!(s.frozen_over, "the pile is at the ice line");
+        s.cast_skill(Skill::Owl);
+        assert_ne!(s.mage_bubble(), Some(owl::LINE), "no owl over a frozen pile");
+        s.owl = Some(owl::Owl::new(true, 240.0, 20.0));
+        let before = s.snow.fill();
+        let mut dropped = false;
+        for _ in 0..(10 * 30) {
+            s.step(1.0 / 30.0);
+            dropped |= !s.snowballs.is_empty();
+        }
+        assert!(dropped);
+        assert!(s.snow.fill() <= before + 1e-6, "snowballs just burst on the frozen pile");
     }
 }

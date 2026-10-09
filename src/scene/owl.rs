@@ -5,8 +5,9 @@
 use super::ice::ICE_PAL;
 use crate::render::canvas::{Canvas, Rgba, hex};
 
-/// Pile fill (`Snow::fill`) the mage needs before he can summon the owl.
-pub const SNOW_FILL: f32 = 0.35;
+/// How far the pile must be toward the ice line (`Scene::pile_level`) before
+/// the mage can summon the owl: deep snow, but before the pile freezes over.
+pub const PILE_LEVEL: f32 = 0.6;
 /// Seconds between summons (± 20%, seeded by the scene).
 pub const EVERY: f32 = 50.0;
 /// Snowballs in the air at once, at most.

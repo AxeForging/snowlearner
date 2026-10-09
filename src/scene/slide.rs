@@ -8,8 +8,9 @@ use super::snow::Snow;
 pub const SLOPE: f32 = 0.5;
 /// Columns ahead the slope is measured over (so one bumpy column isn't a slide).
 const REACH: f32 = 4.0;
-/// Snow under the feet needed to slide at all: bare ground never slides.
-pub const MIN_DEPTH: f32 = 4.0;
+/// Snow under the feet needed to slide at all, as a share of the ice line's
+/// height: bare ground or a dusting never slides.
+pub const MIN_DEPTH: f32 = 0.1;
 /// Sliding speed, px/s, on top of their walk.
 pub const SPEED: f32 = 26.0;
 
@@ -17,9 +18,10 @@ pub const WARRIOR_LINE: &str = "Uhuu! Escorregando!";
 pub const MAGE_LINE: &str = "Aaah! Escorrega!";
 
 /// Is the pile steep going down from `x` in direction `dir` (±1)?
-pub fn steep(snow: &Snow, x: f32, dir: f32) -> bool {
+/// `ice_line` is the ice line's height in pixels.
+pub fn steep(snow: &Snow, x: f32, dir: f32, ice_line: f32) -> bool {
     let here = snow.height_at(x);
-    here >= MIN_DEPTH && (here - snow.height_at(x + dir.signum() * REACH)) / REACH >= SLOPE
+    here >= MIN_DEPTH * ice_line && (here - snow.height_at(x + dir.signum() * REACH)) / REACH >= SLOPE
 }
 
 /// Test pile: a peak `height` px tall at column `at` of a `width`-column
@@ -44,16 +46,16 @@ mod tests {
     #[test]
     fn downhill_on_a_steep_pile_is_steep_uphill_is_not() {
         let s = peak(100, 40.0, 50.0, 0.8, 30.0);
-        assert!(steep(&s, 45.0, -1.0), "going down the left side");
-        assert!(steep(&s, 55.0, 1.0), "going down the right side");
-        assert!(!steep(&s, 45.0, 1.0), "climbing never slides");
+        assert!(steep(&s, 45.0, -1.0, 40.0), "going down the left side");
+        assert!(steep(&s, 55.0, 1.0, 40.0), "going down the right side");
+        assert!(!steep(&s, 45.0, 1.0, 40.0), "climbing never slides");
     }
 
     #[test]
     fn a_gentle_pile_or_bare_ground_is_not_steep() {
-        assert!(!steep(&peak(100, 40.0, 50.0, 0.25, 30.0), 45.0, -1.0), "gentle slope");
-        assert!(!steep(&peak(100, 40.0, 50.0, 0.8, 3.0), 50.0, 1.0), "too little snow under the feet");
-        assert!(!steep(&Snow::new(100, 40.0), 50.0, 1.0));
+        assert!(!steep(&peak(100, 40.0, 50.0, 0.25, 30.0), 45.0, -1.0, 40.0), "gentle slope");
+        assert!(!steep(&peak(100, 40.0, 50.0, 0.8, 3.0), 50.0, 1.0, 40.0), "too little snow under the feet");
+        assert!(!steep(&Snow::new(100, 40.0), 50.0, 1.0, 40.0));
     }
 
     #[test]
