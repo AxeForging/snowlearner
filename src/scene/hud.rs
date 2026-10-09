@@ -48,6 +48,8 @@ pub struct Caption {
     pub say: String,
     /// Segment currently being read aloud.
     pub active: Option<usize>,
+    /// Other ways to say it, labeled ("curta: Mute!"), under the cue.
+    pub alts: Vec<String>,
     pub meaning: String,
     pub status: Status,
     pub feedback: Option<Vec<WordHit>>,
@@ -133,6 +135,8 @@ impl Cheats {
 const INK: Rgba = hex(0xe6ecff);
 const DIM: Rgba = hex(0x8f96d8);
 const TARGET: Rgba = hex(0x9be8ff);
+/// The other answer tiers: target-blue, but quieter than the asked one.
+const ALT: Rgba = hex(0x6fb4d0);
 const HIT: Rgba = hex(0x7dff9b);
 const MISS: Rgba = hex(0xff6b6b);
 const PANEL: Rgba = hex(0x0e0c2c);
@@ -319,6 +323,8 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
     let lines = layout(&toks, inner);
     let lh = font::LINE_H - 1;
     let mut rows = 1 + lines.len() as i32 + i32::from(cap.listen.is_some());
+    let alt_lines: Vec<String> = cap.alts.iter().flat_map(|a| font::wrap(a, inner)).collect();
+    rows += alt_lines.len() as i32;
     let meaning_lines = if cap.meaning.is_empty() { vec![] } else { font::wrap(&format!("= {}", cap.meaning), inner) };
     rows += meaning_lines.len() as i32;
     let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&format!("Ouvi: \"{h}\""), inner)).unwrap_or_default();
@@ -374,6 +380,10 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, ground_y: i32, time: f32) {
             }
             x += tw + font::ADVANCE;
         }
+        y += lh;
+    }
+    for l in &alt_lines {
+        font::draw(c, px + 6, y, l, ALT);
         y += lh;
     }
     for l in &meaning_lines {
@@ -478,6 +488,7 @@ mod tests {
             ],
             say: "I'm hungry".into(),
             active: None,
+            alts: Vec::new(),
             meaning: "Estou com fome".into(),
             status: Status::Listening,
             feedback,
@@ -559,6 +570,20 @@ mod tests {
         hud.draw(&mut combo, 60, 0.0);
         assert!(plain.opaque_in(100, 0, 100, 40) > 0);
         assert!(combo.opaque_in(0, 0, 200, 60) > plain.opaque_in(0, 0, 200, 60), "combo adds 'x4'");
+    }
+
+    #[test]
+    fn other_answer_tiers_are_listed_under_the_cue_on_a_narrow_screen() {
+        let alt_px = |alts: Vec<String>| {
+            let hud = Hud { caption: Some(Caption { alts, ..caption(None) }), ..Default::default() };
+            let mut c = Canvas::new(320, 180);
+            hud.draw(&mut c, 170, 0.0);
+            (0..180).flat_map(|y| (0..320).map(move |x| (x, y))).filter(|&(x, y)| c.get(x, y) == Some(ALT)).count()
+        };
+        assert_eq!(alt_px(Vec::new()), 0, "a single tier shows no extra lines");
+        let alts = vec!["curta: Hungry!".to_string(), "polida: I'm actually quite hungry, could we eat?".to_string()];
+        assert!(alts.iter().all(|a| font::supports(a)));
+        assert!(alt_px(alts) > 0);
     }
 
     #[test]

@@ -35,7 +35,7 @@ use hud::Hud;
 use ice::{Cube, Icicle, Kind, Particle};
 use mage::Mage;
 use mobs::Mob;
-use pyro::Pyro;
+use pyro::{Pyro, Spell};
 use rng::Rng;
 use snow::Snow;
 use warrior::Warrior;
@@ -60,6 +60,7 @@ struct Fireball {
     age: f32,
     flight: f32,
     power: f32,
+    spell: Spell,
 }
 
 /// What the frost mage's summon ritual is for.
@@ -142,7 +143,9 @@ pub struct Scene {
     /// The fire mage, present only during lessons.
     pub pyro: Pyro,
     fireballs: Vec<Fireball>,
-    pending_power: Vec<f32>,
+    pending_power: Vec<(f32, Spell)>,
+    /// The spell cast for the last right answer.
+    last_spell: Option<Spell>,
     icicles: Vec<Icicle>,
     mobs: Vec<Mob>,
     next_mobs: f32,
@@ -222,6 +225,7 @@ impl Scene {
             pyro: Pyro::default(),
             fireballs: Vec::new(),
             pending_power: Vec::new(),
+            last_spell: None,
             icicles: Vec::new(),
             mobs: Vec::new(),
             next_mobs: 40.0_f32.min(pace.mobs_every),
@@ -496,16 +500,22 @@ impl Scene {
 
     /// A correct phrase: the fire mage casts. The melt (`pace.melt_fraction`
     /// × `power`) happens when the fireball hits the frost mage.
-    pub fn celebrate(&mut self, power: f32) {
+    pub fn celebrate(&mut self, power: f32, spell: Spell) {
         self.pyro.focus(false);
-        let melt = self.pace.melt_fraction * power;
+        self.last_spell = Some(spell);
+        let melt = self.pace.melt_fraction * power * spell.melt();
         if self.pyro.visible() {
-            self.pending_power.push(melt);
+            self.pending_power.push((melt, spell));
             self.pyro.cast();
         } else {
             let (x, y) = (self.mage.x + mage::WIDTH as f32 / 2.0, self.feet_y(self.mage.x) - 12.0);
-            self.impact(x, y, melt);
+            self.impact(x, y, melt, spell);
         }
+    }
+
+    /// The spell the fire mage cast for the last right answer.
+    pub fn last_spell(&self) -> Option<Spell> {
+        self.last_spell
     }
 
     /// A wrong answer: the fireball fizzles and the frost mage fires back.
@@ -515,7 +525,7 @@ impl Scene {
         self.mage.start_throw(false);
     }
 
-    fn impact(&mut self, x: f32, y: f32, melt: f32) {
+    fn impact(&mut self, x: f32, y: f32, melt: f32, spell: Spell) {
         let gy = self.ground_y();
         for (px, hgt) in self.snow.melt(melt) {
             let py = gy - hgt;
@@ -527,7 +537,7 @@ impl Scene {
         }
         self.frost.melt(melt);
         self.snow.thaw(x, 24.0, 40.0, 0.25);
-        for i in 0..40 {
+        for i in 0..20 * spell.radius() as usize {
             let a = self.rng.range(0.0, std::f32::consts::TAU);
             let sp = self.rng.range(20.0, 90.0);
             let col = hex([0xfff4b0, 0xffc13d, 0xff7a2a, 0xd93a2a][i % 4]);
@@ -744,8 +754,11 @@ impl Scene {
         // Fire mage and his fireballs.
         let pyro_feet = self.feet_y(self.pyro.x + mage::WIDTH as f32 / 2.0);
         if let Some(pyro::Event::Release { x, y }) = self.pyro.step(dt, pyro_feet) {
-            let power =
-                if self.pending_power.is_empty() { self.pace.melt_fraction } else { self.pending_power.remove(0) };
+            let (power, spell) = if self.pending_power.is_empty() {
+                (self.pace.melt_fraction, Spell::Fireball)
+            } else {
+                self.pending_power.remove(0)
+            };
             let tx = self.mage.x + mage::WIDTH as f32 / 2.0;
             let ty = self.feet_y(tx) - 12.0;
             let flight = 0.5 + (tx - x).abs() / w * 0.6;
@@ -758,6 +771,7 @@ impl Scene {
                 age: 0.0,
                 flight,
                 power,
+                spell,
             });
         }
         let mut hits = Vec::new();
@@ -777,7 +791,7 @@ impl Scene {
         }
         for i in hits.into_iter().rev() {
             let fb = self.fireballs.remove(i);
-            self.impact(fb.x, fb.y, fb.power);
+            self.impact(fb.x, fb.y, fb.power, fb.spell);
         }
 
         // The ice owl and its snowballs (no new ones while you practice).
@@ -1366,9 +1380,10 @@ impl Scene {
         let px = self.pyro.x + mage::WIDTH as f32 / 2.0;
         self.pyro.draw(c, self.feet_y(px), self.time);
         for fb in &self.fireballs {
-            c.glow(fb.x, fb.y, 6.0, 0.8, hex(0xff7a2a));
-            c.rect(fb.x.round() as i32 - 2, fb.y.round() as i32 - 2, 4, 4, hex(0xffc13d));
-            c.rect(fb.x.round() as i32 - 1, fb.y.round() as i32 - 1, 2, 2, hex(0xfff4b0));
+            let (r, x, y) = (fb.spell.radius(), fb.x.round() as i32, fb.y.round() as i32);
+            c.glow(fb.x, fb.y, 3.0 * r as f32, 0.8, hex(0xff7a2a));
+            c.rect(x - r, y - r, 2 * r, 2 * r, hex(0xffc13d));
+            c.rect(x - r / 2, y - r / 2, r.max(1), r.max(1), hex(0xfff4b0));
         }
         for cube in &self.cubes {
             cube.draw(c);
@@ -1523,11 +1538,26 @@ mod tests {
         run(&mut s, 150.0);
         let (snow, frost) = (s.snow.fill(), s.frost.coverage());
         assert!(frost > 0.0, "friends should have frosted the edges");
-        s.celebrate(1.0);
+        s.celebrate(1.0, Spell::Fireball);
         let melt = Commitment::Relentless.pace().melt_fraction;
         assert!(s.snow.fill() <= snow * (1.0 - melt) + 1e-4);
         assert!(s.frost.coverage() <= frost * (1.0 - melt) + 1e-4);
         assert!(s.snow.fill() > 0.0, "one answer never clears everything");
+    }
+
+    #[test]
+    fn a_bigger_spell_melts_more_but_never_clears_the_screen() {
+        let melted = |spell: Spell| {
+            let mut s = Scene::new(240, 135, 2, Commitment::Relentless.pace(), true);
+            run(&mut s, 150.0);
+            let before = s.snow.fill();
+            s.celebrate(1.5, spell); // the most an answer earns: recall on the first try
+            assert_eq!(s.last_spell(), Some(spell));
+            assert!(s.snow.fill() > 0.0, "{spell:?} cleared everything");
+            before - s.snow.fill()
+        };
+        let (spark, fireball, blaze) = (melted(Spell::Spark), melted(Spell::Fireball), melted(Spell::Blaze));
+        assert!(spark > 0.0 && spark < fireball && fireball < blaze, "{spark} {fireball} {blaze}");
     }
 
     #[test]
@@ -1538,7 +1568,7 @@ mod tests {
         run(&mut s, 1.0);
         assert!(s.pyro.visible());
         let before = s.snow.fill();
-        s.celebrate(1.0);
+        s.celebrate(1.0, Spell::Fireball);
         assert!((s.snow.fill() - before).abs() < 1e-3, "nothing melts until the fireball lands");
         let mut staggered = false;
         for _ in 0..90 {

@@ -42,6 +42,8 @@ text = "No clima usa-se 'hace': hace frío, hace calor, hace sol."
 topic = "trabalho"
 situation = "O colega está falando, mas está no mudo."
 say = "Perdón, estás en silencio"
+short = "Estás en silencio"
+polished = "Perdón, creo que tienes el micrófono en silencio"
 meaning = "Desculpa, você está no mudo"
 accept = ["Estás en silencio", "Tienes el micrófono apagado"]
 
@@ -49,6 +51,8 @@ accept = ["Estás en silencio", "Tienes el micrófono apagado"]
 topic = "trabalho"
 situation = "Você quer ver o que o colega está mostrando."
 say = "¿Puedes compartir tu pantalla?"
+short = "¿Compartes pantalla?"
+polished = "¿Te importaría compartir tu pantalla?"
 meaning = "Pode compartilhar sua tela?"
 accept = ["¿Podrías compartir tu pantalla?"]
 
@@ -56,12 +60,16 @@ accept = ["¿Podrías compartir tu pantalla?"]
 topic = "trabalho"
 situation = "Você vai se atrasar para a reunião."
 say = "Voy a llegar unos minutos tarde"
+short = "Llego tarde"
+polished = "Perdón, voy a llegar unos minutos tarde"
 meaning = "Vou chegar alguns minutos atrasado"
 
 [[phrase]]
 topic = "trabalho"
 situation = "Precisa confirmar antes de responder."
 say = "Déjame revisarlo y te aviso"
+short = "Lo reviso"
+polished = "Déjame revisarlo bien y te aviso en un rato"
 meaning = "Deixa eu revisar e te aviso"
 accept = ["Lo reviso y te aviso"]
 
@@ -69,18 +77,24 @@ accept = ["Lo reviso y te aviso"]
 topic = "trabalho"
 situation = "Não entendeu a explicação."
 say = "¿Me lo puedes explicar paso a paso?"
+short = "¿Me lo explicas?"
+polished = "¿Te importaría explicármelo paso a paso, por favor?"
 meaning = "Você pode me explicar passo a passo?"
 
 [[phrase]]
 topic = "trabalho"
 situation = "Perguntam o prazo de uma tarefa."
 say = "¿Cuál es la fecha de entrega?"
+short = "¿Para cuándo es?"
+polished = "¿Me podrías decir cuál es la fecha de entrega?"
 meaning = "Qual é o prazo de entrega?"
 
 [[phrase]]
 topic = "trabalho"
 situation = "A reunião precisa ser adiada."
 say = "¿Podemos pasarlo para mañana?"
+short = "¿Mañana mejor?"
+polished = "¿Sería posible pasarlo para mañana?"
 meaning = "Podemos passar isso pra amanhã?"
 accept = ["¿Lo podemos pasar para mañana?"]
 
@@ -88,18 +102,23 @@ accept = ["¿Lo podemos pasar para mañana?"]
 topic = "trabalho"
 situation = "Você concorda com a ideia."
 say = "Tiene sentido"
+polished = "Sí, tiene todo el sentido"
 meaning = "Faz sentido"
 
 [[phrase]]
 topic = "trabalho"
 situation = "Achou um problema sério em produção."
 say = "Creo que hay un error en producción"
+short = "Hay un error"
+polished = "Creo que puede haber un error en producción"
 meaning = "Acho que tem um erro em produção"
 
 [[phrase]]
 topic = "trabalho"
 situation = "Vai mandar um resumo depois da reunião."
 say = "Te mando un correo con el resumen"
+short = "Te mando el resumen"
+polished = "Luego te mando un correo con el resumen"
 meaning = "Te mando um email com o resumo"
 tip = "Email em espanhol é 'correo' (ou 'mail' na conversa)."
 
@@ -107,6 +126,8 @@ tip = "Email em espanhol é 'correo' (ou 'mail' na conversa)."
 topic = "trabalho"
 situation = "Quer saber se o áudio está bom."
 say = "¿Me escuchas bien?"
+short = "¿Me escuchas?"
+polished = "Perdón, ¿me escuchas bien?"
 meaning = "Você está me ouvindo bem?"
 accept = ["¿Me oyes bien?"]
 
@@ -114,6 +135,8 @@ accept = ["¿Me oyes bien?"]
 topic = "trabalho"
 situation = "Discorda, mas com educação."
 say = "Entiendo, pero no estoy seguro de que funcione"
+short = "No estoy seguro"
+polished = "Entiendo tu punto, pero no estoy del todo seguro de que funcione"
 meaning = "Entendo, mas não tenho certeza de que funcione"
 
 # ---------------------------------------------------------------- viaje
@@ -122,12 +145,16 @@ meaning = "Entendo, mas não tenho certeza de que funcione"
 topic = "viagem"
 situation = "Você chegou no hotel."
 say = "Tengo una reserva a mi nombre"
+short = "Tengo una reserva"
+polished = "Hola, tengo una reserva a mi nombre"
 meaning = "Tenho uma reserva no meu nome"
 
 [[phrase]]
 topic = "viagem"
 situation = "Quer saber se o café da manhã está incluso."
 say = "¿El desayuno está incluido?"
+short = "¿Incluye desayuno?"
+polished = "¿Me podría decir si el desayuno está incluido?"
 meaning = "O café da manhã está incluso?"
 accept = ["¿Está incluido el desayuno?"]
 
@@ -135,18 +162,22 @@ accept = ["¿Está incluido el desayuno?"]
 topic = "viagem"
 situation = "Sua mala não apareceu."
 say = "Mi maleta no llegó"
+polished = "Disculpe, mi maleta no llegó"
 meaning = "Minha mala não chegou"
 
 [[phrase]]
 topic = "viagem"
 situation = "Está perdido procurando o metrô."
 say = "¿Cómo llego a la estación de metro?"
+short = "¿El metro?"
+polished = "Disculpe, ¿cómo llego a la estación de metro?"
 meaning = "Como eu chego na estação de metrô?"
 
 [[phrase]]
 topic = "viagem"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "¿Cuánto se tarda en llegar al centro?"
+short = "¿Está lejos el centro?"
 meaning = "Quanto tempo leva pra chegar no centro?"
 accept = ["¿Cuánto tiempo se tarda al centro?"]
 
@@ -154,6 +185,7 @@ accept = ["¿Cuánto tiempo se tarda al centro?"]
 topic = "viagem"
 situation = "Na imigração, perguntam o motivo da viagem."
 say = "Estoy de vacaciones"
+polished = "Estoy aquí de vacaciones por una semana"
 meaning = "Estou de férias"
 accept = ["Vengo de vacaciones"]
 
@@ -161,6 +193,8 @@ accept = ["Vengo de vacaciones"]
 topic = "viagem"
 situation = "Quer um táxi pra ir ao aeroporto."
 say = "¿Me puede pedir un taxi al aeropuerto?"
+short = "Un taxi, por favor"
+polished = "¿Sería tan amable de pedirme un taxi al aeropuerto?"
 meaning = "Pode me chamar um táxi pro aeroporto?"
 
 # ---------------------------------------------------------------- restaurante
@@ -169,6 +203,7 @@ meaning = "Pode me chamar um táxi pro aeroporto?"
 topic = "restaurante"
 situation = "Terminou de comer e quer pagar."
 say = "La cuenta, por favor"
+polished = "Cuando pueda, ¿nos trae la cuenta, por favor?"
 meaning = "A conta, por favor"
 accept = ["¿Me trae la cuenta, por favor?"]
 
@@ -176,6 +211,8 @@ accept = ["¿Me trae la cuenta, por favor?"]
 topic = "restaurante"
 situation = "Quer levar a comida."
 say = "¿Me lo pone para llevar?"
+short = "Para llevar"
+polished = "¿Me lo pone para llevar, por favor?"
 meaning = "Pode embalar pra viagem?"
 accept = ["Para llevar, por favor"]
 
@@ -183,12 +220,15 @@ accept = ["Para llevar, por favor"]
 topic = "restaurante"
 situation = "Tem alergia a nozes."
 say = "Soy alérgico a los frutos secos"
+short = "Sin frutos secos"
+polished = "Para que lo sepa, soy alérgico a los frutos secos"
 meaning = "Sou alérgico a nozes e castanhas"
 
 [[phrase]]
 topic = "restaurante"
 situation = "Não sabe o que pedir."
 say = "¿Qué me recomienda?"
+polished = "¿Qué me recomendaría usted?"
 meaning = "O que você me recomenda?"
 accept = ["¿Qué me recomiendas?"]
 
@@ -196,12 +236,15 @@ accept = ["¿Qué me recomiendas?"]
 topic = "restaurante"
 situation = "Chegou com um amigo."
 say = "Una mesa para dos, por favor"
+short = "Para dos"
+polished = "Buenas, ¿tiene una mesa para dos, por favor?"
 meaning = "Uma mesa pra dois, por favor"
 
 [[phrase]]
 topic = "restaurante"
 situation = "Quer saber se aceitam cartão."
 say = "¿Aceptan tarjeta?"
+polished = "¿Se puede pagar con tarjeta?"
 meaning = "Vocês aceitam cartão?"
 accept = ["¿Se puede pagar con tarjeta?"]
 
@@ -211,12 +254,15 @@ accept = ["¿Se puede pagar con tarjeta?"]
 topic = "compras"
 situation = "O vendedor oferece ajuda, mas você só está olhando."
 say = "Solo estoy mirando, gracias"
+short = "Solo miro"
+polished = "Solo estoy mirando por ahora, muchas gracias"
 meaning = "Só estou olhando, obrigado"
 
 [[phrase]]
 topic = "compras"
 situation = "Quer provar uma roupa."
 say = "¿Me lo puedo probar?"
+polished = "¿Le importa si me lo pruebo?"
 meaning = "Posso experimentar?"
 accept = ["¿Puedo probármelo?"]
 
@@ -224,6 +270,8 @@ accept = ["¿Puedo probármelo?"]
 topic = "compras"
 situation = "Precisa de outro tamanho."
 say = "¿Lo tiene en una talla más grande?"
+short = "¿Una talla más?"
+polished = "Disculpe, ¿lo tiene en una talla más grande?"
 meaning = "Tem num tamanho maior?"
 tip = "Tamanho de roupa é 'talla'; de sapato, 'número'."
 
@@ -231,6 +279,7 @@ tip = "Tamanho de roupa é 'talla'; de sapato, 'número'."
 topic = "compras"
 situation = "Quer devolver um produto."
 say = "Quiero devolver esto"
+polished = "Hola, me gustaría devolver esto, por favor"
 meaning = "Quero devolver isso"
 
 # ---------------------------------------------------------------- salud
@@ -239,24 +288,30 @@ meaning = "Quero devolver isso"
 topic = "saúde"
 situation = "Você não está bem."
 say = "Necesito ver a un médico"
+short = "Necesito un médico"
+polished = "Creo que necesito ver a un médico, por favor"
 meaning = "Preciso ver um médico"
 
 [[phrase]]
 topic = "saúde"
 situation = "Mostre onde dói."
 say = "Me duele aquí"
+polished = "Me duele justo aquí"
 meaning = "Dói aqui"
 
 [[phrase]]
 topic = "saúde"
 situation = "Na farmácia, dor de cabeça."
 say = "¿Tiene algo para el dolor de cabeza?"
+short = "¿Algo para la cabeza?"
+polished = "¿Me podría recomendar algo para el dolor de cabeza?"
 meaning = "Tem algo pra dor de cabeça?"
 
 [[phrase]]
 topic = "saúde"
 situation = "Conte desde quando está mal."
 say = "Me siento mal desde ayer"
+short = "Me siento mal"
 meaning = "Estou me sentindo mal desde ontem"
 
 # ---------------------------------------------------------------- social
@@ -265,12 +320,14 @@ meaning = "Estou me sentindo mal desde ontem"
 topic = "social"
 situation = "Perguntam de onde você é."
 say = "Soy de Brasil"
+polished = "Soy de Brasil, de São Paulo"
 meaning = "Sou do Brasil"
 
 [[phrase]]
 topic = "social"
 situation = "Quer saber com o que a pessoa trabalha."
 say = "¿A qué te dedicas?"
+polished = "Y tú, ¿a qué te dedicas?"
 meaning = "Com o que você trabalha?"
 tip = "Muito mais natural que '¿Cuál es tu trabajo?'."
 
@@ -278,6 +335,8 @@ tip = "Muito mais natural que '¿Cuál es tu trabajo?'."
 topic = "social"
 situation = "A pessoa fala rápido demais."
 say = "¿Puedes hablar más despacio?"
+short = "Más despacio, por favor"
+polished = "Perdón, ¿puedes hablar un poco más despacio?"
 meaning = "Você pode falar mais devagar?"
 accept = ["¿Podrías hablar más despacio?", "Más despacio, por favor"]
 
@@ -285,6 +344,7 @@ accept = ["¿Podrías hablar más despacio?", "Más despacio, por favor"]
 topic = "social"
 situation = "Não sabe uma palavra."
 say = "¿Cómo se dice esto en español?"
+short = "¿Cómo se dice?"
 meaning = "Como se diz isso em espanhol?"
 
 [[phrase]]
@@ -298,6 +358,8 @@ accept = ["No te preocupes"]
 topic = "social"
 situation = "Um amigo pergunta se você está chegando."
 say = "Ya voy en camino"
+short = "Ya voy"
+polished = "Ya voy en camino, nos vemos pronto"
 meaning = "Já estou a caminho"
 accept = ["Voy en camino"]
 
@@ -305,6 +367,7 @@ accept = ["Voy en camino"]
 topic = "social"
 situation = "Está indo embora da festa."
 say = "Me encantó verte"
+polished = "Me encantó mucho volver a verte"
 meaning = "Adorei te ver"
 accept = ["Qué bueno verte"]
 
@@ -314,12 +377,14 @@ accept = ["Qué bueno verte"]
 topic = "telefone"
 situation = "A pessoa que você procura não está."
 say = "¿Puedo dejar un mensaje?"
+polished = "¿Podría dejarle un mensaje, por favor?"
 meaning = "Posso deixar um recado?"
 
 [[phrase]]
 topic = "telefone"
 situation = "Ligou pro número errado."
 say = "Perdón, creo que me equivoqué de número"
+short = "Número equivocado, perdón"
 meaning = "Desculpa, acho que liguei errado"
 
 # ---------------------------------------------------------------- emergencia
@@ -328,6 +393,7 @@ meaning = "Desculpa, acho que liguei errado"
 topic = "emergência"
 situation = "Aconteceu um acidente."
 say = "Llame a una ambulancia, por favor"
+short = "Una ambulancia"
 meaning = "Chame uma ambulância, por favor"
 accept = ["Llamen a una ambulancia"]
 
@@ -335,12 +401,15 @@ accept = ["Llamen a una ambulancia"]
 topic = "emergência"
 situation = "Perdeu o passaporte."
 say = "Perdí mi pasaporte"
+polished = "Disculpe, perdí mi pasaporte"
 meaning = "Perdi meu passaporte"
 
 [[phrase]]
 topic = "emergência"
 situation = "Precisa de ajuda na rua."
 say = "¿Me puede ayudar, por favor?"
+short = "Ayuda, por favor"
+polished = "Disculpe, ¿me podría ayudar, por favor?"
 meaning = "Pode me ajudar, por favor?"
 accept = ["¿Me puedes ayudar?", "Ayúdeme, por favor"]
 
@@ -351,6 +420,7 @@ topic = "trabalho"
 level = "A1"
 situation = "Seu celular toca durante a reunião e você atende rapidinho pra avisar."
 say = "Estoy en una reunión."
+polished = "Perdón, ahora estoy en una reunión."
 meaning = "Estou numa reunião."
 accept = ["Estoy en reunión"]
 
@@ -391,6 +461,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Na call, o cliente falou rápido e você não pegou o número do pedido."
 say = "¿Puede repetir, por favor?"
+short = "¿Cómo?"
+polished = "Perdón, ¿lo puede repetir, por favor?"
 meaning = "Pode repetir, por favor?"
 accept = ["¿Puedes repetir, por favor?"]
 
@@ -423,6 +495,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Um colega passou meia hora te ajudando a configurar o notebook."
 say = "Gracias por tu ayuda."
+short = "Gracias."
+polished = "Muchas gracias por toda tu ayuda."
 meaning = "Obrigado pela ajuda."
 accept = ["Gracias por su ayuda"]
 
@@ -431,6 +505,8 @@ topic = "trabalho"
 level = "A1"
 situation = "Sexta à tarde, você sai do escritório e se despede do time."
 say = "Nos vemos el lunes."
+short = "Hasta el lunes."
+polished = "Buen fin de semana, nos vemos el lunes."
 meaning = "Até segunda."
 accept = ["Hasta el lunes"]
 
@@ -439,6 +515,7 @@ topic = "trabalho"
 level = "A2"
 situation = "Um colega quer conversar, mas você está no meio de uma entrega."
 say = "¿Hablamos después del almuerzo?"
+polished = "¿Te parece si hablamos después del almuerzo?"
 meaning = "Podemos conversar depois do almoço?"
 accept = ["¿Podemos hablar después de comer?"]
 
@@ -463,6 +540,8 @@ topic = "trabalho"
 level = "A2"
 situation = "A reunião já começou e você não acha o convite na agenda."
 say = "¿Me mandas el enlace?"
+short = "¿El enlace?"
+polished = "¿Me podrías mandar el enlace, por favor?"
 meaning = "Pode me mandar o link?"
 accept = ["¿Me puedes enviar el enlace?"]
 
@@ -479,6 +558,7 @@ topic = "trabalho"
 level = "A2"
 situation = "Na call, o som do colega some de repente."
 say = "No te oigo."
+polished = "Perdón, no te oigo muy bien."
 meaning = "Não estou te ouvindo."
 accept = ["No te escucho", "No lo escucho"]
 
@@ -495,6 +575,7 @@ topic = "trabalho"
 level = "A2"
 situation = "O trânsito parou e você avisa no chat que vai chegar atrasado."
 say = "Llego cinco minutos tarde."
+polished = "Perdón, llego unos cinco minutos tarde."
 meaning = "Vou atrasar cinco minutos."
 accept = ["Voy a llegar cinco minutos tarde"]
 
@@ -503,6 +584,8 @@ topic = "trabalho"
 level = "A2"
 situation = "Você quer marcar uma conversa com um cliente e pergunta o melhor horário."
 say = "¿A qué hora te viene bien?"
+short = "¿Cuándo puedes?"
+polished = "¿A qué hora te vendría mejor?"
 meaning = "Que horário fica bom pra você?"
 accept = ["¿Qué hora te queda bien?"]
 
@@ -519,5 +602,7 @@ topic = "trabalho"
 level = "A2"
 situation = "Você combina com um colega de revisar o projeto juntos."
 say = "Nos vemos mañana a las nueve."
+short = "Mañana a las nueve."
+polished = "¿Te parece si nos vemos mañana a las nueve?"
 meaning = "Vamos nos ver amanhã às nove."
 accept = ["Quedamos mañana a las nueve"]
