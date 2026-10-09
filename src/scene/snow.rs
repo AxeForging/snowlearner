@@ -1,5 +1,6 @@
 //! The snow pile along the bottom of the screen: one height per column.
-//! Ice cubes and summons add to it, speaking melts it, campfires thaw it locally.
+//! Ice cubes and summons add to it, speaking melts it; a campfire melts a hollow
+//! around itself but the water refreezes on its rims, so only speaking melts it for good.
 
 use crate::render::canvas::{Rgba, bayer, hex};
 
@@ -21,11 +22,12 @@ pub fn shade(depth: i32, x: i32, y: i32) -> Rgba {
 pub struct Snow {
     heights: Vec<f32>,
     cap: f32,
+    frozen: bool,
 }
 
 impl Snow {
     pub fn new(width: i32, cap: f32) -> Self {
-        Snow { heights: vec![0.0; width.max(1) as usize], cap }
+        Snow { heights: vec![0.0; width.max(1) as usize], cap, frozen: false }
     }
 
     /// Keeps the existing pile, stretched to the new width.
@@ -34,6 +36,12 @@ impl Snow {
         let n = width.max(1) as usize;
         self.heights = (0..n).map(|i| if old.is_empty() { 0.0 } else { old[i * old.len() / n].min(cap) }).collect();
         self.cap = cap;
+    }
+
+    /// A frozen pile takes no more snow and keeps its shape, peaks and all;
+    /// it can still melt.
+    pub fn set_frozen(&mut self, frozen: bool) {
+        self.frozen = frozen;
     }
 
     pub fn width(&self) -> usize {
@@ -51,6 +59,9 @@ impl Snow {
 
     /// Adds `amount` px of snow centered on `x`, spread over ±`spread` columns.
     pub fn add(&mut self, x: f32, amount: f32, spread: f32) {
+        if self.frozen {
+            return;
+        }
         let spread = spread.max(1.0);
         let (lo, hi) = ((x - spread * 2.0).floor() as i64, (x + spread * 2.0).ceil() as i64);
         for i in lo.max(0)..=hi.min(self.heights.len() as i64 - 1) {
@@ -61,9 +72,10 @@ impl Snow {
     }
 
     /// One settled snowflake: exactly one pixel on the column it landed on.
-    /// False when it missed the pile or the column is already at the cap.
+    /// False when it missed the pile, the column is already at the cap or the
+    /// pile is frozen.
     pub fn add_grain(&mut self, x: f32) -> bool {
-        if x < 0.0 {
+        if x < 0.0 || self.frozen {
             return false;
         }
         match self.heights.get_mut(x as usize) {
@@ -77,6 +89,9 @@ impl Snow {
 
     /// Adds a thin even layer.
     pub fn dust(&mut self, amount: f32) {
+        if self.frozen {
+            return;
+        }
         for h in &mut self.heights {
             *h = (*h + amount).min(self.cap);
         }
@@ -96,13 +111,39 @@ impl Snow {
         puffs
     }
 
-    /// Local thaw (campfire): up to `rate` px/s at the center, fading to `radius`.
+    /// Local thaw (a fireball landing): up to `rate` px/s at the center, fading to `radius`.
     pub fn thaw(&mut self, x: f32, radius: f32, rate: f32, dt: f32) {
         let (lo, hi) = ((x - radius).floor() as i64, (x + radius).ceil() as i64);
         for i in lo.max(0)..=hi.min(self.heights.len() as i64 - 1) {
             let k = 1.0 - ((i as f32 - x).abs() / radius).min(1.0);
             let h = &mut self.heights[i as usize];
             *h = (*h - rate * k * dt).max(0.0);
+        }
+    }
+
+    /// A campfire's hollow: melts up to `rate` px/s at `x`, fading to `radius`,
+    /// and the water refreezes on the rims just outside it — the pile keeps
+    /// its snow (rims at the cap pass it further out).
+    pub fn hollow(&mut self, x: f32, radius: f32, rate: f32, dt: f32) {
+        let n = self.heights.len() as i64;
+        let (lo, hi) = ((x - radius).floor() as i64, (x + radius).ceil() as i64);
+        let mut melted = 0.0;
+        for i in lo.max(0)..=hi.min(n - 1) {
+            let k = 1.0 - ((i as f32 - x).abs() / radius).min(1.0);
+            let h = &mut self.heights[i as usize];
+            let m = (rate * k * dt).min(*h);
+            *h -= m;
+            melted += m;
+        }
+        for (step, mut i) in [(-1, lo - 1), (1, hi + 1)] {
+            let mut water = melted / 2.0;
+            while water > 0.0 && (0..n).contains(&i) {
+                let h = &mut self.heights[i as usize];
+                let put = (self.cap - *h).max(0.0).min(water);
+                *h += put;
+                water -= put;
+                i += step;
+            }
         }
     }
 
@@ -117,6 +158,11 @@ impl Snow {
                 self.heights[i] += moved;
             }
         }
+    }
+
+    /// Mean height of the pile, in pixels.
+    pub fn mean(&self) -> f32 {
+        self.heights.iter().sum::<f32>() / self.heights.len() as f32
     }
 
     /// 0 = bare, 1 = every column at the cap.
@@ -203,5 +249,36 @@ mod tests {
         s.resize(200, 40.0);
         assert!(s.height_at(150.0) > 5.0);
         assert_eq!(s.height_at(20.0), 0.0);
+    }
+
+    #[test]
+    fn a_campfire_melts_a_hollow_and_the_water_freezes_on_its_rims() {
+        let mut s = Snow::new(100, 30.0);
+        for x in 0..100 {
+            for _ in 0..10 {
+                s.add_grain(x as f32);
+            }
+        }
+        let before = s.fill();
+        for _ in 0..30 {
+            s.hollow(50.0, 10.0, 3.0, 0.1);
+        }
+        assert!(s.height_at(50.0) < 9.0, "a hollow under the fire: {}", s.height_at(50.0));
+        assert!(s.height_at(39.0) > 10.0 && s.height_at(61.0) > 10.0, "raised rims on both sides");
+        assert!((s.fill() - before).abs() < 1e-5, "the pile keeps its snow");
+    }
+
+    #[test]
+    fn a_frozen_pile_takes_no_more_snow_but_still_melts() {
+        let mut s = Snow::new(50, 30.0);
+        s.add(25.0, 10.0, 3.0);
+        let before = s.fill();
+        s.set_frozen(true);
+        assert!(!s.add_grain(25.0));
+        s.add(10.0, 10.0, 3.0);
+        s.dust(2.0);
+        assert_eq!(s.fill(), before, "it keeps its shape");
+        s.melt(0.5);
+        assert!(s.fill() < before, "but a right answer still melts it");
     }
 }

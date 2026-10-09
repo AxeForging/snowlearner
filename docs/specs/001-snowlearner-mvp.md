@@ -18,7 +18,7 @@ pairs work too.
 2. **Summons** — every so often the mage summons a friend (snowman, penguin) that
    bursts frost onto the screen edges.
 3. **Warrior** — a small warrior tries to survive the freeze: wanders, builds
-   *fogueiras* (campfires) that slowly melt nearby snow, and has a warmth meter that
+   *fogueiras* (campfires) that melt a hollow in the snow, and has a warmth meter that
    drops as the screen freezes. He gives pt-BR tips (hotkey, hint for the next phrase).
    At zero warmth he becomes an ice statue until you get a phrase right; every success
    gives him a warm burst.

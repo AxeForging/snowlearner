@@ -7,6 +7,7 @@ pub mod blanket;
 pub mod fire;
 pub mod friends;
 pub mod frost;
+pub mod glass;
 pub mod hand;
 pub mod hud;
 pub mod ice;
@@ -27,6 +28,7 @@ use blanket::Blanket;
 use fire::Fire;
 use friends::Friend;
 use frost::{Edge, Frost};
+use glass::Glass;
 use hud::Hud;
 use ice::{Cube, Icicle, Kind, Particle};
 use mage::Mage;
@@ -116,6 +118,10 @@ pub struct Scene {
     pub warrior: Warrior,
     pub snow: Snow,
     pub frost: Frost,
+    /// The pile reached the ice line and the edges are freezing.
+    frozen_over: bool,
+    /// Frost crystals on the glass, laid out for this screen size.
+    glass: Glass,
     /// The snow blanket as last drawn; redrawn only when the snow moves.
     blanket: RefCell<Blanket>,
     pub fires: Vec<Fire>,
@@ -185,6 +191,8 @@ impl Scene {
             warrior: Warrior::new(w as f32 * 0.7),
             snow: Snow::new(w, snow_cap(h)),
             frost: Frost::new(w, h),
+            frozen_over: false,
+            glass: Glass::new(w, h),
             blanket: RefCell::default(),
             fires: Vec::new(),
             hud: Hud::default(),
@@ -235,6 +243,7 @@ impl Scene {
         self.h = h;
         self.snow.resize(w, snow_cap(h));
         self.frost.resize(w, h);
+        self.glass = Glass::new(w, h);
         if !self.transparent {
             self.backdrop = Some(Backdrop::new(w, h));
         }
@@ -255,9 +264,26 @@ impl Scene {
         self.ground_y() - self.snow.height_at(x)
     }
 
+    /// How far the ground pile is toward the ice line: 0 bare, 1 there.
+    fn pile_level(&self) -> f32 {
+        (self.snow.mean() / (self.h as f32 * ICE_LINE)).min(1.0)
+    }
+
+    /// Whether the ground pile reached the ice line, where the edges freeze;
+    /// once frozen over, only a real melt (practicing) below 90% of the line
+    /// thaws them, not a campfire nibbling at it.
+    fn edges_freeze(&self) -> bool {
+        self.pile_level() >= 1.0 || (self.frozen_over && self.pile_level() >= 0.9)
+    }
+
+    /// Pace amounts (pixels) on this screen, see `PACE_HEIGHT`.
+    fn scaled(&self, px: f32) -> f32 {
+        px * self.h as f32 / PACE_HEIGHT
+    }
+
     /// 0 = clear, 1 = buried: drives the warrior's chill and corner frost.
     pub fn freeze_level(&self) -> f32 {
-        (self.snow.fill() * 0.6 + self.frost.coverage() * 0.4 / 0.5).min(1.0)
+        (self.pile_level() * 0.6 + self.frost.coverage() * 0.4 / 0.5).min(1.0)
     }
 
     pub fn cubes_in_flight(&self) -> usize {
@@ -744,7 +770,7 @@ impl Scene {
         // Fires.
         for fire in &mut self.fires {
             fire.life -= dt;
-            self.snow.thaw(fire.x, 14.0, 3.0 * fire.strength(), dt);
+            self.snow.hollow(fire.x, 14.0, 3.0 * fire.strength(), dt);
         }
         self.fires.retain(Fire::alive);
         for i in 0..self.fires.len() {
@@ -816,8 +842,15 @@ impl Scene {
             self.next_tip = self.rng.range(35.0, 80.0);
         }
 
-        // Ambient: corner frost creeps faster the more buried the screen is.
-        self.frost.creep(dt, 0.02 + self.snow.fill() * 0.25);
+        // Ambient: past the ice line, corner frost creeps faster the more
+        // buried the screen is.
+        // At the ice line the pile stops rising and the screen freezes instead.
+        self.frozen_over = self.edges_freeze();
+        self.snow.set_frozen(self.frozen_over);
+        self.frost.set_pile(self.feet_y(0.0), self.feet_y(self.w as f32 - 1.0));
+        if self.edges_freeze() {
+            self.frost.creep(dt, 0.02 + self.pile_level() * 0.25);
+        }
         self.snow.settle();
         self.snow.settle();
         self.frost.settle();
@@ -838,14 +871,15 @@ impl Scene {
     /// Moves the snowfall with `target` flakes of the pool in the air. New
     /// ones enter at the top; surplus ones stop only once they land, so the
     /// snowfall thickens and thins without flakes popping in or out mid-air.
-    /// Every flake that lands — on the ground pile, or on the snow of the
-    /// side wall the wind blew it into — stays there as one pixel on the
-    /// column or row it hit (one height per column/row, so thousands of
-    /// grains cost nothing). Returns how many settled.
+    /// Every flake that lands — on the ground pile, or (past the ice line) on
+    /// the side wall the wind blew it into, then sliding down to what holds
+    /// it — stays as one pixel of snow (one height per column/row, so
+    /// thousands of grains cost nothing). Returns how many settled.
     fn fall_flakes(&mut self, dt: f32, target: usize) -> usize {
         let w = self.w as f32;
         let (transparent, time, h) = (self.transparent, self.time, self.h);
         let gust = wind(time);
+        let walls_hold = self.edges_freeze();
         let (snow, frost) = (&mut self.snow, &mut self.frost);
         // A new flake starts in the open sky, between whatever the walls hold.
         let spawn_x = |f: &Flake, frost: &Frost| {
@@ -871,6 +905,18 @@ impl Scene {
                 Some(Edge::Right)
             } else {
                 None
+            };
+            // A wall holds a flake only past the ice line, on what is under
+            // it; otherwise the flake slides down the glass, or the wall's
+            // snow, until something does or it reaches the pile.
+            let wall = match wall {
+                Some(edge) if walls_hold && frost.holds(edge, f.y) => Some(edge),
+                Some(edge) => {
+                    let depth = frost.depth_at(edge, f.y);
+                    f.x = if edge == Edge::Left { depth } else { w - 1.0 - depth }.clamp(0.0, w - 1.0);
+                    None
+                }
+                None => None,
             };
             let landed = match wall {
                 Some(edge) => {
@@ -906,7 +952,7 @@ impl Scene {
 
     fn shatter(&mut self, x: f32, y: f32) {
         let x = x.clamp(0.0, self.w as f32 - 1.0);
-        self.snow.add(x, self.pace.snow_per_cube, CUBE_SPREAD);
+        self.snow.add(x, self.scaled(self.pace.snow_per_cube), self.scaled(CUBE_SPREAD));
         for i in 0..11 {
             let (vx, vy, life) = (self.rng.range(-70.0, 70.0), self.rng.range(-90.0, -20.0), self.rng.range(0.6, 1.4));
             let p = Particle::new(Kind::Shard, x, y - 2.0, vx, vy, life, hex(ICE_COLORS[i % 4]));
@@ -1003,7 +1049,7 @@ impl Scene {
     /// An icicle hit: less snow than a cube, but many of them.
     fn shatter_small(&mut self, x: f32, y: f32) {
         let x = x.clamp(0.0, self.w as f32 - 1.0);
-        self.snow.add(x, self.pace.snow_per_cube * 0.5, 4.0);
+        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 0.5), self.scaled(4.0));
         for i in 0..5 {
             let (vx, vy, life) = (self.rng.range(-40.0, 40.0), self.rng.range(-60.0, -15.0), self.rng.range(0.4, 0.9));
             self.particles.push(Particle::new(Kind::Shard, x, y - 1.0, vx, vy, life, hex(ICE_COLORS[i % 4])));
@@ -1029,11 +1075,13 @@ impl Scene {
         let strength = self.frost_strength();
         let near = self.frost.nearest_edge(x, y);
         let pos = |e: Edge| if e == Edge::Top { x } else { y };
-        self.frost.burst(near, pos(near), strength, h * 0.15);
         let other = *self.rng.pick(&[Edge::Top, Edge::Left, Edge::Right]);
         let at = if other == Edge::Top { self.rng.range(0.0, w) } else { self.rng.range(0.0, h * 0.8) };
-        self.frost.burst(other, at, strength * 0.7, h * 0.15);
-        self.snow.add(x, self.pace.snow_per_cube * 1.5, 8.0);
+        if self.edges_freeze() {
+            self.frost.burst(near, pos(near), strength, h * 0.15);
+            self.frost.burst(other, at, strength * 0.7, h * 0.15);
+        }
+        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 1.5), self.scaled(8.0));
         for i in 0..30 {
             let a = self.rng.range(-3.0, -0.14); // upward fan
             let sp = self.rng.range(60.0, 140.0);
@@ -1098,6 +1146,8 @@ impl Scene {
     /// Everything that lives in the world (not the landscape, not the HUD).
     fn draw_world(&self, c: &mut Canvas) {
         let gy = self.ground_y();
+        // The glass frosts over as the edges freeze; the snow covers its roots.
+        self.glass.draw(c, (self.frost.coverage() / GLASS_FULL_AT).min(1.0));
         // Ground pile and edge snow as one blanket; scenery, so everyone and
         // everything they say stays in front of it.
         self.blanket.borrow_mut().draw(c, &self.snow, &self.frost, gy as i32, self.time, self.transparent);
@@ -1204,8 +1254,20 @@ fn draw_sun(c: &mut Canvas, time: f32, fade: f32) {
     }
 }
 
+/// Once the ground pile's mean height reaches this share of the screen, the
+/// edges start to freeze; before that, snow never sticks to them.
+const ICE_LINE: f32 = 0.30;
+
+/// Edge-snow coverage at which the glass is fully frosted over.
+const GLASS_FULL_AT: f32 = 0.6;
+
+/// Pace amounts are pixels on a 270-px-tall scene (1080p at the default pixel
+/// scale); scaled by this, the pile rises the same share of any screen.
+const PACE_HEIGHT: f32 = 270.0;
+
+/// Peaks may rise well past the ice line; it is the mean that counts.
 fn snow_cap(h: i32) -> f32 {
-    (h as f32 * 0.22).max(8.0)
+    (h as f32 * 0.60).max(8.0)
 }
 
 #[cfg(test)]
@@ -1248,6 +1310,7 @@ mod tests {
     #[test]
     fn a_correct_phrase_melts_snow_and_frost() {
         let mut s = Scene::new(240, 135, 2, Commitment::Relentless.pace(), true);
+        bury_to_the_line(&mut s);
         run(&mut s, 150.0);
         let (snow, frost) = (s.snow.fill(), s.frost.coverage());
         assert!(frost > 0.0, "friends should have frosted the edges");
@@ -1666,23 +1729,66 @@ mod tests {
         assert!(mean.abs() < 0.1, "no side is favored over a cycle: {mean}");
     }
 
+    /// Fills the ground pile up to the 30% line, where the edges start to freeze.
+    fn bury_to_the_line(s: &mut Scene) {
+        let line = s.h as f32 * ICE_LINE;
+        for x in 0..s.w {
+            while s.snow.height_at(x as f32) < line && s.snow.add_grain(x as f32) {}
+        }
+    }
+
     #[test]
-    fn flakes_that_reach_a_wall_stick_where_they_hit_on_both_sides() {
+    fn past_the_line_the_pile_stops_rising_and_the_screen_freezes_instead() {
+        let mut s = Scene::new(480, 270, 4, Commitment::Relentless.pace(), true);
+        bury_to_the_line(&mut s);
+        let line = s.h as f32 * ICE_LINE;
+        run(&mut s, 600.0);
+        assert!(s.snow.mean() <= line + 1.0, "the pile stays at the line: mean {} vs {line}", s.snow.mean());
+        assert!(s.frost.coverage() > 0.2, "the edges took the snow: {}", s.frost.coverage());
+    }
+
+    #[test]
+    fn the_edges_stay_clear_until_the_pile_reaches_the_line() {
+        let mut s = Scene::new(480, 270, 9, Commitment::Relentless.pace(), true);
+        for _ in 0..(20 * 60 * 10) {
+            s.step(0.1);
+            if s.frozen_over {
+                break;
+            }
+            assert_eq!(s.frost.coverage(), 0.0, "edge snow at {:.2} of the line, before it", s.pile_level());
+        }
+        bury_to_the_line(&mut s);
+        run(&mut s, 120.0);
+        assert!(s.frost.coverage() > 0.0, "past the line, the edges freeze");
+    }
+
+    #[test]
+    fn a_flake_that_hits_a_wall_before_the_line_slides_down_it_onto_the_pile() {
         let mut s = Scene::new(480, 270, 9, Commitment::Chill.pace(), true);
         let all = s.flakes.len();
+        let before = pile(&s);
+        let mut landed = 0;
         for _ in 0..(WIND_PERIOD_S as i32 * 2 * 30) {
-            s.fall_flakes(1.0 / 30.0, all);
+            landed += s.fall_flakes(1.0 / 30.0, all);
             s.time += 1.0 / 30.0;
         }
-        let side = |e: Edge| (0..s.h).map(|y| s.frost.depth_at(e, y as f32)).sum::<f32>();
-        assert!(
-            side(Edge::Left) > 10.0 && side(Edge::Right) > 10.0,
-            "left {} right {}",
-            side(Edge::Left),
-            side(Edge::Right)
-        );
-        let rows_hit = (0..s.h).filter(|&y| s.frost.depth_at(Edge::Left, y as f32) > 0.0).count();
-        assert!(rows_hit > 20, "spread over the wall's height, not one spot: {rows_hit} rows");
+        assert_eq!(walls(&s), 0.0, "nothing sticks to the walls yet");
+        assert!((pile(&s) - before - landed as f32).abs() < 0.5, "every flake ended on the pile");
+        let at_walls = |x: f32| s.snow.height_at(x);
+        assert!(at_walls(0.0) > 0.0 && at_walls(s.w as f32 - 1.0) > 0.0, "the ones that slid down a wall too");
+    }
+
+    #[test]
+    fn past_the_line_the_snow_climbs_both_walls_from_the_pile() {
+        let mut s = Scene::new(480, 270, 9, Commitment::Chill.pace(), true);
+        bury_to_the_line(&mut s);
+        run(&mut s, WIND_PERIOD_S * 4.0);
+        let line = s.feet_y(0.0) as i32;
+        for e in [Edge::Left, Edge::Right] {
+            let at = |y: i32| s.frost.depth_at(e, y as f32);
+            assert!(at(line - 1) >= 1.0, "{e:?} wall snow starts on the pile");
+            assert!((0..line - 1).all(|y| at(y) <= at(y + 1) + 1.0), "{e:?} wall snow rests on what is under it");
+        }
     }
 
     #[test]
@@ -1709,5 +1815,31 @@ mod tests {
         }
         assert!(seen > 50, "the warrior and his bubble are on screen: {seen}");
         assert_eq!(hidden, 0, "{hidden} of {seen} warrior/bubble pixels covered by wall snow");
+    }
+
+    #[test]
+    fn peaks_may_rise_past_the_ice_line_it_is_the_mean_that_counts() {
+        let mut s = Scene::new(480, 270, 3, Commitment::Chill.pace(), true);
+        let line = s.h as f32 * ICE_LINE;
+        while s.snow.add_grain(240.0) {}
+        assert!(s.snow.height_at(240.0) > line + 10.0, "a peak climbs past the line: {}", s.snow.height_at(240.0));
+        assert!(!s.edges_freeze(), "one peak is not the pile at the line");
+        for x in 0..s.w {
+            while s.snow.height_at(x as f32) < line {
+                s.snow.add_grain(x as f32);
+            }
+        }
+        assert!(s.edges_freeze(), "the whole pile at the line is");
+    }
+
+    #[test]
+    fn an_ice_cube_buries_the_same_share_of_the_screen_at_any_pixel_scale() {
+        let share = |w: i32, h: i32| {
+            let mut s = Scene::new(w, h, 3, Commitment::Steady.pace(), true);
+            s.shatter(w as f32 / 2.0, h as f32 / 2.0);
+            (0..w).map(|x| s.snow.height_at(x as f32)).sum::<f32>() / (w * h) as f32
+        };
+        let (small, big) = (share(480, 270), share(960, 540));
+        assert!((big / small - 1.0).abs() < 0.05, "480x270 {small:.5} vs 960x540 {big:.5}");
     }
 }

@@ -1,7 +1,7 @@
 # snowlearner
 
 A pixel-art frost mage lives on your desktop and slowly freezes your screen — right over
-whatever you're working on. Snow piles up, frost creeps in from the edges. The only way to
+whatever you're working on. Snow piles up, then frost creeps in from the edges. The only way to
 win your screen back: **speak the language you're learning.** Every answer you get right
 melts some of it; ignore him and it only gets worse.
 
