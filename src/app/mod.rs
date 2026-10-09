@@ -43,6 +43,8 @@ const ORB_ART: i32 = 22;
 /// Weather-only monitors redraw every this many frames (snow drifts slowly;
 /// half the frames is half the canvas diffing on every extra monitor).
 const WEATHER_EVERY: u64 = 2;
+/// How often the monitor list is re-read (one cheap query to the display).
+const MONITOR_CHECK: Duration = Duration::from_secs(2);
 
 const HELP: &[&str] = &[
     "TECLAS",
@@ -194,6 +196,9 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         scene: None,
         screen: platform::FALLBACK_SCREEN,
         weather: Vec::new(),
+        layout: platform::Overlay { primary: platform::FALLBACK_SCREEN, weather: Vec::new() },
+        next_monitor_check: Instant::now(),
+        seed: 1,
         frames: 0,
         menu,
         menu_win: None,
@@ -300,9 +305,13 @@ struct App {
     scene: Option<Scene>,
     /// The monitor the main window (overlay) and the orb sit on.
     screen: Rect,
-    /// Overlay mode: weather-only windows on the other monitors. Monitors
-    /// plugged in later are picked up on the next start.
+    /// Overlay mode: weather-only windows on the other monitors.
     weather: Vec<Weather>,
+    /// The monitors the overlay was laid out for; re-checked every few
+    /// seconds so a monitor plugged in, unplugged or resized is followed.
+    layout: platform::Overlay,
+    next_monitor_check: Instant,
+    seed: u64,
     frames: u64,
     menu: Menu,
     menu_win: Option<Surface>,
@@ -483,6 +492,25 @@ impl App {
     /// The panel window on screen, while the overlay could cover it.
     fn panel_rect(&self) -> Option<Rect> {
         self.menu_win.as_ref().filter(|_| self.resolved.overlay).and_then(|m| panel_rect(&m.window))
+    }
+
+    /// Follows a monitor change: the main overlay moves/resizes onto the
+    /// primary monitor (a `Resized` event refits the scene) and the weather
+    /// windows are rebuilt for the other monitors.
+    fn relayout(&mut self, el: &ActiveEventLoop, new: platform::Overlay) {
+        let p = new.primary;
+        if let Some(m) = &self.main {
+            m.window.set_outer_position(PhysicalPosition::new(p.x, p.y));
+            let _ = m.window.request_inner_size(PhysicalSize::new(p.w, p.h));
+        }
+        self.screen = p;
+        self.overlay_origin = (p.x, p.y);
+        self.weather.clear();
+        self.open_weather(el, &new.weather, self.seed);
+        if let Some(pos) = self.orb.as_ref().and_then(|o| o.window.outer_position().ok()) {
+            self.sync_hole(pos.x, pos.y);
+        }
+        self.layout = new;
     }
 
     /// Steps and draws the weather window `i` at the primary's freeze level.
@@ -897,6 +925,7 @@ impl ApplicationHandler<UserEvent> for App {
         }
         let layout = platform::overlay_layout(&monitors(el));
         self.screen = layout.primary;
+        self.layout = layout.clone();
         let attrs =
             if self.resolved.overlay { Self::overlay_attributes(layout.primary) } else { self.window_attributes() };
         let window = match el.create_window(attrs) {
@@ -926,6 +955,7 @@ impl ApplicationHandler<UserEvent> for App {
         self.main = Some(Surface { window, screen, canvas: Canvas::new(1, 1), scale: 1 });
         self.fit(size.width, size.height);
         let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(1);
+        self.seed = seed;
         let (w, h) = self.main.as_ref().map(|m| (m.canvas.w, m.canvas.h)).unwrap_or((320, 180));
         let mut scene = Scene::new(w, h, seed, self.commitment.pace(), transparent);
         self.lesson.attach(&mut scene);
@@ -1146,6 +1176,12 @@ impl ApplicationHandler<UserEvent> for App {
             }
         }
         let now = Instant::now();
+        if self.resolved.overlay && now >= self.next_monitor_check {
+            self.next_monitor_check = now + MONITOR_CHECK;
+            if let Some(new) = platform::replan(&self.layout, &monitors(el)) {
+                self.relayout(el, new);
+            }
+        }
         if now >= self.next_frame {
             self.next_frame = now + Duration::from_secs_f32(1.0 / FPS);
             if let Some(m) = &self.main {

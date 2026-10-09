@@ -98,6 +98,12 @@ pub struct Overlay {
     pub weather: Vec<Rect>,
 }
 
+/// The layout for `monitors` when it differs from `current`: a monitor was
+/// plugged in, unplugged, or changed size or place while the app runs.
+pub fn replan(current: &Overlay, monitors: &[Monitor]) -> Option<Overlay> {
+    Some(overlay_layout(monitors)).filter(|new| new != current)
+}
+
 /// Used when the OS reports no monitor at all.
 pub const FALLBACK_SCREEN: Rect = Rect { x: 0, y: 0, w: 1280, h: 720 };
 
@@ -295,5 +301,24 @@ mod tests {
         let left = Rect { x: -10, y: 0, w: 20, h: 8 };
         assert_eq!(to_scene(left, (0, 0), 4), (-3, 0, 6, 2), "partly left of the overlay");
         assert_eq!(to_scene(left, (0, 0), 0), (-10, 0, 20, 8), "a zero scale is treated as 1");
+    }
+
+    #[test]
+    fn plugging_a_monitor_in_while_running_gives_it_snow_and_moves_nothing_else() {
+        let laptop = mon(0, 0, 1920, 1200, true);
+        let now = overlay_layout(&[laptop]);
+        assert_eq!(replan(&now, &[laptop]), None, "nothing changed, nothing to redo");
+        let new = replan(&now, &[laptop, mon(1920, 0, 2560, 1440, false)]).expect("a new monitor");
+        assert_eq!(new.primary, now.primary);
+        assert_eq!(new.weather, vec![Rect { x: 1920, y: 0, w: 2560, h: 1440 }]);
+    }
+
+    #[test]
+    fn a_monitor_that_changes_size_or_place_gets_the_overlay_refitted() {
+        let now = overlay_layout(&[mon(0, 0, 1920, 1200, true)]);
+        let docked = replan(&now, &[mon(2560, 0, 2000, 1250, true), mon(0, 0, 2560, 1440, false)]).unwrap();
+        assert_eq!(docked.primary, Rect { x: 2560, y: 0, w: 2000, h: 1250 }, "the scene follows its monitor");
+        let unplugged = replan(&docked, &[mon(0, 0, 2000, 1250, true)]).unwrap();
+        assert!(unplugged.weather.is_empty(), "the unplugged monitor's snow window goes away");
     }
 }
