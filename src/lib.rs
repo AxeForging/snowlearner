@@ -5,6 +5,7 @@ pub mod app;
 pub mod cli;
 pub mod config;
 pub mod control;
+pub mod lang;
 pub mod learn;
 pub mod render;
 pub mod scene;
