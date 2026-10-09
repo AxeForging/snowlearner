@@ -14,7 +14,8 @@ src/
   scene/             pure seeded simulation; one file per actor/element
                      (mage, pyro = fire mage, warrior, mobs, friends, fire, ice, snow, frost,
                      blanket = pile + edge snow drawn as one, glass = frost crystals on the glass,
-                     vortex = black hole + orb, hand = magic hand, backdrop, hud, rng)
+                     vortex = black hole + orb, hand = magic hand, slide = sliding down steep piles,
+                     owl = ice owl + its snowballs, backdrop, hud, rng)
   render/            canvas.rs (CPU pixels), font.rs (bitmap font), screen.rs (picks the presenter),
                      cpu.rs (softbuffer present, default), damage.rs (redraw only what changed),
                      gpu.rs (wgpu present, `gpu` feature, see-through fallback), png_out.rs

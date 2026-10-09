@@ -57,6 +57,8 @@ const UPPER: &[&str] = &[
 const LEGS_STAND: &[&str] = &["..PPP..PPP..", "..PPP..PPP..", "..KKK..KKK.."];
 const LEGS_STEP: &[&str] = &["..PPP.PPP...", "...PP..PP...", "...KKK.KKK.."];
 const LEGS_SIT: &[&str] = &["..PPPPPPPK.."];
+/// Crouched on his boots, sliding down a pile.
+const LEGS_SLIDE: &[&str] = &[".PPPP..PPPP.", "KKKKK.KKKKK."];
 
 pub const WIDTH: i32 = 12;
 pub const HEIGHT: i32 = 16;
@@ -105,6 +107,8 @@ pub struct Warrior {
     pub foe: Option<f32>,
     swing_cd: f32,
     swing_t: f32,
+    /// Sliding down a steep pile (set by the scene): crouched, no steps.
+    pub sliding: bool,
 }
 
 const BUILD_TIME: f32 = 2.5;
@@ -123,6 +127,7 @@ impl Warrior {
             foe: None,
             swing_cd: 0.0,
             swing_t: 0.0,
+            sliding: false,
         }
     }
 
@@ -253,6 +258,8 @@ impl Warrior {
         let sitting = matches!(self.act, Act::Build | Act::Warm);
         let legs = if sitting {
             LEGS_SIT
+        } else if self.sliding {
+            LEGS_SLIDE
         } else if self.act == Act::Wander && (self.walk_t * 5.0) as i32 % 2 == 1 {
             LEGS_STEP
         } else {
@@ -436,5 +443,33 @@ mod tests {
         run(&mut w, 60.0, 1.0, false);
         w.say("oi", 3.0);
         assert!(w.bubble.is_none());
+    }
+
+    #[test]
+    fn sliding_is_its_own_pose_without_a_walk_cycle() {
+        let draw = |w: &Warrior| {
+            let mut c = Canvas::new(40, 40);
+            w.draw(&mut c, 30.0, 0.0);
+            c.bytes().to_vec()
+        };
+        let mut w = Warrior::new(10.0);
+        let walking: Vec<Vec<u8>> = [0.1, 0.3]
+            .iter()
+            .map(|t| {
+                w.walk_t = *t;
+                draw(&w)
+            })
+            .collect();
+        assert_ne!(walking[0], walking[1], "walking moves the legs");
+        w.sliding = true;
+        let sliding: Vec<Vec<u8>> = [0.1, 0.3]
+            .iter()
+            .map(|t| {
+                w.walk_t = *t;
+                draw(&w)
+            })
+            .collect();
+        assert_eq!(sliding[0], sliding[1], "no steps while sliding");
+        assert!(!walking.contains(&sliding[0]), "a pose of its own");
     }
 }

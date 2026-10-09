@@ -4,11 +4,12 @@
 //! recap. It drives the scene and asks the app to run speech jobs.
 
 use crate::learn::cue::Segment;
-use crate::learn::deck::{Deck, PRE_A1, Phrase};
+use crate::learn::deck::{Answer, Deck, PRE_A1, Phrase};
 use crate::learn::path;
 use crate::learn::picker::{self, Mode, Practice};
 use crate::scene::Scene;
 use crate::scene::hud::{Caption, Meter, Stats, Status, SummaryLine, SummaryPanel};
+use crate::scene::pyro::Spell;
 use crate::speech::endpoint::ListenPlan;
 use crate::speech::matcher::{self, WordHit};
 use crate::speech::tts::Speed;
@@ -61,6 +62,8 @@ pub struct Options {
     /// Seconds idle before the warrior nudges you (from the commitment level).
     pub ask_every: f32,
     pub practice: Practice,
+    /// Which answer tier is asked (and shown); every tier always counts.
+    pub answer: Answer,
     /// Only practice this topic (None = all).
     pub topic: Option<String>,
     /// Highest CEFR level to practice.
@@ -275,9 +278,20 @@ impl Lesson {
 
     fn cue_for(&self, p: &Phrase, mode: Mode) -> Vec<Segment> {
         match mode {
-            Mode::Repeat => p.cue.clone(),
+            Mode::Repeat => p.cue_for(self.opts.answer),
             Mode::Recall => p.recall_cue(&self.deck.language_name),
         }
+    }
+
+    /// The answer the learner is asked for (the chosen tier, or the complete one).
+    fn shown(&self, p: &Phrase) -> String {
+        p.shown(self.opts.answer).to_string()
+    }
+
+    /// Tier of the asked answer: what "confirm" without a mic counts as.
+    fn shown_tier(&self, p: &Phrase) -> Answer {
+        let shown = p.shown(self.opts.answer);
+        p.tiers().into_iter().find(|(_, s)| *s == shown).map_or(Answer::Complete, |(t, _)| t)
     }
 
     fn tag(&self, p: &Phrase, mode: Mode) -> String {
@@ -360,8 +374,9 @@ impl Lesson {
                 }
             }
             State::Challenge { phrase, stage: Stage::Confirm, tries, .. } => {
-                let say = self.phrase(phrase).say.clone();
-                self.finish_attempt(phrase, tries, &say, 1.0, true, scene);
+                let p = self.phrase(phrase);
+                let (say, tier) = (self.shown(p), self.shown_tier(p));
+                self.finish_attempt(phrase, tries, &say, 1.0, Some(tier), scene);
             }
             State::Challenge { stage: Stage::Result { .. }, .. } | State::Summary { .. } => {
                 self.close(scene);
@@ -396,8 +411,9 @@ impl Lesson {
         let cue = self.cue_for(&p, mode);
         scene.hud.caption = Some(Caption {
             segments: cue.clone(),
-            say: p.say.clone(),
+            say: self.shown(&p),
             active: None,
+            alts: if mode == Mode::Repeat { p.alternatives(self.opts.answer) } else { Vec::new() },
             meaning: if mode == Mode::Repeat { p.meaning.clone() } else { String::new() },
             status: Status::Speaking,
             feedback: None,
@@ -411,7 +427,9 @@ impl Lesson {
 
     fn after_cue(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
         let State::Challenge { phrase, mode, stage, job, .. } = &mut self.state else { return };
-        let words = self.deck.phrases[*phrase].say.split_whitespace().count();
+        // Room for the longest tier: any of them is a right answer.
+        let words = self.deck.phrases[*phrase].tiers().iter().map(|(_, s)| s.split_whitespace().count()).max();
+        let words = words.unwrap_or(1);
         let recall = *mode == Mode::Recall;
         let mut plan = ListenPlan::for_phrase(words, recall);
         plan.think = self.opts.listen_seconds + if recall { 4.0 } else { 0.0 };
@@ -485,24 +503,30 @@ impl Lesson {
                 let (phrase, tries) = (*phrase, *tries);
                 let p = self.phrase(phrase).clone();
                 let slack = if self.beginner() { matcher::BEGINNER_SLACK } else { 0 };
-                let (m, _) = matcher::score_any(&p.answers(), &text, slack, &self.deck.language);
+                // Every tier counts; the best match tells which one was said
+                // (shortest first, so a tie goes to the higher tier).
+                let answers = p.answers();
+                let texts: Vec<&str> = answers.iter().map(|(_, a)| *a).collect();
+                let (m, best) = matcher::score_any(&texts, &text, slack, &self.deck.language);
                 let passed = m.passed(self.opts.threshold);
+                let said = passed.then(|| answers[best].0);
                 if !passed && matcher::is_hallucination(&text) {
                     // Whisper invented "Thank you for watching" out of noise: that's silence.
                     self.silence(scene);
                     return;
                 }
-                // Feedback is shown on the preferred phrase; an accepted variant lights it all green.
+                // Feedback is shown on the asked phrase; any other right answer lights it all green.
+                let shown = self.shown(&p);
                 let words = if passed {
-                    p.say.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
+                    shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: true }).collect()
                 } else {
-                    matcher::score_lenient(&p.say, &text, slack, &self.deck.language).words
+                    matcher::score_lenient(&shown, &text, slack, &self.deck.language).words
                 };
                 if let Some(c) = &mut scene.hud.caption {
                     c.feedback = Some(words);
                     c.heard = Some(text.clone());
                 }
-                self.finish_attempt(phrase, tries, &text, m.score, passed, scene);
+                self.finish_attempt(phrase, tries, &text, m.score, said, scene);
             }
             (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::NoSpeech { .. }) => self.silence(scene),
             (State::Challenge { stage, .. }, SpeechEvent::Failed { error, .. }) if *stage == Stage::Listening => {
@@ -559,7 +583,17 @@ impl Lesson {
         scene.hud.toast(news, 5.0);
     }
 
-    fn finish_attempt(&mut self, phrase: usize, tries: u32, heard: &str, score: f32, passed: bool, scene: &mut Scene) {
+    /// Records an attempt; `said` is the tier of a right answer (None = a miss).
+    fn finish_attempt(
+        &mut self,
+        phrase: usize,
+        tries: u32,
+        heard: &str,
+        score: f32,
+        said: Option<Answer>,
+        scene: &mut Scene,
+    ) {
+        let passed = said.is_some();
         let p = self.phrase(phrase).clone();
         let State::Challenge { mode, .. } = self.state else { return };
         scene.set_listening(false);
@@ -605,7 +639,7 @@ impl Lesson {
             self.combo += 1;
             // Remembering from scratch is worth more than repeating.
             let power = if mode == Mode::Recall && tries == 1 { 1.5 } else { 1.0 };
-            scene.celebrate(power);
+            scene.celebrate(power, spell_for(said.unwrap_or(Answer::Complete)));
             let groan = self.line(MAGE_GROAN);
             scene.mage_say(groan, 3.5);
             if self.combo >= SUN_COMBO && self.combo % SUN_COMBO == 0 {
@@ -634,7 +668,8 @@ impl Lesson {
             c.footer = footer;
             if !passed && mode == Mode::Recall {
                 // Reveal the answer so the retry becomes a repeat.
-                c.segments = p.cue.clone();
+                c.segments = p.cue_for(self.opts.answer);
+                c.alts = p.alternatives(self.opts.answer);
                 c.meaning = p.meaning.clone();
             }
         }
@@ -675,17 +710,19 @@ impl Lesson {
         let job = self.job_id();
         self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job };
         let tag = self.tag(&p, Mode::Repeat);
+        let shown = self.shown(&p);
         if let Some(c) = &mut scene.hud.caption {
             c.status = Status::Speaking;
             c.feedback = None;
             c.heard = None;
             c.footer = String::new();
             c.tag = tag;
-            c.segments = p.cue.clone();
+            c.segments = p.cue_for(self.opts.answer);
+            c.alts = p.alternatives(self.opts.answer);
             c.meaning = p.meaning.clone();
-            c.active = p.cue.iter().position(|s| matches!(s, Segment::Target(t) if *t == p.say));
+            c.active = c.segments.iter().position(|s| matches!(s, Segment::Target(t) if *t == shown));
         }
-        let part = Utterance { text: p.say.clone(), lang: self.deck.language.clone(), speed: self.target_speed() };
+        let part = Utterance { text: shown, lang: self.deck.language.clone(), speed: self.target_speed() };
         jobs.push(Job::Speak { id: job, parts: vec![part] });
     }
 
@@ -750,6 +787,15 @@ pub fn topic_dropped(topic: &str) -> String {
     format!("Sem {topic} nesse nível.")
 }
 
+/// The fire mage's spell for the tier the learner said: fuller answer, bigger spell.
+pub fn spell_for(said: Answer) -> Spell {
+    match said {
+        Answer::Short => Spell::Spark,
+        Answer::Polished => Spell::Blaze,
+        Answer::All | Answer::Complete => Spell::Fireball,
+    }
+}
+
 /// How the target language is read: slower for a pre-A1 learner.
 pub fn target_speed(max_level: &str) -> Speed {
     if max_level == PRE_A1 { Speed::Slower } else { Speed::Slow }
@@ -784,6 +830,7 @@ mod tests {
             summary_at: NaiveTime::from_hms_opt(21, 0, 0).unwrap(),
             ask_every: 60.0,
             practice: Practice::Repeat,
+            answer: Answer::All,
             topic: None,
             max_level: "B1".into(),
             daily_goal: 2,
@@ -857,6 +904,122 @@ mod tests {
         fn finish(&mut self) {
             self.tick(RESULT_SECONDS + 0.2);
         }
+    }
+
+    const TIER_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\n\
+         [[phrase]]\nsay='Can you share your screen?'\nshort='Share your screen?'\n\
+         polished='Could you please share your screen?'\naccept=['Could you share your screen?']\n\
+         meaning='Pode compartilhar sua tela?'\nsituation='Na call.'\ntopic='trabalho'\nlevel='A2'";
+
+    /// A lesson on the one tiered phrase, asking for `answer`.
+    fn tier_fixture(answer: Answer) -> Fixture {
+        let mut f = fixture_deck(TIER_DECK);
+        f.lesson.set_options(|o| o.answer = answer, &mut f.scene);
+        f
+    }
+
+    #[test]
+    fn with_every_tier_shown_the_complete_one_is_asked_and_the_others_listed() {
+        let mut f = tier_fixture(Answer::All);
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.say, "Can you share your screen?");
+        assert_eq!(cap.alts, vec!["curta: Share your screen?", "polida: Could you please share your screen?"]);
+        assert_eq!(parts.last().unwrap().text, "Can you share your screen?", "the complete one is read aloud");
+    }
+
+    #[test]
+    fn a_single_tier_is_shown_read_and_replayed_alone() {
+        let mut f = tier_fixture(Answer::Short);
+        let (id, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.say, "Share your screen?");
+        assert!(cap.alts.is_empty(), "only the chosen tier");
+        assert!(cap.segments.iter().any(|s| s.is_target() && s.text() == "Share your screen?"));
+        assert_eq!(parts.last().unwrap().text, "Share your screen?");
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "banana split".into() }));
+        let (_, retry) = Fixture::speak_job(&f.tick(RETRY_PAUSE + 0.2));
+        assert_eq!(retry[0].text, "Share your screen?");
+    }
+
+    #[test]
+    fn recall_keeps_the_other_tiers_hidden_until_a_miss_reveals_them() {
+        let mut f = tier_fixture(Answer::All);
+        f.lesson.set_options(|o| o.practice = Practice::Recall, &mut f.scene);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(f.scene.hud.caption.as_ref().unwrap().alts.is_empty(), "no answer while recalling");
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "no idea".into() }));
+        assert_eq!(f.scene.hud.caption.as_ref().unwrap().alts.len(), 2);
+    }
+
+    /// Asks the tiered phrase, answers `heard`; returns (passed, spell, snow melted).
+    fn say_tier(answer: Answer, heard: &str) -> (bool, Option<Spell>, f32) {
+        let mut f = tier_fixture(answer);
+        f.scene.fires.clear(); // a campfire thawing nearby is not the lesson melting
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        let before = f.scene.snow.fill();
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: heard.into() }));
+        f.settle();
+        let passed = f.scene.hud.caption.as_ref().unwrap().status == Status::Passed;
+        (passed, f.scene.last_spell(), before - f.scene.snow.fill())
+    }
+
+    #[test]
+    fn any_tier_passes_whichever_one_is_asked() {
+        for answer in Answer::CHOICES {
+            for heard in [
+                "Share your screen?",
+                "Can you share your screen?",
+                "Could you share your screen?",
+                "Could you please share your screen?",
+            ] {
+                assert!(say_tier(answer, heard).0, "{answer:?}: {heard:?} must pass");
+            }
+            assert!(!say_tier(answer, "banana split").0);
+        }
+    }
+
+    #[test]
+    fn the_tier_said_picks_the_spell_and_a_fuller_answer_melts_more() {
+        let (_, short, short_melt) = say_tier(Answer::Short, "Share your screen");
+        let (_, complete, complete_melt) = say_tier(Answer::Short, "Can you share your screen");
+        let (_, variant, _) = say_tier(Answer::Short, "Could you share your screen");
+        let (_, polished, polished_melt) = say_tier(Answer::Short, "Could you please share your screen");
+        assert_eq!(short, Some(Spell::Spark));
+        assert_eq!(complete, Some(Spell::Fireball), "the short tier inside it ties; the higher tier wins");
+        assert_eq!(variant, Some(Spell::Fireball), "an accepted variant counts as complete");
+        assert_eq!(polished, Some(Spell::Blaze));
+        assert!(
+            0.0 < short_melt && short_melt < complete_melt && complete_melt < polished_melt,
+            "{short_melt} {complete_melt} {polished_melt}"
+        );
+        let (passed, spell, missed) = say_tier(Answer::Polished, "banana split");
+        assert!(!passed && spell.is_none());
+        assert!(missed <= 1e-6, "a miss melts nothing: {missed}");
+    }
+
+    #[test]
+    fn a_phrase_without_tiers_casts_the_usual_fireball() {
+        let mut f = fixture(true);
+        f.lesson.set_options(|o| o.answer = Answer::Polished, &mut f.scene);
+        let say = f.answer(true);
+        assert_eq!(f.scene.last_spell(), Some(Spell::Fireball), "{say:?} has only the complete tier");
+        assert!(f.scene.hud.caption.as_ref().unwrap().alts.is_empty());
+    }
+
+    #[test]
+    fn confirming_without_a_mic_counts_the_asked_tier() {
+        let mut o = options(false);
+        o.answer = Answer::Short;
+        let mut f = fixture_with(o);
+        f.lesson.set_deck(Deck::parse(TIER_DECK).unwrap(), &mut f.scene);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Primary);
+        assert_eq!(f.scene.last_spell(), Some(Spell::Spark));
     }
 
     #[test]
@@ -1060,6 +1223,7 @@ mod tests {
     fn wrong_answer_shows_feedback_and_replays_only_the_target() {
         let mut f = fixture(true);
         f.scene.fires.clear(); // a campfire thawing nearby is not the lesson melting
+        f.scene.warrior.warm_burst(); // nor one he was about to light
         let snow_before = f.scene.snow.fill();
         f.answer(false);
         let cap = f.scene.hud.caption.as_ref().unwrap();

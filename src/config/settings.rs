@@ -2,7 +2,7 @@
 //! rejected so typos surface instead of being silently ignored.
 
 use super::level::Commitment;
-use crate::learn::deck::LEVELS;
+use crate::learn::deck::{Answer, LEVELS};
 use crate::learn::picker::Practice;
 use crate::speech::voices::TtsEngine;
 use anyhow::{Context, Result, bail};
@@ -69,6 +69,8 @@ pub struct Settings {
     pub speaker: String,
     /// auto (repeat new phrases, recall known ones) | repeat | recall.
     pub practice: Practice,
+    /// all (short, complete and polished shown) | short | complete | polished.
+    pub answer: Answer,
     /// Only practice this topic; empty = all topics.
     pub topic: String,
     /// Highest CEFR level to practice: A1 A2 B1 B2 C1 C2.
@@ -106,6 +108,7 @@ impl Default for Settings {
             mic: String::new(),
             speaker: String::new(),
             practice: Practice::Auto,
+            answer: Answer::All,
             topic: String::new(),
             max_level: "B2".into(),
             daily_goal: 10,
@@ -119,6 +122,7 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # learning: deck to practice (\"en\", \"es\" or a custom decks/<name>.toml)\n\
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
+    # answer: all | short | complete | polished\n\
     # topic: \"\" for all, or e.g. \"trabalho\"    max_level: PRE-A1, A1..C2\n\n";
 
 impl Settings {
@@ -251,6 +255,7 @@ mod tests {
             ("daily_goal = 0", "daily_goal"),
             ("tts_engine = 'http'\ntts_url = 'localhost'", "tts_url"),
             ("tts_engine = 'command'", "tts_command"),
+            ("answer = 'longest'", "answer"),
         ] {
             std::fs::write(&p, src).unwrap();
             let err = format!("{:#}", Settings::load(&p).unwrap_err());
@@ -267,6 +272,7 @@ mod tests {
             commitment: Commitment::Committed,
             topic: "trabalho".into(),
             practice: Practice::Recall,
+            answer: Answer::Polished,
             ..Default::default()
         };
         s.save(&p).unwrap();
@@ -292,6 +298,17 @@ mod tests {
         assert_eq!(Settings::load(&p).unwrap(), Settings::default());
         assert!(Settings::write_default(&p, false).is_err());
         Settings::write_default(&p, true).unwrap();
+    }
+
+    #[test]
+    fn the_answer_tier_defaults_to_all_and_reads_portuguese_names_too() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        assert_eq!(Settings::default().answer, Answer::All);
+        for (src, want) in [("answer = 'short'", Answer::Short), ("answer = 'polida'", Answer::Polished)] {
+            std::fs::write(&p, src).unwrap();
+            assert_eq!(Settings::load(&p).unwrap().answer, want, "{src}");
+        }
     }
 
     #[test]
