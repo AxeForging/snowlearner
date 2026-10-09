@@ -13,6 +13,7 @@ pub mod hud;
 pub mod ice;
 pub mod mage;
 pub mod mobs;
+pub mod owl;
 pub mod pyro;
 pub mod rng;
 pub mod slide;
@@ -66,6 +67,8 @@ struct Fireball {
 pub enum Skill {
     Friend,
     IcicleRain,
+    /// One ice owl, only once the pile is deep (`owl::SNOW_FILL`).
+    Owl,
 }
 
 /// What a click in window mode touched.
@@ -143,6 +146,10 @@ pub struct Scene {
     icicles: Vec<Icicle>,
     mobs: Vec<Mob>,
     next_mobs: f32,
+    /// The frost mage's ice owl, one at most, and its snowballs (capped).
+    owl: Option<owl::Owl>,
+    snowballs: Vec<owl::Snowball>,
+    next_owl: f32,
     skill: Skill,
     next_icicles: f32,
     /// Seconds of sunshine left.
@@ -215,6 +222,9 @@ impl Scene {
             icicles: Vec::new(),
             mobs: Vec::new(),
             next_mobs: 40.0_f32.min(pace.mobs_every),
+            owl: None,
+            snowballs: Vec::with_capacity(owl::MAX_SNOWBALLS),
+            next_owl: owl::EVERY * 0.5,
             skill: Skill::Friend,
             next_icicles: pace.icicles_every * 0.4,
             sun_t: 0.0,
@@ -612,11 +622,15 @@ impl Scene {
             self.next_summon -= dt;
             self.next_icicles -= dt;
             self.next_mobs -= dt;
+            self.next_owl -= dt;
             if self.next_mobs <= 0.0 {
                 self.spawn_mobs();
                 self.next_mobs = self.pace.mobs_every * self.rng.range(0.8, 1.2);
             }
-            if self.next_icicles <= 0.0 && !self.mage.busy() {
+            if self.next_owl <= 0.0 && !self.mage.busy() && self.owl_ready() {
+                self.cast_skill(Skill::Owl);
+                self.next_owl = owl::EVERY * self.rng.range(0.8, 1.2);
+            } else if self.next_icicles <= 0.0 && !self.mage.busy() {
                 self.cast_skill(Skill::IcicleRain);
                 self.next_icicles = self.pace.icicles_every * self.rng.range(0.8, 1.2);
             } else if self.next_summon <= 0.0 && !self.mage.busy() {
@@ -657,6 +671,13 @@ impl Scene {
                     let x = self.rng.range(2.0, w - 6.0);
                     let delay = self.rng.range(0.4, 1.8);
                     self.icicles.push(Icicle::new(x, delay));
+                }
+            }
+            Some(mage::Event::Summoned) if self.skill == Skill::Owl => {
+                if self.owl_ready() {
+                    let from_left = self.rng.chance(0.5);
+                    let y = self.rng.range(h * 0.1, h * 0.25);
+                    self.owl = Some(owl::Owl::new(from_left, w, y));
                 }
             }
             Some(mage::Event::Summoned) => {
@@ -731,6 +752,29 @@ impl Scene {
         for i in hits.into_iter().rev() {
             let fb = self.fireballs.remove(i);
             self.impact(fb.x, fb.y, fb.power);
+        }
+
+        // The ice owl and its snowballs (no new ones while you practice).
+        if let Some(o) = &mut self.owl {
+            let drop = o.step(dt, w);
+            if let Some(at) = drop.filter(|_| !self.practicing && self.snowballs.len() < owl::MAX_SNOWBALLS) {
+                self.snowballs.push(owl::Snowball::new(at, o.dir));
+            }
+            if o.gone(w) {
+                self.owl = None;
+            }
+        }
+        let mut i = 0;
+        while i < self.snowballs.len() {
+            let b = &mut self.snowballs[i];
+            b.step(dt);
+            let (x, y) = (b.x, b.y);
+            if y >= self.feet_y(x) - 1.0 || !(-4.0..w + 4.0).contains(&x) {
+                self.snowballs.swap_remove(i);
+                self.shatter_small(x, y);
+            } else {
+                i += 1;
+            }
         }
 
         // Icicle rain.
@@ -1070,7 +1114,7 @@ impl Scene {
 
     /// Starts the frost mage's summon ritual for a skill.
     pub fn cast_skill(&mut self, skill: Skill) {
-        if self.mage.busy() {
+        if self.mage.busy() || (skill == Skill::Owl && !self.owl_ready()) {
             return;
         }
         self.skill = skill;
@@ -1078,8 +1122,14 @@ impl Scene {
         let line = match skill {
             Skill::Friend => "Venham, amigos do gelo!",
             Skill::IcicleRain => "Chuva de gelo!",
+            Skill::Owl => owl::LINE,
         };
         self.mage.say(line, 2.0);
+    }
+
+    /// The owl may come: deep snow and none flying yet.
+    fn owl_ready(&self) -> bool {
+        self.owl.is_none() && self.snow.fill() >= owl::SNOW_FILL
     }
 
     pub fn icicles_falling(&self) -> usize {
@@ -1240,6 +1290,12 @@ impl Scene {
         }
         for ic in &self.icicles {
             ic.draw(c, self.time);
+        }
+        if let Some(o) = &self.owl {
+            o.draw(c);
+        }
+        for b in &self.snowballs {
+            b.draw(c);
         }
         for p in &self.particles {
             p.draw(c);
@@ -2034,5 +2090,91 @@ mod tests {
         assert!(slid);
         assert_eq!(lines, 0);
         assert_eq!(s.warrior.bubble.as_ref().unwrap().text, "Dica importante");
+    }
+
+    /// A scene whose pile is `fill` full, owl summon due now.
+    fn snowed(seed: u64, fill: f32) -> Scene {
+        let mut s = Scene::new(240, 135, seed, Commitment::Chill.pace(), true);
+        s.snow.dust(s.snow.cap() * fill);
+        s.next_owl = 0.0;
+        s
+    }
+
+    #[test]
+    fn the_ice_owl_never_comes_below_the_snow_threshold() {
+        let mut s = snowed(20, owl::SNOW_FILL * 0.5);
+        s.cast_skill(Skill::Owl);
+        assert_ne!(s.mage_bubble(), Some(owl::LINE), "no summon on demand either");
+        for _ in 0..(20 * 30) {
+            let fill = s.snow.fill();
+            let had = s.owl.is_some();
+            s.step(1.0 / 30.0);
+            if s.owl.is_some() && !had {
+                assert!(fill >= owl::SNOW_FILL, "owl came at fill {fill}");
+            }
+        }
+        assert!(s.owl.is_none(), "the pile stayed below the threshold: {}", s.snow.fill());
+    }
+
+    #[test]
+    fn above_the_threshold_the_mage_summons_one_ice_owl_at_a_time_and_it_leaves() {
+        let mut s = snowed(21, 0.5);
+        let (mut seen, mut said, mut max_balls) = (false, false, 0);
+        for _ in 0..(5 * 30) {
+            s.step(1.0 / 30.0);
+            said |= s.mage_bubble() == Some(owl::LINE);
+            seen |= s.owl.is_some();
+            max_balls = max_balls.max(s.snowballs.len());
+            if s.owl.is_some() {
+                break;
+            }
+        }
+        assert!(said && seen, "the mage summons the owl");
+        assert!(!s.mage.busy());
+        s.cast_skill(Skill::Owl);
+        assert_eq!(s.mage.act, mage::Act::Walk, "no second owl while one flies");
+        let mut left = false;
+        for _ in 0..(12 * 30) {
+            s.step(1.0 / 30.0);
+            max_balls = max_balls.max(s.snowballs.len());
+            if s.owl.is_none() {
+                left = true;
+                break;
+            }
+        }
+        assert!(left, "the owl leaves the screen");
+        assert!(max_balls <= owl::MAX_SNOWBALLS, "{max_balls} snowballs at once");
+        assert!(s.next_owl > owl::EVERY * 0.5, "then a cooldown: {}", s.next_owl);
+    }
+
+    #[test]
+    fn the_owls_snowballs_raise_the_pile() {
+        let mut with = snowed(22, 0.5);
+        let mut without = snowed(22, 0.5);
+        for s in [&mut with, &mut without] {
+            s.stun_t = 1000.0; // the mage himself throws nothing
+        }
+        with.owl = Some(owl::Owl::new(true, 240.0, 20.0));
+        let mut dropped = false;
+        for _ in 0..(10 * 30) {
+            with.step(1.0 / 30.0);
+            without.step(1.0 / 30.0);
+            dropped |= !with.snowballs.is_empty();
+        }
+        assert!(dropped);
+        assert!(with.owl.is_none(), "crossed and left");
+        let gain = (with.snow.fill() - without.snow.fill()) * with.snow.width() as f32 * with.snow.cap();
+        assert!(gain > 5.0, "snowballs added {gain} px of snow");
+    }
+
+    #[test]
+    fn a_lesson_stops_the_owls_snowballs() {
+        let mut s = snowed(23, 0.5);
+        s.owl = Some(owl::Owl::new(true, 240.0, 20.0));
+        s.set_practicing(true);
+        for _ in 0..(3 * 30) {
+            s.step(1.0 / 30.0);
+            assert!(s.snowballs.is_empty());
+        }
     }
 }
