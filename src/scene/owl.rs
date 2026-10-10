@@ -66,8 +66,15 @@ impl Owl {
 
     pub fn draw(&self, c: &mut Canvas) {
         let bob = (self.t * 6.0).sin() * 1.5;
-        let wings = if (self.t * 5.0) as i32 % 2 == 0 { WINGS_UP } else { WINGS_DOWN };
-        c.sprite(wings, PAL, self.x.round() as i32, (self.y + bob).round() as i32, self.dir < 0.0);
+        let (x, y, flip) = (self.x.round() as i32, (self.y + bob).round() as i32, self.dir < 0.0);
+        // One `sprite` call per wing pose, not a pick of rows passed to one:
+        // that pick crashes LLVM's x86 instruction selection building for
+        // Windows (MSVC "SmallVector unable to grow", GNU SIGSEGV).
+        if (self.t * 5.0) as i32 % 2 == 0 {
+            c.sprite(WINGS_UP, PAL, x, y, flip);
+        } else {
+            c.sprite(WINGS_DOWN, PAL, x, y, flip);
+        }
     }
 }
 
