@@ -729,3 +729,698 @@ short = "Tomorrow at nine?"
 polished = "Would it work to meet tomorrow at nine?"
 meaning = "Vamos nos ver amanhã às nove."
 accept = ["Let's meet at nine tomorrow"]
+
+# ---------------------------------------------------------------- telefone, A1 to B1
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Você atende o telefone e não reconhece a voz."
+say = "Who's calling, please?"
+short = "Who's calling?"
+polished = "May I ask who's calling, please?"
+meaning = "Quem está falando, por favor?"
+accept = ["Who is calling, please?", "Who is this?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A ligação está baixa e você não escuta a pessoa."
+say = "Can you hear me?"
+polished = "Hello, can you hear me okay?"
+meaning = "Você está me ouvindo?"
+accept = ["Can you hear me okay?", "Can you hear me now?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Você liga para a casa de uma amiga e outra pessoa atende."
+say = "Can I speak to Ana?"
+short = "Ana, please."
+polished = "Hello, could I speak to Ana, please?"
+meaning = "Posso falar com a Ana?"
+accept = ["Could I speak to Ana?", "May I speak to Ana?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A campainha toca no meio da ligação e você precisa ir abrir a porta."
+say = "Hold on a second."
+short = "Hold on."
+polished = "Could you hold on a second, please?"
+meaning = "Espera um segundo."
+accept = ["Hold on a sec", "Hang on a second"]
+tip = "'Hold on' = espera aí."
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Um amigo liga bem na hora em que você está entrando no ônibus."
+say = "I'll call you back."
+short = "Call you back."
+polished = "Can I call you back in ten minutes?"
+meaning = "Eu te ligo de volta."
+accept = ["I will call you back"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Você não vai poder ir à consulta de amanhã e liga para a clínica."
+say = "I need to reschedule my appointment."
+short = "Can I reschedule?"
+polished = "Hello, I need to reschedule my appointment, please."
+meaning = "Preciso remarcar minha consulta."
+accept = ["I need to change my appointment"]
+tip = "'Appointment' é horário marcado (médico, banco). Encontro com amigos não é 'appointment'."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A atendente ditou o telefone rápido demais pra você anotar."
+say = "Could you repeat the number?"
+short = "The number again?"
+polished = "Sorry, could you repeat the number more slowly?"
+meaning = "Pode repetir o número?"
+accept = ["Can you repeat the number?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "O sinal está ruim e a voz da pessoa fica sumindo."
+say = "You're breaking up."
+short = "Breaking up!"
+polished = "Sorry, you're breaking up, I can barely hear you."
+meaning = "Sua voz está cortando."
+tip = "'Breaking up' na ligação é a voz cortando. Entre um casal, é terminar o namoro."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Um amigo explica onde é a festa, mas você prefere receber por escrito."
+say = "Can you text me the address?"
+short = "Text me the address."
+polished = "Could you text me the address, please?"
+meaning = "Pode me mandar o endereço por mensagem?"
+accept = ["Could you text me the address?"]
+tip = "'Text' também é verbo: mandar mensagem."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Seu amigo não atende e a ligação cai na caixa postal."
+say = "Call me when you can."
+short = "Call me back."
+polished = "Hi, it's me, call me back when you can."
+meaning = "Me liga quando puder."
+accept = ["Call me back when you can"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A atendente pergunta se você pode aguardar na linha."
+say = "Sure, I can hold."
+short = "I'll hold."
+polished = "Sure, no problem, I can hold."
+meaning = "Claro, eu aguardo."
+tip = "'Hold' ao telefone é esperar na linha."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "A internet de casa caiu e você liga para o suporte."
+say = "I'm calling about my internet connection."
+short = "It's about my internet."
+polished = "Hi, I'm calling about a problem with my internet connection."
+meaning = "Estou ligando por causa da minha internet."
+tip = "'I'm calling about...' é o jeito padrão de dizer o motivo da ligação."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "A ligação caiu no meio da conversa e você liga de novo."
+say = "Sorry, we got cut off."
+short = "We got cut off."
+polished = "Sorry about that, I think we got cut off."
+meaning = "Desculpa, a ligação caiu."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "Você está preso no menu automático e quer um atendente."
+say = "Can I speak to a real person?"
+short = "A real person, please."
+polished = "Could you put me through to a real person, please?"
+meaning = "Posso falar com um atendente de verdade?"
+accept = ["Could I speak to a real person?"]
+tip = "'Put me through to...' = me transfira para..."
+
+# ---------------------------------------------------------------- saúde, A1 to B1
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você mede a temperatura e o termômetro mostra trinta e nove."
+say = "I have a fever."
+short = "A fever."
+polished = "I think I have a fever."
+meaning = "Estou com febre."
+accept = ["I've got a fever"]
+tip = "Em inglês você 'tem' febre: 'I have a fever', nunca 'I am with fever'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Na farmácia, a atendente pergunta o que você está sentindo."
+say = "I have a sore throat."
+short = "Sore throat."
+polished = "I have a really sore throat."
+meaning = "Estou com dor de garganta."
+accept = ["I've got a sore throat", "My throat hurts"]
+tip = "'Sore' = dolorido: sore throat, sore muscles."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você não para de tossir e vai à farmácia."
+say = "I need something for a cough."
+short = "Something for a cough?"
+polished = "Do you have anything for a bad cough?"
+meaning = "Preciso de algo pra tosse."
+tip = "'Cough' se fala 'cóf'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Antes de receitar, o médico pergunta se você tem alguma alergia."
+say = "I'm allergic to penicillin."
+short = "Penicillin."
+polished = "Yes, I'm allergic to penicillin."
+meaning = "Sou alérgico a penicilina."
+accept = ["I am allergic to penicillin"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você cortou o dedo cozinhando na casa de um amigo."
+say = "Do you have a band-aid?"
+short = "A band-aid, please."
+polished = "Excuse me, do you have a band-aid?"
+meaning = "Você tem um band-aid?"
+accept = ["Do you have a plaster?", "Have you got a plaster?"]
+tip = "Nos EUA é 'band-aid'; no Reino Unido, 'plaster'."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você liga para a clínica logo cedo, sem horário marcado."
+say = "Can I see a doctor today?"
+short = "A doctor today?"
+polished = "Is there any chance I could see a doctor today?"
+meaning = "Consigo passar com um médico hoje?"
+accept = ["Could I see a doctor today?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta desde quando você está com dor."
+say = "It started two days ago."
+short = "Two days ago."
+polished = "It started about two days ago."
+meaning = "Começou há dois dias."
+tip = "'Ago' vem depois do tempo: 'two days ago' = há dois dias."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você levanta rápido demais e tudo começa a girar."
+say = "I feel dizzy."
+polished = "I've been feeling dizzy all day."
+meaning = "Estou tonto."
+accept = ["I'm dizzy", "I'm feeling dizzy"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você pisou em falso jogando bola e o pé inchou."
+say = "I think I sprained my ankle."
+short = "I sprained my ankle."
+polished = "I think I may have sprained my ankle."
+meaning = "Acho que torci o tornozelo."
+accept = ["I think I twisted my ankle"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O farmacêutico te entrega o remédio e você não sabe a dose."
+say = "How often should I take it?"
+short = "How often?"
+polished = "Sorry, how often should I take it?"
+meaning = "De quanto em quanto tempo devo tomar?"
+accept = ["How often do I take it?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta se você toma algum remédio todo dia."
+say = "I'm not taking any medication."
+short = "No medication."
+polished = "No, I'm not taking any medication at the moment."
+meaning = "Não estou tomando nenhum remédio."
+accept = ["I don't take any medication"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Seu remédio de uso contínuo acabou e você vai à farmácia."
+say = "I need a refill on my prescription."
+short = "A refill, please."
+polished = "Hi, I need a refill on my prescription, please."
+meaning = "Preciso renovar minha receita."
+tip = "'Prescription' é a receita médica. 'Recipe' é receita de comida."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Na recepção da clínica, antes de fazer um exame caro."
+say = "Does my insurance cover this?"
+short = "Is this covered?"
+polished = "Could you tell me if my insurance covers this?"
+meaning = "Meu plano cobre isso?"
+accept = ["Is this covered by my insurance?"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Você liga para o dentista pedindo um encaixe urgente."
+say = "I have a terrible toothache."
+short = "A toothache."
+polished = "I've had a terrible toothache since last night."
+meaning = "Estou com uma dor de dente terrível."
+accept = ["I've got a terrible toothache"]
+
+# ---------------------------------------------------------------- emergência, A1 to B1
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você vê fumaça saindo da cozinha do restaurante."
+say = "There's a fire!"
+short = "Fire!"
+polished = "There's a fire, everyone get out!"
+meaning = "Está pegando fogo!"
+accept = ["There is a fire"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você saiu do metrô numa cidade que não conhece e não sabe voltar."
+say = "I can't find my hotel."
+polished = "Excuse me, I can't find my hotel."
+meaning = "Não consigo achar meu hotel."
+accept = ["I cannot find my hotel"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você volta para a mesa do café e sua mochila sumiu."
+say = "Someone stole my backpack."
+short = "My backpack!"
+polished = "Excuse me, someone just stole my backpack."
+meaning = "Roubaram minha mochila."
+accept = ["Somebody stole my backpack", "My backpack was stolen"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Uma pessoa passa mal e cai ao seu lado na rua."
+say = "We need a doctor."
+short = "A doctor!"
+polished = "We need a doctor here, please hurry!"
+meaning = "Precisamos de um médico."
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Seu amigo se machucou e você para um táxi na rua."
+say = "I need to get to a hospital."
+short = "A hospital, quick!"
+polished = "Please, I need to get to a hospital right now."
+meaning = "Preciso ir a um hospital."
+accept = ["I need to go to a hospital", "I need to go to the hospital"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Seu amigo caiu da bicicleta e não consegue levantar."
+say = "My friend is hurt."
+short = "He's hurt!"
+polished = "Please help, my friend is badly hurt."
+meaning = "Meu amigo está machucado."
+accept = ["My friend is injured"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Você liga para a emergência e perguntam onde você está."
+say = "I don't know the address."
+short = "I don't know."
+polished = "I'm sorry, I don't know the exact address."
+meaning = "Não sei o endereço."
+accept = ["I do not know the address"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Seu celular descarregou e você precisa avisar a família."
+say = "Can I use your phone?"
+short = "Your phone, please?"
+polished = "Sorry, could I use your phone for a minute?"
+meaning = "Posso usar seu celular?"
+accept = ["Could I use your phone?", "May I use your phone?"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "A porta bateu e a chave ficou dentro do apartamento."
+say = "I'm locked out."
+short = "Locked out!"
+polished = "I'm locked out of my apartment."
+meaning = "Fiquei trancado pra fora."
+accept = ["I locked myself out"]
+tip = "'Locked out' = trancado do lado de fora, sem a chave."
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Depois de uma batida leve de carro, você desce pra ver as pessoas."
+say = "Is everyone okay?"
+short = "Everyone okay?"
+polished = "Is everyone okay? Is anybody hurt?"
+meaning = "Está todo mundo bem?"
+accept = ["Is everybody okay?", "Is everyone all right?"]
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Na delegacia, depois que levaram sua mochila."
+say = "I need to report a theft."
+short = "I was robbed."
+polished = "Hello, I'd like to report a theft, please."
+meaning = "Preciso registrar um furto."
+accept = ["I want to report a theft"]
+tip = "'Theft' é furto; 'robbery' é roubo com ameaça."
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Seu cartão sumiu e você liga para o banco."
+say = "I need to cancel my card."
+short = "Cancel my card, please."
+polished = "I've lost my card and I need to cancel it."
+meaning = "Preciso cancelar meu cartão."
+accept = ["I need to block my card"]
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Um homem desmaiou e você fala com a emergência ao telefone."
+say = "He's not breathing."
+short = "Not breathing!"
+polished = "Please hurry, he's not breathing!"
+meaning = "Ele não está respirando."
+accept = ["He is not breathing", "He isn't breathing"]
+
+# ---------------------------------------------------------------- social, A1 to B1
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você encontra um vizinho no elevador."
+say = "How's it going?"
+polished = "Hey, how's it going today?"
+meaning = "Como vão as coisas?"
+accept = ["How is it going?"]
+tip = "Resposta natural: 'Pretty good, you?'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Sua amiga chega na festa e você a apresenta a um colega."
+say = "This is my friend Ana."
+short = "This is Ana."
+polished = "I'd like you to meet my friend Ana."
+meaning = "Essa é minha amiga Ana."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "O anfitrião te oferece mais uma bebida e você não quer."
+say = "I'm good, thanks."
+short = "I'm good."
+polished = "I'm good for now, thanks."
+meaning = "Estou bem, obrigado."
+tip = "Aqui 'I'm good' é recusar com educação: 'não, obrigado'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você quer manter contato com alguém que conheceu hoje."
+say = "What's your number?"
+short = "Your number?"
+polished = "Can I get your number?"
+meaning = "Qual é o seu número?"
+accept = ["What is your number?", "What's your phone number?"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Um amigo conta que passou na entrevista de emprego."
+say = "That's great news!"
+short = "Great news!"
+polished = "That's great news, I'm so happy for you!"
+meaning = "Que notícia boa!"
+accept = ["That is great news"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você quer conhecer melhor um colega novo."
+say = "Do you want to grab a coffee?"
+short = "Coffee?"
+polished = "Would you like to grab a coffee sometime?"
+meaning = "Quer tomar um café?"
+accept = ["Want to grab a coffee?", "Do you want to get a coffee?"]
+tip = "'Grab a coffee' é o convite casual do dia a dia."
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Te chamam pra sair hoje, mas você já tem compromisso."
+say = "I can't make it tonight."
+short = "Can't make it."
+polished = "I'm sorry, I can't make it tonight."
+meaning = "Não vou conseguir ir hoje à noite."
+accept = ["I cannot make it tonight"]
+tip = "'Make it' = conseguir ir ou chegar."
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Um amigo conta que foi demitido."
+say = "I'm sorry to hear that."
+short = "Sorry to hear that."
+polished = "I'm really sorry to hear that."
+meaning = "Sinto muito por isso."
+accept = ["I am sorry to hear that"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você chega vinte minutos depois do combinado."
+say = "Sorry to keep you waiting."
+short = "Sorry for the wait."
+polished = "I'm so sorry to keep you waiting, the traffic was terrible."
+meaning = "Desculpa te fazer esperar."
+accept = ["Sorry for keeping you waiting", "Sorry I kept you waiting"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Na segunda, um colega pergunta como foi seu fim de semana."
+say = "Not much, I just stayed home."
+short = "Not much."
+polished = "Not much, I just stayed home and relaxed."
+meaning = "Nada demais, só fiquei em casa."
+accept = ["Not much, I stayed home"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Sexta à tarde, você quer saber os planos do seu amigo."
+say = "What are you up to this weekend?"
+short = "Any plans?"
+polished = "So, what are you up to this weekend?"
+meaning = "O que você vai fazer no fim de semana?"
+accept = ["What are you doing this weekend?"]
+tip = "'What are you up to?' = o que você anda fazendo ou vai fazer."
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Você cruza na rua com um amigo que não via há anos."
+say = "It's been a long time!"
+short = "Long time no see!"
+polished = "It's been such a long time, how have you been?"
+meaning = "Quanto tempo!"
+accept = ["It has been a long time"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "A conversa está boa, mas você precisa ir embora."
+say = "I should get going."
+short = "I should go."
+polished = "Well, I should get going, but it was nice talking to you."
+meaning = "Preciso ir andando."
+accept = ["I should be going", "I have to get going"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Seu amigo insiste em pagar a conta do bar de novo."
+say = "The next one is on me."
+short = "Next one's on me."
+polished = "Thanks, but the next one is on me."
+meaning = "A próxima é por minha conta."
+accept = ["The next one's on me", "Next time it's on me"]
+tip = "'It's on me' = eu pago."
+
+# ---------------------------------------------------------------- compras, A1 to B1
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você pegou duas calças e não acha onde experimentar."
+say = "Where are the fitting rooms?"
+short = "The fitting rooms?"
+polished = "Excuse me, where are the fitting rooms?"
+meaning = "Onde ficam os provadores?"
+accept = ["Where is the fitting room?", "Where are the changing rooms?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você sai do provador e a vendedora pergunta como ficou a camisa."
+say = "It's too tight."
+short = "Too tight."
+polished = "It's a bit too tight for me."
+meaning = "Está muito apertada."
+accept = ["It is too tight"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você gostou do casaco e decide comprar."
+say = "I'll take it."
+polished = "Great, I'll take it, thank you."
+meaning = "Vou levar."
+accept = ["I will take it"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Já é tarde e você quer saber se dá tempo de voltar à loja."
+say = "What time do you close?"
+short = "When do you close?"
+polished = "Excuse me, what time do you close today?"
+meaning = "Que horas vocês fecham?"
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Há uma placa de desconto, mas a etiqueta mostra o preço cheio."
+say = "Is this on sale?"
+short = "On sale?"
+polished = "Excuse me, is this one on sale?"
+meaning = "Isso está em promoção?"
+tip = "'On sale' = em promoção. 'For sale' = à venda."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "A vendedora pergunta se pode ajudar, e você procura algo pra sua mãe."
+say = "I'm looking for a gift."
+polished = "I'm looking for a gift for my mother."
+meaning = "Estou procurando um presente."
+accept = ["I'm looking for a present"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Você pagou e o caixa não entregou o comprovante."
+say = "Can I have the receipt?"
+short = "The receipt, please."
+polished = "Could I have the receipt, please?"
+meaning = "Pode me dar a nota?"
+accept = ["Could I have the receipt?", "Can I get the receipt?"]
+tip = "'Receipt' se fala 'ri-SÍT': o 'p' é mudo."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "O tênis ficou grande no seu pé."
+say = "Do you have a smaller size?"
+short = "A smaller size?"
+polished = "Do you happen to have a smaller size?"
+meaning = "Tem um número menor?"
+accept = ["Do you have it in a smaller size?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você abre a caixa na loja e a tela do aparelho está riscada."
+say = "This one is damaged."
+short = "It's damaged."
+polished = "I'm afraid this one is damaged."
+meaning = "Este aqui está com defeito."
+accept = ["This one is broken"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você ganhou uma blusa, mas não gostou da cor."
+say = "Can I exchange it for another color?"
+short = "Can I exchange it?"
+polished = "Would it be possible to exchange it for another color?"
+meaning = "Posso trocar por outra cor?"
+accept = ["Could I exchange it for another color?"]
+tip = "'Exchange' é trocar por outro. 'Return' é devolver. 'Refund' é o dinheiro de volta."
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você comprou online há duas semanas e nada chegou."
+say = "My order hasn't arrived yet."
+short = "My order hasn't arrived."
+polished = "I'm afraid my order still hasn't arrived."
+meaning = "Meu pedido ainda não chegou."
+accept = ["My order has not arrived yet"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Antes de comprar um presente caro, você quer saber se pode devolver."
+say = "What's your return policy?"
+short = "Can I return it?"
+polished = "Could you tell me what your return policy is?"
+meaning = "Qual é a política de devolução?"
+accept = ["What is your return policy?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você confere o extrato e a mesma compra aparece duas vezes."
+say = "I think I was charged twice."
+short = "I was charged twice."
+polished = "Excuse me, I think I was charged twice for this."
+meaning = "Acho que me cobraram duas vezes."

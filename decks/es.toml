@@ -637,3 +637,686 @@ short = "Mañana a las nueve."
 polished = "¿Te parece si nos vemos mañana a las nueve?"
 meaning = "Vamos nos ver amanhã às nove."
 accept = ["Quedamos mañana a las nueve"]
+
+# ---------------------------------------------------------------- telefone, A1 a B1
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Você atende o telefone e não reconhece a voz."
+say = "¿Quién habla, por favor?"
+short = "¿Quién habla?"
+polished = "Disculpe, ¿con quién hablo, por favor?"
+meaning = "Quem está falando, por favor?"
+accept = ["¿Quién es, por favor?", "¿De parte de quién?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A ligação está baixa e você não escuta a pessoa."
+say = "No te escucho."
+short = "No escucho."
+polished = "Perdón, no te escucho muy bien."
+meaning = "Não estou te ouvindo."
+accept = ["No te oigo"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Você liga para a casa de uma amiga e outra pessoa atende."
+say = "¿Puedo hablar con Ana?"
+short = "Con Ana, por favor."
+polished = "Hola, ¿podría hablar con Ana, por favor?"
+meaning = "Posso falar com a Ana?"
+accept = ["¿Podría hablar con Ana?", "¿Está Ana?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A campainha toca no meio da ligação e você precisa ir abrir a porta."
+say = "Espera un segundo."
+short = "Espera."
+polished = "¿Puedes esperar un segundo, por favor?"
+meaning = "Espera um segundo."
+accept = ["Espérame un segundo", "Dame un segundo"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Um amigo liga bem na hora em que você está entrando no ônibus."
+say = "Te devuelvo la llamada."
+short = "Te llamo luego."
+polished = "¿Te puedo devolver la llamada en diez minutos?"
+meaning = "Eu te ligo de volta."
+accept = ["Te llamo después", "Luego te llamo"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Você liga para o consultório para marcar uma consulta."
+say = "Quiero pedir una cita."
+short = "Una cita, por favor."
+polished = "Hola, quisiera pedir una cita, por favor."
+meaning = "Gostaria de marcar um horário."
+accept = ["Quisiera pedir una cita", "Quiero sacar una cita"]
+tip = "'Cita' é horário marcado ou encontro. Citação de livro também é 'cita'."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A atendente ditou o telefone rápido demais pra você anotar."
+say = "¿Puede repetir el número?"
+short = "¿El número otra vez?"
+polished = "Perdón, ¿puede repetir el número más despacio?"
+meaning = "Pode repetir o número?"
+accept = ["¿Me repite el número?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "O sinal está ruim e a voz da pessoa fica sumindo."
+say = "Se corta la llamada."
+short = "Se corta."
+polished = "Perdón, se corta la llamada, casi no te escucho."
+meaning = "A ligação está cortando."
+accept = ["Se está cortando", "Se entrecorta"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Um amigo explica onde é a festa, mas você prefere receber por escrito."
+say = "¿Me mandas la dirección por mensaje?"
+short = "Mándame la dirección."
+polished = "¿Me podrías mandar la dirección por mensaje, por favor?"
+meaning = "Pode me mandar o endereço por mensagem?"
+tip = "Falso amigo: 'dirección' é endereço."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Seu amigo não atende e a ligação cai na caixa postal."
+say = "Llámame cuando puedas."
+short = "Llámame."
+polished = "Hola, soy yo, llámame cuando puedas."
+meaning = "Me liga quando puder."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A atendente pergunta se você pode aguardar na linha."
+say = "Claro, espero."
+polished = "Claro, no hay problema, yo espero."
+meaning = "Claro, eu aguardo."
+accept = ["Sí, espero"]
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "A internet de casa caiu e você liga para o suporte."
+say = "Llamo por mi conexión a internet."
+short = "Es por mi internet."
+polished = "Hola, llamo por un problema con mi conexión a internet."
+meaning = "Estou ligando por causa da minha internet."
+tip = "'Llamo por...' é o jeito padrão de dizer o motivo da ligação."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "A ligação caiu no meio da conversa e você liga de novo."
+say = "Perdón, se cortó la llamada."
+short = "Se cortó la llamada."
+polished = "Perdón, creo que se cortó la llamada."
+meaning = "Desculpa, a ligação caiu."
+accept = ["Perdón, se cortó"]
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "Você está preso no menu automático e quer um atendente."
+say = "¿Puedo hablar con una persona?"
+short = "Con una persona, por favor."
+polished = "¿Me podría comunicar con una persona, por favor?"
+meaning = "Posso falar com um atendente de verdade?"
+accept = ["¿Puedo hablar con un agente?", "Quiero hablar con una persona"]
+
+# ---------------------------------------------------------------- saúde, A1 a B1
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você mede a temperatura e o termômetro mostra trinta e nove."
+say = "Tengo fiebre."
+short = "Fiebre."
+polished = "Creo que tengo fiebre."
+meaning = "Estou com febre."
+tip = "Em espanhol você 'tem' febre: 'tengo fiebre', nunca 'estoy con fiebre'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Na farmácia, a atendente pergunta o que você está sentindo."
+say = "Me duele la garganta."
+short = "La garganta."
+polished = "Me duele mucho la garganta."
+meaning = "Estou com dor de garganta."
+accept = ["Tengo dolor de garganta"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você não para de tossir e vai à farmácia."
+say = "Necesito algo para la tos."
+short = "¿Algo para la tos?"
+polished = "¿Tiene algo para una tos fuerte?"
+meaning = "Preciso de algo pra tosse."
+accept = ["Quiero algo para la tos"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Antes de receitar, o médico pergunta se você tem alguma alergia."
+say = "Soy alérgico a la penicilina."
+short = "A la penicilina."
+polished = "Sí, soy alérgico a la penicilina."
+meaning = "Sou alérgico a penicilina."
+accept = ["Soy alérgica a la penicilina", "Tengo alergia a la penicilina"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você cortou o dedo cozinhando na casa de um amigo."
+say = "¿Tienes una curita?"
+polished = "Perdona, ¿tienes una curita?"
+meaning = "Você tem um band-aid?"
+accept = ["¿Tienes una tirita?", "¿Tiene una curita?"]
+tip = "'Curita' na América Latina; na Espanha é 'tirita'."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você liga para a clínica logo cedo, sem horário marcado."
+say = "¿Me puede ver un médico hoy?"
+short = "¿Un médico hoy?"
+polished = "¿Sería posible que me viera un médico hoy?"
+meaning = "Consigo passar com um médico hoje?"
+accept = ["¿Puedo ver a un médico hoy?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta desde quando você está com dor."
+say = "Empezó hace dos días."
+short = "Hace dos días."
+polished = "Empezó hace unos dos días."
+meaning = "Começou há dois dias."
+tip = "'Hace dos días' = há dois dias. O 'hace' vem antes do tempo."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você levanta rápido demais e tudo começa a girar."
+say = "Estoy mareado."
+polished = "Estoy mareado desde esta mañana."
+meaning = "Estou tonto."
+accept = ["Estoy mareada", "Me siento mareado", "Me siento mareada"]
+tip = "'Mareado' é tonto ou enjoado."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você pisou em falso jogando bola e o pé inchou."
+say = "Creo que me torcí el tobillo."
+short = "Me torcí el tobillo."
+polished = "Me parece que me torcí el tobillo."
+meaning = "Acho que torci o tornozelo."
+accept = ["Creo que me doblé el tobillo"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O farmacêutico te entrega o remédio e você não sabe a dose."
+say = "¿Cada cuánto debo tomarlo?"
+short = "¿Cada cuánto?"
+polished = "Disculpe, ¿cada cuánto debo tomarlo?"
+meaning = "De quanto em quanto tempo devo tomar?"
+accept = ["¿Cada cuánto lo tomo?", "¿Cada cuánto tengo que tomarlo?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta se você toma algum remédio todo dia."
+say = "No tomo ningún medicamento."
+short = "Ningún medicamento."
+polished = "No, no tomo ningún medicamento por ahora."
+meaning = "Não estou tomando nenhum remédio."
+accept = ["No tomo ninguna medicina"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Seu remédio de uso contínuo acabou e você vai ao médico."
+say = "Necesito renovar mi receta."
+short = "Renovar mi receta."
+polished = "Hola, necesito renovar mi receta, por favor."
+meaning = "Preciso renovar minha receita."
+tip = "'Receta' serve pra médico e pra cozinha, igual em português."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Na recepção da clínica, antes de fazer um exame caro."
+say = "¿Mi seguro cubre esto?"
+short = "¿Esto está cubierto?"
+polished = "¿Me podría decir si mi seguro cubre esto?"
+meaning = "Meu plano cobre isso?"
+accept = ["¿Esto lo cubre mi seguro?"]
+tip = "'Seguro' (médico) é o plano de saúde."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Você liga para o dentista pedindo um encaixe urgente."
+say = "Me duele mucho una muela."
+short = "Una muela."
+polished = "Me duele mucho una muela desde anoche."
+meaning = "Estou com muita dor de dente."
+accept = ["Tengo un dolor de muelas terrible"]
+tip = "'Muela' é o dente de trás; dente em geral é 'diente'."
+
+# ---------------------------------------------------------------- emergência, A1 a B1
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você vê fumaça saindo da cozinha do restaurante."
+say = "¡Hay un incendio!"
+short = "¡Fuego!"
+polished = "¡Hay un incendio, salgan todos!"
+meaning = "Está pegando fogo!"
+accept = ["Hay fuego"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você saiu do metrô numa cidade que não conhece e não sabe voltar."
+say = "No encuentro mi hotel."
+polished = "Disculpe, no encuentro mi hotel."
+meaning = "Não consigo achar meu hotel."
+accept = ["No puedo encontrar mi hotel"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Você volta para a mesa do café e sua mochila sumiu."
+say = "Me robaron la mochila."
+short = "¡Mi mochila!"
+polished = "Disculpe, me acaban de robar la mochila."
+meaning = "Roubaram minha mochila."
+accept = ["Me han robado la mochila", "Se llevaron mi mochila"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Uma pessoa passa mal e cai ao seu lado na rua."
+say = "Necesitamos un médico."
+short = "¡Un médico!"
+polished = "Necesitamos un médico aquí, ¡rápido, por favor!"
+meaning = "Precisamos de um médico."
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Seu amigo se machucou e você para um táxi na rua."
+say = "Necesito ir a un hospital."
+short = "¡Al hospital, rápido!"
+polished = "Por favor, necesito ir a un hospital ahora mismo."
+meaning = "Preciso ir a um hospital."
+accept = ["Necesito ir al hospital", "Tengo que ir a un hospital"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Seu amigo caiu da bicicleta e não consegue levantar."
+say = "Mi amigo está herido."
+short = "¡Está herido!"
+polished = "Ayuda, por favor, mi amigo está muy herido."
+meaning = "Meu amigo está machucado."
+accept = ["Mi amigo está lastimado", "Mi amiga está herida"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Você liga para a emergência e perguntam onde você está."
+say = "No sé la dirección."
+short = "No sé."
+polished = "Lo siento, no sé la dirección exacta."
+meaning = "Não sei o endereço."
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Seu celular descarregou e você precisa avisar a família."
+say = "¿Puedo usar tu teléfono?"
+short = "¿Tu teléfono, por favor?"
+polished = "Perdón, ¿podría usar tu teléfono un minuto?"
+meaning = "Posso usar seu celular?"
+accept = ["¿Puedo usar tu celular?", "¿Me prestas tu teléfono?"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "A porta bateu e a chave ficou dentro do apartamento."
+say = "Me quedé afuera sin llaves."
+short = "Me quedé afuera."
+polished = "Me quedé afuera de mi departamento sin llaves."
+meaning = "Fiquei trancado pra fora."
+accept = ["Me quedé fuera sin llaves", "Dejé las llaves adentro"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Depois de uma batida leve de carro, você desce pra ver as pessoas."
+say = "¿Están todos bien?"
+short = "¿Todos bien?"
+polished = "¿Están todos bien? ¿Hay algún herido?"
+meaning = "Está todo mundo bem?"
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Na delegacia, depois que levaram sua mochila."
+say = "Necesito denunciar un robo."
+short = "Me robaron."
+polished = "Hola, quisiera denunciar un robo, por favor."
+meaning = "Preciso registrar um furto."
+accept = ["Quiero denunciar un robo", "Quiero poner una denuncia"]
+tip = "'Denunciar' é fazer o boletim de ocorrência."
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Seu cartão sumiu e você liga para o banco."
+say = "Necesito cancelar mi tarjeta."
+short = "Cancele mi tarjeta."
+polished = "Perdí mi tarjeta y necesito cancelarla."
+meaning = "Preciso cancelar meu cartão."
+accept = ["Necesito bloquear mi tarjeta", "Quiero cancelar mi tarjeta"]
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Um homem desmaiou e você fala com a emergência ao telefone."
+say = "No respira."
+polished = "¡Rápido, por favor, no respira!"
+meaning = "Ele não está respirando."
+accept = ["No está respirando"]
+
+# ---------------------------------------------------------------- social, A1 a B1
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você encontra um vizinho no elevador."
+say = "¿Cómo va todo?"
+polished = "Hola, ¿cómo va todo hoy?"
+meaning = "Como vão as coisas?"
+accept = ["¿Qué tal todo?", "¿Cómo te va?"]
+tip = "Resposta natural: 'Todo bien, ¿y tú?'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Sua amiga chega na festa e você a apresenta a um colega."
+say = "Ella es mi amiga Ana."
+short = "Ella es Ana."
+polished = "Te presento a mi amiga Ana."
+meaning = "Essa é minha amiga Ana."
+accept = ["Esta es mi amiga Ana"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "O anfitrião te oferece mais uma bebida e você não quer."
+say = "Así estoy bien, gracias."
+short = "Estoy bien."
+polished = "Así estoy bien por ahora, gracias."
+meaning = "Estou bem assim, obrigado."
+accept = ["Estoy bien, gracias", "No, gracias"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você quer manter contato com alguém que conheceu hoje."
+say = "¿Cuál es tu número?"
+short = "¿Tu número?"
+polished = "¿Me das tu número de teléfono?"
+meaning = "Qual é o seu número?"
+accept = ["¿Me das tu número?"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Um amigo conta que passou na entrevista de emprego."
+say = "¡Qué buena noticia!"
+short = "¡Qué bien!"
+polished = "¡Qué buena noticia, me alegro mucho por ti!"
+meaning = "Que notícia boa!"
+accept = ["¡Qué buenas noticias!"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você quer conhecer melhor um colega novo."
+say = "¿Quieres tomar un café?"
+short = "¿Un café?"
+polished = "¿Te gustaría tomar un café un día de estos?"
+meaning = "Quer tomar um café?"
+accept = ["¿Tomamos un café?", "¿Vamos por un café?"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Te chamam pra sair hoje, mas você já tem compromisso."
+say = "Hoy no puedo ir."
+short = "No puedo."
+polished = "Lo siento, hoy no puedo ir."
+meaning = "Hoje não vou conseguir ir."
+accept = ["Hoy no puedo", "Esta noche no puedo"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Um amigo conta que foi demitido."
+say = "Lo siento mucho."
+polished = "Lo siento mucho, de verdad."
+meaning = "Sinto muito por isso."
+accept = ["Cuánto lo siento", "Qué pena"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você chega vinte minutos depois do combinado."
+say = "Perdón por hacerte esperar."
+short = "¡Perdón!"
+polished = "Perdón por hacerte esperar, había mucho tráfico."
+meaning = "Desculpa te fazer esperar."
+accept = ["Perdona por hacerte esperar", "Disculpa la espera"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Na segunda, um colega pergunta como foi seu fim de semana."
+say = "Nada especial, me quedé en casa."
+short = "Nada especial."
+polished = "Nada especial, me quedé en casa descansando."
+meaning = "Nada demais, só fiquei em casa."
+accept = ["Nada, me quedé en casa"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Sexta à tarde, você quer saber os planos do seu amigo."
+say = "¿Qué planes tienes para el fin de semana?"
+short = "¿Qué planes tienes?"
+polished = "Oye, ¿qué planes tienes para este fin de semana?"
+meaning = "O que você vai fazer no fim de semana?"
+accept = ["¿Qué vas a hacer el fin de semana?"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Você cruza na rua com um amigo que não via há anos."
+say = "¡Tanto tiempo!"
+polished = "¡Tanto tiempo! ¿Cómo has estado?"
+meaning = "Quanto tempo!"
+accept = ["¡Cuánto tiempo!", "¡Tanto tiempo sin verte!"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "A conversa está boa, mas você precisa ir embora."
+say = "Ya me tengo que ir."
+short = "Me tengo que ir."
+polished = "Bueno, ya me tengo que ir, pero fue un gusto hablar contigo."
+meaning = "Preciso ir andando."
+accept = ["Ya me voy", "Tengo que irme"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Seu amigo insiste em pagar a conta do bar de novo."
+say = "La próxima la invito yo."
+short = "La próxima invito yo."
+polished = "Gracias, pero la próxima la invito yo."
+meaning = "A próxima é por minha conta."
+accept = ["La próxima va por mi cuenta", "La próxima pago yo"]
+tip = "'Invitar' aqui é pagar pra outra pessoa: 'te invito' = eu pago."
+
+# ---------------------------------------------------------------- compras, A1 a B1
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você pegou duas calças e não acha onde experimentar."
+say = "¿Dónde están los probadores?"
+short = "¿Los probadores?"
+polished = "Disculpe, ¿dónde están los probadores?"
+meaning = "Onde ficam os provadores?"
+accept = ["¿Dónde está el probador?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você sai do provador e a vendedora pergunta como ficou a camisa."
+say = "Me queda apretada."
+short = "Muy apretada."
+polished = "Me queda un poco apretada."
+meaning = "Ficou apertada em mim."
+accept = ["Me queda apretado", "Me aprieta"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você gostou do casaco e decide comprar."
+say = "Me lo llevo."
+polished = "Perfecto, me lo llevo, gracias."
+meaning = "Vou levar."
+accept = ["Me la llevo", "Lo llevo"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Já é tarde e você quer saber se dá tempo de voltar à loja."
+say = "¿A qué hora cierran?"
+short = "¿Cuándo cierran?"
+polished = "Disculpe, ¿a qué hora cierran hoy?"
+meaning = "Que horas vocês fecham?"
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Há uma placa de desconto, mas a etiqueta mostra o preço cheio."
+say = "¿Esto está en oferta?"
+short = "¿En oferta?"
+polished = "Disculpe, ¿este está en oferta?"
+meaning = "Isso está em promoção?"
+accept = ["¿Esto está rebajado?", "¿Está en oferta?"]
+tip = "'Oferta' ou 'rebaja' = promoção."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "A vendedora pergunta se pode ajudar, e você procura algo pra sua mãe."
+say = "Busco un regalo."
+polished = "Busco un regalo para mi mamá."
+meaning = "Estou procurando um presente."
+accept = ["Estoy buscando un regalo"]
+tip = "Falso amigo: 'regalo' é presente."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Você pagou e o caixa não entregou o comprovante."
+say = "¿Me da el recibo?"
+short = "El recibo, por favor."
+polished = "¿Me podría dar el recibo, por favor?"
+meaning = "Pode me dar a nota?"
+accept = ["¿Me da el ticket?", "¿Me das el recibo?"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "O tênis ficou grande no seu pé."
+say = "¿Tiene una talla más pequeña?"
+short = "¿Una talla menos?"
+polished = "¿De casualidad tiene una talla más pequeña?"
+meaning = "Tem um número menor?"
+accept = ["¿Tiene un número más pequeño?", "¿Tiene una talla más chica?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você abre a caixa na loja e a tela do aparelho está riscada."
+say = "Este está dañado."
+short = "Está dañado."
+polished = "Disculpe, pero este está dañado."
+meaning = "Este aqui está com defeito."
+accept = ["Este viene dañado", "Este está roto"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você ganhou uma blusa, mas não gostou da cor."
+say = "¿Puedo cambiarlo por otro color?"
+short = "¿Puedo cambiarlo?"
+polished = "¿Sería posible cambiarlo por otro color?"
+meaning = "Posso trocar por outra cor?"
+accept = ["¿Lo puedo cambiar por otro color?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você comprou online há duas semanas e nada chegou."
+say = "Mi pedido todavía no llega."
+short = "Mi pedido no llega."
+polished = "Disculpe, mi pedido todavía no ha llegado."
+meaning = "Meu pedido ainda não chegou."
+accept = ["Mi pedido aún no llega", "Mi pedido todavía no ha llegado"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Antes de comprar um presente caro, você quer saber se pode devolver."
+say = "¿Cuál es su política de devoluciones?"
+short = "¿Puedo devolverlo?"
+polished = "¿Me podría decir cuál es su política de devoluciones?"
+meaning = "Qual é a política de devolução?"
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você confere o extrato e a mesma compra aparece duas vezes."
+say = "Creo que me cobraron dos veces."
+short = "Me cobraron dos veces."
+polished = "Disculpe, creo que me cobraron dos veces por esto."
+meaning = "Acho que me cobraram duas vezes."

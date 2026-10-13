@@ -786,8 +786,6 @@ mod tests {
         ("primeiros contatos", "B1"),
         ("restaurante", "A2"),
         ("viagem", "A2"),
-        ("compras", "A2"),
-        ("compras", "B1"),
         ("saúde e social", "B1"),
     ];
 

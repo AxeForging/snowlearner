@@ -403,3 +403,370 @@ situation = "Your boss asks how the monthly report is going."
 say = "Nos vemos mañana a las nueve."
 meaning = "See you tomorrow at nine."
 situation = "You agree with a coworker to review the project together."
+
+# ---------------------------------------------------------------- phone, A1 to B1
+
+[[phrase]]
+say = "¿Quién habla, por favor?"
+meaning = "Who's calling, please?"
+situation = "You pick up the phone and don't recognize the voice."
+
+[[phrase]]
+say = "No te escucho."
+meaning = "I can't hear you."
+situation = "The call is very quiet and you can't hear the other person."
+
+[[phrase]]
+say = "¿Puedo hablar con Ana?"
+meaning = "Can I speak to Ana?"
+situation = "You call a friend's home and someone else picks up."
+
+[[phrase]]
+say = "Espera un segundo."
+meaning = "Hold on a second."
+situation = "The doorbell rings in the middle of a call and you have to go open the door."
+
+[[phrase]]
+say = "Te devuelvo la llamada."
+meaning = "I'll call you back."
+situation = "A friend calls just as you're getting on the bus."
+
+[[phrase]]
+say = "Quiero pedir una cita."
+meaning = "I'd like to make an appointment."
+situation = "You call the doctor's office to book a visit."
+tip = "'Cita' is an appointment, and also a date."
+
+[[phrase]]
+say = "¿Puede repetir el número?"
+meaning = "Could you repeat the number?"
+situation = "The receptionist read out the phone number too fast for you to write down."
+
+[[phrase]]
+say = "Se corta la llamada."
+meaning = "You're breaking up."
+situation = "The signal is bad and the other person's voice keeps dropping."
+
+[[phrase]]
+say = "¿Me mandas la dirección por mensaje?"
+meaning = "Can you text me the address?"
+situation = "A friend explains where the party is, but you'd rather have it in writing."
+tip = "False friend: 'dirección' is an address (and also a direction)."
+
+[[phrase]]
+say = "Llámame cuando puedas."
+meaning = "Call me when you can."
+situation = "Your friend doesn't pick up and you get their voicemail."
+
+[[phrase]]
+say = "Claro, espero."
+meaning = "Sure, I can hold."
+situation = "The agent asks if you can stay on the line."
+
+[[phrase]]
+say = "Llamo por mi conexión a internet."
+meaning = "I'm calling about my internet connection."
+situation = "Your home internet is down and you call support."
+tip = "'Llamo por...' is the standard way to give the reason for a call."
+
+[[phrase]]
+say = "Perdón, se cortó la llamada."
+meaning = "Sorry, we got cut off."
+situation = "The call dropped mid-conversation and you call again."
+
+[[phrase]]
+say = "¿Puedo hablar con una persona?"
+meaning = "Can I speak to a real person?"
+situation = "You're stuck in an automated phone menu and want an agent."
+
+# ---------------------------------------------------------------- health, A1 to B1
+
+[[phrase]]
+say = "Tengo fiebre."
+meaning = "I have a fever."
+situation = "You take your temperature and the thermometer reads thirty-nine."
+tip = "Spanish 'has' most symptoms: 'tengo fiebre', 'tengo tos', 'tengo frío'."
+
+[[phrase]]
+say = "Me duele la garganta."
+meaning = "I have a sore throat."
+situation = "At the pharmacy, the assistant asks what's wrong."
+tip = "'Me duele...' = my ... hurts. Literally 'the throat hurts me'."
+
+[[phrase]]
+say = "Necesito algo para la tos."
+meaning = "I need something for a cough."
+situation = "You can't stop coughing and go to the pharmacy."
+
+[[phrase]]
+say = "Soy alérgico a la penicilina."
+meaning = "I'm allergic to penicillin."
+situation = "Before prescribing, the doctor asks if you have any allergies."
+tip = "A woman says 'alérgica'."
+
+[[phrase]]
+say = "¿Tienes una curita?"
+meaning = "Do you have a band-aid?"
+situation = "You cut your finger cooking at a friend's place."
+tip = "'Curita' in Latin America; in Spain it's 'tirita'."
+
+[[phrase]]
+say = "¿Me puede ver un médico hoy?"
+meaning = "Can I see a doctor today?"
+situation = "You call the clinic first thing in the morning, without an appointment."
+
+[[phrase]]
+say = "Empezó hace dos días."
+meaning = "It started two days ago."
+situation = "The doctor asks how long you've been in pain."
+tip = "'Hace dos días' = two days ago. 'Hace' goes before the time."
+
+[[phrase]]
+say = "Estoy mareado."
+meaning = "I feel dizzy."
+situation = "You stand up too fast and everything starts spinning."
+tip = "A woman says 'mareada'. It also means seasick or carsick."
+
+[[phrase]]
+say = "Creo que me torcí el tobillo."
+meaning = "I think I sprained my ankle."
+situation = "You landed badly playing soccer and your foot is swollen."
+
+[[phrase]]
+say = "¿Cada cuánto debo tomarlo?"
+meaning = "How often should I take it?"
+situation = "The pharmacist hands you the medicine and you don't know the dose."
+
+[[phrase]]
+say = "No tomo ningún medicamento."
+meaning = "I'm not taking any medication."
+situation = "The doctor asks if you take any medicine every day."
+
+[[phrase]]
+say = "Necesito renovar mi receta."
+meaning = "I need to renew my prescription."
+situation = "Your regular medication ran out and you go to the doctor."
+tip = "'Receta' is both a prescription and a cooking recipe."
+
+[[phrase]]
+say = "¿Mi seguro cubre esto?"
+meaning = "Does my insurance cover this?"
+situation = "At the clinic's front desk, before an expensive test."
+
+[[phrase]]
+say = "Me duele mucho una muela."
+meaning = "I have a terrible toothache."
+situation = "You call the dentist asking to be squeezed in urgently."
+tip = "'Muela' is a back tooth; a tooth in general is 'diente'."
+
+# ---------------------------------------------------------------- emergency, A1 to B1
+
+[[phrase]]
+say = "¡Hay un incendio!"
+meaning = "There's a fire!"
+situation = "You see smoke coming out of the restaurant's kitchen."
+
+[[phrase]]
+say = "No encuentro mi hotel."
+meaning = "I can't find my hotel."
+situation = "You come out of the subway in a city you don't know and can't find your way back."
+
+[[phrase]]
+say = "Me robaron la mochila."
+meaning = "Someone stole my backpack."
+situation = "You get back to your table at the café and your backpack is gone."
+
+[[phrase]]
+say = "Necesitamos un médico."
+meaning = "We need a doctor."
+situation = "Someone collapses next to you on the street."
+
+[[phrase]]
+say = "Necesito ir a un hospital."
+meaning = "I need to get to a hospital."
+situation = "Your friend is hurt and you flag down a taxi."
+
+[[phrase]]
+say = "Mi amigo está herido."
+meaning = "My friend is hurt."
+situation = "Your friend fell off his bike and can't get up."
+
+[[phrase]]
+say = "No sé la dirección."
+meaning = "I don't know the address."
+situation = "You call emergency services and they ask where you are."
+
+[[phrase]]
+say = "¿Puedo usar tu teléfono?"
+meaning = "Can I use your phone?"
+situation = "Your phone died and you need to let your family know."
+
+[[phrase]]
+say = "Me quedé afuera sin llaves."
+meaning = "I'm locked out."
+situation = "The door slammed shut and your keys are inside the apartment."
+
+[[phrase]]
+say = "¿Están todos bien?"
+meaning = "Is everyone okay?"
+situation = "After a minor car crash, you get out to check on people."
+
+[[phrase]]
+say = "Necesito denunciar un robo."
+meaning = "I need to report a theft."
+situation = "At the police station, after your backpack was taken."
+tip = "'Denunciar' is to file a police report."
+
+[[phrase]]
+say = "Necesito cancelar mi tarjeta."
+meaning = "I need to cancel my card."
+situation = "Your card is missing and you call the bank."
+
+[[phrase]]
+say = "No respira."
+meaning = "He's not breathing."
+situation = "A man has passed out and you're on the phone with emergency services."
+
+# ---------------------------------------------------------------- social, A1 to B1
+
+[[phrase]]
+say = "¿Cómo va todo?"
+meaning = "How's it going?"
+situation = "You run into a neighbor in the elevator."
+tip = "A natural reply: 'Todo bien, ¿y tú?'."
+
+[[phrase]]
+say = "Ella es mi amiga Ana."
+meaning = "This is my friend Ana."
+situation = "Your friend arrives at the party and you introduce her to a coworker."
+
+[[phrase]]
+say = "Así estoy bien, gracias."
+meaning = "I'm good, thanks."
+situation = "The host offers you another drink and you don't want one."
+
+[[phrase]]
+say = "¿Cuál es tu número?"
+meaning = "What's your number?"
+situation = "You want to keep in touch with someone you met today."
+
+[[phrase]]
+say = "¡Qué buena noticia!"
+meaning = "That's great news!"
+situation = "A friend tells you they got the job."
+
+[[phrase]]
+say = "¿Quieres tomar un café?"
+meaning = "Do you want to grab a coffee?"
+situation = "You'd like to get to know a new coworker better."
+tip = "Drinks are 'taken' in Spanish: 'tomar un café', 'tomar algo'."
+
+[[phrase]]
+say = "Hoy no puedo ir."
+meaning = "I can't make it today."
+situation = "You're invited out tonight, but you already have plans."
+
+[[phrase]]
+say = "Lo siento mucho."
+meaning = "I'm so sorry to hear that."
+situation = "A friend tells you they lost their job."
+
+[[phrase]]
+say = "Perdón por hacerte esperar."
+meaning = "Sorry to keep you waiting."
+situation = "You arrive twenty minutes after the agreed time."
+
+[[phrase]]
+say = "Nada especial, me quedé en casa."
+meaning = "Not much, I just stayed home."
+situation = "On Monday, a coworker asks how your weekend was."
+
+[[phrase]]
+say = "¿Qué planes tienes para el fin de semana?"
+meaning = "What are you up to this weekend?"
+situation = "Friday afternoon, you want to know your friend's plans."
+
+[[phrase]]
+say = "¡Tanto tiempo!"
+meaning = "Long time no see!"
+situation = "You bump into a friend you haven't seen in years."
+
+[[phrase]]
+say = "Ya me tengo que ir."
+meaning = "I should get going."
+situation = "The conversation is good, but you have to leave."
+
+[[phrase]]
+say = "La próxima la invito yo."
+meaning = "The next one is on me."
+situation = "Your friend insists on paying the bar tab again."
+tip = "'Invitar' here means to pay for someone: 'te invito' = it's on me."
+
+# ---------------------------------------------------------------- shopping, A1 to B1
+
+[[phrase]]
+say = "¿Dónde están los probadores?"
+meaning = "Where are the fitting rooms?"
+situation = "You picked two pairs of pants and can't find where to try them on."
+
+[[phrase]]
+say = "Me queda apretada."
+meaning = "It's too tight on me."
+situation = "You come out of the fitting room and the assistant asks how the shirt fits."
+tip = "'Me queda...' = it fits me...: 'me queda bien', 'me queda grande'."
+
+[[phrase]]
+say = "Me lo llevo."
+meaning = "I'll take it."
+situation = "You like the coat and decide to buy it."
+
+[[phrase]]
+say = "¿A qué hora cierran?"
+meaning = "What time do you close?"
+situation = "It's late and you want to know if you have time to come back to the store."
+
+[[phrase]]
+say = "¿Esto está en oferta?"
+meaning = "Is this on sale?"
+situation = "There's a discount sign, but the tag shows the full price."
+tip = "'Oferta' or 'rebaja' = a sale price."
+
+[[phrase]]
+say = "Busco un regalo."
+meaning = "I'm looking for a gift."
+situation = "The assistant asks if she can help, and you want something for your mother."
+
+[[phrase]]
+say = "¿Me da el recibo?"
+meaning = "Can I have the receipt?"
+situation = "You paid and the cashier didn't hand you the receipt."
+
+[[phrase]]
+say = "¿Tiene una talla más pequeña?"
+meaning = "Do you have a smaller size?"
+situation = "The sneakers are too big on you."
+
+[[phrase]]
+say = "Este está dañado."
+meaning = "This one is damaged."
+situation = "You open the box in the store and the device's screen is scratched."
+
+[[phrase]]
+say = "¿Puedo cambiarlo por otro color?"
+meaning = "Can I exchange it for another color?"
+situation = "You were given a sweater, but you don't like the color."
+
+[[phrase]]
+say = "Mi pedido todavía no llega."
+meaning = "My order hasn't arrived yet."
+situation = "You ordered online two weeks ago and nothing has come."
+
+[[phrase]]
+say = "¿Cuál es su política de devoluciones?"
+meaning = "What's your return policy?"
+situation = "Before buying an expensive gift, you want to know if it can be returned."
+
+[[phrase]]
+say = "Creo que me cobraron dos veces."
+meaning = "I think I was charged twice."
+situation = "You check your statement and the same purchase shows up twice."
