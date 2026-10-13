@@ -12,11 +12,13 @@ pub fn parse(spec: &str) -> Result<HotKey> {
     spec.replace(' ', "").parse::<HotKey>().map_err(|e| anyhow::anyhow!("invalid hotkey {spec:?}: {e}"))
 }
 
+/// The hotkeys that could not be registered: what each would do, and why not.
+pub type Taken = Vec<(Command, String)>;
+
 pub struct Hotkeys {
-    _manager: GlobalHotKeyManager,
-    bindings: Vec<(u32, Command)>,
-    /// Why each hotkey that could not be registered is missing.
-    pub taken: Vec<String>,
+    manager: GlobalHotKeyManager,
+    bindings: Vec<(HotKey, Command)>,
+    pub taken: Taken,
 }
 
 impl Hotkeys {
@@ -24,7 +26,18 @@ impl Hotkeys {
     pub fn register(specs: &[(&str, Command)]) -> Result<Hotkeys> {
         let manager = GlobalHotKeyManager::new().context("global hotkeys unavailable on this desktop")?;
         let (bindings, taken) = register_each(specs, |hk| Ok(manager.register(hk)?));
-        Ok(Hotkeys { _manager: manager, bindings, taken })
+        Ok(Hotkeys { manager, bindings, taken })
+    }
+
+    /// Releases the hotkeys held and registers `specs` instead (the panel
+    /// changed one). `taken` then says which of the new set are missing.
+    pub fn rebind(&mut self, specs: &[(&str, Command)]) {
+        for (hk, _) in self.bindings.drain(..) {
+            if let Err(e) = self.manager.unregister(hk) {
+                eprintln!("could not release a hotkey: {e}");
+            }
+        }
+        (self.bindings, self.taken) = register_each(specs, |hk| Ok(self.manager.register(hk)?));
     }
 
     /// Drains pending key presses.
@@ -32,7 +45,7 @@ impl Hotkeys {
         let mut out = Vec::new();
         while let Ok(ev) = GlobalHotKeyEvent::receiver().try_recv() {
             if ev.state == HotKeyState::Pressed {
-                if let Some((_, cmd)) = self.bindings.iter().find(|(id, _)| *id == ev.id) {
+                if let Some((_, cmd)) = self.bindings.iter().find(|(hk, _)| hk.id() == ev.id) {
                     out.push(*cmd);
                 }
             }
@@ -46,7 +59,7 @@ impl Hotkeys {
 fn register_each(
     specs: &[(&str, Command)],
     mut register: impl FnMut(HotKey) -> Result<()>,
-) -> (Vec<(u32, Command)>, Vec<String>) {
+) -> (Vec<(HotKey, Command)>, Taken) {
     let mut bindings = Vec::new();
     let mut taken = Vec::new();
     for &(spec, cmd) in specs {
@@ -54,8 +67,8 @@ fn register_each(
             register(hk).with_context(|| format!("could not register {spec} (taken by another app?)"))?;
             Ok(hk)
         }) {
-            Ok(hk) => bindings.push((hk.id(), cmd)),
-            Err(e) => taken.push(format!("{e:#}")),
+            Ok(hk) => bindings.push((hk, cmd)),
+            Err(e) => taken.push((cmd, format!("{e:#}"))),
         }
     }
     (bindings, taken)
@@ -93,7 +106,15 @@ mod tests {
         let cmds: Vec<Command> = bound.iter().map(|(_, c)| *c).collect();
         assert_eq!(cmds, vec![Command::Challenge, Command::Menu]);
         assert_eq!(taken.len(), 2);
-        assert!(taken[0].contains("Ctrl+Alt+G") && taken[0].contains("already registered"), "{taken:?}");
-        assert!(taken[1].contains("Ctrl+Banana"), "{taken:?}");
+        assert_eq!(taken[0].0, Command::Grab, "the action that lost its key is named");
+        assert!(taken[0].1.contains("Ctrl+Alt+G") && taken[0].1.contains("already registered"), "{taken:?}");
+        assert!(taken[1].1.contains("Ctrl+Banana"), "{taken:?}");
+    }
+
+    #[test]
+    fn every_letter_and_digit_makes_a_hotkey() {
+        for k in ('A'..='Z').chain('0'..='9') {
+            assert!(parse(&format!("Ctrl+Alt+{k}")).is_ok(), "{k}");
+        }
     }
 }

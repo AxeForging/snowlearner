@@ -97,13 +97,17 @@ none (hotkey confirms your answer, CPU-only drawing). `SNOWLEARNER_RENDERER=cpu|
 | Action | Hotkey / mouse | Command |
 |---|---|---|
 | Practice a phrase · "I'm done talking" · next | `Ctrl+Alt+M` · click the orb | `snowlearner say` |
-| Control panel (game, audio, progress tabs) | `Ctrl+Alt+K` · Ctrl+click the orb | `snowlearner menu` |
+| Control panel (game, audio, keys, progress tabs) | `Ctrl+Alt+K` · Ctrl+click the orb | `snowlearner menu` |
 | Your progress: known · learning · next | `Ctrl+Alt+P` | `snowlearner progress` (`--print` in the terminal) |
 | Magic hand (15 s) | hold `Ctrl+Alt` · `Ctrl+Alt+G` | `snowlearner grab` |
 | Pause (black hole) / resume | right-click the orb · `P` | `snowlearner pause` |
 | Today's recap | `Ctrl+Alt+J` · `S` | `snowlearner summary` |
 | Shortcut cheat sheet | hover the orb · hold `Ctrl+Alt` | — |
 | Quit | — | `snowlearner quit` |
+
+A hotkey another program already uses (NVIDIA's overlay takes `Ctrl+Alt+M`, for one) does nothing:
+the app says so at startup and marks it `(in use)` in the panel's **keys** tab, where each hotkey
+can be moved to a free key. The change applies at once, and every on-screen hint follows it.
 
 Window mode extras: `H` help, `1`–`4` commitment, `L` switch language, click characters to poke them.
 
