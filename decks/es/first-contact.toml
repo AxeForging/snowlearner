@@ -1,0 +1,80 @@
+# decks/es: primeiros contatos. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Você trava no meio da frase conversando com um desconhecido."
+say = "Estoy aprendiendo español."
+short = "Estoy aprendiendo."
+polished = "Todavía estoy aprendiendo español, ten paciencia."
+meaning = "Estou aprendendo espanhol."
+accept = ["Todavía estoy aprendiendo español"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Um vizinho pergunta há quanto tempo você está na cidade."
+say = "Me mudé aquí el año pasado."
+short = "El año pasado."
+polished = "Me mudé aquí el año pasado por trabajo."
+meaning = "Me mudei pra cá no ano passado."
+accept = ["Llegué aquí el año pasado", "Me mudé acá el año pasado"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Você conversa com alguém na fila da padaria do bairro."
+say = "¿Vives por aquí?"
+polished = "Oye, ¿vives por aquí cerca?"
+meaning = "Você mora por aqui?"
+accept = ["¿Vives cerca de aquí?", "¿Vives por acá?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Você se despede de alguém que conheceu hoje num jantar."
+say = "Fue un gusto conocerte."
+short = "Un gusto."
+polished = "De verdad, fue un gusto conocerte."
+meaning = "Foi um prazer te conhecer."
+accept = ["Fue un placer conocerte", "Encantado de conocerte", "Encantada de conocerte"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Um colega novo conta que veio de outro país."
+say = "¿Qué te trajo por aquí?"
+polished = "Cuéntame, ¿qué te trajo a esta ciudad?"
+meaning = "O que te trouxe pra cá?"
+accept = ["¿Qué te trae por aquí?", "¿Qué te trajo aquí?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Você conhece alguém do bairro numa festa de vizinhos."
+say = "¿Cuánto tiempo llevas viviendo aquí?"
+short = "¿Cuánto tiempo llevas?"
+polished = "Oye, ¿cuánto tiempo llevas viviendo aquí?"
+meaning = "Há quanto tempo você mora aqui?"
+accept = ["¿Cuánto tiempo llevas aquí?", "¿Hace cuánto vives aquí?"]
+tip = "'Llevar' + tempo = há quanto tempo: 'llevo dos años aquí'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Perguntam como está sendo a vida na cidade nova."
+say = "Todavía me estoy acostumbrando."
+short = "Me estoy acostumbrando."
+polished = "La verdad, todavía me estoy acostumbrando."
+meaning = "Ainda estou me acostumando."
+accept = ["Aún me estoy acostumbrando", "Todavía estoy acostumbrándome"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "No último dia do curso, você se despede de um colega."
+say = "Tenemos que seguir en contacto."
+short = "Seguimos en contacto."
+polished = "De verdad, tenemos que seguir en contacto."
+meaning = "A gente precisa manter contato."
+accept = ["Hay que seguir en contacto", "Tenemos que mantener el contacto"]

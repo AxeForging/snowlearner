@@ -1,0 +1,43 @@
+# decks/pt: saúde e social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "A friend notices you've been quiet and asks if everything is okay."
+say = "Ando muito estressado ultimamente."
+short = "Ando estressado."
+polished = "Pra falar a verdade, ando muito estressado ultimamente."
+meaning = "I've been feeling stressed lately."
+accept = ["Ando muito estressada ultimamente", "Tenho andado muito estressado"]
+tip = "'Andar' + adjective = how you've been lately. A woman says 'estressada'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "A coworker invites you out late on a Tuesday."
+say = "Estou tentando dormir mais."
+short = "Preciso dormir mais."
+polished = "Ultimamente estou tentando dormir mais."
+meaning = "I'm trying to get more sleep."
+accept = ["Tô tentando dormir mais"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "Your friend is exhausted and won't stop working."
+say = "Você devia tirar um dia de folga."
+short = "Tira um dia de folga."
+polished = "Eu acho mesmo que você devia tirar um dia de folga."
+meaning = "You should take a day off."
+accept = ["Você deveria tirar um dia de folga"]
+tip = "'Folga' is a day off. A holiday for everyone is a 'feriado'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "A friend is sick at home, alone."
+say = "Me avisa se precisar de algo."
+short = "Me avisa."
+polished = "Por favor, me avisa se precisar de qualquer coisa."
+meaning = "Let me know if you need anything."
+accept = ["Me avisa se precisar de alguma coisa", "Me fala se precisar de algo"]

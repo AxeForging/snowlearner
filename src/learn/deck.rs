@@ -30,14 +30,23 @@ macro_rules! themed {
 }
 
 /// The hand-curated decks, one folder per language.
-const EN: &str =
-    themed!("en": "trabalho", "viagem", "restaurante", "compras", "saude", "social", "telefone", "emergencia");
-pub(crate) const ES: &str =
-    themed!("es": "trabalho", "viagem", "restaurante", "compras", "saude", "social", "telefone", "emergencia");
-const PT: &str = themed!("pt": "telefone", "saude", "emergencia", "social", "compras");
+const EN: &str = themed!("en":
+    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
+pub(crate) const ES: &str = themed!("es":
+    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
+const PT: &str = themed!("pt":
+    "phone", "health", "emergency", "social", "shopping", "restaurant", "travel",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
 /// `decks/es` for English speakers, theme by theme.
-const ES_EN: &str =
-    themed!("i18n/es.en": "trabalho", "viagem", "restaurante", "compras", "saude", "social", "telefone", "emergencia");
+const ES_EN: &str = themed!("i18n/es.en":
+    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
 
 /// Built-in decks per language: hand-curated phrases, the first words and
 /// chunks (`<lang>.basics.toml`), then the phrases ported from Lexicaster
@@ -787,14 +796,8 @@ mod tests {
     /// Fewest items that make a rung.
     const RUNG_MIN: usize = 3;
     /// Rungs still missing in the built-in decks. Filling one means removing it
-    /// here: the test fails while a filled rung is still listed.
-    const LADDER_GAPS: &[(&str, &str)] = &[
-        ("primeiros contatos", "A2"),
-        ("primeiros contatos", "B1"),
-        ("restaurante", "A2"),
-        ("viagem", "A2"),
-        ("saúde e social", "B1"),
-    ];
+    /// here: the test fails while a filled rung is still listed. None are left.
+    const LADDER_GAPS: &[(&str, &str)] = &[];
 
     #[test]
     fn core_topics_climb_every_level_from_pre_a1_to_b1() {

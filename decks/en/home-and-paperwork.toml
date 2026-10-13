@@ -1,0 +1,86 @@
+# decks/en: casa e burocracia. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "A internet do apartamento alugado caiu e você escreve ao dono."
+say = "The wifi isn't working."
+short = "No wifi."
+polished = "Hi, the wifi isn't working in my apartment."
+meaning = "O wi-fi não está funcionando."
+accept = ["The wifi is not working", "The wifi doesn't work", "The internet isn't working"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "Primeira semana no prédio novo, você encontra um vizinho no corredor."
+say = "Where do I take out the trash?"
+short = "Where's the trash?"
+polished = "Sorry, where do I take out the trash?"
+meaning = "Onde eu coloco o lixo?"
+accept = ["Where do I put the trash?", "Where does the trash go?"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "No balcão do banco, a atendente pergunta em que pode ajudar."
+say = "I'd like to withdraw some money."
+short = "A withdrawal, please."
+polished = "Hi, I'd like to withdraw some money, please."
+meaning = "Queria sacar dinheiro."
+accept = ["I would like to withdraw some money", "I'd like to take out some money"]
+tip = "'Withdraw' = sacar. 'Deposit' = depositar."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "A feira só aceita dinheiro e você está sem nenhum."
+say = "Is there an ATM nearby?"
+short = "An ATM?"
+polished = "Excuse me, is there an ATM nearby?"
+meaning = "Tem um caixa eletrônico por aqui?"
+accept = ["Is there an ATM near here?", "Is there a cash machine nearby?"]
+tip = "ATM se fala letra por letra: 'ei-ti-ém'."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "A pia da cozinha pinga a noite toda e você avisa o proprietário."
+say = "The faucet is leaking."
+short = "It's leaking."
+polished = "Hi, the kitchen faucet is leaking."
+meaning = "A torneira está vazando."
+accept = ["The tap is leaking", "The faucet is dripping"]
+tip = "Nos EUA é 'faucet'; no Reino Unido, 'tap'."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "O caixa eletrônico não devolveu seu cartão e você entra na agência."
+say = "The ATM kept my card."
+short = "It kept my card."
+polished = "Excuse me, the ATM kept my card."
+meaning = "O caixa eletrônico engoliu meu cartão."
+accept = ["The ATM swallowed my card", "The ATM ate my card"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "Você chega ao guichê com a conta de luz na mão."
+say = "I need to pay this bill."
+short = "Pay this, please."
+polished = "Hi, I need to pay this bill, please."
+meaning = "Preciso pagar essa conta."
+accept = ["I'd like to pay this bill"]
+tip = "'Bill' é conta a pagar (luz, restaurante). 'Account' é conta de banco."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "Primeiro mês no apartamento, você escreve ao proprietário."
+say = "When is the rent due?"
+short = "When's it due?"
+polished = "Could you remind me when the rent is due?"
+meaning = "Quando vence o aluguel?"
+accept = ["When's the rent due?"]
+tip = "'Due' = que vence, com prazo: 'the rent is due on the first'."

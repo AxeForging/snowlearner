@@ -34,3 +34,29 @@ situation = "At immigration, they ask why you're traveling."
 say = "¿Me puede pedir un taxi al aeropuerto?"
 meaning = "Could you call me a taxi to the airport?"
 situation = "You need a taxi to the airport."
+
+[[phrase]]
+say = "¿Dónde puedo comprar un boleto?"
+meaning = "Where can I buy a ticket?"
+situation = "At the station, you can't find the ticket office."
+tip = "'Boleto' in Latin America, 'billete' in Spain."
+
+[[phrase]]
+say = "¿Este tren va al aeropuerto?"
+meaning = "Does this train go to the airport?"
+situation = "The train is at the platform and you're not sure it's yours."
+
+[[phrase]]
+say = "¿Nos puede tomar una foto?"
+meaning = "Can you take our picture?"
+situation = "You and your friend want a photo together in front of the monument."
+
+[[phrase]]
+say = "¿A qué hora abre el museo?"
+meaning = "What time does the museum open?"
+situation = "You're planning tomorrow with the hotel receptionist."
+
+[[phrase]]
+say = "¿Puedo dejar mis maletas aquí?"
+meaning = "Can I leave my bags here?"
+situation = "You checked out in the morning, but your flight isn't until tonight."

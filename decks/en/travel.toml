@@ -69,3 +69,53 @@ short = "On vacation"
 polished = "I'm just here on vacation for a week"
 meaning = "Estou aqui de férias"
 accept = ["I'm here for vacation", "I'm here on holiday"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Na estação, você não acha a bilheteria."
+say = "Where can I buy a ticket?"
+short = "Tickets?"
+polished = "Excuse me, where can I buy a ticket?"
+meaning = "Onde posso comprar uma passagem?"
+accept = ["Where do I buy a ticket?", "Where can I get a ticket?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "O trem está na plataforma e você não tem certeza se é o seu."
+say = "Does this train go to the airport?"
+short = "To the airport?"
+polished = "Excuse me, does this train go to the airport?"
+meaning = "Esse trem vai pro aeroporto?"
+accept = ["Is this the train to the airport?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você e seu amigo querem uma foto juntos em frente ao monumento."
+say = "Can you take our picture?"
+short = "A picture, please?"
+polished = "Excuse me, could you take our picture, please?"
+meaning = "Pode tirar uma foto da gente?"
+accept = ["Could you take our picture?", "Can you take a picture of us?", "Can you take our photo?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você planeja o dia seguinte com o recepcionista do hotel."
+say = "What time does the museum open?"
+short = "When does it open?"
+polished = "Excuse me, what time does the museum open?"
+meaning = "Que horas o museu abre?"
+accept = ["When does the museum open?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você fez o check-out de manhã, mas seu voo é só à noite."
+say = "Can I leave my bags here?"
+short = "My bags here?"
+polished = "Would it be okay to leave my bags here?"
+meaning = "Posso deixar minhas malas aqui?"
+accept = ["Could I leave my bags here?", "Can I leave my luggage here?"]

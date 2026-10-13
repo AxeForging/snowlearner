@@ -1,0 +1,22 @@
+# decks/i18n/es.en (English for decks/es): saúde e social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Últimamente ando muy estresado."
+meaning = "I've been feeling stressed lately."
+situation = "A friend notices you've been quiet and asks if everything is okay."
+tip = "A woman says 'estresada'. 'Andar' + adjective = how you've been lately."
+
+[[phrase]]
+say = "Estoy tratando de dormir más."
+meaning = "I'm trying to get more sleep."
+situation = "A coworker invites you out late on a Tuesday."
+
+[[phrase]]
+say = "Deberías tomarte un día libre."
+meaning = "You should take a day off."
+situation = "Your friend is exhausted and won't stop working."
+
+[[phrase]]
+say = "Avísame si necesitas algo."
+meaning = "Let me know if you need anything."
+situation = "A friend is sick at home, alone."

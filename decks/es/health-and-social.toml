@@ -1,0 +1,42 @@
+# decks/es: saúde e social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "Um amigo nota que você anda quieto e pergunta se está tudo bem."
+say = "Últimamente ando muy estresado."
+short = "Ando estresado."
+polished = "La verdad, últimamente ando muy estresado."
+meaning = "Ando muito estressado ultimamente."
+accept = ["Últimamente ando muy estresada", "Últimamente estoy muy estresado", "Últimamente estoy muy estresada"]
+tip = "'Andar' + adjetivo = como você tem estado: 'ando cansado'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "Um colega te chama pra sair tarde numa terça-feira."
+say = "Estoy tratando de dormir más."
+short = "Necesito dormir más."
+polished = "Estos días estoy tratando de dormir más."
+meaning = "Estou tentando dormir mais."
+accept = ["Estoy intentando dormir más"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "Seu amigo está exausto e não para de trabalhar."
+say = "Deberías tomarte un día libre."
+short = "Tómate un día libre."
+polished = "De verdad creo que deberías tomarte un día libre."
+meaning = "Você devia tirar um dia de folga."
+accept = ["Deberías tomar un día libre", "Tendrías que tomarte un día libre"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "B1"
+situation = "Uma amiga está doente em casa, sozinha."
+say = "Avísame si necesitas algo."
+short = "Avísame."
+polished = "Por favor, avísame si necesitas cualquier cosa."
+meaning = "Me avisa se precisar de alguma coisa."
+accept = ["Dime si necesitas algo"]

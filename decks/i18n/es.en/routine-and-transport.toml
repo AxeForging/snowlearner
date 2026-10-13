@@ -1,0 +1,44 @@
+# decks/i18n/es.en (English for decks/es): rotina e transporte. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "¿Está ocupado este asiento?"
+meaning = "Is this seat taken?"
+situation = "The bus is full and there's a bag on the seat next to someone."
+
+[[phrase]]
+say = "Esta es mi parada."
+meaning = "This is my stop."
+situation = "The bus is packed and you need to squeeze through to get off."
+tip = "'Permiso' is the 'excuse me' for getting past people."
+
+[[phrase]]
+say = "¿Cuánto cuesta el pasaje?"
+meaning = "How much is the fare?"
+situation = "You get on the bus and don't know how much to pay."
+
+[[phrase]]
+say = "¿Me puede dejar aquí?"
+meaning = "Can you drop me off here?"
+situation = "Your ride-share driver is about to go past your place."
+
+[[phrase]]
+say = "Perdí el autobús."
+meaning = "I missed the bus."
+situation = "You reach the stop and see the bus turning the corner."
+tip = "The bus has many names: 'autobús', 'bus', 'camión' (Mexico), 'colectivo' (Argentina)."
+
+[[phrase]]
+say = "Estoy atrapado en el tráfico."
+meaning = "I'm stuck in traffic."
+situation = "You call to say you'll be late for dinner."
+tip = "A woman says 'atrapada'."
+
+[[phrase]]
+say = "¿Hay una forma más rápida de llegar?"
+meaning = "Is there a faster way to get there?"
+situation = "The app shows an hour by subway to your friend's place."
+
+[[phrase]]
+say = "Necesito recargar mi tarjeta."
+meaning = "I need to top up my card."
+situation = "The subway turnstile beeps: your card has no balance."

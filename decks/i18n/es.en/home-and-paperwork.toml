@@ -1,0 +1,46 @@
+# decks/i18n/es.en (English for decks/es): casa e burocracia. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "El wifi no funciona."
+meaning = "The wifi isn't working."
+situation = "The internet in your rented apartment is down and you write to the owner."
+
+[[phrase]]
+say = "¿Dónde saco la basura?"
+meaning = "Where do I take out the trash?"
+situation = "First week in the new building, you run into a neighbor in the hallway."
+
+[[phrase]]
+say = "Quiero retirar dinero."
+meaning = "I'd like to withdraw some money."
+situation = "At the bank counter, the teller asks how she can help."
+tip = "'Retirar' or 'sacar' dinero = to withdraw cash."
+
+[[phrase]]
+say = "¿Hay un cajero cerca?"
+meaning = "Is there an ATM nearby?"
+situation = "The street market is cash only and you have none."
+tip = "'Cajero' (automático) is an ATM."
+
+[[phrase]]
+say = "Hay una fuga de agua."
+meaning = "There's a water leak."
+situation = "The kitchen sink drips all night and you tell the landlord."
+
+[[phrase]]
+say = "El cajero se tragó mi tarjeta."
+meaning = "The ATM kept my card."
+situation = "The ATM didn't give your card back and you walk into the branch."
+tip = "The ATM 'swallows' the card: 'se tragó'."
+
+[[phrase]]
+say = "Necesito pagar esta factura."
+meaning = "I need to pay this bill."
+situation = "You walk up to the counter with the electricity bill in your hand."
+tip = "'Factura' is a utility bill or invoice. A restaurant bill is 'la cuenta'."
+
+[[phrase]]
+say = "¿Cuándo se paga el alquiler?"
+meaning = "When is the rent due?"
+situation = "First month in the apartment, you write to the landlord."
+tip = "Rent is 'alquiler' in most countries, 'renta' in Mexico."
