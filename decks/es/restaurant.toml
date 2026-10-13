@@ -1,0 +1,103 @@
+# decks/es: restaurante. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "restaurante"
+situation = "Terminou de comer e quer pagar."
+say = "La cuenta, por favor"
+polished = "Cuando pueda, ¿nos trae la cuenta, por favor?"
+meaning = "A conta, por favor"
+accept = ["¿Me trae la cuenta, por favor?"]
+
+[[phrase]]
+topic = "restaurante"
+situation = "Quer levar a comida."
+say = "¿Me lo pone para llevar?"
+short = "Para llevar"
+polished = "¿Me lo pone para llevar, por favor?"
+meaning = "Pode embalar pra viagem?"
+accept = ["Para llevar, por favor"]
+
+[[phrase]]
+topic = "restaurante"
+situation = "Tem alergia a nozes."
+say = "Soy alérgico a los frutos secos"
+short = "Sin frutos secos"
+polished = "Para que lo sepa, soy alérgico a los frutos secos"
+meaning = "Sou alérgico a nozes e castanhas"
+
+[[phrase]]
+topic = "restaurante"
+situation = "Não sabe o que pedir."
+say = "¿Qué me recomienda?"
+polished = "¿Qué me recomendaría usted?"
+meaning = "O que você me recomenda?"
+accept = ["¿Qué me recomiendas?"]
+
+[[phrase]]
+topic = "restaurante"
+situation = "Chegou com um amigo."
+say = "Una mesa para dos, por favor"
+short = "Para dos"
+polished = "Buenas, ¿tiene una mesa para dos, por favor?"
+meaning = "Uma mesa pra dois, por favor"
+
+[[phrase]]
+topic = "restaurante"
+situation = "Quer saber se aceitam cartão."
+say = "¿Aceptan tarjeta?"
+polished = "¿Se puede pagar con tarjeta?"
+meaning = "Vocês aceitam cartão?"
+accept = ["¿Se puede pagar con tarjeta?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "O garçom chega à mesa com o bloquinho na mão."
+say = "Voy a pedir el pollo."
+short = "El pollo, por favor."
+polished = "Creo que voy a pedir el pollo, por favor."
+meaning = "Vou querer o frango."
+accept = ["Para mí, el pollo", "Yo quiero el pollo"]
+tip = "Pra pedir: 'voy a pedir...' ou 'para mí, ...'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "Vocês sentaram há dez minutos e ninguém trouxe o cardápio."
+say = "¿Nos trae la carta?"
+short = "La carta, por favor."
+polished = "Disculpe, ¿nos podría traer la carta, por favor?"
+meaning = "Pode trazer o cardápio?"
+accept = ["¿Nos trae el menú?", "¿Nos puede traer la carta?"]
+tip = "Falso amigo: 'la carta' é o cardápio. Também se diz 'el menú'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "Você não aguenta pimenta e o prato tem um desenho de chama ao lado."
+say = "¿Este plato pica?"
+short = "¿Pica?"
+polished = "Disculpe, ¿este plato pica mucho?"
+meaning = "Esse prato é apimentado?"
+accept = ["¿Este plato es picante?", "¿Es picante?"]
+tip = "'Picar' = arder de pimenta. Apimentado é 'picante'."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "A comida chegou, mas esqueceram a sua bebida."
+say = "¿Me trae agua, por favor?"
+short = "Agua, por favor."
+polished = "¿Me podría traer agua, por favor?"
+meaning = "Pode me trazer uma água, por favor?"
+accept = ["¿Me trae un vaso de agua, por favor?", "¿Me puede traer agua?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "O garçom tira os pratos e pergunta se estava tudo bom."
+say = "Todo estuvo delicioso."
+short = "Estuvo delicioso."
+polished = "Todo estuvo delicioso, muchas gracias."
+meaning = "Estava tudo delicioso."
+accept = ["Todo estaba delicioso", "Todo estuvo muy rico"]

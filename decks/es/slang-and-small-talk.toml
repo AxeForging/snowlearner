@@ -1,0 +1,105 @@
+# decks/es: gírias e conversa. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Perguntam que horas o mercado fecha e você não sabe."
+say = "No tengo ni idea."
+short = "Ni idea."
+polished = "La verdad, no tengo ni idea."
+meaning = "Não faço ideia."
+accept = ["No tengo idea"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Seu amigo pergunta se você prefere pizza ou hambúrguer."
+say = "Me da igual."
+polished = "A mí me da igual, elige tú."
+meaning = "Pra mim tanto faz."
+accept = ["Me da lo mismo", "Lo que tú quieras"]
+tip = "'Me da igual' = tanto faz. Dito seco, pode soar desinteressado."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Chove forte e te chamam pra uma festa do outro lado da cidade."
+say = "¡Qué pereza!"
+polished = "¡Qué pereza salir con esta lluvia!"
+meaning = "Que preguiça!"
+accept = ["¡Qué flojera!", "Me da pereza"]
+tip = "'¡Qué pereza!' vale em quase todo lugar; no México também se diz '¡qué flojera!'."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Um amigo conta que vai largar o emprego pra viajar o mundo."
+say = "¿En serio?"
+polished = "¿En serio? ¡No te lo puedo creer!"
+meaning = "Sério?"
+accept = ["¿De verdad?", "¿Hablas en serio?"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Vocês combinam por mensagem de se encontrar às oito."
+say = "¡Dale, nos vemos!"
+short = "¡Dale!"
+polished = "¡Dale, nos vemos a las ocho entonces!"
+meaning = "Beleza, a gente se vê!"
+accept = ["¡Vale, nos vemos!", "¡Listo, nos vemos!", "¡Va, nos vemos!"]
+tip = "'Dale' = beleza, combinado (América Latina). Na Espanha é 'vale'."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Perguntam o que você acha do seu colega de apartamento."
+say = "Me cae muy bien."
+short = "Me cae bien."
+polished = "La verdad, me cae muy bien."
+meaning = "Gosto muito dele, é gente boa."
+accept = ["Me cae súper bien", "Me cae genial"]
+tip = "'Caer bien' = simpatizar com a pessoa. 'Me gusta' pode soar romântico."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "O técnico marcou pra manhã e já são quatro da tarde."
+say = "Estoy harto de esperar."
+short = "Estoy harto."
+polished = "La verdad, ya estoy harto de esperar."
+meaning = "Cansei de esperar."
+accept = ["Estoy harta de esperar", "Ya me cansé de esperar"]
+tip = "'Estar harto' = não aguentar mais."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Seu amigo quer ir a um restaurante que você conhece e sabe o preço."
+say = "¡Ojo, que es muy caro!"
+short = "¡Ojo!"
+polished = "¡Ojo con ese lugar, que es muy caro!"
+meaning = "Fica esperto, é bem caro!"
+accept = ["Ojo, es muy caro", "Cuidado, que es muy caro"]
+tip = "'¡Ojo!' (olho) = atenção, fica esperto."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Um amigo te manda um vídeo de um gato caindo do sofá."
+say = "Me muero de risa."
+short = "¡Qué risa!"
+polished = "Me muero de risa con ese video."
+meaning = "Estou morrendo de rir."
+accept = ["Me estoy muriendo de risa", "Me morí de risa"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Você reencontra um conhecido e quer saber as novidades."
+say = "¿Qué onda? ¿Cómo andas?"
+short = "¿Qué onda?"
+polished = "¿Qué onda? ¿Cómo andas, todo bien?"
+meaning = "E aí, como você está?"
+accept = ["¿Qué tal? ¿Cómo andas?", "¿Qué onda, cómo estás?"]
+tip = "'¿Qué onda?' é o 'e aí?' de boa parte da América Latina. Na Espanha, '¿qué tal?'."

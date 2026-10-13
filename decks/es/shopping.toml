@@ -1,0 +1,160 @@
+# decks/es: compras. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "compras"
+situation = "O vendedor oferece ajuda, mas você só está olhando."
+say = "Solo estoy mirando, gracias"
+short = "Solo miro"
+polished = "Solo estoy mirando por ahora, muchas gracias"
+meaning = "Só estou olhando, obrigado"
+
+[[phrase]]
+topic = "compras"
+situation = "Quer provar uma roupa."
+say = "¿Me lo puedo probar?"
+polished = "¿Le importa si me lo pruebo?"
+meaning = "Posso experimentar?"
+accept = ["¿Puedo probármelo?"]
+
+[[phrase]]
+topic = "compras"
+situation = "Precisa de outro tamanho."
+say = "¿Lo tiene en una talla más grande?"
+short = "¿Una talla más?"
+polished = "Disculpe, ¿lo tiene en una talla más grande?"
+meaning = "Tem num tamanho maior?"
+tip = "Tamanho de roupa é 'talla'; de sapato, 'número'."
+
+[[phrase]]
+topic = "compras"
+situation = "Quer devolver um produto."
+say = "Quiero devolver esto"
+polished = "Hola, me gustaría devolver esto, por favor"
+meaning = "Quero devolver isso"
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você pegou duas calças e não acha onde experimentar."
+say = "¿Dónde están los probadores?"
+short = "¿Los probadores?"
+polished = "Disculpe, ¿dónde están los probadores?"
+meaning = "Onde ficam os provadores?"
+accept = ["¿Dónde está el probador?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você sai do provador e a vendedora pergunta como ficou a camisa."
+say = "Me queda apretada."
+short = "Muy apretada."
+polished = "Me queda un poco apretada."
+meaning = "Ficou apertada em mim."
+accept = ["Me queda apretado", "Me aprieta"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você gostou do casaco e decide comprar."
+say = "Me lo llevo."
+polished = "Perfecto, me lo llevo, gracias."
+meaning = "Vou levar."
+accept = ["Me la llevo", "Lo llevo"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Já é tarde e você quer saber se dá tempo de voltar à loja."
+say = "¿A qué hora cierran?"
+short = "¿Cuándo cierran?"
+polished = "Disculpe, ¿a qué hora cierran hoy?"
+meaning = "Que horas vocês fecham?"
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Há uma placa de desconto, mas a etiqueta mostra o preço cheio."
+say = "¿Esto está en oferta?"
+short = "¿En oferta?"
+polished = "Disculpe, ¿este está en oferta?"
+meaning = "Isso está em promoção?"
+accept = ["¿Esto está rebajado?", "¿Está en oferta?"]
+tip = "'Oferta' ou 'rebaja' = promoção."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "A vendedora pergunta se pode ajudar, e você procura algo pra sua mãe."
+say = "Busco un regalo."
+polished = "Busco un regalo para mi mamá."
+meaning = "Estou procurando um presente."
+accept = ["Estoy buscando un regalo"]
+tip = "Falso amigo: 'regalo' é presente."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Você pagou e o caixa não entregou o comprovante."
+say = "¿Me da el recibo?"
+short = "El recibo, por favor."
+polished = "¿Me podría dar el recibo, por favor?"
+meaning = "Pode me dar a nota?"
+accept = ["¿Me da el ticket?", "¿Me das el recibo?"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "O tênis ficou grande no seu pé."
+say = "¿Tiene una talla más pequeña?"
+short = "¿Una talla menos?"
+polished = "¿De casualidad tiene una talla más pequeña?"
+meaning = "Tem um número menor?"
+accept = ["¿Tiene un número más pequeño?", "¿Tiene una talla más chica?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você abre a caixa na loja e a tela do aparelho está riscada."
+say = "Este está dañado."
+short = "Está dañado."
+polished = "Disculpe, pero este está dañado."
+meaning = "Este aqui está com defeito."
+accept = ["Este viene dañado", "Este está roto"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você ganhou uma blusa, mas não gostou da cor."
+say = "¿Puedo cambiarlo por otro color?"
+short = "¿Puedo cambiarlo?"
+polished = "¿Sería posible cambiarlo por otro color?"
+meaning = "Posso trocar por outra cor?"
+accept = ["¿Lo puedo cambiar por otro color?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você comprou online há duas semanas e nada chegou."
+say = "Mi pedido todavía no llega."
+short = "Mi pedido no llega."
+polished = "Disculpe, mi pedido todavía no ha llegado."
+meaning = "Meu pedido ainda não chegou."
+accept = ["Mi pedido aún no llega", "Mi pedido todavía no ha llegado"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Antes de comprar um presente caro, você quer saber se pode devolver."
+say = "¿Cuál es su política de devoluciones?"
+short = "¿Puedo devolverlo?"
+polished = "¿Me podría decir cuál es su política de devoluciones?"
+meaning = "Qual é a política de devolução?"
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você confere o extrato e a mesma compra aparece duas vezes."
+say = "Creo que me cobraron dos veces."
+short = "Me cobraron dos veces."
+polished = "Disculpe, creo que me cobraron dos veces por esto."
+meaning = "Acho que me cobraram duas vezes."

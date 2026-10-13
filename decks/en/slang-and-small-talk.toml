@@ -1,0 +1,105 @@
+# decks/en: gírias e conversa. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Perguntam que horas o mercado fecha e você não sabe."
+say = "I have no clue."
+short = "No clue."
+polished = "Honestly, I have no clue."
+meaning = "Não faço ideia."
+accept = ["I have no idea", "I've got no clue"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Seu amigo pergunta se você prefere pizza ou hambúrguer."
+say = "Either way works for me."
+short = "Either way."
+polished = "Honestly, either way works for me."
+meaning = "Pra mim tanto faz."
+accept = ["Either one works for me", "I'm fine with either"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Chove forte e te chamam pra uma festa do outro lado da cidade."
+say = "I don't feel like going out."
+short = "I don't feel like it."
+polished = "I really don't feel like going out tonight."
+meaning = "Não estou a fim de sair."
+accept = ["I'm not in the mood to go out"]
+tip = "'Feel like' + verbo com -ing = estar a fim de."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Um amigo conta que vai largar o emprego pra viajar o mundo."
+say = "Are you serious?"
+short = "Seriously?"
+polished = "Are you serious? I can't believe it!"
+meaning = "Tá falando sério?"
+accept = ["Are you being serious?"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Vocês combinam por mensagem de se encontrar às oito."
+say = "Cool, see you then!"
+short = "Cool!"
+polished = "Cool, see you at eight then!"
+meaning = "Beleza, até lá!"
+accept = ["Great, see you then", "Okay, see you then"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Perguntam como é morar com seu colega de apartamento."
+say = "We get along really well."
+short = "We get along."
+polished = "We get along really well, actually."
+meaning = "A gente se dá muito bem."
+accept = ["We get on really well"]
+tip = "'Get along' = se dar bem com alguém. No Reino Unido, 'get on'."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "O técnico marcou pra manhã e já são quatro da tarde."
+say = "I'm fed up with waiting."
+short = "I'm fed up."
+polished = "Honestly, I'm fed up with waiting."
+meaning = "Cansei de esperar."
+accept = ["I'm sick of waiting", "I'm tired of waiting"]
+tip = "'Fed up' = de saco cheio, sem ser palavrão."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Seu amigo quer ir a um restaurante que você conhece e sabe o preço."
+say = "Heads up, it's pretty expensive."
+short = "Heads up!"
+polished = "Just a heads up, it's pretty expensive."
+meaning = "Só avisando, é bem caro."
+accept = ["Just so you know, it's pretty expensive"]
+tip = "'Heads up' = aviso amigável antes de algo acontecer."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Um amigo te manda um vídeo de um gato caindo do sofá."
+say = "That's hilarious!"
+short = "Hilarious!"
+polished = "That's hilarious, I can't stop laughing!"
+meaning = "Isso é muito engraçado!"
+accept = ["That is hilarious", "That's so funny"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Você reencontra um conhecido e quer saber as novidades."
+say = "What have you been up to?"
+short = "What's new?"
+polished = "So, what have you been up to lately?"
+meaning = "O que você anda fazendo?"
+accept = ["What've you been up to?", "What have you been doing?"]

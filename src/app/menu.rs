@@ -1,6 +1,7 @@
 //! The control panel ("Painel"): a small pixel window to change settings live
-//! and trigger actions, in three tabs — JOGO (game), ÁUDIO (mic, voices) and
-//! PROGRESSO (what you know, what you're learning, what comes next).
+//! and trigger actions, in four tabs — JOGO (game), ÁUDIO (mic, voices),
+//! TECLAS (the global hotkeys) and PROGRESSO (what you know, what you're
+//! learning, what comes next).
 //! Pure state + drawing; the app owns the window.
 //! Keys: ↑/↓ choose, ←/→ change, Enter act, Tab switch tab, Esc close. Mouse: click.
 
@@ -52,16 +53,24 @@ pub enum Item {
     VoiceLearning,
     TestVoices,
     Speaker,
+    /// The global hotkeys, one row each.
+    KeyPractice,
+    KeyRecap,
+    KeyPanel,
+    KeyGrab,
+    KeyProgress,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
     Game,
     Audio,
+    Keys,
     Progress,
 }
 
-const TABS: [(Tab, T); 3] = [(Tab::Game, T::TabGame), (Tab::Audio, T::TabAudio), (Tab::Progress, T::TabProgress)];
+const TABS: [(Tab, T); 4] =
+    [(Tab::Game, T::TabGame), (Tab::Audio, T::TabAudio), (Tab::Keys, T::TabKeys), (Tab::Progress, T::TabProgress)];
 
 pub const GAME: &[Item] = &[
     Item::Native,
@@ -89,6 +98,40 @@ pub const AUDIO: &[Item] = &[
     Item::TestVoices,
     Item::Speaker,
 ];
+
+pub const KEYS: &[Item] = &[Item::KeyPractice, Item::KeyRecap, Item::KeyPanel, Item::KeyGrab, Item::KeyProgress];
+
+/// The setting a hotkey row changes.
+fn hotkey(s: &mut Settings, item: Item) -> Option<&mut String> {
+    Some(match item {
+        Item::KeyPractice => &mut s.hotkey_challenge,
+        Item::KeyRecap => &mut s.hotkey_summary,
+        Item::KeyPanel => &mut s.hotkey_menu,
+        Item::KeyGrab => &mut s.hotkey_grab,
+        Item::KeyProgress => &mut s.hotkey_progress,
+        _ => return None,
+    })
+}
+
+/// The combination a hotkey row holds; None for any other row.
+pub fn combo(s: &Settings, item: Item) -> Option<String> {
+    hotkey(&mut s.clone(), item).cloned()
+}
+
+/// What a hotkey row offers: every letter and digit under the modifiers the
+/// hotkey already has ("Ctrl+Alt"), minus the keys the other hotkeys hold.
+fn key_options(s: &Settings, item: Item) -> Vec<String> {
+    let mut s = s.clone();
+    let held = |s: &mut Settings, i: Item| hotkey(s, i).map(|h| h.replace(' ', "").to_lowercase());
+    let others: Vec<String> = KEYS.iter().filter(|k| **k != item).filter_map(|k| held(&mut s, *k)).collect();
+    let current = hotkey(&mut s, item).map(|h| h.replace(' ', "")).unwrap_or_default();
+    let mods = current.rsplit_once('+').map_or("Ctrl+Alt", |(mods, _)| mods);
+    ('A'..='Z')
+        .chain('0'..='9')
+        .map(|k| format!("{mods}+{k}"))
+        .filter(|k| !others.contains(&k.to_lowercase()))
+        .collect()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {
@@ -138,6 +181,9 @@ pub struct Menu {
     pub status: String,
     /// What the PROGRESSO tab shows (the app refreshes it).
     pub progress: Option<Progress>,
+    /// Hotkey combinations that could not be registered (another program
+    /// has them), as written in the settings; the app keeps this current.
+    pub keys_taken: Vec<String>,
     /// The address being typed; keys go to it until Enter or Esc.
     edit: Option<String>,
     /// The list open over the rows (every option of one item at once).
@@ -244,6 +290,7 @@ impl Menu {
             test_result: String::new(),
             status: String::new(),
             progress: None,
+            keys_taken: Vec::new(),
             edit: None,
             list: None,
         }
@@ -281,6 +328,7 @@ impl Menu {
         match self.tab {
             Tab::Game => GAME,
             Tab::Audio => AUDIO,
+            Tab::Keys => KEYS,
             Tab::Progress => &[],
         }
     }
@@ -346,6 +394,11 @@ impl Menu {
             }
             Item::VoiceNative => each(s, with_default(&self.voices_native), |c, v| c.voice_native = v),
             Item::VoiceLearning => each(s, with_default(&self.voices_learning), |c, v| c.voice_learning = v),
+            key if KEYS.contains(&key) => each(s, key_options(s, key), |c, k| {
+                if let Some(h) = hotkey(c, key) {
+                    *h = k;
+                }
+            }),
             _ => Vec::new(),
         }
     }
@@ -610,6 +663,10 @@ impl Menu {
                     None => auto(v, T::VoiceAuto),
                 }
             }
+            key if KEYS.contains(&key) => {
+                let combo = hotkey(&mut s.clone(), key).cloned().unwrap_or_default();
+                if self.keys_taken.contains(&combo) { T::KeyTaken.fill(n, &[&combo]) } else { combo }
+            }
             _ => String::new(),
         }
     }
@@ -637,6 +694,11 @@ impl Menu {
             Item::VoiceLearning => T::ItemVoiceLearning,
             Item::TestVoices => T::ItemTestVoices,
             Item::Speaker => T::ItemSpeaker,
+            Item::KeyPractice => T::ItemKeyPractice,
+            Item::KeyRecap => T::ItemKeyRecap,
+            Item::KeyPanel => T::ItemKeyPanel,
+            Item::KeyGrab => T::ItemKeyGrab,
+            Item::KeyProgress => T::ItemKeyProgress,
         }
         .get(native)
     }
@@ -852,6 +914,11 @@ impl Menu {
             for (k, line) in font::wrap(text, WIDTH - 16).iter().take(3).enumerate() {
                 font::draw(c, 6, y + 10 + k as i32 * (ROW_H - 1), line, hex(0xe6ecff));
             }
+        } else if self.tab == Tab::Keys {
+            let y = TOP + KEYS.len() as i32 * ROW_H + 6;
+            for (k, line) in font::wrap(T::KeysHelp.get(n), WIDTH - 16).iter().enumerate() {
+                font::draw(c, 6, y + k as i32 * (ROW_H - 1), line, dim);
+            }
         } else {
             font::draw(c, 6, foot_y - 2, &self.status, accent);
         }
@@ -871,7 +938,7 @@ mod tests {
     }
 
     fn select(m: &mut Menu, item: Item) {
-        if !m.items().contains(&item) {
+        while !m.items().contains(&item) {
             m.switch_tab();
         }
         m.sel = m.items().iter().position(|i| *i == item).unwrap();
@@ -962,19 +1029,91 @@ mod tests {
     }
 
     #[test]
-    fn tab_cycles_game_audio_progress_and_back() {
+    fn tab_cycles_game_audio_keys_progress_and_back() {
         let mut m = menu();
         let mut s = Settings::default();
         m.key(Key::Tab, &mut s);
         assert_eq!(m.item(), Item::Mic);
         m.key(Key::Tab, &mut s);
+        assert_eq!(m.item(), Item::KeyPractice);
+        m.key(Key::Tab, &mut s);
         assert_eq!(m.tab, Tab::Progress);
         m.key(Key::Tab, &mut s);
         assert_eq!(m.item(), Item::Native);
-        assert_eq!(m.click(WIDTH / 2, TABS_Y + 3, &mut s), Action::None);
+        assert_eq!(m.click(WIDTH / 2 - 10, TABS_Y + 3, &mut s), Action::None);
         assert_eq!(m.tab, Tab::Audio, "clicking the tab header switches");
         m.click(WIDTH - 10, TABS_Y + 3, &mut s);
         assert_eq!(m.tab, Tab::Progress);
+    }
+
+    #[test]
+    fn a_hotkey_row_changes_the_key_and_keeps_its_modifiers() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::KeyPractice);
+        assert_eq!(m.value(Item::KeyPractice, &s), "Ctrl+Alt+M");
+        assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::KeyPractice));
+        assert_eq!(s.hotkey_challenge, "Ctrl+Alt+N");
+        s.hotkey_grab = "Ctrl+Shift+G".into();
+        select(&mut m, Item::KeyGrab);
+        m.key(Key::Right, &mut s);
+        assert_eq!(s.hotkey_grab, "Ctrl+Shift+H", "the modifiers written in the config stay");
+        s.validate().unwrap();
+    }
+
+    #[test]
+    fn a_hotkey_row_never_offers_a_key_another_action_holds() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::KeyPractice);
+        m.key(Key::Enter, &mut s);
+        let offered = list_texts(&m, &s);
+        assert!(offered.contains(&"Ctrl+Alt+M".to_string()) && offered.contains(&"Ctrl+Alt+Y".to_string()));
+        for held in ["Ctrl+Alt+J", "Ctrl+Alt+K", "Ctrl+Alt+G", "Ctrl+Alt+P"] {
+            assert!(!offered.contains(&held.to_string()), "{held} belongs to another action");
+        }
+        assert_eq!(offered.len(), 26 + 10 - 4, "every free letter and digit");
+        // Stepping right from I skips J and K (recap, panel) and lands on L.
+        s.hotkey_challenge = "Ctrl+Alt+I".into();
+        m.close_list();
+        m.key(Key::Right, &mut s);
+        assert_eq!(s.hotkey_challenge, "Ctrl+Alt+L");
+    }
+
+    #[test]
+    fn a_hotkey_another_program_has_is_marked_in_the_row_and_the_list() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        m.keys_taken = vec!["Ctrl+Alt+M".into()];
+        assert_eq!(m.value(Item::KeyPractice, &s), "Ctrl+Alt+M (em uso)");
+        assert_eq!(m.value(Item::KeyRecap, &s), "Ctrl+Alt+J", "only the taken one");
+        s.native = Native::En;
+        assert_eq!(m.value(Item::KeyPractice, &s), "Ctrl+Alt+M (in use)");
+        select(&mut m, Item::KeyPractice);
+        m.key(Key::Enter, &mut s);
+        let marked: Vec<String> = list_texts(&m, &s).into_iter().filter(|t| t.contains("in use")).collect();
+        assert_eq!(marked, vec!["Ctrl+Alt+M (in use)"]);
+        m.key(Key::Down, &mut s);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::KeyPractice));
+        assert_eq!(m.value(Item::KeyPractice, &s), "Ctrl+Alt+N", "a free key has no mark");
+    }
+
+    #[test]
+    fn the_keys_tab_draws_its_rows_and_help_inside_the_panel() {
+        let mut m = menu();
+        m.show(Tab::Keys);
+        m.keys_taken = vec!["Ctrl+Alt+M".into()];
+        for native in Native::ALL {
+            let s = Settings { native, learning: "es".into(), ..Default::default() };
+            let help = font::wrap(T::KeysHelp.get(native), WIDTH - 16);
+            let bottom = TOP + KEYS.len() as i32 * ROW_H + 6 + help.len() as i32 * (ROW_H - 1);
+            assert!(bottom <= HEIGHT - 13, "{native:?}: the help runs into the footer");
+            for item in KEYS {
+                let row = format!("{}  < {} >", Menu::label(*item, native), m.value(*item, &s));
+                assert!(font::text_width(&row) <= WIDTH - 16, "{row:?} does not fit");
+            }
+            render(&m, &s);
+        }
     }
 
     #[test]
@@ -1246,14 +1385,14 @@ mod tests {
         m.meter = Some(0.1);
         m.test_result = "Ouvi: \"I'm hungry\" ✓".into();
         let s = Settings::default();
-        for item in GAME.iter().chain(AUDIO) {
+        for item in GAME.iter().chain(AUDIO).chain(KEYS) {
             for native in Native::ALL {
                 let s = Settings { native, learning: "es".into(), ..s.clone() };
                 assert!(font::supports(Menu::label(*item, native)), "{item:?}");
                 assert!(font::supports(&m.value(*item, &s)), "{item:?}");
             }
         }
-        for tab in [Tab::Game, Tab::Audio, Tab::Progress] {
+        for tab in [Tab::Game, Tab::Audio, Tab::Keys, Tab::Progress] {
             m.tab = tab;
             let mut c = Canvas::new(WIDTH, HEIGHT);
             m.draw(&mut c, &s, 0.0);
@@ -1283,6 +1422,11 @@ mod tests {
         Item::VoiceNative,
         Item::VoiceLearning,
         Item::Speaker,
+        Item::KeyPractice,
+        Item::KeyRecap,
+        Item::KeyPanel,
+        Item::KeyGrab,
+        Item::KeyProgress,
     ];
 
     /// The options an open list shows, as the panel reads them.
@@ -1385,7 +1529,7 @@ mod tests {
         assert_eq!(m.click(50, LIST_TOP + 9 * ROW_H, &mut s), Action::None, "below the last option: nothing");
         assert_eq!(m.click(50, TOP + 2, &mut s), Action::None, "the header: nothing");
         assert_eq!(m.list_open(), Some(Item::Commitment));
-        assert_eq!(m.click(WIDTH / 2, TABS_Y + 3, &mut s), Action::None);
+        assert_eq!(m.click(WIDTH / 2 - 10, TABS_Y + 3, &mut s), Action::None);
         assert_eq!((m.list_open(), m.tab), (None, Tab::Audio), "a tab click leaves the list for that tab");
         assert_eq!(s.commitment, Commitment::Relentless);
     }

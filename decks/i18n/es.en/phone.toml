@@ -1,0 +1,84 @@
+# decks/i18n/es.en (English for decks/es): telefone. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "¿Puedo dejar un mensaje?"
+meaning = "Can I leave a message?"
+situation = "The person you're calling isn't there."
+
+[[phrase]]
+say = "Perdón, creo que me equivoqué de número"
+meaning = "Sorry, I think I have the wrong number"
+situation = "You called the wrong number."
+
+[[phrase]]
+say = "¿Quién habla, por favor?"
+meaning = "Who's calling, please?"
+situation = "You pick up the phone and don't recognize the voice."
+
+[[phrase]]
+say = "No te escucho."
+meaning = "I can't hear you."
+situation = "The call is very quiet and you can't hear the other person."
+
+[[phrase]]
+say = "¿Puedo hablar con Ana?"
+meaning = "Can I speak to Ana?"
+situation = "You call a friend's home and someone else picks up."
+
+[[phrase]]
+say = "Espera un segundo."
+meaning = "Hold on a second."
+situation = "The doorbell rings in the middle of a call and you have to go open the door."
+
+[[phrase]]
+say = "Te devuelvo la llamada."
+meaning = "I'll call you back."
+situation = "A friend calls just as you're getting on the bus."
+
+[[phrase]]
+say = "Quiero pedir una cita."
+meaning = "I'd like to make an appointment."
+situation = "You call the doctor's office to book a visit."
+tip = "'Cita' is an appointment, and also a date."
+
+[[phrase]]
+say = "¿Puede repetir el número?"
+meaning = "Could you repeat the number?"
+situation = "The receptionist read out the phone number too fast for you to write down."
+
+[[phrase]]
+say = "Se corta la llamada."
+meaning = "You're breaking up."
+situation = "The signal is bad and the other person's voice keeps dropping."
+
+[[phrase]]
+say = "¿Me mandas la dirección por mensaje?"
+meaning = "Can you text me the address?"
+situation = "A friend explains where the party is, but you'd rather have it in writing."
+tip = "False friend: 'dirección' is an address (and also a direction)."
+
+[[phrase]]
+say = "Llámame cuando puedas."
+meaning = "Call me when you can."
+situation = "Your friend doesn't pick up and you get their voicemail."
+
+[[phrase]]
+say = "Claro, espero."
+meaning = "Sure, I can hold."
+situation = "The agent asks if you can stay on the line."
+
+[[phrase]]
+say = "Llamo por mi conexión a internet."
+meaning = "I'm calling about my internet connection."
+situation = "Your home internet is down and you call support."
+tip = "'Llamo por...' is the standard way to give the reason for a call."
+
+[[phrase]]
+say = "Perdón, se cortó la llamada."
+meaning = "Sorry, we got cut off."
+situation = "The call dropped mid-conversation and you call again."
+
+[[phrase]]
+say = "¿Puedo hablar con una persona?"
+meaning = "Can I speak to a real person?"
+situation = "You're stuck in an automated phone menu and want an agent."

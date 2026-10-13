@@ -1,0 +1,121 @@
+# decks/en: viagem. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "viagem"
+situation = "Você chegou no hotel."
+say = "I have a reservation under my name"
+short = "I have a reservation"
+polished = "Hi, I have a reservation under my name"
+meaning = "Tenho uma reserva no meu nome"
+accept = ["I have a reservation"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber se o café da manhã está incluso."
+say = "Is breakfast included?"
+short = "Breakfast included?"
+polished = "Could you tell me if breakfast is included?"
+meaning = "O café da manhã está incluso?"
+
+[[phrase]]
+topic = "viagem"
+situation = "Precisa saber até que horas pode ficar no quarto."
+say = "What time is check-out?"
+short = "Check-out time?"
+polished = "Could you tell me what time check-out is?"
+meaning = "Que horas é o check-out?"
+
+[[phrase]]
+topic = "viagem"
+situation = "Sua mala não apareceu na esteira."
+say = "My luggage didn't arrive"
+short = "Lost luggage"
+polished = "I'm afraid my luggage didn't arrive"
+meaning = "Minha bagagem não chegou"
+accept = ["My bag didn't arrive"]
+tip = "'Luggage' não tem plural: nunca 'luggages'."
+
+[[phrase]]
+topic = "viagem"
+situation = "Está perdido e procura a estação."
+say = "How do I get to the train station?"
+short = "Train station?"
+polished = "Excuse me, how do I get to the train station?"
+meaning = "Como eu chego na estação de trem?"
+
+[[phrase]]
+topic = "viagem"
+situation = "No check-in do voo."
+say = "Could I get a window seat, please?"
+short = "Window seat, please"
+polished = "If possible, could I get a window seat, please?"
+meaning = "Poderia me dar um assento na janela, por favor?"
+accept = ["Can I get a window seat, please?", "Can I have a window seat?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber quanto tempo leva até o centro."
+say = "How long does it take to get downtown?"
+short = "How far is downtown?"
+polished = "Excuse me, do you know how long it takes to get downtown?"
+meaning = "Quanto tempo leva pra chegar no centro?"
+tip = "'Downtown' é o centro da cidade nos EUA."
+
+[[phrase]]
+topic = "viagem"
+situation = "Na imigração, perguntam o motivo da viagem."
+say = "I'm here on vacation"
+short = "On vacation"
+polished = "I'm just here on vacation for a week"
+meaning = "Estou aqui de férias"
+accept = ["I'm here for vacation", "I'm here on holiday"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Na estação, você não acha a bilheteria."
+say = "Where can I buy a ticket?"
+short = "Tickets?"
+polished = "Excuse me, where can I buy a ticket?"
+meaning = "Onde posso comprar uma passagem?"
+accept = ["Where do I buy a ticket?", "Where can I get a ticket?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "O trem está na plataforma e você não tem certeza se é o seu."
+say = "Does this train go to the airport?"
+short = "To the airport?"
+polished = "Excuse me, does this train go to the airport?"
+meaning = "Esse trem vai pro aeroporto?"
+accept = ["Is this the train to the airport?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você e seu amigo querem uma foto juntos em frente ao monumento."
+say = "Can you take our picture?"
+short = "A picture, please?"
+polished = "Excuse me, could you take our picture, please?"
+meaning = "Pode tirar uma foto da gente?"
+accept = ["Could you take our picture?", "Can you take a picture of us?", "Can you take our photo?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você planeja o dia seguinte com o recepcionista do hotel."
+say = "What time does the museum open?"
+short = "When does it open?"
+polished = "Excuse me, what time does the museum open?"
+meaning = "Que horas o museu abre?"
+accept = ["When does the museum open?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você fez o check-out de manhã, mas seu voo é só à noite."
+say = "Can I leave my bags here?"
+short = "My bags here?"
+polished = "Would it be okay to leave my bags here?"
+meaning = "Posso deixar minhas malas aqui?"
+accept = ["Could I leave my bags here?", "Can I leave my luggage here?"]

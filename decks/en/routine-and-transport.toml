@@ -1,0 +1,85 @@
+# decks/en: rotina e transporte. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O ônibus está cheio e há uma bolsa no banco ao lado de alguém."
+say = "Is this seat taken?"
+short = "Is this taken?"
+polished = "Excuse me, is this seat taken?"
+meaning = "Esse lugar está ocupado?"
+accept = ["Is anyone sitting here?"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O ônibus está lotado e você precisa passar pra descer."
+say = "This is my stop."
+short = "My stop!"
+polished = "Excuse me, this is my stop."
+meaning = "É a minha parada."
+accept = ["That's my stop", "I'm getting off here"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "Você sobe no ônibus e não sabe quanto pagar."
+say = "How much is the fare?"
+short = "How much?"
+polished = "Excuse me, how much is the fare?"
+meaning = "Quanto é a passagem?"
+accept = ["What's the fare?", "How much is a ticket?"]
+tip = "'Fare' é o preço da passagem (ônibus, metrô, táxi)."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "O motorista do aplicativo ia passar da sua casa."
+say = "Can you drop me off here?"
+short = "Here is fine."
+polished = "Could you drop me off right here, please?"
+meaning = "Pode me deixar aqui?"
+accept = ["Could you drop me off here?", "You can drop me off here"]
+tip = "'Drop off' = deixar alguém num lugar. O contrário é 'pick up' (buscar)."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "Você chega no ponto e vê o ônibus virando a esquina."
+say = "I missed the bus."
+short = "Missed it!"
+polished = "Sorry, I just missed the bus."
+meaning = "Perdi o ônibus."
+accept = ["I just missed the bus"]
+tip = "Perder o ônibus é 'miss'. Perder um objeto é 'lose'."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "Você liga pra avisar que vai chegar atrasado ao jantar."
+say = "I'm stuck in traffic."
+short = "Stuck in traffic."
+polished = "Sorry, I'm stuck in traffic right now."
+meaning = "Estou preso no trânsito."
+accept = ["I am stuck in traffic"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "B1"
+situation = "O aplicativo mostra uma hora de metrô até a casa do seu amigo."
+say = "Is there a faster way to get there?"
+short = "A faster way?"
+polished = "Do you know if there's a faster way to get there?"
+meaning = "Tem um jeito mais rápido de chegar lá?"
+accept = ["Is there a quicker way to get there?"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "B1"
+situation = "A catraca do metrô apita: seu cartão está sem saldo."
+say = "I need to top up my card."
+short = "Top up, please."
+polished = "Hi, I need to top up my transit card."
+meaning = "Preciso recarregar meu cartão."
+accept = ["I need to reload my card", "I need to add money to my card"]
+tip = "'Top up' = recarregar (cartão, celular). Nos EUA também se diz 'reload'."

@@ -1,0 +1,145 @@
+# decks/pt: social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "You run into a neighbor in the elevator."
+say = "E aí, tudo certo?"
+polished = "E aí, tudo certo com você?"
+meaning = "Hey, how's it going?"
+accept = ["E aí, tudo bem?", "E aí, beleza?"]
+tip = "'E aí?' is the casual hello among friends. A natural reply: 'Tudo certo, e você?'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Your friend arrives at the party and you introduce her to a coworker."
+say = "Essa é minha amiga Ana."
+short = "Essa é a Ana."
+polished = "Quero te apresentar minha amiga Ana."
+meaning = "This is my friend Ana."
+accept = ["Esta é minha amiga Ana", "Essa é a minha amiga Ana"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "The host offers you another drink and you don't want one."
+say = "Estou bem assim, obrigado."
+short = "Estou bem."
+polished = "Estou bem assim por enquanto, obrigado."
+meaning = "I'm good, thanks."
+accept = ["Estou bem assim, obrigada", "Tô bem, obrigado", "Não, obrigado"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "You want to keep in touch with someone you met today."
+say = "Qual é o seu número?"
+short = "Seu número?"
+polished = "Você me passa o seu número?"
+meaning = "What's your number?"
+accept = ["Qual o seu número?", "Me passa seu número?"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "A friend tells you she passed her driving test."
+say = "Que notícia boa!"
+short = "Que bom!"
+polished = "Que notícia boa, fico muito feliz por você!"
+meaning = "That's great news!"
+accept = ["Que boa notícia!"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "You bump into an old classmate and want to catch up properly."
+say = "Quer tomar um café?"
+short = "Um café?"
+polished = "Você quer tomar um café qualquer dia desses?"
+meaning = "Do you want to grab a coffee?"
+accept = ["Você quer tomar um café?", "Bora tomar um café?"]
+tip = "Drinks are 'taken' in Portuguese: 'tomar um café', 'tomar uma cerveja'."
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "You're invited out tonight, but you already have plans."
+say = "Hoje não vou conseguir ir."
+short = "Hoje não dá."
+polished = "Desculpa, hoje não vou conseguir ir."
+meaning = "I can't make it today."
+accept = ["Hoje eu não consigo ir", "Hoje não posso"]
+tip = "'Não dá' = it won't work, I can't. Very common."
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "A friend tells you he lost his job."
+say = "Que pena, sinto muito."
+short = "Que pena."
+polished = "Que pena, sinto muito por isso."
+meaning = "I'm so sorry to hear that."
+accept = ["Poxa, sinto muito", "Que chato, sinto muito"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "You arrive twenty minutes after the agreed time."
+say = "Desculpa a demora."
+short = "Desculpa!"
+polished = "Desculpa a demora, o trânsito estava horrível."
+meaning = "Sorry to keep you waiting."
+accept = ["Desculpa o atraso", "Desculpe a demora"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "On Monday, a coworker asks how your weekend was."
+say = "Nada demais, fiquei em casa."
+short = "Nada demais."
+polished = "Nada demais, só fiquei em casa descansando."
+meaning = "Not much, I just stayed home."
+accept = ["Nada demais, só fiquei em casa"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Friday afternoon, you want to know your friend's plans."
+say = "O que você vai fazer no fim de semana?"
+short = "Algum plano?"
+polished = "E aí, o que você vai fazer no fim de semana?"
+meaning = "What are you up to this weekend?"
+accept = ["O que você vai fazer no final de semana?"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "At a wedding, you sit next to a cousin you haven't seen in years."
+say = "Faz tempo que a gente não se vê!"
+short = "Faz tempo, hein?"
+polished = "Faz tempo que a gente não se vê! Como você está?"
+meaning = "It's been a long time!"
+accept = ["Faz tempo que não nos vemos"]
+tip = "'A gente' means 'we' in everyday speech, with a singular verb."
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "The conversation is good, but you have to leave."
+say = "Preciso ir andando."
+short = "Preciso ir."
+polished = "Bom, preciso ir andando, mas foi ótimo falar com você."
+meaning = "I should get going."
+accept = ["Tenho que ir", "Já vou indo"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Your friend insists on paying the bar tab again."
+say = "A próxima é por minha conta."
+short = "A próxima é minha."
+polished = "Obrigado, mas a próxima é por minha conta."
+meaning = "The next one is on me."
+accept = ["A próxima eu pago", "Obrigada, mas a próxima é por minha conta"]
+tip = "'Por minha conta' = on me, I'm paying."

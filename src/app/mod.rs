@@ -119,17 +119,11 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         );
     }
 
-    let bindings = [
-        (settings.hotkey_challenge.as_str(), Command::Challenge),
-        (settings.hotkey_summary.as_str(), Command::Summary),
-        (settings.hotkey_menu.as_str(), Command::Menu),
-        (settings.hotkey_grab.as_str(), Command::Grab),
-        (settings.hotkey_progress.as_str(), Command::Progress),
-    ];
+    let bindings = bindings(&settings);
     let hotkeys = if session.global_hotkeys() {
         match Hotkeys::register(&bindings) {
             Ok(h) => {
-                for why in &h.taken {
+                for (_, why) in &h.taken {
                     eprintln!("Hotkey unavailable: {why}");
                 }
                 Some(h)
@@ -170,7 +164,8 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         daily_goal: settings.daily_goal,
     };
     let languages = available_languages(&paths, &settings.learning);
-    let menu = Menu::new(languages, deck.topic_counts(&settings.max_level));
+    let mut menu = Menu::new(languages, deck.topic_counts(&settings.max_level));
+    menu.keys_taken = hotkeys.as_ref().map(|h| taken_keys(h, &settings)).unwrap_or_default();
     let lesson = Lesson::new(deck, opts, history);
 
     let mut app = App {
@@ -212,6 +207,24 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
     };
     event_loop.run_app(&mut app).context("event loop failed")?;
     Ok(())
+}
+
+/// The hotkeys as the settings have them, each with what it does.
+fn bindings(s: &Settings) -> [(&str, Command); 5] {
+    [
+        (s.hotkey_challenge.as_str(), Command::Challenge),
+        (s.hotkey_summary.as_str(), Command::Summary),
+        (s.hotkey_menu.as_str(), Command::Menu),
+        (s.hotkey_grab.as_str(), Command::Grab),
+        (s.hotkey_progress.as_str(), Command::Progress),
+    ]
+}
+
+/// The combinations that could not be registered, as the settings write them.
+fn taken_keys(hotkeys: &Hotkeys, s: &Settings) -> Vec<String> {
+    let all = bindings(s);
+    let lost = |cmd| all.iter().find(|(_, c)| *c == cmd).map(|(k, _)| k.to_string());
+    hotkeys.taken.iter().filter_map(|(cmd, _)| lost(*cmd)).collect()
 }
 
 /// Built-in decks plus any custom `<decks_dir>/<lang>.toml`.
@@ -584,6 +597,9 @@ impl App {
         if matches!(item, Item::Language | Item::Native) {
             self.refresh_audio_lists(); // the voices follow the languages
         }
+        if let Some(combo) = menu::combo(&self.settings, item) {
+            self.rebind_hotkeys(&combo);
+        }
         let n = self.settings.native;
         let Some(scene) = &mut self.scene else { return };
         match item {
@@ -647,6 +663,40 @@ impl App {
         if matches!(item, Item::Language | Item::Native | Item::Level) {
             self.fit_topic();
         }
+    }
+
+    /// A hotkey was changed to `combo` in the panel: the new set is registered
+    /// at once (no restart), a combination another program has is said and
+    /// marked, and every hint that names a hotkey shows the new keys — the
+    /// warrior's tips, the lesson footers, the shortcut sheet.
+    fn rebind_hotkeys(&mut self, combo: &str) {
+        let n = self.settings.native;
+        let mut note = T::KeySetToast.fill(n, &[&combo]);
+        if let Some(hotkeys) = &mut self.hotkeys {
+            hotkeys.rebind(&bindings(&self.settings));
+            for (_, why) in &hotkeys.taken {
+                eprintln!("Hotkey unavailable: {why}");
+            }
+            self.menu.keys_taken = taken_keys(hotkeys, &self.settings);
+            if self.menu.keys_taken.iter().any(|k| k == combo) {
+                note = T::KeyTakenToast.fill(n, &[&combo]);
+            }
+        } else {
+            // No global hotkeys here (Wayland): the desktop's own shortcuts call us.
+            let exe = std::env::current_exe().ok().and_then(|p| p.canonicalize().ok());
+            let list = crate::cli::commands::shortcut_list(&self.settings);
+            let updated = crate::control::gnome::installed()
+                && exe.is_some_and(|e| crate::control::gnome::install(&e.display().to_string(), &list).is_ok());
+            if !updated {
+                note = T::KeyDesktopToast.get(n).into();
+            }
+        }
+        let (practice, recap) = (self.settings.hotkey_challenge.clone(), self.settings.hotkey_summary.clone());
+        let Some(scene) = &mut self.scene else { return };
+        let keys = |o: &mut lesson::Options| (o.hotkey, o.summary_hotkey) = (practice, recap);
+        self.lesson.set_options(keys, scene);
+        scene.hud.cheats = None; // rebuilt with the new keys when next shown
+        scene.hud.toast(note, 4.0);
     }
 
     /// Keeps topics and level compatible: the panel lists only topics with
@@ -985,6 +1035,10 @@ impl ApplicationHandler<UserEvent> for App {
         let hint = if self.resolved.overlay { self.settings.hotkey_menu.clone() } else { "H".into() };
         let n = self.settings.native;
         scene.hud.toast(T::Welcome.fill(n, &[&self.commitment.label(n), &hint]), 5.0);
+        // A hotkey another program holds does nothing: say so instead of the welcome.
+        if let Some(taken) = self.menu.keys_taken.first() {
+            scene.hud.toast(T::KeyTakenToast.fill(n, &[taken]), 8.0);
+        }
         self.scene = Some(scene);
         self.fit_topic();
         if self.resolved.overlay {

@@ -1,0 +1,110 @@
+# decks/i18n/es.en (English for decks/es): social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Soy de Brasil"
+meaning = "I'm from Brazil"
+situation = "Someone asks where you're from."
+
+[[phrase]]
+say = "¿A qué te dedicas?"
+meaning = "What do you do for a living?"
+situation = "You want to know what the other person does for work."
+tip = "Much more natural than '¿Cuál es tu trabajo?', just like 'What do you do?' in English."
+
+[[phrase]]
+say = "¿Puedes hablar más despacio?"
+meaning = "Can you speak more slowly?"
+situation = "The person is talking way too fast."
+
+[[phrase]]
+say = "¿Cómo se dice esto en español?"
+meaning = "How do you say this in Spanish?"
+situation = "You don't know a word."
+
+[[phrase]]
+say = "No pasa nada"
+meaning = "No problem / don't worry about it"
+situation = "Someone apologizes for something small."
+
+[[phrase]]
+say = "Ya voy en camino"
+meaning = "I'm on my way"
+situation = "A friend asks if you're almost there."
+
+[[phrase]]
+say = "Me encantó verte"
+meaning = "It was great to see you"
+situation = "You're leaving the party."
+
+[[phrase]]
+say = "¿Cómo va todo?"
+meaning = "How's it going?"
+situation = "You run into a neighbor in the elevator."
+tip = "A natural reply: 'Todo bien, ¿y tú?'."
+
+[[phrase]]
+say = "Ella es mi amiga Ana."
+meaning = "This is my friend Ana."
+situation = "Your friend arrives at the party and you introduce her to a coworker."
+
+[[phrase]]
+say = "Así estoy bien, gracias."
+meaning = "I'm good, thanks."
+situation = "The host offers you another drink and you don't want one."
+
+[[phrase]]
+say = "¿Cuál es tu número?"
+meaning = "What's your number?"
+situation = "You want to keep in touch with someone you met today."
+
+[[phrase]]
+say = "¡Qué buena noticia!"
+meaning = "That's great news!"
+situation = "A friend tells you they got the job."
+
+[[phrase]]
+say = "¿Quieres tomar un café?"
+meaning = "Do you want to grab a coffee?"
+situation = "You'd like to get to know a new coworker better."
+tip = "Drinks are 'taken' in Spanish: 'tomar un café', 'tomar algo'."
+
+[[phrase]]
+say = "Hoy no puedo ir."
+meaning = "I can't make it today."
+situation = "You're invited out tonight, but you already have plans."
+
+[[phrase]]
+say = "Lo siento mucho."
+meaning = "I'm so sorry to hear that."
+situation = "A friend tells you they lost their job."
+
+[[phrase]]
+say = "Perdón por hacerte esperar."
+meaning = "Sorry to keep you waiting."
+situation = "You arrive twenty minutes after the agreed time."
+
+[[phrase]]
+say = "Nada especial, me quedé en casa."
+meaning = "Not much, I just stayed home."
+situation = "On Monday, a coworker asks how your weekend was."
+
+[[phrase]]
+say = "¿Qué planes tienes para el fin de semana?"
+meaning = "What are you up to this weekend?"
+situation = "Friday afternoon, you want to know your friend's plans."
+
+[[phrase]]
+say = "¡Tanto tiempo!"
+meaning = "Long time no see!"
+situation = "You bump into a friend you haven't seen in years."
+
+[[phrase]]
+say = "Ya me tengo que ir."
+meaning = "I should get going."
+situation = "The conversation is good, but you have to leave."
+
+[[phrase]]
+say = "La próxima la invito yo."
+meaning = "The next one is on me."
+situation = "Your friend insists on paying the bar tab again."
+tip = "'Invitar' here means to pay for someone: 'te invito' = it's on me."

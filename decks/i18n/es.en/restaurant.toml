@@ -1,0 +1,59 @@
+# decks/i18n/es.en (English for decks/es): restaurante. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "La cuenta, por favor"
+meaning = "The check, please"
+situation = "You've finished eating and want to pay."
+
+[[phrase]]
+say = "¿Me lo pone para llevar?"
+meaning = "Can I get it to go?"
+situation = "You want to take the food with you."
+
+[[phrase]]
+say = "Soy alérgico a los frutos secos"
+meaning = "I'm allergic to nuts"
+situation = "You're allergic to nuts."
+
+[[phrase]]
+say = "¿Qué me recomienda?"
+meaning = "What do you recommend?"
+situation = "You don't know what to order."
+
+[[phrase]]
+say = "Una mesa para dos, por favor"
+meaning = "A table for two, please"
+situation = "You arrive at a restaurant with a friend."
+
+[[phrase]]
+say = "¿Aceptan tarjeta?"
+meaning = "Do you take cards?"
+situation = "You want to know if they accept cards."
+
+[[phrase]]
+say = "Voy a pedir el pollo."
+meaning = "I'll have the chicken."
+situation = "The waiter comes to your table, notepad in hand."
+tip = "To order: 'voy a pedir...' or 'para mí, ...'."
+
+[[phrase]]
+say = "¿Nos trae la carta?"
+meaning = "Could we see the menu?"
+situation = "You sat down ten minutes ago and nobody has brought the menu."
+tip = "'La carta' is the menu. 'El menú' also works."
+
+[[phrase]]
+say = "¿Este plato pica?"
+meaning = "Is this dish spicy?"
+situation = "You can't handle chili and the dish has a little flame drawn next to it."
+tip = "'Picar' = to burn with chili. Spicy is 'picante', never 'caliente' (hot in temperature)."
+
+[[phrase]]
+say = "¿Me trae agua, por favor?"
+meaning = "Can I have some water, please?"
+situation = "The food arrived, but they forgot your drink."
+
+[[phrase]]
+say = "Todo estuvo delicioso."
+meaning = "Everything was delicious."
+situation = "The waiter clears the plates and asks if everything was good."

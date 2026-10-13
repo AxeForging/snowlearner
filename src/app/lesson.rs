@@ -1902,7 +1902,7 @@ mod tests {
         let f = english_fixture("es", "C2");
         let deck = f.lesson.deck();
         let curated: std::collections::HashSet<String> = [
-            Deck::parse(include_str!("../../decks/es.toml")).unwrap(),
+            Deck::parse(crate::learn::deck::ES).unwrap(),
             Deck::parse(include_str!("../../decks/es.basics.toml")).unwrap(),
         ]
         .into_iter()

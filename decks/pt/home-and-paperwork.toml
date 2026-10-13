@@ -1,0 +1,84 @@
+# decks/pt: casa e burocracia. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "The internet in your rented apartment is down and you write to the owner."
+say = "O wi-fi não está funcionando."
+short = "Sem wi-fi."
+polished = "Oi, o wi-fi não está funcionando no meu apartamento."
+meaning = "The wifi isn't working."
+accept = ["O wi-fi não funciona", "A internet não está funcionando", "O wi-fi não tá funcionando"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "First week in the new building, you run into a neighbor in the hallway."
+say = "Onde eu coloco o lixo?"
+short = "Onde vai o lixo?"
+polished = "Desculpa, onde eu tenho que colocar o lixo?"
+meaning = "Where do I take out the trash?"
+accept = ["Onde coloco o lixo?", "Onde eu jogo o lixo?"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "At the bank counter, the teller asks how she can help."
+say = "Queria sacar dinheiro."
+polished = "Oi, eu queria sacar dinheiro, por favor."
+meaning = "I'd like to withdraw some money."
+accept = ["Quero sacar dinheiro", "Eu queria sacar dinheiro"]
+tip = "'Sacar' = to withdraw cash."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "The street market is cash only and you have none."
+say = "Tem um caixa eletrônico por aqui?"
+short = "Um caixa eletrônico?"
+polished = "Com licença, tem um caixa eletrônico por aqui?"
+meaning = "Is there an ATM nearby?"
+accept = ["Tem um caixa eletrônico aqui perto?", "Tem um banco 24 horas por aqui?"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "The kitchen sink drips all night and you tell the landlord."
+say = "A torneira está vazando."
+short = "Está vazando."
+polished = "Oi, a torneira da cozinha está vazando."
+meaning = "The faucet is leaking."
+accept = ["A torneira tá vazando", "A torneira está pingando"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "The ATM didn't give your card back and you walk into the branch."
+say = "O caixa engoliu meu cartão."
+short = "Engoliu meu cartão."
+polished = "Com licença, o caixa eletrônico engoliu meu cartão."
+meaning = "The ATM kept my card."
+accept = ["O caixa eletrônico engoliu meu cartão", "O caixa ficou com meu cartão"]
+tip = "The ATM 'swallows' the card: 'engoliu'."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "You walk up to the counter with the electricity bill in your hand."
+say = "Preciso pagar esse boleto."
+short = "Pagar isso, por favor."
+polished = "Oi, preciso pagar esse boleto, por favor."
+meaning = "I need to pay this bill."
+accept = ["Quero pagar esse boleto", "Preciso pagar essa conta"]
+tip = "A 'boleto' is the payment slip Brazilians use for bills. Most people now pay with Pix."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "First month in the apartment, you write to the landlord."
+say = "Quando vence o aluguel?"
+short = "Quando vence?"
+polished = "Você pode me lembrar quando vence o aluguel?"
+meaning = "When is the rent due?"
+accept = ["Que dia vence o aluguel?"]
+tip = "'Vencer' = to be due: 'o aluguel vence dia cinco'."

@@ -1,0 +1,53 @@
+# decks/pt: restaurante. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "The waiter comes to your table, notepad in hand."
+say = "Vou querer o frango."
+short = "O frango, por favor."
+polished = "Acho que vou querer o frango, por favor."
+meaning = "I'll have the chicken."
+accept = ["Eu vou querer o frango", "Pra mim, o frango"]
+tip = "'Vou querer...' is the natural way to order."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "You sat down ten minutes ago and nobody has brought the menu."
+say = "Pode trazer o cardápio?"
+short = "O cardápio, por favor."
+polished = "Com licença, pode trazer o cardápio, por favor?"
+meaning = "Could we see the menu?"
+accept = ["Você pode trazer o cardápio?", "Me traz o cardápio?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "You can't handle chili and the dish has a little flame drawn next to it."
+say = "Esse prato é apimentado?"
+short = "É apimentado?"
+polished = "Com licença, esse prato é muito apimentado?"
+meaning = "Is this dish spicy?"
+accept = ["Esse prato é picante?", "Esse prato tem pimenta?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "The food arrived, but they forgot your drink."
+say = "Me traz uma água, por favor?"
+short = "Uma água, por favor."
+polished = "Você pode me trazer uma água, por favor?"
+meaning = "Can I have some water, please?"
+accept = ["Pode me trazer uma água, por favor?"]
+tip = "'Uma água' is a bottle or glass of water. They'll ask 'com gás ou sem gás?' (sparkling or still)."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "The waiter clears the plates and asks if everything was good."
+say = "Estava tudo delicioso."
+short = "Estava delicioso."
+polished = "Estava tudo delicioso, muito obrigado."
+meaning = "Everything was delicious."
+accept = ["Estava tudo uma delícia", "Estava tudo ótimo"]

@@ -117,7 +117,7 @@ fn shortcuts(settings: &Settings, action: ShortcutAction) -> Result<()> {
     Ok(())
 }
 
-fn shortcut_list(settings: &Settings) -> Vec<gnome::Shortcut> {
+pub(crate) fn shortcut_list(settings: &Settings) -> Vec<gnome::Shortcut> {
     vec![
         gnome::Shortcut { id: "say", name: "Snowlearner: praticar", keys: settings.hotkey_challenge.clone() },
         gnome::Shortcut { id: "summary", name: "Snowlearner: resumo", keys: settings.hotkey_summary.clone() },

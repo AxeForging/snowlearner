@@ -1,0 +1,36 @@
+language = "es"
+native = "pt-BR"
+language_name = "espanhol"
+title = "Espanhol pra vida real"
+
+
+[[tip]]
+text = "Falso amigo: 'embarazada' é GRÁVIDA, não envergonhada (avergonzada)."
+[[tip]]
+text = "Falso amigo: 'exquisito' é delicioso, elogio! Não é esquisito."
+[[tip]]
+text = "Falso amigo: 'oficina' é escritório. Oficina mecânica é 'taller'."
+[[tip]]
+text = "Falso amigo: 'polvo' é poeira. O animal é 'pulpo'."
+[[tip]]
+text = "Falso amigo: 'rato' é um momento. O bicho é 'ratón'."
+[[tip]]
+text = "Falso amigo: 'apellido' é sobrenome, não apelido (apodo)."
+[[tip]]
+text = "Falso amigo: 'propina' é gorjeta. Não é crime!"
+[[tip]]
+text = "Falso amigo: 'cena' é jantar. A cena do filme é 'escena'."
+[[tip]]
+text = "Pronúncia: o 'j' e o 'g' antes de e/i soam como um 'rr' forte: 'jamón'."
+[[tip]]
+text = "Pronúncia: 'll' e 'y' soam parecido com 'j' ou 'i': 'calle' = 'caje'."
+[[tip]]
+text = "Pronúncia: não nasalize! 'Pan' não é 'pão': fale o 'n' no fim."
+[[tip]]
+text = "Pronúncia: o 'z' e o 'c' (antes de e/i) viram 'th' na Espanha e 's' na América."
+[[tip]]
+text = "Em espanhol se 'tem' fome e frio: tengo hambre, tengo frío."
+[[tip]]
+text = "'Usted' é o formal. Use com pessoas mais velhas e no trabalho."
+[[tip]]
+text = "No clima usa-se 'hace': hace frío, hace calor, hace sol."

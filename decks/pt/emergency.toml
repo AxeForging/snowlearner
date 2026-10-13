@@ -1,0 +1,134 @@
+# decks/pt: emergência. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "You see smoke coming out of the restaurant's kitchen."
+say = "Está pegando fogo!"
+polished = "Está pegando fogo, saiam todos!"
+meaning = "There's a fire!"
+accept = ["Tá pegando fogo"]
+tip = "'Pegar fogo' = to catch fire."
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "You come out of the subway in a city you don't know and can't find your way back."
+say = "Não acho meu hotel."
+polished = "Com licença, não acho meu hotel."
+meaning = "I can't find my hotel."
+accept = ["Não encontro meu hotel", "Não consigo achar meu hotel"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "You get back to your table at the café and your backpack is gone."
+say = "Roubaram minha mochila."
+short = "Minha mochila!"
+polished = "Com licença, acabaram de roubar minha mochila."
+meaning = "Someone stole my backpack."
+accept = ["Levaram minha mochila", "Roubaram a minha mochila"]
+tip = "'Roubaram' = 'they stole'. Portuguese says 'they' when nobody knows who did it."
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Someone collapses next to you on the street."
+say = "Precisamos de um médico."
+short = "Um médico!"
+polished = "Precisamos de um médico aqui, rápido, por favor!"
+meaning = "We need a doctor."
+accept = ["A gente precisa de um médico"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Your friend is hurt and you flag down a taxi."
+say = "Preciso ir pra um hospital."
+short = "Pro hospital, rápido!"
+polished = "Por favor, preciso ir pra um hospital agora."
+meaning = "I need to get to a hospital."
+accept = ["Preciso ir para um hospital", "Preciso ir pro hospital"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Your friend fell off his bike and can't get up."
+say = "Meu amigo está machucado."
+short = "Ele está machucado!"
+polished = "Me ajuda, por favor, meu amigo está muito machucado."
+meaning = "My friend is hurt."
+accept = ["Minha amiga está machucada", "Meu amigo se machucou"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "You call emergency services and they ask where you are."
+say = "Não sei o endereço."
+short = "Não sei."
+polished = "Desculpa, não sei o endereço exato."
+meaning = "I don't know the address."
+accept = ["Eu não sei o endereço"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "Your phone died and you need to let your family know."
+say = "Posso usar seu celular?"
+short = "Seu celular, por favor?"
+polished = "Desculpa, posso usar seu celular um minutinho?"
+meaning = "Can I use your phone?"
+accept = ["Posso usar o seu celular?", "Me empresta seu celular?"]
+tip = "'Celular' is a mobile phone."
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "The door slammed shut and your keys are inside the apartment."
+say = "Fiquei trancado pra fora."
+short = "Fiquei pra fora."
+polished = "Fiquei trancado pra fora do meu apartamento."
+meaning = "I'm locked out."
+accept = ["Fiquei trancada pra fora", "Fiquei trancado para fora"]
+
+[[phrase]]
+topic = "emergência"
+level = "A2"
+situation = "After a minor car crash, you get out to check on people."
+say = "Está todo mundo bem?"
+short = "Todo mundo bem?"
+polished = "Está todo mundo bem? Alguém se machucou?"
+meaning = "Is everyone okay?"
+accept = ["Tá todo mundo bem?"]
+tip = "'Todo mundo' (the whole world) is how Brazilians say 'everyone'."
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "At the police station, after your backpack was taken."
+say = "Preciso registrar um furto."
+short = "Fui roubado."
+polished = "Oi, eu gostaria de registrar um furto, por favor."
+meaning = "I need to report a theft."
+accept = ["Quero fazer um boletim de ocorrência", "Quero registrar um furto"]
+tip = "The police report is a 'boletim de ocorrência', 'B.O.' for short."
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "Your card is missing and you call the bank."
+say = "Preciso cancelar meu cartão."
+short = "Cancela meu cartão."
+polished = "Perdi meu cartão e preciso cancelar."
+meaning = "I need to cancel my card."
+accept = ["Preciso bloquear meu cartão", "Quero cancelar meu cartão"]
+
+[[phrase]]
+topic = "emergência"
+level = "B1"
+situation = "A man has passed out and you're on the phone with emergency services."
+say = "Ele não está respirando."
+short = "Não respira!"
+polished = "Rápido, por favor, ele não está respirando!"
+meaning = "He's not breathing."
+accept = ["Ele não respira", "Ele não tá respirando"]

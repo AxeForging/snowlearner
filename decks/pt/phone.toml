@@ -1,0 +1,143 @@
+# decks/pt: telefone. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "You pick up the phone and don't recognize the voice."
+say = "Com quem eu falo?"
+polished = "Com quem eu falo, por favor?"
+meaning = "Who am I speaking with?"
+accept = ["Com quem estou falando?", "Quem está falando?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "The line goes quiet and you're not sure the other person can hear you."
+say = "Você está me ouvindo?"
+polished = "Alô, você está me ouvindo bem?"
+meaning = "Can you hear me?"
+accept = ["Está me ouvindo?", "Tá me ouvindo?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "You call a friend's home and someone else picks up."
+say = "Posso falar com a Ana?"
+short = "A Ana, por favor."
+polished = "Oi, eu poderia falar com a Ana, por favor?"
+meaning = "Can I speak to Ana?"
+accept = ["Eu posso falar com a Ana?", "A Ana está?"]
+tip = "Names take an article in Brazil: 'a Ana', 'o Pedro'."
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "The doorbell rings in the middle of a call and you have to go open the door."
+say = "Espera um segundo."
+short = "Espera aí."
+polished = "Você pode esperar um segundo, por favor?"
+meaning = "Hold on a second."
+accept = ["Só um segundo", "Um segundinho"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A friend calls just as you're getting on the bus."
+say = "Eu te ligo de volta."
+short = "Te ligo de volta."
+polished = "Posso te ligar de volta em dez minutos?"
+meaning = "I'll call you back."
+accept = ["Te retorno", "Já te ligo"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "You can't make tomorrow's doctor's appointment and call the clinic."
+say = "Preciso remarcar minha consulta."
+short = "Posso remarcar?"
+polished = "Oi, preciso remarcar minha consulta, por favor."
+meaning = "I need to reschedule my appointment."
+accept = ["Preciso remarcar a minha consulta"]
+tip = "'Consulta' is a doctor's appointment: 'marcar' books it, 'remarcar' moves it."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "The receptionist read out the phone number too fast for you to write down."
+say = "Pode repetir o número?"
+short = "O número de novo?"
+polished = "Desculpa, pode repetir o número mais devagar?"
+meaning = "Could you repeat the number?"
+accept = ["Você pode repetir o número?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "The signal is bad and the other person's voice keeps dropping."
+say = "A ligação está cortando."
+short = "Está cortando."
+polished = "Desculpa, a ligação está cortando, quase não te ouço."
+meaning = "You're breaking up."
+accept = ["A ligação tá cortando", "Tá cortando"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A friend explains where the party is, but you'd rather have it in writing."
+say = "Me manda o endereço por mensagem?"
+short = "Me manda o endereço."
+polished = "Você pode me mandar o endereço por mensagem, por favor?"
+meaning = "Can you text me the address?"
+accept = ["Você me manda o endereço por mensagem?"]
+tip = "'Endereço' is a street address. In Brazil a 'mensagem' is almost always WhatsApp."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Your friend doesn't pick up and you leave a voice message."
+say = "Me liga quando puder."
+short = "Me liga."
+polished = "Oi, sou eu, me liga quando puder."
+meaning = "Call me when you can."
+accept = ["Me liga quando você puder"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "The agent asks if you can stay on the line."
+say = "Claro, eu aguardo."
+polished = "Claro, sem problema, eu aguardo."
+meaning = "Sure, I can hold."
+accept = ["Claro, eu espero", "Sim, eu aguardo"]
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "Your home internet is down and you call support."
+say = "Estou ligando por causa da minha internet."
+short = "É sobre a minha internet."
+polished = "Oi, estou ligando por causa de um problema na minha internet."
+meaning = "I'm calling about my internet."
+accept = ["Tô ligando por causa da minha internet"]
+tip = "'Estou ligando por causa de...' is the standard way to give the reason for a call."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "The call dropped mid-conversation and you call again."
+say = "Desculpa, a ligação caiu."
+short = "A ligação caiu."
+polished = "Desculpa, acho que a ligação caiu."
+meaning = "Sorry, we got cut off."
+accept = ["Desculpe, a ligação caiu"]
+tip = "A call 'falls' in Portuguese: 'a ligação caiu'."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "You're stuck in an automated phone menu and want a human."
+say = "Posso falar com um atendente?"
+short = "Um atendente, por favor."
+polished = "Você poderia me transferir para um atendente, por favor?"
+meaning = "Can I speak to an agent?"
+accept = ["Quero falar com um atendente"]

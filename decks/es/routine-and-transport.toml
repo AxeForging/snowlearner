@@ -1,0 +1,81 @@
+# decks/es: rotina e transporte. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O ônibus está cheio e há uma bolsa no banco ao lado de alguém."
+say = "¿Está ocupado este asiento?"
+short = "¿Está ocupado?"
+polished = "Disculpe, ¿está ocupado este asiento?"
+meaning = "Esse lugar está ocupado?"
+accept = ["¿Este asiento está ocupado?", "¿Está libre este asiento?"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A1"
+situation = "O ônibus está lotado e você precisa passar pra descer."
+say = "Esta es mi parada."
+short = "¡Mi parada!"
+polished = "Permiso, esta es mi parada."
+meaning = "É a minha parada."
+accept = ["Aquí me bajo", "Me bajo aquí"]
+tip = "'Permiso' é o 'com licença' pra passar entre as pessoas."
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "Você sobe no ônibus e não sabe quanto pagar."
+say = "¿Cuánto cuesta el pasaje?"
+short = "¿Cuánto es?"
+polished = "Disculpe, ¿cuánto cuesta el pasaje?"
+meaning = "Quanto é a passagem?"
+accept = ["¿Cuánto cuesta el boleto?", "¿Cuánto vale el pasaje?"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "O motorista do aplicativo ia passar da sua casa."
+say = "¿Me puede dejar aquí?"
+short = "Aquí está bien."
+polished = "¿Me podría dejar aquí mismo, por favor?"
+meaning = "Pode me deixar aqui?"
+accept = ["¿Me deja aquí?", "Déjeme aquí, por favor"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "Você chega no ponto e vê o ônibus virando a esquina."
+say = "Perdí el autobús."
+polished = "Perdón, acabo de perder el autobús."
+meaning = "Perdi o ônibus."
+accept = ["Se me fue el autobús", "Perdí el bus", "Perdí el camión"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "A2"
+situation = "Você liga pra avisar que vai chegar atrasado ao jantar."
+say = "Estoy atrapado en el tráfico."
+short = "Hay mucho tráfico."
+polished = "Perdón, estoy atrapado en el tráfico ahora mismo."
+meaning = "Estou preso no trânsito."
+accept = ["Estoy atrapada en el tráfico", "Estoy en un atasco", "Estoy atascado en el tráfico"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "B1"
+situation = "O aplicativo mostra uma hora de metrô até a casa do seu amigo."
+say = "¿Hay una forma más rápida de llegar?"
+short = "¿Hay algo más rápido?"
+polished = "¿Sabes si hay una forma más rápida de llegar?"
+meaning = "Tem um jeito mais rápido de chegar lá?"
+accept = ["¿Hay una manera más rápida de llegar?"]
+
+[[phrase]]
+topic = "rotina e transporte"
+level = "B1"
+situation = "A catraca do metrô apita: seu cartão está sem saldo."
+say = "Necesito recargar mi tarjeta."
+short = "Una recarga, por favor."
+polished = "Hola, necesito recargar mi tarjeta de transporte."
+meaning = "Preciso recarregar meu cartão."
+accept = ["Quiero recargar mi tarjeta", "Necesito cargar mi tarjeta"]

@@ -1,0 +1,80 @@
+# decks/en: primeiros contatos. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Você trava no meio da frase conversando com um desconhecido."
+say = "I'm learning English."
+short = "Still learning."
+polished = "I'm still learning English, so please be patient."
+meaning = "Estou aprendendo inglês."
+accept = ["I am learning English", "I'm still learning English"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Um vizinho pergunta há quanto tempo você está na cidade."
+say = "I moved here last year."
+short = "Last year."
+polished = "I moved here last year for work."
+meaning = "Me mudei pra cá no ano passado."
+accept = ["I came here last year"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Você conversa com alguém na fila da padaria do bairro."
+say = "Do you live around here?"
+polished = "So, do you live around here?"
+meaning = "Você mora por aqui?"
+accept = ["Do you live nearby?", "Do you live near here?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "Você se despede de alguém que conheceu hoje num jantar."
+say = "It was nice meeting you."
+short = "Nice meeting you."
+polished = "It was really nice meeting you today."
+meaning = "Foi um prazer te conhecer."
+accept = ["It was nice to meet you", "It was great meeting you"]
+tip = "Na chegada é 'Nice to meet you'; na despedida, 'Nice meeting you'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Um colega novo conta que veio de outro país."
+say = "What brought you here?"
+polished = "So, what brought you to this city?"
+meaning = "O que te trouxe pra cá?"
+accept = ["What brings you here?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Você conhece alguém do bairro numa festa de vizinhos."
+say = "How long have you lived here?"
+short = "How long?"
+polished = "How long have you been living here?"
+meaning = "Há quanto tempo você mora aqui?"
+tip = "Pra algo que começou no passado e continua: 'have lived', não 'live'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Perguntam como está sendo a vida na cidade nova."
+say = "I'm still getting used to it."
+short = "Still getting used to it."
+polished = "Honestly, I'm still getting used to it."
+meaning = "Ainda estou me acostumando."
+tip = "'Get used to' = se acostumar com."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "No último dia do curso, você se despede de um colega."
+say = "We should keep in touch."
+short = "Let's keep in touch."
+polished = "We should definitely keep in touch."
+meaning = "A gente devia manter contato."
+accept = ["We should stay in touch", "Let's stay in touch"]

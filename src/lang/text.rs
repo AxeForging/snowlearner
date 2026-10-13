@@ -47,6 +47,7 @@ texts! {
     PanelWindow => "Snowlearner · Painel", "Snowlearner · Panel";
     TabGame => "JOGO", "GAME";
     TabAudio => "ÁUDIO", "AUDIO";
+    TabKeys => "TECLAS", "KEYS";
     TabProgress => "PROGRESSO", "PROGRESS";
     ItemNative => "Minha língua", "My language";
     ItemLanguage => "Idioma", "Learning";
@@ -69,6 +70,19 @@ texts! {
     ItemVoiceLearning => "Voz do idioma", "Learning voice";
     ItemTestVoices => "> Testar vozes", "> Test voices";
     ItemSpeaker => "Alto-falante", "Speaker";
+    ItemKeyPractice => "Praticar", "Practice";
+    ItemKeyRecap => "Resumo do dia", "Today's recap";
+    ItemKeyPanel => "Painel", "Panel";
+    ItemKeyGrab => "Mão mágica", "Magic hand";
+    ItemKeyProgress => "Progresso", "Progress";
+    KeyTaken => "{0} (em uso)", "{0} (in use)";
+    KeysHelp => "(em uso): outro programa já tem esse atalho. Enter lista as teclas livres pra trocar.",
+        "(in use): another program already has that hotkey. Enter lists the free keys to switch to.";
+    KeyTakenToast => "{0} já é de outro programa. Escolha outra tecla no painel.",
+        "{0} belongs to another program. Pick another key in the panel.";
+    KeySetToast => "Atalho trocado: {0}", "Hotkey changed: {0}";
+    KeyDesktopToast => "Atalho salvo. Rode snowlearner setup pra registrar no desktop.",
+        "Hotkey saved. Run snowlearner setup to register it with the desktop.";
     AllTopicsShort => "todos", "all";
     TopicsCount => "{0} temas", "{0} topics";
     PickerFooter => "↑↓ Enter: escolher  Esc: voltar", "↑↓ Enter: pick  Esc: back";

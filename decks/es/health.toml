@@ -1,0 +1,174 @@
+# decks/es: saúde. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "saúde"
+situation = "Você não está bem."
+say = "Necesito ver a un médico"
+short = "Necesito un médico"
+polished = "Creo que necesito ver a un médico, por favor"
+meaning = "Preciso ver um médico"
+
+[[phrase]]
+topic = "saúde"
+situation = "Mostre onde dói."
+say = "Me duele aquí"
+polished = "Me duele justo aquí"
+meaning = "Dói aqui"
+
+[[phrase]]
+topic = "saúde"
+situation = "Na farmácia, dor de cabeça."
+say = "¿Tiene algo para el dolor de cabeza?"
+short = "¿Algo para la cabeza?"
+polished = "¿Me podría recomendar algo para el dolor de cabeza?"
+meaning = "Tem algo pra dor de cabeça?"
+
+[[phrase]]
+topic = "saúde"
+situation = "Conte desde quando está mal."
+say = "Me siento mal desde ayer"
+short = "Me siento mal"
+polished = "Me siento bastante mal desde ayer por la mañana"
+meaning = "Estou me sentindo mal desde ontem"
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você mede a temperatura e o termômetro mostra trinta e nove."
+say = "Tengo fiebre."
+short = "Fiebre."
+polished = "Creo que tengo fiebre."
+meaning = "Estou com febre."
+tip = "Em espanhol você 'tem' febre: 'tengo fiebre', nunca 'estoy con fiebre'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Na farmácia, a atendente pergunta o que você está sentindo."
+say = "Me duele la garganta."
+short = "La garganta."
+polished = "Me duele mucho la garganta."
+meaning = "Estou com dor de garganta."
+accept = ["Tengo dolor de garganta"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você não para de tossir e vai à farmácia."
+say = "Necesito algo para la tos."
+short = "¿Algo para la tos?"
+polished = "¿Tiene algo para una tos fuerte?"
+meaning = "Preciso de algo pra tosse."
+accept = ["Quiero algo para la tos"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Antes de receitar, o médico pergunta se você tem alguma alergia."
+say = "Soy alérgico a la penicilina."
+short = "A la penicilina."
+polished = "Sí, soy alérgico a la penicilina."
+meaning = "Sou alérgico a penicilina."
+accept = ["Soy alérgica a la penicilina", "Tengo alergia a la penicilina"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você cortou o dedo cozinhando na casa de um amigo."
+say = "¿Tienes una curita?"
+polished = "Perdona, ¿tienes una curita?"
+meaning = "Você tem um band-aid?"
+accept = ["¿Tienes una tirita?", "¿Tiene una curita?"]
+tip = "'Curita' na América Latina; na Espanha é 'tirita'."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você liga para a clínica logo cedo, sem horário marcado."
+say = "¿Me puede ver un médico hoy?"
+short = "¿Un médico hoy?"
+polished = "¿Sería posible que me viera un médico hoy?"
+meaning = "Consigo passar com um médico hoje?"
+accept = ["¿Puedo ver a un médico hoy?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta desde quando você está com dor."
+say = "Empezó hace dos días."
+short = "Hace dos días."
+polished = "Empezó hace unos dos días."
+meaning = "Começou há dois dias."
+tip = "'Hace dos días' = há dois dias. O 'hace' vem antes do tempo."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você levanta rápido demais e tudo começa a girar."
+say = "Estoy mareado."
+polished = "Estoy mareado desde esta mañana."
+meaning = "Estou tonto."
+accept = ["Estoy mareada", "Me siento mareado", "Me siento mareada"]
+tip = "'Mareado' é tonto ou enjoado."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você pisou em falso jogando bola e o pé inchou."
+say = "Creo que me torcí el tobillo."
+short = "Me torcí el tobillo."
+polished = "Me parece que me torcí el tobillo."
+meaning = "Acho que torci o tornozelo."
+accept = ["Creo que me doblé el tobillo"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O farmacêutico te entrega o remédio e você não sabe a dose."
+say = "¿Cada cuánto debo tomarlo?"
+short = "¿Cada cuánto?"
+polished = "Disculpe, ¿cada cuánto debo tomarlo?"
+meaning = "De quanto em quanto tempo devo tomar?"
+accept = ["¿Cada cuánto lo tomo?", "¿Cada cuánto tengo que tomarlo?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta se você toma algum remédio todo dia."
+say = "No tomo ningún medicamento."
+short = "Ningún medicamento."
+polished = "No, no tomo ningún medicamento por ahora."
+meaning = "Não estou tomando nenhum remédio."
+accept = ["No tomo ninguna medicina"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Seu remédio de uso contínuo acabou e você vai ao médico."
+say = "Necesito renovar mi receta."
+short = "Renovar mi receta."
+polished = "Hola, necesito renovar mi receta, por favor."
+meaning = "Preciso renovar minha receita."
+tip = "'Receta' serve pra médico e pra cozinha, igual em português."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Na recepção da clínica, antes de fazer um exame caro."
+say = "¿Mi seguro cubre esto?"
+short = "¿Esto está cubierto?"
+polished = "¿Me podría decir si mi seguro cubre esto?"
+meaning = "Meu plano cobre isso?"
+accept = ["¿Esto lo cubre mi seguro?"]
+tip = "'Seguro' (médico) é o plano de saúde."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Você liga para o dentista pedindo um encaixe urgente."
+say = "Me duele mucho una muela."
+short = "Una muela."
+polished = "Me duele mucho una muela desde anoche."
+meaning = "Estou com muita dor de dente."
+accept = ["Tengo un dolor de muelas terrible"]
+tip = "'Muela' é o dente de trás; dente em geral é 'diente'."
