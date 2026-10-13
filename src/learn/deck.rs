@@ -36,7 +36,7 @@ const BUILTIN: &[(&str, &[&str])] = &[
             include_str!("../../decks/es.lexicaster.toml"),
         ],
     ),
-    ("pt-BR", &[include_str!("../../decks/pt.basics.toml")]),
+    ("pt-BR", &[include_str!("../../decks/pt.toml"), include_str!("../../decks/pt.basics.toml")]),
 ];
 
 /// Answer tiers for the generated decks, hand-curated and keyed by `say`
@@ -684,7 +684,8 @@ mod tests {
         let count = |st: Stage| d.phrases.iter().filter(|p| Stage::of(p) == st).count();
         assert!(count(Stage::Words) >= 40, "{} first words", count(Stage::Words));
         assert!(count(Stage::Chunks) >= 20, "{} short chunks", count(Stage::Chunks));
-        assert_eq!(count(Stage::Phrases), 0, "a first-steps deck has no full phrases");
+        assert!(count(Stage::Phrases) >= 40, "{} full phrases", count(Stage::Phrases));
+        assert!(d.tips.len() >= 10, "tips for English speakers");
         let order = crate::learn::path::ordered(&d.phrases, &d.selection(&[], "C2"));
         assert_eq!(Stage::of(&d.phrases[order[0]]), Stage::Words, "the path starts with a word");
         for p in &d.phrases {
