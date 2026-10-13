@@ -1,6 +1,6 @@
 //! Command-line interface. `snowlearner` with no subcommand starts the app.
 
-mod commands;
+pub(crate) mod commands;
 
 use crate::config::level::Commitment;
 use crate::config::settings::WindowMode;
