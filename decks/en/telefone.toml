@@ -1,0 +1,168 @@
+# decks/en: telefone. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "telefone"
+situation = "A pessoa que você procura não está."
+say = "Can I leave a message?"
+polished = "Could I leave a message, please?"
+meaning = "Posso deixar um recado?"
+accept = ["Could I leave a message?"]
+
+[[phrase]]
+topic = "telefone"
+situation = "Ligou pro número errado."
+say = "Sorry, I think I have the wrong number"
+short = "Wrong number, sorry"
+polished = "I'm so sorry, I think I have the wrong number"
+meaning = "Desculpa, acho que liguei errado"
+
+[[phrase]]
+topic = "telefone"
+situation = "Precisa soletrar seu nome."
+say = "Let me spell it for you"
+short = "Let me spell it"
+polished = "Sure, let me spell it for you"
+meaning = "Deixa eu soletrar pra você"
+tip = "Treine o alfabeto: o 'e' em inglês se fala 'í' e o 'i' se fala 'ái'."
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Você atende o telefone e não reconhece a voz."
+say = "Who's calling, please?"
+short = "Who's calling?"
+polished = "May I ask who's calling, please?"
+meaning = "Quem está falando, por favor?"
+accept = ["Who is calling, please?", "Who is this?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A ligação está baixa e você não escuta a pessoa."
+say = "Can you hear me?"
+polished = "Hello, can you hear me okay?"
+meaning = "Você está me ouvindo?"
+accept = ["Can you hear me okay?", "Can you hear me now?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Você liga para a casa de uma amiga e outra pessoa atende."
+say = "Can I speak to Ana?"
+short = "Ana, please."
+polished = "Hello, could I speak to Ana, please?"
+meaning = "Posso falar com a Ana?"
+accept = ["Could I speak to Ana?", "May I speak to Ana?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "A campainha toca no meio da ligação e você precisa ir abrir a porta."
+say = "Hold on a second."
+short = "Hold on."
+polished = "Could you hold on a second, please?"
+meaning = "Espera um segundo."
+accept = ["Hold on a sec", "Hang on a second"]
+tip = "'Hold on' = espera aí."
+
+[[phrase]]
+topic = "telefone"
+level = "A1"
+situation = "Um amigo liga bem na hora em que você está entrando no ônibus."
+say = "I'll call you back."
+short = "Call you back."
+polished = "Can I call you back in ten minutes?"
+meaning = "Eu te ligo de volta."
+accept = ["I will call you back"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Você não vai poder ir à consulta de amanhã e liga para a clínica."
+say = "I need to reschedule my appointment."
+short = "Can I reschedule?"
+polished = "Hello, I need to reschedule my appointment, please."
+meaning = "Preciso remarcar minha consulta."
+accept = ["I need to change my appointment"]
+tip = "'Appointment' é horário marcado (médico, banco). Encontro com amigos não é 'appointment'."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A atendente ditou o telefone rápido demais pra você anotar."
+say = "Could you repeat the number?"
+short = "The number again?"
+polished = "Sorry, could you repeat the number more slowly?"
+meaning = "Pode repetir o número?"
+accept = ["Can you repeat the number?"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "O sinal está ruim e a voz da pessoa fica sumindo."
+say = "You're breaking up."
+short = "Breaking up!"
+polished = "Sorry, you're breaking up, I can barely hear you."
+meaning = "Sua voz está cortando."
+tip = "'Breaking up' na ligação é a voz cortando. Entre um casal, é terminar o namoro."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Um amigo explica onde é a festa, mas você prefere receber por escrito."
+say = "Can you text me the address?"
+short = "Text me the address."
+polished = "Could you text me the address, please?"
+meaning = "Pode me mandar o endereço por mensagem?"
+accept = ["Could you text me the address?"]
+tip = "'Text' também é verbo: mandar mensagem."
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "Seu amigo não atende e a ligação cai na caixa postal."
+say = "Call me when you can."
+short = "Call me back."
+polished = "Hi, it's me, call me back when you can."
+meaning = "Me liga quando puder."
+accept = ["Call me back when you can"]
+
+[[phrase]]
+topic = "telefone"
+level = "A2"
+situation = "A atendente pergunta se você pode aguardar na linha."
+say = "Sure, I can hold."
+short = "I'll hold."
+polished = "Sure, no problem, I can hold."
+meaning = "Claro, eu aguardo."
+tip = "'Hold' ao telefone é esperar na linha."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "A internet de casa caiu e você liga para o suporte."
+say = "I'm calling about my internet connection."
+short = "It's about my internet."
+polished = "Hi, I'm calling about a problem with my internet connection."
+meaning = "Estou ligando por causa da minha internet."
+tip = "'I'm calling about...' é o jeito padrão de dizer o motivo da ligação."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "A ligação caiu no meio da conversa e você liga de novo."
+say = "Sorry, we got cut off."
+short = "We got cut off."
+polished = "Sorry about that, I think we got cut off."
+meaning = "Desculpa, a ligação caiu."
+
+[[phrase]]
+topic = "telefone"
+level = "B1"
+situation = "Você está preso no menu automático e quer um atendente."
+say = "Can I speak to a real person?"
+short = "A real person, please."
+polished = "Could you put me through to a real person, please?"
+meaning = "Posso falar com um atendente de verdade?"
+accept = ["Could I speak to a real person?"]
+tip = "'Put me through to...' = me transfira para..."

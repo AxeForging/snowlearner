@@ -1,0 +1,99 @@
+# decks/i18n/es.en (English for decks/es): saúde. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Necesito ver a un médico"
+meaning = "I need to see a doctor"
+situation = "You're not feeling well."
+
+[[phrase]]
+say = "Me duele aquí"
+meaning = "It hurts here"
+situation = "Show where it hurts."
+
+[[phrase]]
+say = "¿Tiene algo para el dolor de cabeza?"
+meaning = "Do you have something for a headache?"
+situation = "At the pharmacy, with a headache."
+
+[[phrase]]
+say = "Me siento mal desde ayer"
+meaning = "I've been feeling sick since yesterday"
+situation = "Tell them since when you've been unwell."
+
+[[phrase]]
+say = "Tengo fiebre."
+meaning = "I have a fever."
+situation = "You take your temperature and the thermometer reads thirty-nine."
+tip = "Spanish 'has' most symptoms: 'tengo fiebre', 'tengo tos', 'tengo frío'."
+
+[[phrase]]
+say = "Me duele la garganta."
+meaning = "I have a sore throat."
+situation = "At the pharmacy, the assistant asks what's wrong."
+tip = "'Me duele...' = my ... hurts. Literally 'the throat hurts me'."
+
+[[phrase]]
+say = "Necesito algo para la tos."
+meaning = "I need something for a cough."
+situation = "You can't stop coughing and go to the pharmacy."
+
+[[phrase]]
+say = "Soy alérgico a la penicilina."
+meaning = "I'm allergic to penicillin."
+situation = "Before prescribing, the doctor asks if you have any allergies."
+tip = "A woman says 'alérgica'."
+
+[[phrase]]
+say = "¿Tienes una curita?"
+meaning = "Do you have a band-aid?"
+situation = "You cut your finger cooking at a friend's place."
+tip = "'Curita' in Latin America; in Spain it's 'tirita'."
+
+[[phrase]]
+say = "¿Me puede ver un médico hoy?"
+meaning = "Can I see a doctor today?"
+situation = "You call the clinic first thing in the morning, without an appointment."
+
+[[phrase]]
+say = "Empezó hace dos días."
+meaning = "It started two days ago."
+situation = "The doctor asks how long you've been in pain."
+tip = "'Hace dos días' = two days ago. 'Hace' goes before the time."
+
+[[phrase]]
+say = "Estoy mareado."
+meaning = "I feel dizzy."
+situation = "You stand up too fast and everything starts spinning."
+tip = "A woman says 'mareada'. It also means seasick or carsick."
+
+[[phrase]]
+say = "Creo que me torcí el tobillo."
+meaning = "I think I sprained my ankle."
+situation = "You landed badly playing soccer and your foot is swollen."
+
+[[phrase]]
+say = "¿Cada cuánto debo tomarlo?"
+meaning = "How often should I take it?"
+situation = "The pharmacist hands you the medicine and you don't know the dose."
+
+[[phrase]]
+say = "No tomo ningún medicamento."
+meaning = "I'm not taking any medication."
+situation = "The doctor asks if you take any medicine every day."
+
+[[phrase]]
+say = "Necesito renovar mi receta."
+meaning = "I need to renew my prescription."
+situation = "Your regular medication ran out and you go to the doctor."
+tip = "'Receta' is both a prescription and a cooking recipe."
+
+[[phrase]]
+say = "¿Mi seguro cubre esto?"
+meaning = "Does my insurance cover this?"
+situation = "At the clinic's front desk, before an expensive test."
+
+[[phrase]]
+say = "Me duele mucho una muela."
+meaning = "I have a terrible toothache."
+situation = "You call the dentist asking to be squeezed in urgently."
+tip = "'Muela' is a back tooth; a tooth in general is 'diente'."

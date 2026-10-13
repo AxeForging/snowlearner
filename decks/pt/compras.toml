@@ -1,0 +1,131 @@
+# decks/pt: compras. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "You picked two pairs of pants and can't find where to try them on."
+say = "Onde ficam os provadores?"
+short = "Os provadores?"
+polished = "Com licença, onde ficam os provadores?"
+meaning = "Where are the fitting rooms?"
+accept = ["Onde fica o provador?", "Cadê o provador?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "You come out of the fitting room and the assistant asks how the shirt fits."
+say = "Ficou apertada."
+polished = "Ficou um pouco apertada em mim."
+meaning = "It's too tight."
+accept = ["Ficou apertado", "Está apertada"]
+tip = "'Ficou' is how you say how clothes fit: 'ficou bom', 'ficou grande'."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "At a market stall, you have no cash on you."
+say = "Posso pagar com cartão?"
+short = "Aceita cartão?"
+polished = "Com licença, posso pagar com cartão?"
+meaning = "Can I pay by card?"
+accept = ["Passa cartão?", "Vocês aceitam cartão?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "It's late and you want to know if you have time to come back to the store."
+say = "Que horas vocês fecham?"
+short = "Fecham que horas?"
+polished = "Com licença, que horas vocês fecham hoje?"
+meaning = "What time do you close?"
+accept = ["A que horas vocês fecham?"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "There's a discount sign, but the tag shows the full price."
+say = "Isso está em promoção?"
+short = "Em promoção?"
+polished = "Com licença, esse aqui está em promoção?"
+meaning = "Is this on sale?"
+accept = ["Está na promoção?", "Isso tá em promoção?"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "The assistant asks if she can help, and you want something for your mother."
+say = "Estou procurando um presente."
+polished = "Estou procurando um presente pra minha mãe."
+meaning = "I'm looking for a gift."
+accept = ["Tô procurando um presente", "Procuro um presente"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "You paid and the cashier didn't hand you the receipt."
+say = "Pode me dar a nota?"
+short = "A nota, por favor."
+polished = "Você pode me dar a nota fiscal, por favor?"
+meaning = "Can I have the receipt?"
+accept = ["Pode me dar o recibo?", "Me dá a nota?"]
+tip = "'Nota' (nota fiscal) is the store receipt."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "The sneakers are too big on you."
+say = "Tem um número menor?"
+short = "Um número menor?"
+polished = "Por acaso tem um número menor?"
+meaning = "Do you have a smaller size?"
+accept = ["Tem um tamanho menor?"]
+tip = "A shoe or clothing size is a 'número' or a 'tamanho'."
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "You open the box in the store and the device's screen is scratched."
+say = "Este aqui está com defeito."
+short = "Está com defeito."
+polished = "Desculpa, mas este aqui está com defeito."
+meaning = "This one is damaged."
+accept = ["Esse aqui está com defeito", "Esse veio com defeito"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "You were given a sweater, but you don't like the color."
+say = "Posso trocar por outra cor?"
+short = "Posso trocar?"
+polished = "Seria possível trocar por outra cor?"
+meaning = "Can I exchange it for another color?"
+accept = ["Dá pra trocar por outra cor?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "You ordered online two weeks ago and nothing has come."
+say = "Meu pedido ainda não chegou."
+short = "Meu pedido não chegou."
+polished = "Desculpa, mas meu pedido ainda não chegou."
+meaning = "My order hasn't arrived yet."
+accept = ["O meu pedido ainda não chegou"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Before buying an expensive gift, you want to know if it can be returned."
+say = "Qual é a política de troca?"
+short = "Posso devolver?"
+polished = "Você pode me dizer qual é a política de troca?"
+meaning = "What's your return policy?"
+accept = ["Qual a política de troca?", "Qual é a política de devolução?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "You check your statement and the same purchase shows up twice."
+say = "Acho que me cobraram duas vezes."
+short = "Me cobraram duas vezes."
+polished = "Com licença, acho que me cobraram duas vezes por isso."
+meaning = "I think I was charged twice."

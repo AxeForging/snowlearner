@@ -1,0 +1,36 @@
+# decks/i18n/es.en (English for decks/es): viagem. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Tengo una reserva a mi nombre"
+meaning = "I have a reservation under my name"
+situation = "You've just arrived at the hotel."
+
+[[phrase]]
+say = "¿El desayuno está incluido?"
+meaning = "Is breakfast included?"
+situation = "You want to know if breakfast is included."
+
+[[phrase]]
+say = "Mi maleta no llegó"
+meaning = "My suitcase didn't arrive"
+situation = "Your suitcase never showed up."
+
+[[phrase]]
+say = "¿Cómo llego a la estación de metro?"
+meaning = "How do I get to the subway station?"
+situation = "You're lost, looking for the subway."
+
+[[phrase]]
+say = "¿Cuánto se tarda en llegar al centro?"
+meaning = "How long does it take to get downtown?"
+situation = "You want to know how long it takes to get to the city center."
+
+[[phrase]]
+say = "Estoy de vacaciones"
+meaning = "I'm on vacation"
+situation = "At immigration, they ask why you're traveling."
+
+[[phrase]]
+say = "¿Me puede pedir un taxi al aeropuerto?"
+meaning = "Could you call me a taxi to the airport?"
+situation = "You need a taxi to the airport."

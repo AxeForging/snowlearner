@@ -1,0 +1,58 @@
+# decks/es: viagem. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "viagem"
+situation = "Você chegou no hotel."
+say = "Tengo una reserva a mi nombre"
+short = "Tengo una reserva"
+polished = "Hola, tengo una reserva a mi nombre"
+meaning = "Tenho uma reserva no meu nome"
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber se o café da manhã está incluso."
+say = "¿El desayuno está incluido?"
+short = "¿Incluye desayuno?"
+polished = "¿Me podría decir si el desayuno está incluido?"
+meaning = "O café da manhã está incluso?"
+accept = ["¿Está incluido el desayuno?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Sua mala não apareceu."
+say = "Mi maleta no llegó"
+polished = "Disculpe, mi maleta no llegó"
+meaning = "Minha mala não chegou"
+
+[[phrase]]
+topic = "viagem"
+situation = "Está perdido procurando o metrô."
+say = "¿Cómo llego a la estación de metro?"
+short = "¿El metro?"
+polished = "Disculpe, ¿cómo llego a la estación de metro?"
+meaning = "Como eu chego na estação de metrô?"
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber quanto tempo leva até o centro."
+say = "¿Cuánto se tarda en llegar al centro?"
+short = "¿Está lejos el centro?"
+polished = "Disculpe, ¿sabe cuánto se tarda en llegar al centro?"
+meaning = "Quanto tempo leva pra chegar no centro?"
+accept = ["¿Cuánto tiempo se tarda al centro?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Na imigração, perguntam o motivo da viagem."
+say = "Estoy de vacaciones"
+polished = "Estoy aquí de vacaciones por una semana"
+meaning = "Estou de férias"
+accept = ["Vengo de vacaciones"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer um táxi pra ir ao aeroporto."
+say = "¿Me puede pedir un taxi al aeropuerto?"
+short = "Un taxi, por favor"
+polished = "¿Sería tan amable de pedirme un taxi al aeropuerto?"
+meaning = "Pode me chamar um táxi pro aeroporto?"

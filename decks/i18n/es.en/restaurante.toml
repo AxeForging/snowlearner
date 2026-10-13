@@ -1,0 +1,31 @@
+# decks/i18n/es.en (English for decks/es): restaurante. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "La cuenta, por favor"
+meaning = "The check, please"
+situation = "You've finished eating and want to pay."
+
+[[phrase]]
+say = "¿Me lo pone para llevar?"
+meaning = "Can I get it to go?"
+situation = "You want to take the food with you."
+
+[[phrase]]
+say = "Soy alérgico a los frutos secos"
+meaning = "I'm allergic to nuts"
+situation = "You're allergic to nuts."
+
+[[phrase]]
+say = "¿Qué me recomienda?"
+meaning = "What do you recommend?"
+situation = "You don't know what to order."
+
+[[phrase]]
+say = "Una mesa para dos, por favor"
+meaning = "A table for two, please"
+situation = "You arrive at a restaurant with a friend."
+
+[[phrase]]
+say = "¿Aceptan tarjeta?"
+meaning = "Do you take cards?"
+situation = "You want to know if they accept cards."
