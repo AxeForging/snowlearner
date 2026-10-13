@@ -39,6 +39,6 @@ jobs:
       - run: cargo test --no-default-features
       - name: speech end-to-end
         run: |
-          cargo run --quiet -- model download --name tiny
-          SNOWLEARNER_TEST_MODEL=$HOME/.local/share/snowlearner/models/ggml-tiny.bin \
+          cargo run --quiet -- model download --name base
+          SNOWLEARNER_TEST_MODEL=$HOME/.local/share/snowlearner/models/ggml-base.bin \
             cargo test --test speech_e2e -- --ignored
