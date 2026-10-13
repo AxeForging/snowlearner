@@ -32,7 +32,7 @@ use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, Modifiers, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
 use winit::keyboard::{Key, NamedKey};
-use winit::window::{Window, WindowAttributes, WindowId, WindowLevel};
+use winit::window::{Icon, Window, WindowAttributes, WindowId, WindowLevel};
 
 const FPS: f32 = 30.0;
 /// Window mode keeps at least this many art pixels on screen.
@@ -356,9 +356,16 @@ impl App {
         attrs
     }
 
+    /// The frost mage as the window icon (title bar, taskbar, Alt+Tab).
+    fn icon() -> Option<Icon> {
+        let art = crate::scene::mage::portrait();
+        Icon::from_rgba(art.bytes().to_vec(), art.w as u32, art.h as u32).ok()
+    }
+
     fn window_attributes(&self) -> WindowAttributes {
         Window::default_attributes()
             .with_title("Snowlearner")
+            .with_window_icon(Self::icon())
             .with_inner_size(PhysicalSize::new(1280, 720))
             .with_min_inner_size(PhysicalSize::new(WINDOW_VIRTUAL.0, WINDOW_VIRTUAL.1))
     }
@@ -806,6 +813,7 @@ impl App {
         let size = PhysicalSize::new(menu::WIDTH as u32 * MENU_SCALE, menu::HEIGHT as u32 * MENU_SCALE);
         let attrs = Window::default_attributes()
             .with_title(T::PanelWindow.get(self.settings.native))
+            .with_window_icon(Self::icon())
             .with_inner_size(size)
             .with_resizable(false)
             .with_window_level(WindowLevel::AlwaysOnTop);
