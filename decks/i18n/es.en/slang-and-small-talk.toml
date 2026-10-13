@@ -1,0 +1,58 @@
+# decks/i18n/es.en (English for decks/es): gírias e conversa. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "No tengo ni idea."
+meaning = "I have no clue."
+situation = "Someone asks what time the market closes and you don't know."
+
+[[phrase]]
+say = "Me da igual."
+meaning = "Either way works for me."
+situation = "Your friend asks if you'd rather have pizza or burgers."
+tip = "'Me da igual' = I don't mind. Said flatly, it can sound like you don't care."
+
+[[phrase]]
+say = "¡Qué pereza!"
+meaning = "Ugh, I can't be bothered!"
+situation = "It's pouring and you're invited to a party across town."
+tip = "'¡Qué pereza!' works almost everywhere; Mexico also says '¡qué flojera!'."
+
+[[phrase]]
+say = "¿En serio?"
+meaning = "Seriously?"
+situation = "A friend says he's quitting his job to travel the world."
+
+[[phrase]]
+say = "¡Dale, nos vemos!"
+meaning = "Cool, see you then!"
+situation = "You agree by text to meet at eight."
+tip = "'Dale' = okay, deal (Latin America). In Spain it's 'vale'."
+
+[[phrase]]
+say = "Me cae muy bien."
+meaning = "I really like him."
+situation = "Someone asks what you think of your roommate."
+tip = "'Caer bien' = to like someone as a person. 'Me gusta' can sound romantic."
+
+[[phrase]]
+say = "Estoy harto de esperar."
+meaning = "I'm fed up with waiting."
+situation = "The technician said morning and it's already four in the afternoon."
+tip = "A woman says 'harta'."
+
+[[phrase]]
+say = "¡Ojo, que es muy caro!"
+meaning = "Heads up, it's really expensive!"
+situation = "Your friend wants to go to a restaurant you know, and you know the prices."
+tip = "'¡Ojo!' (eye) = watch out, heads up."
+
+[[phrase]]
+say = "Me muero de risa."
+meaning = "I'm dying of laughter."
+situation = "A friend sends you a video of a cat falling off the couch."
+
+[[phrase]]
+say = "¿Qué onda? ¿Cómo andas?"
+meaning = "What's up? How are you doing?"
+situation = "You run into someone you know and want to catch up."
+tip = "'¿Qué onda?' is the casual 'what's up?' in much of Latin America. In Spain, '¿qué tal?'."

@@ -1,0 +1,79 @@
+# decks/pt: primeiros contatos. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "You get stuck mid-sentence while talking to a stranger."
+say = "Estou aprendendo português."
+short = "Estou aprendendo."
+polished = "Ainda estou aprendendo português, tenha paciência."
+meaning = "I'm learning Portuguese."
+accept = ["Tô aprendendo português", "Ainda estou aprendendo português"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "A neighbor asks how long you've been in town."
+say = "Me mudei pra cá ano passado."
+short = "Ano passado."
+polished = "Me mudei pra cá ano passado, a trabalho."
+meaning = "I moved here last year."
+accept = ["Me mudei para cá no ano passado", "Vim pra cá ano passado"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "You chat with someone in line at the neighborhood bakery."
+say = "Você mora por aqui?"
+polished = "E você, mora por aqui perto?"
+meaning = "Do you live around here?"
+accept = ["Você mora aqui perto?", "Mora por aqui?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "You say goodbye to someone you met today at a dinner."
+say = "Foi um prazer te conhecer."
+short = "Foi um prazer."
+polished = "Foi um prazer enorme te conhecer."
+meaning = "It was nice meeting you."
+accept = ["Foi um prazer conhecer você", "Prazer em te conhecer"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "A new coworker tells you they came from another country."
+say = "O que te trouxe pra cá?"
+polished = "Me conta, o que te trouxe pra essa cidade?"
+meaning = "What brought you here?"
+accept = ["O que te trouxe para cá?", "O que te traz aqui?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "You meet someone from the neighborhood at a block party."
+say = "Há quanto tempo você mora aqui?"
+short = "Há quanto tempo?"
+polished = "E você, há quanto tempo mora aqui?"
+meaning = "How long have you lived here?"
+accept = ["Faz quanto tempo que você mora aqui?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Someone asks how life in the new city is going."
+say = "Ainda estou me acostumando."
+short = "Estou me acostumando."
+polished = "Sinceramente, ainda estou me acostumando."
+meaning = "I'm still getting used to it."
+accept = ["Ainda tô me acostumando"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "On the last day of the course, you say goodbye to a classmate."
+say = "A gente precisa manter contato."
+short = "Vamos manter contato."
+polished = "A gente precisa mesmo manter contato."
+meaning = "We should keep in touch."
+accept = ["Precisamos manter contato", "Vamos manter contato"]

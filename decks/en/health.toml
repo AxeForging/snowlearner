@@ -1,0 +1,176 @@
+# decks/en: saúde. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "saúde"
+situation = "Você não está bem e precisa de atendimento."
+say = "I need to see a doctor"
+short = "I need a doctor"
+polished = "I think I need to see a doctor, please"
+meaning = "Preciso ver um médico"
+
+[[phrase]]
+topic = "saúde"
+situation = "Na consulta, mostre onde dói."
+say = "It hurts right here"
+short = "It hurts here"
+polished = "Doctor, it hurts right here when I press"
+meaning = "Dói bem aqui"
+accept = ["It hurts here"]
+
+[[phrase]]
+topic = "saúde"
+situation = "Na farmácia, procurando remédio pra dor de cabeça."
+say = "Do you have something for a headache?"
+short = "Something for a headache?"
+polished = "Could you recommend something for a headache?"
+meaning = "Tem algo pra dor de cabeça?"
+
+[[phrase]]
+topic = "saúde"
+situation = "O médico pergunta há quanto tempo você está assim."
+say = "I've been feeling sick since yesterday"
+short = "I feel sick"
+polished = "I've been feeling quite sick since yesterday morning"
+meaning = "Estou me sentindo mal desde ontem"
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você mede a temperatura e o termômetro mostra trinta e nove."
+say = "I have a fever."
+short = "A fever."
+polished = "I think I have a fever."
+meaning = "Estou com febre."
+accept = ["I've got a fever"]
+tip = "Em inglês você 'tem' febre: 'I have a fever', nunca 'I am with fever'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Na farmácia, a atendente pergunta o que você está sentindo."
+say = "I have a sore throat."
+short = "Sore throat."
+polished = "I have a really sore throat."
+meaning = "Estou com dor de garganta."
+accept = ["I've got a sore throat", "My throat hurts"]
+tip = "'Sore' = dolorido: sore throat, sore muscles."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você não para de tossir e vai à farmácia."
+say = "I need something for a cough."
+short = "Something for a cough?"
+polished = "Do you have anything for a bad cough?"
+meaning = "Preciso de algo pra tosse."
+tip = "'Cough' se fala 'cóf'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Antes de receitar, o médico pergunta se você tem alguma alergia."
+say = "I'm allergic to penicillin."
+short = "Penicillin."
+polished = "Yes, I'm allergic to penicillin."
+meaning = "Sou alérgico a penicilina."
+accept = ["I am allergic to penicillin"]
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Você cortou o dedo cozinhando na casa de um amigo."
+say = "Do you have a band-aid?"
+short = "A band-aid, please."
+polished = "Excuse me, do you have a band-aid?"
+meaning = "Você tem um band-aid?"
+accept = ["Do you have a plaster?", "Have you got a plaster?"]
+tip = "Nos EUA é 'band-aid'; no Reino Unido, 'plaster'."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você liga para a clínica logo cedo, sem horário marcado."
+say = "Can I see a doctor today?"
+short = "A doctor today?"
+polished = "Is there any chance I could see a doctor today?"
+meaning = "Consigo passar com um médico hoje?"
+accept = ["Could I see a doctor today?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta desde quando você está com dor."
+say = "It started two days ago."
+short = "Two days ago."
+polished = "It started about two days ago."
+meaning = "Começou há dois dias."
+tip = "'Ago' vem depois do tempo: 'two days ago' = há dois dias."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você levanta rápido demais e tudo começa a girar."
+say = "I feel dizzy."
+polished = "I've been feeling dizzy all day."
+meaning = "Estou tonto."
+accept = ["I'm dizzy", "I'm feeling dizzy"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "Você pisou em falso jogando bola e o pé inchou."
+say = "I think I sprained my ankle."
+short = "I sprained my ankle."
+polished = "I think I may have sprained my ankle."
+meaning = "Acho que torci o tornozelo."
+accept = ["I think I twisted my ankle"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O farmacêutico te entrega o remédio e você não sabe a dose."
+say = "How often should I take it?"
+short = "How often?"
+polished = "Sorry, how often should I take it?"
+meaning = "De quanto em quanto tempo devo tomar?"
+accept = ["How often do I take it?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "O médico pergunta se você toma algum remédio todo dia."
+say = "I'm not taking any medication."
+short = "No medication."
+polished = "No, I'm not taking any medication at the moment."
+meaning = "Não estou tomando nenhum remédio."
+accept = ["I don't take any medication"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Seu remédio de uso contínuo acabou e você vai à farmácia."
+say = "I need a refill on my prescription."
+short = "A refill, please."
+polished = "Hi, I need a refill on my prescription, please."
+meaning = "Preciso renovar minha receita."
+tip = "'Prescription' é a receita médica. 'Recipe' é receita de comida."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Na recepção da clínica, antes de fazer um exame caro."
+say = "Does my insurance cover this?"
+short = "Is this covered?"
+polished = "Could you tell me if my insurance covers this?"
+meaning = "Meu plano cobre isso?"
+accept = ["Is this covered by my insurance?"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Você liga para o dentista pedindo um encaixe urgente."
+say = "I have a terrible toothache."
+short = "A toothache."
+polished = "I've had a terrible toothache since last night."
+meaning = "Estou com uma dor de dente terrível."
+accept = ["I've got a terrible toothache"]

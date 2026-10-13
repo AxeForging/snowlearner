@@ -1,6 +1,7 @@
 //! Phrase decks: TOML data, built-in for `en` and `es` (pt-BR cues) and
 //! `pt-BR` (English cues), overridable by dropping `<lang>.toml` into the
-//! config `decks/` folder.
+//! config `decks/` folder. The hand-curated ones are a folder per language
+//! (`decks/<lang>/`), one file per theme.
 //!
 //! Phrases are real situations, not vocabulary drills: each has a topic, a
 //! situation in the learner's own language, accepted variants and an
@@ -16,27 +17,44 @@ use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+/// One deck out of a folder under `decks/`: `deck.toml` (header and tips),
+/// then a file of phrases per theme, joined in the order listed. A new theme
+/// file must be listed here.
+macro_rules! themed {
+    ($dir:literal: $($theme:literal),+ $(,)?) => {
+        concat!(
+            include_str!(concat!("../../decks/", $dir, "/deck.toml")),
+            $("\n", include_str!(concat!("../../decks/", $dir, "/", $theme, ".toml"))),+
+        )
+    };
+}
+
+/// The hand-curated decks, one folder per language.
+const EN: &str = themed!("en":
+    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
+pub(crate) const ES: &str = themed!("es":
+    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
+const PT: &str = themed!("pt":
+    "phone", "health", "emergency", "social", "shopping", "restaurant", "travel",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
+/// `decks/es` for English speakers, theme by theme.
+const ES_EN: &str = themed!("i18n/es.en":
+    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
+);
+
 /// Built-in decks per language: hand-curated phrases, the first words and
 /// chunks (`<lang>.basics.toml`), then the phrases ported from Lexicaster
 /// (`scripts/port-lexicaster.mjs`). Duplicates keep the first.
 const BUILTIN: &[(&str, &[&str])] = &[
-    (
-        "en",
-        &[
-            include_str!("../../decks/en.toml"),
-            include_str!("../../decks/en.basics.toml"),
-            include_str!("../../decks/en.lexicaster.toml"),
-        ],
-    ),
-    (
-        "es",
-        &[
-            include_str!("../../decks/es.toml"),
-            include_str!("../../decks/es.basics.toml"),
-            include_str!("../../decks/es.lexicaster.toml"),
-        ],
-    ),
-    ("pt-BR", &[include_str!("../../decks/pt.basics.toml")]),
+    ("en", &[EN, include_str!("../../decks/en.basics.toml"), include_str!("../../decks/en.lexicaster.toml")]),
+    ("es", &[ES, include_str!("../../decks/es.basics.toml"), include_str!("../../decks/es.lexicaster.toml")]),
+    ("pt-BR", &[PT, include_str!("../../decks/pt.basics.toml")]),
 ];
 
 /// Answer tiers for the generated decks, hand-curated and keyed by `say`
@@ -48,11 +66,8 @@ const TIERS: &[(&str, &str)] = &[
 
 /// Built-in translations: (deck language, native, overlays keyed by `say`).
 /// The Lexicaster ports have none yet, so English speakers don't get them.
-const TRANSLATIONS: &[(&str, Native, &[&str])] = &[(
-    "es",
-    Native::En,
-    &[include_str!("../../decks/i18n/es.en.toml"), include_str!("../../decks/i18n/es.basics.en.toml")],
-)];
+const TRANSLATIONS: &[(&str, Native, &[&str])] =
+    &[("es", Native::En, &[ES_EN, include_str!("../../decks/i18n/es.basics.en.toml")])];
 
 /// CEFR levels, easiest first. Pre-A1 (CEFR Companion Volume, 2020) is the
 /// learner who knows nothing yet: isolated words and set expressions.
@@ -653,7 +668,7 @@ mod tests {
     fn english_speakers_get_the_whole_curated_spanish_deck_in_english() {
         let pt = Deck::builtin("es").unwrap();
         let en = Deck::builtin_for("es", Native::En).unwrap();
-        let curated = Deck::parse(include_str!("../../decks/es.toml")).unwrap().phrases.len()
+        let curated = Deck::parse(ES).unwrap().phrases.len()
             + Deck::parse(include_str!("../../decks/es.basics.toml")).unwrap().phrases.len();
         assert_eq!(en.phrases.len(), curated, "es.toml and es.basics are fully translated; Lexicaster is not");
         assert!(en.phrases.len() < pt.phrases.len());
@@ -684,7 +699,8 @@ mod tests {
         let count = |st: Stage| d.phrases.iter().filter(|p| Stage::of(p) == st).count();
         assert!(count(Stage::Words) >= 40, "{} first words", count(Stage::Words));
         assert!(count(Stage::Chunks) >= 20, "{} short chunks", count(Stage::Chunks));
-        assert_eq!(count(Stage::Phrases), 0, "a first-steps deck has no full phrases");
+        assert!(count(Stage::Phrases) >= 40, "{} full phrases", count(Stage::Phrases));
+        assert!(d.tips.len() >= 10, "tips for English speakers");
         let order = crate::learn::path::ordered(&d.phrases, &d.selection(&[], "C2"));
         assert_eq!(Stage::of(&d.phrases[order[0]]), Stage::Words, "the path starts with a word");
         for p in &d.phrases {
@@ -780,16 +796,8 @@ mod tests {
     /// Fewest items that make a rung.
     const RUNG_MIN: usize = 3;
     /// Rungs still missing in the built-in decks. Filling one means removing it
-    /// here: the test fails while a filled rung is still listed.
-    const LADDER_GAPS: &[(&str, &str)] = &[
-        ("primeiros contatos", "A2"),
-        ("primeiros contatos", "B1"),
-        ("restaurante", "A2"),
-        ("viagem", "A2"),
-        ("compras", "A2"),
-        ("compras", "B1"),
-        ("saúde e social", "B1"),
-    ];
+    /// here: the test fails while a filled rung is still listed. None are left.
+    const LADDER_GAPS: &[(&str, &str)] = &[];
 
     #[test]
     fn core_topics_climb_every_level_from_pre_a1_to_b1() {

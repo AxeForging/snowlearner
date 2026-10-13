@@ -1,0 +1,163 @@
+# decks/en: compras. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "compras"
+situation = "O vendedor oferece ajuda, mas você só está olhando."
+say = "I'm just looking, thanks"
+short = "Just looking"
+polished = "I'm just looking for now, thank you"
+meaning = "Só estou olhando, obrigado"
+accept = ["Just looking, thanks"]
+
+[[phrase]]
+topic = "compras"
+situation = "Quer provar uma roupa."
+say = "Can I try this on?"
+polished = "Would it be okay if I tried this on?"
+meaning = "Posso experimentar?"
+accept = ["Could I try this on?"]
+
+[[phrase]]
+topic = "compras"
+situation = "Precisa de um tamanho maior."
+say = "Do you have this in a bigger size?"
+short = "A bigger size?"
+polished = "Excuse me, do you have this in a bigger size?"
+meaning = "Tem esse num tamanho maior?"
+accept = ["Do you have this in a larger size?"]
+
+[[phrase]]
+topic = "compras"
+situation = "O produto veio com defeito."
+say = "I'd like to return this"
+polished = "Hi, I'd like to return this, please"
+meaning = "Eu gostaria de devolver isso"
+accept = ["I would like to return this"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você pegou duas calças e não acha onde experimentar."
+say = "Where are the fitting rooms?"
+short = "The fitting rooms?"
+polished = "Excuse me, where are the fitting rooms?"
+meaning = "Onde ficam os provadores?"
+accept = ["Where is the fitting room?", "Where are the changing rooms?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você sai do provador e a vendedora pergunta como ficou a camisa."
+say = "It's too tight."
+short = "Too tight."
+polished = "It's a bit too tight for me."
+meaning = "Está muito apertada."
+accept = ["It is too tight"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Você gostou do casaco e decide comprar."
+say = "I'll take it."
+polished = "Great, I'll take it, thank you."
+meaning = "Vou levar."
+accept = ["I will take it"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "Já é tarde e você quer saber se dá tempo de voltar à loja."
+say = "What time do you close?"
+short = "When do you close?"
+polished = "Excuse me, what time do you close today?"
+meaning = "Que horas vocês fecham?"
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Há uma placa de desconto, mas a etiqueta mostra o preço cheio."
+say = "Is this on sale?"
+short = "On sale?"
+polished = "Excuse me, is this one on sale?"
+meaning = "Isso está em promoção?"
+tip = "'On sale' = em promoção. 'For sale' = à venda."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "A vendedora pergunta se pode ajudar, e você procura algo pra sua mãe."
+say = "I'm looking for a gift."
+polished = "I'm looking for a gift for my mother."
+meaning = "Estou procurando um presente."
+accept = ["I'm looking for a present"]
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "Você pagou e o caixa não entregou o comprovante."
+say = "Can I have the receipt?"
+short = "The receipt, please."
+polished = "Could I have the receipt, please?"
+meaning = "Pode me dar a nota?"
+accept = ["Could I have the receipt?", "Can I get the receipt?"]
+tip = "'Receipt' se fala 'ri-SÍT': o 'p' é mudo."
+
+[[phrase]]
+topic = "compras"
+level = "A2"
+situation = "O tênis ficou grande no seu pé."
+say = "Do you have a smaller size?"
+short = "A smaller size?"
+polished = "Do you happen to have a smaller size?"
+meaning = "Tem um número menor?"
+accept = ["Do you have it in a smaller size?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você abre a caixa na loja e a tela do aparelho está riscada."
+say = "This one is damaged."
+short = "It's damaged."
+polished = "I'm afraid this one is damaged."
+meaning = "Este aqui está com defeito."
+accept = ["This one is broken"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você ganhou uma blusa, mas não gostou da cor."
+say = "Can I exchange it for another color?"
+short = "Can I exchange it?"
+polished = "Would it be possible to exchange it for another color?"
+meaning = "Posso trocar por outra cor?"
+accept = ["Could I exchange it for another color?"]
+tip = "'Exchange' é trocar por outro. 'Return' é devolver. 'Refund' é o dinheiro de volta."
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você comprou online há duas semanas e nada chegou."
+say = "My order hasn't arrived yet."
+short = "My order hasn't arrived."
+polished = "I'm afraid my order still hasn't arrived."
+meaning = "Meu pedido ainda não chegou."
+accept = ["My order has not arrived yet"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Antes de comprar um presente caro, você quer saber se pode devolver."
+say = "What's your return policy?"
+short = "Can I return it?"
+polished = "Could you tell me what your return policy is?"
+meaning = "Qual é a política de devolução?"
+accept = ["What is your return policy?"]
+
+[[phrase]]
+topic = "compras"
+level = "B1"
+situation = "Você confere o extrato e a mesma compra aparece duas vezes."
+say = "I think I was charged twice."
+short = "I was charged twice."
+polished = "Excuse me, I think I was charged twice for this."
+meaning = "Acho que me cobraram duas vezes."

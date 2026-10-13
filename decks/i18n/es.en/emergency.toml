@@ -1,0 +1,82 @@
+# decks/i18n/es.en (English for decks/es): emergência. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Llame a una ambulancia, por favor"
+meaning = "Call an ambulance, please"
+situation = "There's been an accident."
+
+[[phrase]]
+say = "Perdí mi pasaporte"
+meaning = "I lost my passport"
+situation = "You've lost your passport."
+
+[[phrase]]
+say = "¿Me puede ayudar, por favor?"
+meaning = "Can you help me, please?"
+situation = "You need help on the street."
+
+[[phrase]]
+say = "¡Hay un incendio!"
+meaning = "There's a fire!"
+situation = "You see smoke coming out of the restaurant's kitchen."
+
+[[phrase]]
+say = "No encuentro mi hotel."
+meaning = "I can't find my hotel."
+situation = "You come out of the subway in a city you don't know and can't find your way back."
+
+[[phrase]]
+say = "Me robaron la mochila."
+meaning = "Someone stole my backpack."
+situation = "You get back to your table at the café and your backpack is gone."
+
+[[phrase]]
+say = "Necesitamos un médico."
+meaning = "We need a doctor."
+situation = "Someone collapses next to you on the street."
+
+[[phrase]]
+say = "Necesito ir a un hospital."
+meaning = "I need to get to a hospital."
+situation = "Your friend is hurt and you flag down a taxi."
+
+[[phrase]]
+say = "Mi amigo está herido."
+meaning = "My friend is hurt."
+situation = "Your friend fell off his bike and can't get up."
+
+[[phrase]]
+say = "No sé la dirección."
+meaning = "I don't know the address."
+situation = "You call emergency services and they ask where you are."
+
+[[phrase]]
+say = "¿Puedo usar tu teléfono?"
+meaning = "Can I use your phone?"
+situation = "Your phone died and you need to let your family know."
+
+[[phrase]]
+say = "Me quedé afuera sin llaves."
+meaning = "I'm locked out."
+situation = "The door slammed shut and your keys are inside the apartment."
+
+[[phrase]]
+say = "¿Están todos bien?"
+meaning = "Is everyone okay?"
+situation = "After a minor car crash, you get out to check on people."
+
+[[phrase]]
+say = "Necesito denunciar un robo."
+meaning = "I need to report a theft."
+situation = "At the police station, after your backpack was taken."
+tip = "'Denunciar' is to file a police report."
+
+[[phrase]]
+say = "Necesito cancelar mi tarjeta."
+meaning = "I need to cancel my card."
+situation = "Your card is missing and you call the bank."
+
+[[phrase]]
+say = "No respira."
+meaning = "He's not breathing."
+situation = "A man has passed out and you're on the phone with emergency services."

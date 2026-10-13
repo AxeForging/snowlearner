@@ -815,3 +815,235 @@ say = "Estou atrasado."
 polished = "Desculpa, estou um pouco atrasado."
 meaning = "I'm late."
 accept = ["Estou atrasada", "Tô atrasado", "Tô atrasada"]
+
+# ---------------------------------------------------------------- emergencies
+
+[[phrase]]
+topic = "emergência"
+level = "PRE-A1"
+situation = "You see smoke coming out of the restaurant's kitchen."
+say = "Fogo!"
+polished = "Tem fogo na cozinha!"
+meaning = "Fire!"
+
+[[phrase]]
+topic = "emergência"
+level = "PRE-A1"
+situation = "A cyclist is about to hit your friend, who is looking at his phone."
+say = "Cuidado!"
+polished = "Cuidado com a bicicleta!"
+meaning = "Watch out!"
+
+[[phrase]]
+topic = "emergência"
+level = "PRE-A1"
+situation = "Someone collapses next to you on the street and people gather around."
+say = "Uma ambulância!"
+polished = "Chama uma ambulância, por favor!"
+meaning = "An ambulance!"
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Your phone and wallet are gone and you stop a police officer."
+say = "Preciso de ajuda."
+polished = "Por favor, preciso de ajuda."
+meaning = "I need help."
+accept = ["Eu preciso de ajuda"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "You reach into your pocket on the subway and your wallet is gone."
+say = "Roubaram minha carteira."
+polished = "Roubaram minha carteira no metrô."
+meaning = "Someone stole my wallet."
+accept = ["Levaram minha carteira"]
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "Your friend is hurt and you need to get to a hospital fast."
+say = "Cadê o hospital?"
+polished = "Cadê o hospital mais próximo?"
+meaning = "Where's the hospital?"
+accept = ["Onde fica o hospital?", "Onde é o hospital?"]
+tip = "'Cadê' is everyday Brazilian for 'where is'."
+
+[[phrase]]
+topic = "emergência"
+level = "A1"
+situation = "You get back to the hotel and realize your phone stayed in the taxi."
+say = "Perdi meu celular."
+polished = "Perdi meu celular, pode me ajudar?"
+meaning = "I lost my phone."
+accept = ["Perdi o meu celular"]
+
+# ---------------------------------------------------------------- shopping
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "A street vendor tells you the price of a hat and it's far more than you expected."
+say = "Muito caro."
+polished = "Está muito caro pra mim."
+meaning = "Too expensive."
+accept = ["Tá muito caro", "É muito caro"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "You walk into a clothing store and the assistant asks if you need help."
+say = "Só olhando."
+polished = "Estou só olhando, obrigado."
+meaning = "Just looking."
+accept = ["Só estou olhando", "Estou só olhando"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "You find a shirt you like and want to see how it fits."
+say = "Posso provar?"
+polished = "Posso provar essa camisa?"
+meaning = "Can I try it on?"
+accept = ["Posso experimentar?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "The shoes are tight and you want the next size up."
+say = "Tem maior?"
+polished = "Tem um número maior?"
+meaning = "Do you have a bigger one?"
+accept = ["Tem um maior?"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "You like the jacket and decide to buy it."
+say = "Vou levar."
+polished = "Gostei, vou levar essa."
+meaning = "I'll take it."
+accept = ["Vou levar esse", "Vou levar essa"]
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "At a small shop, you're about to pay in cash and want a better price."
+say = "Tem desconto?"
+polished = "Tem desconto pagando em dinheiro?"
+meaning = "Is there a discount?"
+tip = "Asking for a discount when paying cash is normal in Brazil."
+
+[[phrase]]
+topic = "compras"
+level = "A1"
+situation = "The cashier holds the card machine and asks 'crédito ou débito?'."
+say = "No débito."
+polished = "Vou pagar no débito, por favor."
+meaning = "Debit."
+accept = ["Débito", "É débito"]
+
+# ---------------------------------------------------------------- health and friends
+
+[[phrase]]
+topic = "saúde e social"
+level = "PRE-A1"
+situation = "A friend tells you he got the job he wanted."
+say = "Que legal!"
+polished = "Que legal, parabéns pra você!"
+meaning = "That's great!"
+accept = ["Que bom!", "Que massa!"]
+tip = "'Legal' means cool or nice far more often than it means legal."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "You wake up feeling awful and message your team."
+say = "Estou doente."
+polished = "Hoje estou doente, desculpa."
+meaning = "I'm sick."
+accept = ["Tô doente"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "You take your temperature and the thermometer reads thirty-nine."
+say = "Estou com febre."
+polished = "Acho que estou com febre."
+meaning = "I have a fever."
+accept = ["Tô com febre", "Tenho febre"]
+tip = "Portuguese is 'with' symptoms: 'estou com febre', 'estou com fome', 'estou com frio'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "At the pharmacy, the pharmacist asks what you need."
+say = "Dor de cabeça."
+polished = "Tem remédio pra dor de cabeça?"
+meaning = "A headache."
+accept = ["Estou com dor de cabeça"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "A friend tells you her grandmother is in the hospital."
+say = "Sinto muito."
+polished = "Sinto muito pelo que aconteceu."
+meaning = "I'm so sorry."
+accept = ["Eu sinto muito"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "You bump into a friend you haven't seen in years."
+say = "Quanto tempo!"
+polished = "Quanto tempo, como você está?"
+meaning = "Long time no see!"
+
+[[phrase]]
+topic = "saúde e social"
+level = "A1"
+situation = "You'd like to get to know a new coworker better."
+say = "Vamos tomar café?"
+polished = "Vamos tomar um café amanhã?"
+meaning = "Shall we get a coffee?"
+accept = ["Vamos tomar um café?"]
+
+# ---------------------------------------------------------------- on the phone
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Your phone rings and you pick up."
+say = "Alô?"
+polished = "Alô, quem está falando?"
+meaning = "Hello? (on the phone)"
+tip = "'Alô' is only for the phone. In person, say 'oi'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "You pick up the phone and don't recognize the voice."
+say = "Quem fala?"
+polished = "Quem fala, por favor?"
+meaning = "Who's speaking?"
+accept = ["Quem é?", "Quem está falando?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Someone calls asking for a person you've never heard of."
+say = "Número errado."
+polished = "Desculpa, é o número errado."
+meaning = "Wrong number."
+accept = ["É engano", "Foi engano"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "A friend calls just as you're getting on the bus."
+say = "Te ligo depois."
+polished = "Te ligo depois do almoço."
+meaning = "I'll call you later."
+accept = ["Depois te ligo", "Eu te ligo depois"]

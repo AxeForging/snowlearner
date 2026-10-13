@@ -1,0 +1,148 @@
+# decks/pt: saúde. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "At the pharmacy, the assistant asks what's wrong."
+say = "Estou com dor de garganta."
+short = "Dor de garganta."
+polished = "Estou com muita dor de garganta."
+meaning = "I have a sore throat."
+accept = ["Tô com dor de garganta", "Minha garganta está doendo"]
+tip = "Portuguese is 'with' a pain: 'estou com dor de garganta', 'estou com dor nas costas'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "You can't stop coughing and go to the pharmacy."
+say = "Preciso de algo pra tosse."
+short = "Algo pra tosse?"
+polished = "Você tem alguma coisa pra tosse forte?"
+meaning = "I need something for a cough."
+accept = ["Preciso de algo para tosse", "Preciso de um remédio pra tosse"]
+tip = "'Pra' is the everyday spoken form of 'para'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "Before prescribing, the doctor asks if you have any allergies."
+say = "Sou alérgico a penicilina."
+short = "A penicilina."
+polished = "Sim, sou alérgico a penicilina."
+meaning = "I'm allergic to penicillin."
+accept = ["Sou alérgica a penicilina", "Tenho alergia a penicilina"]
+tip = "A woman says 'alérgica'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "You cut your finger cooking at a friend's place."
+say = "Você tem um band-aid?"
+polished = "Com licença, você tem um band-aid?"
+meaning = "Do you have a band-aid?"
+accept = ["Tem um band-aid?", "Você tem um curativo?"]
+tip = "Brazilians say 'band-aid' too; the generic word is 'curativo'."
+
+[[phrase]]
+topic = "saúde"
+level = "A1"
+situation = "In the middle of dinner at a friend's place, you start to feel sick."
+say = "Não estou me sentindo bem."
+short = "Não estou bem."
+polished = "Desculpa, não estou me sentindo muito bem."
+meaning = "I'm not feeling well."
+accept = ["Não tô me sentindo bem", "Não me sinto bem"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "You call the clinic first thing in the morning, without an appointment."
+say = "Consigo passar com um médico hoje?"
+short = "Um médico hoje?"
+polished = "Será que eu consigo passar com um médico hoje?"
+meaning = "Can I see a doctor today?"
+accept = ["Eu consigo passar com um médico hoje?"]
+tip = "'Passar com o médico' = to be seen by the doctor."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "The doctor asks how long you've been in pain."
+say = "Começou há dois dias."
+short = "Há dois dias."
+polished = "Começou há uns dois dias."
+meaning = "It started two days ago."
+accept = ["Começou faz dois dias"]
+tip = "'Há dois dias' and 'faz dois dias' both mean two days ago."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "You stand up too fast and everything starts spinning."
+say = "Estou tonto."
+polished = "Estou tonto desde hoje de manhã."
+meaning = "I feel dizzy."
+accept = ["Estou tonta", "Tô tonto", "Tô tonta"]
+tip = "A woman says 'tonta'."
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "You landed badly playing soccer and your foot is swollen."
+say = "Acho que torci o tornozelo."
+short = "Torci o tornozelo."
+polished = "Acho que eu torci o tornozelo jogando bola."
+meaning = "I think I sprained my ankle."
+accept = ["Acho que torci o pé"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "The pharmacist hands you the medicine and you don't know the dose."
+say = "De quanto em quanto tempo eu tomo?"
+short = "Quantas vezes por dia?"
+polished = "Desculpa, de quanto em quanto tempo eu tomo?"
+meaning = "How often should I take it?"
+accept = ["De quanto em quanto tempo devo tomar?"]
+
+[[phrase]]
+topic = "saúde"
+level = "A2"
+situation = "The doctor asks if you take any medicine every day."
+say = "Não tomo nenhum remédio."
+short = "Nenhum remédio."
+polished = "Não, não tomo nenhum remédio no momento."
+meaning = "I'm not taking any medication."
+accept = ["Não estou tomando nenhum remédio"]
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "Your regular medication ran out and you go to the doctor."
+say = "Preciso renovar minha receita."
+short = "Renovar minha receita."
+polished = "Oi, preciso renovar minha receita, por favor."
+meaning = "I need to renew my prescription."
+accept = ["Preciso renovar a minha receita"]
+tip = "'Receita' is both a prescription and a cooking recipe."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "At the clinic's front desk, before an expensive test."
+say = "Meu plano cobre isso?"
+short = "O plano cobre?"
+polished = "Você pode me dizer se meu plano cobre isso?"
+meaning = "Does my insurance cover this?"
+accept = ["O meu plano cobre isso?", "Meu convênio cobre isso?"]
+tip = "'Plano' (de saúde) or 'convênio' is health insurance."
+
+[[phrase]]
+topic = "saúde"
+level = "B1"
+situation = "You call the dentist asking to be squeezed in urgently."
+say = "Estou com muita dor de dente."
+short = "Dor de dente."
+polished = "Estou com muita dor de dente desde ontem à noite."
+meaning = "I have a terrible toothache."
+accept = ["Tô com muita dor de dente"]

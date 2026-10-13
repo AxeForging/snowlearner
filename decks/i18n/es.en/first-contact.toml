@@ -1,0 +1,42 @@
+# decks/i18n/es.en (English for decks/es): primeiros contatos. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Estoy aprendiendo español."
+meaning = "I'm learning Spanish."
+situation = "You get stuck mid-sentence while talking to a stranger."
+
+[[phrase]]
+say = "Me mudé aquí el año pasado."
+meaning = "I moved here last year."
+situation = "A neighbor asks how long you've been in town."
+
+[[phrase]]
+say = "¿Vives por aquí?"
+meaning = "Do you live around here?"
+situation = "You chat with someone in line at the neighborhood bakery."
+
+[[phrase]]
+say = "Fue un gusto conocerte."
+meaning = "It was nice meeting you."
+situation = "You say goodbye to someone you met today at a dinner."
+
+[[phrase]]
+say = "¿Qué te trajo por aquí?"
+meaning = "What brought you here?"
+situation = "A new coworker tells you they came from another country."
+
+[[phrase]]
+say = "¿Cuánto tiempo llevas viviendo aquí?"
+meaning = "How long have you lived here?"
+situation = "You meet someone from the neighborhood at a block party."
+tip = "'Llevar' + time = how long so far: 'llevo dos años aquí' = I've been here two years."
+
+[[phrase]]
+say = "Todavía me estoy acostumbrando."
+meaning = "I'm still getting used to it."
+situation = "Someone asks how life in the new city is going."
+
+[[phrase]]
+say = "Tenemos que seguir en contacto."
+meaning = "We should keep in touch."
+situation = "On the last day of the course, you say goodbye to a classmate."

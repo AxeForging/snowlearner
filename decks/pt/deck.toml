@@ -1,0 +1,40 @@
+# Hand-curated Brazilian Portuguese for English speakers: full phrases for real situations.
+# The first words and short chunks are in pt.basics.toml.
+language = "pt-BR"
+native = "en"
+language_name = "Portuguese"
+title = "Portuguese for real life"
+
+
+[[tip]]
+text = "False friend: 'puxe' on a door means PULL. Push is 'empurre'."
+[[tip]]
+text = "False friend: 'pretender' means to intend. To pretend is 'fingir'."
+[[tip]]
+text = "False friend: 'atualmente' means currently. Actually is 'na verdade'."
+[[tip]]
+text = "False friend: 'esquisito' means weird, not exquisite."
+[[tip]]
+text = "False friend: 'parentes' are relatives. Parents are 'pais'."
+[[tip]]
+text = "False friend: 'livraria' is a bookshop. A library is 'biblioteca'."
+[[tip]]
+text = "Pronunciation: a final 'm' is nasal, never a closed 'm': 'bem' sounds like 'bayng'."
+[[tip]]
+text = "Pronunciation: 'ão' is a nasal 'own' said through the nose: 'não', 'pão', 'coração'."
+[[tip]]
+text = "Pronunciation: 'lh' is like the 'lli' in 'million'; 'nh' is like the 'ny' in 'canyon'."
+[[tip]]
+text = "Pronunciation: 'de' and 'te' at the end of a word sound like 'jee' and 'chee': 'cidade', 'noite'."
+[[tip]]
+text = "Pronunciation: an 'r' at the start of a word sounds like an English 'h': 'Rio' = 'HEE-oo'."
+[[tip]]
+text = "Spoken Brazilian shortens: 'estou' becomes 'tô', 'está' becomes 'tá', 'para' becomes 'pra'."
+[[tip]]
+text = "'Você' is the everyday 'you'. 'O senhor' and 'a senhora' are the polite forms for older people."
+[[tip]]
+text = "'Tudo bem?' is both the question and the answer: 'Tudo bem?' 'Tudo bem!'."
+[[tip]]
+text = "A man says 'obrigado', a woman says 'obrigada'."
+[[tip]]
+text = "Adding '-inho' softens almost anything: 'um minutinho', 'um cafezinho', 'rapidinho'."

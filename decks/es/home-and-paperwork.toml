@@ -1,0 +1,83 @@
+# decks/es: casa e burocracia. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "A internet do apartamento alugado caiu e você escreve ao dono."
+say = "El wifi no funciona."
+short = "No hay wifi."
+polished = "Hola, el wifi no funciona en mi departamento."
+meaning = "O wi-fi não está funcionando."
+accept = ["No funciona el wifi", "El internet no funciona"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "Primeira semana no prédio novo, você encontra um vizinho no corredor."
+say = "¿Dónde saco la basura?"
+short = "¿Dónde va la basura?"
+polished = "Perdón, ¿dónde tengo que sacar la basura?"
+meaning = "Onde eu coloco o lixo?"
+accept = ["¿Dónde se saca la basura?", "¿Dónde tiro la basura?"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "No balcão do banco, a atendente pergunta em que pode ajudar."
+say = "Quiero retirar dinero."
+polished = "Hola, quisiera retirar dinero, por favor."
+meaning = "Queria sacar dinheiro."
+accept = ["Quiero sacar dinero", "Quisiera retirar dinero"]
+tip = "'Retirar' ou 'sacar' dinero = sacar dinheiro."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "A2"
+situation = "A feira só aceita dinheiro e você está sem nenhum."
+say = "¿Hay un cajero cerca?"
+short = "¿Un cajero?"
+polished = "Disculpe, ¿hay un cajero automático cerca?"
+meaning = "Tem um caixa eletrônico por aqui?"
+accept = ["¿Hay un cajero automático cerca?", "¿Hay un cajero por aquí?"]
+tip = "'Cajero' (automático) é o caixa eletrônico."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "A pia da cozinha pinga a noite toda e você avisa o proprietário."
+say = "Hay una fuga de agua."
+short = "Hay una fuga."
+polished = "Hola, hay una fuga de agua en la cocina."
+meaning = "Tem um vazamento de água."
+accept = ["Hay una gotera", "Tengo una fuga de agua"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "O caixa eletrônico não devolveu seu cartão e você entra na agência."
+say = "El cajero se tragó mi tarjeta."
+short = "Se tragó mi tarjeta."
+polished = "Disculpe, el cajero se tragó mi tarjeta."
+meaning = "O caixa eletrônico engoliu meu cartão."
+accept = ["El cajero se quedó con mi tarjeta"]
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "Você chega ao guichê com a conta de luz na mão."
+say = "Necesito pagar esta factura."
+short = "Pagar esto, por favor."
+polished = "Hola, necesito pagar esta factura, por favor."
+meaning = "Preciso pagar essa conta."
+accept = ["Quiero pagar esta factura", "Necesito pagar este recibo"]
+tip = "'Factura' é a conta de luz, água, telefone. 'Cuenta' serve pra restaurante e banco."
+
+[[phrase]]
+topic = "casa e burocracia"
+level = "B1"
+situation = "Primeiro mês no apartamento, você escreve ao proprietário."
+say = "¿Cuándo se paga el alquiler?"
+short = "¿Cuándo se paga?"
+polished = "¿Me recuerda cuándo se paga el alquiler?"
+meaning = "Quando vence o aluguel?"
+accept = ["¿Cuándo vence el alquiler?", "¿Cuándo se paga la renta?"]

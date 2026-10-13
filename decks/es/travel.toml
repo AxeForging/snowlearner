@@ -1,0 +1,109 @@
+# decks/es: viagem. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "viagem"
+situation = "Você chegou no hotel."
+say = "Tengo una reserva a mi nombre"
+short = "Tengo una reserva"
+polished = "Hola, tengo una reserva a mi nombre"
+meaning = "Tenho uma reserva no meu nome"
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber se o café da manhã está incluso."
+say = "¿El desayuno está incluido?"
+short = "¿Incluye desayuno?"
+polished = "¿Me podría decir si el desayuno está incluido?"
+meaning = "O café da manhã está incluso?"
+accept = ["¿Está incluido el desayuno?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Sua mala não apareceu."
+say = "Mi maleta no llegó"
+polished = "Disculpe, mi maleta no llegó"
+meaning = "Minha mala não chegou"
+
+[[phrase]]
+topic = "viagem"
+situation = "Está perdido procurando o metrô."
+say = "¿Cómo llego a la estación de metro?"
+short = "¿El metro?"
+polished = "Disculpe, ¿cómo llego a la estación de metro?"
+meaning = "Como eu chego na estação de metrô?"
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer saber quanto tempo leva até o centro."
+say = "¿Cuánto se tarda en llegar al centro?"
+short = "¿Está lejos el centro?"
+polished = "Disculpe, ¿sabe cuánto se tarda en llegar al centro?"
+meaning = "Quanto tempo leva pra chegar no centro?"
+accept = ["¿Cuánto tiempo se tarda al centro?"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Na imigração, perguntam o motivo da viagem."
+say = "Estoy de vacaciones"
+polished = "Estoy aquí de vacaciones por una semana"
+meaning = "Estou de férias"
+accept = ["Vengo de vacaciones"]
+
+[[phrase]]
+topic = "viagem"
+situation = "Quer um táxi pra ir ao aeroporto."
+say = "¿Me puede pedir un taxi al aeropuerto?"
+short = "Un taxi, por favor"
+polished = "¿Sería tan amable de pedirme un taxi al aeropuerto?"
+meaning = "Pode me chamar um táxi pro aeroporto?"
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Na estação, você não acha a bilheteria."
+say = "¿Dónde puedo comprar un boleto?"
+short = "¿Los boletos?"
+polished = "Disculpe, ¿dónde puedo comprar un boleto?"
+meaning = "Onde posso comprar uma passagem?"
+accept = ["¿Dónde puedo comprar un billete?", "¿Dónde compro un boleto?"]
+tip = "'Boleto' na América Latina, 'billete' na Espanha."
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "O trem está na plataforma e você não tem certeza se é o seu."
+say = "¿Este tren va al aeropuerto?"
+short = "¿Va al aeropuerto?"
+polished = "Disculpe, ¿este tren va al aeropuerto?"
+meaning = "Esse trem vai pro aeroporto?"
+accept = ["¿Es este el tren al aeropuerto?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você e seu amigo querem uma foto juntos em frente ao monumento."
+say = "¿Nos puede tomar una foto?"
+short = "¿Una foto, por favor?"
+polished = "Disculpe, ¿nos podría tomar una foto, por favor?"
+meaning = "Pode tirar uma foto da gente?"
+accept = ["¿Nos puede sacar una foto?", "¿Nos hace una foto?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você planeja o dia seguinte com o recepcionista do hotel."
+say = "¿A qué hora abre el museo?"
+short = "¿Cuándo abre?"
+polished = "Disculpe, ¿a qué hora abre el museo?"
+meaning = "Que horas o museu abre?"
+accept = ["¿Cuándo abre el museo?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "Você fez o check-out de manhã, mas seu voo é só à noite."
+say = "¿Puedo dejar mis maletas aquí?"
+short = "¿Mis maletas aquí?"
+polished = "¿Sería posible dejar mis maletas aquí?"
+meaning = "Posso deixar minhas malas aqui?"
+accept = ["¿Puedo dejar mi equipaje aquí?", "¿Puedo dejar las maletas aquí?"]

@@ -1,0 +1,105 @@
+# decks/pt: gírias e conversa. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Someone asks what time the market closes and you don't know."
+say = "Não faço ideia."
+short = "Sei lá."
+polished = "Sinceramente, não faço ideia."
+meaning = "I have no clue."
+accept = ["Não faço a menor ideia", "Não tenho ideia"]
+tip = "'Sei lá' = no clue, who knows. Very casual."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Your friend asks if you'd rather have pizza or burgers."
+say = "Pra mim tanto faz."
+short = "Tanto faz."
+polished = "Pra mim tanto faz, você escolhe."
+meaning = "Either way works for me."
+accept = ["Para mim tanto faz", "Por mim tanto faz"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "It's pouring and you're invited to a party across town."
+say = "Não estou a fim de sair."
+short = "Não tô a fim."
+polished = "Hoje não estou muito a fim de sair."
+meaning = "I don't feel like going out."
+accept = ["Não tô a fim de sair", "Não estou com vontade de sair"]
+tip = "'Estar a fim de' = to feel like doing something."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "A friend says he's quitting his job to travel the world."
+say = "Tá falando sério?"
+short = "Sério?"
+polished = "Tá falando sério? Não acredito!"
+meaning = "Are you serious?"
+accept = ["Você está falando sério?", "É sério?"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "You agree by text to meet at eight."
+say = "Beleza, até lá!"
+short = "Beleza!"
+polished = "Beleza, então até as oito!"
+meaning = "Cool, see you then!"
+accept = ["Fechado, até lá!", "Combinado, até lá!"]
+tip = "'Beleza' = cool, deal, all good. Also 'fechado' and 'combinado'."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Someone asks what living with your roommate is like."
+say = "A gente se dá muito bem."
+short = "A gente se dá bem."
+polished = "Na verdade, a gente se dá muito bem."
+meaning = "We get along really well."
+accept = ["Nós nos damos muito bem"]
+tip = "'Se dar bem com alguém' = to get along with someone."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "The technician said morning and it's already four in the afternoon."
+say = "Cansei de esperar."
+polished = "Sinceramente, cansei de esperar."
+meaning = "I'm fed up with waiting."
+accept = ["Não aguento mais esperar", "Já cansei de esperar"]
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "Your friend wants to go to a restaurant you know, and you know the prices."
+say = "Fica esperto, é bem caro."
+short = "Fica esperto!"
+polished = "Só um toque, fica esperto que é bem caro."
+meaning = "Heads up, it's pretty expensive."
+accept = ["Fica esperta, é bem caro", "Só avisando, é bem caro"]
+tip = "'Dar um toque' = to give someone a heads up."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "A friend sends you a video of a cat falling off the couch."
+say = "Morri de rir!"
+polished = "Morri de rir com esse vídeo!"
+meaning = "That's hilarious!"
+accept = ["Tô morrendo de rir", "Estou morrendo de rir"]
+tip = "Literally 'I died laughing'. In texts, Brazilians laugh with 'kkkk'."
+
+[[phrase]]
+topic = "gírias e conversa"
+level = "B1"
+situation = "You run into someone you know and want to catch up."
+say = "O que você anda fazendo?"
+short = "E as novidades?"
+polished = "E aí, o que você anda fazendo ultimamente?"
+meaning = "What have you been up to?"
+accept = ["O que você tem feito?", "O que cê anda fazendo?"]

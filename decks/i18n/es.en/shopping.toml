@@ -1,0 +1,89 @@
+# decks/i18n/es.en (English for decks/es): compras. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Solo estoy mirando, gracias"
+meaning = "I'm just looking, thanks"
+situation = "The salesperson offers help, but you're just browsing."
+
+[[phrase]]
+say = "¿Me lo puedo probar?"
+meaning = "Can I try it on?"
+situation = "You want to try on some clothes."
+
+[[phrase]]
+say = "¿Lo tiene en una talla más grande?"
+meaning = "Do you have it in a bigger size?"
+situation = "You need a different size."
+tip = "Clothing size is 'talla'; shoe size is 'número'."
+
+[[phrase]]
+say = "Quiero devolver esto"
+meaning = "I want to return this"
+situation = "You want to return a product."
+
+[[phrase]]
+say = "¿Dónde están los probadores?"
+meaning = "Where are the fitting rooms?"
+situation = "You picked two pairs of pants and can't find where to try them on."
+
+[[phrase]]
+say = "Me queda apretada."
+meaning = "It's too tight on me."
+situation = "You come out of the fitting room and the assistant asks how the shirt fits."
+tip = "'Me queda...' = it fits me...: 'me queda bien', 'me queda grande'."
+
+[[phrase]]
+say = "Me lo llevo."
+meaning = "I'll take it."
+situation = "You like the coat and decide to buy it."
+
+[[phrase]]
+say = "¿A qué hora cierran?"
+meaning = "What time do you close?"
+situation = "It's late and you want to know if you have time to come back to the store."
+
+[[phrase]]
+say = "¿Esto está en oferta?"
+meaning = "Is this on sale?"
+situation = "There's a discount sign, but the tag shows the full price."
+tip = "'Oferta' or 'rebaja' = a sale price."
+
+[[phrase]]
+say = "Busco un regalo."
+meaning = "I'm looking for a gift."
+situation = "The assistant asks if she can help, and you want something for your mother."
+
+[[phrase]]
+say = "¿Me da el recibo?"
+meaning = "Can I have the receipt?"
+situation = "You paid and the cashier didn't hand you the receipt."
+
+[[phrase]]
+say = "¿Tiene una talla más pequeña?"
+meaning = "Do you have a smaller size?"
+situation = "The sneakers are too big on you."
+
+[[phrase]]
+say = "Este está dañado."
+meaning = "This one is damaged."
+situation = "You open the box in the store and the device's screen is scratched."
+
+[[phrase]]
+say = "¿Puedo cambiarlo por otro color?"
+meaning = "Can I exchange it for another color?"
+situation = "You were given a sweater, but you don't like the color."
+
+[[phrase]]
+say = "Mi pedido todavía no llega."
+meaning = "My order hasn't arrived yet."
+situation = "You ordered online two weeks ago and nothing has come."
+
+[[phrase]]
+say = "¿Cuál es su política de devoluciones?"
+meaning = "What's your return policy?"
+situation = "Before buying an expensive gift, you want to know if it can be returned."
+
+[[phrase]]
+say = "Creo que me cobraron dos veces."
+meaning = "I think I was charged twice."
+situation = "You check your statement and the same purchase shows up twice."

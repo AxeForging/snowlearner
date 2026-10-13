@@ -1,0 +1,39 @@
+language = "en"
+native = "pt-BR"
+language_name = "inglês"
+title = "Inglês pra vida real"
+
+# General tips the warrior drops between challenges.
+
+[[tip]]
+text = "Falso amigo: 'actually' é 'na verdade', não 'atualmente' (currently)."
+[[tip]]
+text = "Falso amigo: 'pretend' é 'fingir'. 'Pretender' é 'intend' ou 'plan to'."
+[[tip]]
+text = "Falso amigo: 'push' é EMPURRAR. Puxar é 'pull'. Olhe a porta!"
+[[tip]]
+text = "Falso amigo: 'library' é biblioteca. Livraria é 'bookstore'."
+[[tip]]
+text = "Falso amigo: 'exquisite' é refinado, elogio! Não é 'esquisito' (weird)."
+[[tip]]
+text = "Falso amigo: 'parents' são pai e mãe. Parentes são 'relatives'."
+[[tip]]
+text = "Falso amigo: 'lunch' é almoço. Lanche é 'snack'."
+[[tip]]
+text = "Pronúncia: final -ed quase não soa. 'worked' = 'uórkt', não 'uórqued'."
+[[tip]]
+text = "Pronúncia: o 'th' é língua entre os dentes. 'think' não é 'fink' nem 'tink'."
+[[tip]]
+text = "Pronúncia: não coloque 'i' no fim: 'Facebook' não é 'feicebuki'."
+[[tip]]
+text = "Pronúncia: 'beach' tem 'i' longo; 'bitch' tem 'i' curto. Cuidado na praia!"
+[[tip]]
+text = "Educação: 'Could you...?' soa bem mais gentil que 'Can you...?'."
+[[tip]]
+text = "Pra ganhar tempo pensando: 'Let me think...' ou 'That's a good question'."
+[[tip]]
+text = "Não entendeu? Tudo bem pedir: 'Sorry, could you say that again?'."
+[[tip]]
+text = "'How are you?' muitas vezes é só um oi. Responda curto: 'Good, you?'."
+[[tip]]
+text = "Em email e reunião, 'I'm afraid...' suaviza uma notícia ruim."

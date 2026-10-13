@@ -1,0 +1,172 @@
+# decks/i18n/es.en (English for decks/es): trabalho. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+say = "Perdón, estás en silencio"
+meaning = "Sorry, you're on mute"
+situation = "Your coworker is talking, but they're on mute."
+
+[[phrase]]
+say = "¿Puedes compartir tu pantalla?"
+meaning = "Can you share your screen?"
+situation = "You want to see what your coworker is showing."
+
+[[phrase]]
+say = "Voy a llegar unos minutos tarde"
+meaning = "I'm going to be a few minutes late"
+situation = "You're running late for the meeting."
+
+[[phrase]]
+say = "Déjame revisarlo y te aviso"
+meaning = "Let me check and I'll let you know"
+situation = "You need to confirm something before you answer."
+
+[[phrase]]
+say = "¿Me lo puedes explicar paso a paso?"
+meaning = "Can you explain it to me step by step?"
+situation = "You didn't understand the explanation."
+
+[[phrase]]
+say = "¿Cuál es la fecha de entrega?"
+meaning = "What's the deadline?"
+situation = "You're asked about the deadline for a task."
+
+[[phrase]]
+say = "¿Podemos pasarlo para mañana?"
+meaning = "Can we move it to tomorrow?"
+situation = "The meeting needs to be pushed back."
+
+[[phrase]]
+say = "Tiene sentido"
+meaning = "That makes sense"
+situation = "You agree with the idea."
+
+[[phrase]]
+say = "Creo que hay un error en producción"
+meaning = "I think there's a bug in production"
+situation = "You found a serious problem in production."
+
+[[phrase]]
+say = "Te mando un correo con el resumen"
+meaning = "I'll send you an email with the summary"
+situation = "You'll send a summary after the meeting."
+tip = "Email in Spanish is 'correo' (or just 'mail' in casual talk)."
+
+[[phrase]]
+say = "¿Me escuchas bien?"
+meaning = "Can you hear me okay?"
+situation = "You want to check that your audio is fine."
+
+[[phrase]]
+say = "Entiendo, pero no estoy seguro de que funcione"
+meaning = "I see, but I'm not sure it will work"
+situation = "You disagree, but politely."
+
+[[phrase]]
+say = "Estoy en una reunión."
+meaning = "I'm in a meeting."
+situation = "Your phone rings during a meeting and you answer quickly to say so."
+
+[[phrase]]
+say = "Estoy en una llamada."
+meaning = "I'm on a call."
+situation = "A coworker comes to your desk while you're on a call."
+
+[[phrase]]
+say = "Trabajo en informática."
+meaning = "I work in IT."
+situation = "At the company party, someone from another team asks what you do."
+
+[[phrase]]
+say = "La reunión es a las diez."
+meaning = "The meeting is at ten."
+situation = "A coworker asks what time today's meeting is."
+
+[[phrase]]
+say = "¿Dónde está la sala de reuniones?"
+meaning = "Where is the meeting room?"
+situation = "First day at the office, you're looking for where the meeting will be."
+
+[[phrase]]
+say = "¿Puede repetir, por favor?"
+meaning = "Could you repeat that, please?"
+situation = "On a call, the client spoke fast and you missed the order number."
+
+[[phrase]]
+say = "Este es mi jefe."
+meaning = "This is my boss."
+situation = "A client arrives and you introduce the person who leads your team."
+
+[[phrase]]
+say = "Tengo una pregunta."
+meaning = "I have a question."
+situation = "At the end of the presentation they ask if anyone has questions, and you do."
+
+[[phrase]]
+say = "Hoy estoy enfermo."
+meaning = "I'm sick today."
+situation = "You wake up with a fever and tell the team in chat you won't be working."
+
+[[phrase]]
+say = "Gracias por tu ayuda."
+meaning = "Thanks for your help."
+situation = "A coworker spent half an hour helping you set up your laptop."
+
+[[phrase]]
+say = "Nos vemos el lunes."
+meaning = "See you Monday."
+situation = "Friday afternoon, you leave the office and say bye to the team."
+
+[[phrase]]
+say = "¿Hablamos después del almuerzo?"
+meaning = "Can we talk after lunch?"
+situation = "A coworker wants to chat, but you're in the middle of a deliverable."
+
+[[phrase]]
+say = "Hoy te mando el correo."
+meaning = "I'll send you the email today."
+situation = "The client asks when they'll get the proposal."
+
+[[phrase]]
+say = "Hoy trabajo desde casa."
+meaning = "I'm working from home today."
+situation = "A coworker asks if you're coming to the office today."
+
+[[phrase]]
+say = "¿Me mandas el enlace?"
+meaning = "Can you send me the link?"
+situation = "The meeting already started and you can't find the invite in your calendar."
+
+[[phrase]]
+say = "No me funciona internet."
+meaning = "My internet isn't working."
+situation = "You join the call late and explain why."
+
+[[phrase]]
+say = "No te oigo."
+meaning = "I can't hear you."
+situation = "On the call, your coworker's audio suddenly cuts out."
+
+[[phrase]]
+say = "La reunión se movió al viernes."
+meaning = "The meeting was moved to Friday."
+situation = "You tell a coworker that Wednesday's meeting changed days."
+
+[[phrase]]
+say = "Llego cinco minutos tarde."
+meaning = "I'll be five minutes late."
+situation = "Traffic stopped and you post in chat that you'll be late."
+
+[[phrase]]
+say = "¿A qué hora te viene bien?"
+meaning = "What time works for you?"
+situation = "You want to set up a chat with a client and ask for the best time."
+
+[[phrase]]
+say = "Terminé el informe."
+meaning = "I finished the report."
+situation = "Your boss asks how the monthly report is going."
+
+[[phrase]]
+say = "Nos vemos mañana a las nueve."
+meaning = "See you tomorrow at nine."
+situation = "You agree with a coworker to review the project together."

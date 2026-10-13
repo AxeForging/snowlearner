@@ -1,0 +1,210 @@
+# decks/en: social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "social"
+situation = "Alguém pergunta de onde você é."
+say = "I'm from Brazil"
+polished = "I'm originally from Brazil"
+meaning = "Eu sou do Brasil"
+
+[[phrase]]
+topic = "social"
+situation = "Quer puxar conversa sobre o trabalho da pessoa."
+say = "What do you do for a living?"
+short = "What do you do?"
+polished = "So, what do you do for a living?"
+meaning = "Com o que você trabalha?"
+accept = ["What do you do?"]
+
+[[phrase]]
+topic = "social"
+situation = "A pessoa fala rápido demais pra você."
+say = "Could you speak a little slower?"
+short = "Slower, please"
+polished = "Sorry, could you speak a little slower, please?"
+meaning = "Você poderia falar um pouco mais devagar?"
+accept = ["Could you speak more slowly?", "Can you speak a little slower?"]
+
+[[phrase]]
+topic = "social"
+situation = "Não sabe uma palavra em inglês."
+say = "How do you say this in English?"
+short = "How do you say this?"
+polished = "Sorry, how do you say this in English?"
+meaning = "Como se diz isso em inglês?"
+
+[[phrase]]
+topic = "social"
+situation = "Alguém pede desculpas por algo pequeno."
+say = "No worries"
+short = "All good"
+polished = "No worries at all, it happens"
+meaning = "Sem problemas"
+accept = ["No problem"]
+
+[[phrase]]
+topic = "social"
+situation = "Um amigo pergunta se você está chegando."
+say = "I'm on my way"
+short = "On my way!"
+polished = "I'm on my way, see you soon"
+meaning = "Estou a caminho"
+
+[[phrase]]
+topic = "social"
+situation = "Não entendeu o que a pessoa quis dizer."
+say = "What do you mean?"
+polished = "Sorry, what do you mean by that?"
+meaning = "O que você quer dizer?"
+
+[[phrase]]
+topic = "social"
+situation = "Está indo embora da festa."
+say = "It was great seeing you"
+short = "Great seeing you"
+polished = "It was really great seeing you again"
+meaning = "Foi ótimo te ver"
+accept = ["It was nice seeing you", "It was great to see you"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você encontra um vizinho no elevador."
+say = "How's it going?"
+polished = "Hey, how's it going today?"
+meaning = "Como vão as coisas?"
+accept = ["How is it going?"]
+tip = "Resposta natural: 'Pretty good, you?'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Sua amiga chega na festa e você a apresenta a um colega."
+say = "This is my friend Ana."
+short = "This is Ana."
+polished = "I'd like you to meet my friend Ana."
+meaning = "Essa é minha amiga Ana."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "O anfitrião te oferece mais uma bebida e você não quer."
+say = "I'm good, thanks."
+short = "I'm good."
+polished = "I'm good for now, thanks."
+meaning = "Estou bem, obrigado."
+tip = "Aqui 'I'm good' é recusar com educação: 'não, obrigado'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você quer manter contato com alguém que conheceu hoje."
+say = "What's your number?"
+short = "Your number?"
+polished = "Can I get your number?"
+meaning = "Qual é o seu número?"
+accept = ["What is your number?", "What's your phone number?"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Um amigo conta que passou na entrevista de emprego."
+say = "That's great news!"
+short = "Great news!"
+polished = "That's great news, I'm so happy for you!"
+meaning = "Que notícia boa!"
+accept = ["That is great news"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você quer conhecer melhor um colega novo."
+say = "Do you want to grab a coffee?"
+short = "Coffee?"
+polished = "Would you like to grab a coffee sometime?"
+meaning = "Quer tomar um café?"
+accept = ["Want to grab a coffee?", "Do you want to get a coffee?"]
+tip = "'Grab a coffee' é o convite casual do dia a dia."
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Te chamam pra sair hoje, mas você já tem compromisso."
+say = "I can't make it tonight."
+short = "Can't make it."
+polished = "I'm sorry, I can't make it tonight."
+meaning = "Não vou conseguir ir hoje à noite."
+accept = ["I cannot make it tonight"]
+tip = "'Make it' = conseguir ir ou chegar."
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Um amigo conta que foi demitido."
+say = "I'm sorry to hear that."
+short = "Sorry to hear that."
+polished = "I'm really sorry to hear that."
+meaning = "Sinto muito por isso."
+accept = ["I am sorry to hear that"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você chega vinte minutos depois do combinado."
+say = "Sorry to keep you waiting."
+short = "Sorry for the wait."
+polished = "I'm so sorry to keep you waiting, the traffic was terrible."
+meaning = "Desculpa te fazer esperar."
+accept = ["Sorry for keeping you waiting", "Sorry I kept you waiting"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Na segunda, um colega pergunta como foi seu fim de semana."
+say = "Not much, I just stayed home."
+short = "Not much."
+polished = "Not much, I just stayed home and relaxed."
+meaning = "Nada demais, só fiquei em casa."
+accept = ["Not much, I stayed home"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Sexta à tarde, você quer saber os planos do seu amigo."
+say = "What are you up to this weekend?"
+short = "Any plans?"
+polished = "So, what are you up to this weekend?"
+meaning = "O que você vai fazer no fim de semana?"
+accept = ["What are you doing this weekend?"]
+tip = "'What are you up to?' = o que você anda fazendo ou vai fazer."
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Você cruza na rua com um amigo que não via há anos."
+say = "It's been a long time!"
+short = "Long time no see!"
+polished = "It's been such a long time, how have you been?"
+meaning = "Quanto tempo!"
+accept = ["It has been a long time"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "A conversa está boa, mas você precisa ir embora."
+say = "I should get going."
+short = "I should go."
+polished = "Well, I should get going, but it was nice talking to you."
+meaning = "Preciso ir andando."
+accept = ["I should be going", "I have to get going"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Seu amigo insiste em pagar a conta do bar de novo."
+say = "The next one is on me."
+short = "Next one's on me."
+polished = "Thanks, but the next one is on me."
+meaning = "A próxima é por minha conta."
+accept = ["The next one's on me", "Next time it's on me"]
+tip = "'It's on me' = eu pago."

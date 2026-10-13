@@ -1,0 +1,106 @@
+# decks/en: restaurante. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "restaurante"
+situation = "Você quer levar a comida pra viagem."
+say = "Can I get this to go?"
+short = "To go, please"
+polished = "Could I get this to go, please?"
+meaning = "Pode embalar pra viagem?"
+accept = ["Could I get this to go?"]
+
+[[phrase]]
+topic = "restaurante"
+situation = "Você tem alergia a amendoim."
+say = "I'm allergic to peanuts"
+short = "No peanuts, please"
+polished = "Just so you know, I'm allergic to peanuts"
+meaning = "Sou alérgico a amendoim"
+tip = "Alergia é sério: fale devagar e aponte no cardápio se precisar."
+
+[[phrase]]
+topic = "restaurante"
+situation = "Terminou de comer e quer pagar."
+say = "Could we get the check, please?"
+short = "Check, please"
+polished = "Whenever you're ready, could we get the check, please?"
+meaning = "Pode trazer a conta, por favor?"
+accept = ["Can we get the check, please?", "Check, please"]
+tip = "Nos EUA é 'check'; no Reino Unido, 'bill'."
+
+[[phrase]]
+topic = "restaurante"
+situation = "Chegou no restaurante com um amigo."
+say = "A table for two, please"
+short = "Two, please"
+polished = "Hi, could we get a table for two, please?"
+meaning = "Uma mesa pra dois, por favor"
+
+[[phrase]]
+topic = "restaurante"
+situation = "Não sabe o que pedir."
+say = "What do you recommend?"
+short = "Any recommendations?"
+polished = "What would you recommend here?"
+meaning = "O que você recomenda?"
+
+[[phrase]]
+topic = "restaurante"
+situation = "Quer saber se aceitam cartão."
+say = "Do you take credit cards?"
+short = "Card okay?"
+polished = "Do you happen to take credit cards?"
+meaning = "Vocês aceitam cartão de crédito?"
+accept = ["Do you accept credit cards?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "O garçom chega à mesa com o bloquinho na mão."
+say = "I'll have the chicken, please."
+short = "The chicken, please."
+polished = "I think I'll have the chicken, please."
+meaning = "Vou querer o frango, por favor."
+accept = ["I will have the chicken, please", "I'll have the chicken"]
+tip = "'I'll have...' é o jeito natural de pedir. 'I want...' soa seco."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "Vocês sentaram há dez minutos e ninguém trouxe o cardápio."
+say = "Could we see the menu?"
+short = "The menu, please."
+polished = "Excuse me, could we see the menu, please?"
+meaning = "Podemos ver o cardápio?"
+accept = ["Can we see the menu?", "Could we have the menu?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "Você não aguenta pimenta e o prato tem um desenho de chama ao lado."
+say = "Is this dish spicy?"
+short = "Is it spicy?"
+polished = "Excuse me, is this dish very spicy?"
+meaning = "Esse prato é apimentado?"
+accept = ["Is this spicy?"]
+tip = "'Spicy' é apimentado. 'Hot' pode ser quente ou apimentado."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "A comida chegou, mas esqueceram a sua bebida."
+say = "Can I have some water, please?"
+short = "Some water, please."
+polished = "Could I have some water, please?"
+meaning = "Pode me trazer uma água, por favor?"
+accept = ["Can I get some water, please?", "Could I get some water, please?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "O garçom tira os pratos e pergunta se estava tudo bom."
+say = "Everything was delicious."
+short = "It was delicious."
+polished = "Everything was delicious, thank you so much."
+meaning = "Estava tudo delicioso."
+accept = ["It was all delicious", "Everything was great"]

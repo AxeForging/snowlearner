@@ -1,0 +1,53 @@
+# decks/pt: viagem. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "At the station, you can't find the ticket office."
+say = "Onde eu compro a passagem?"
+short = "Onde compra passagem?"
+polished = "Com licença, onde eu compro a passagem?"
+meaning = "Where can I buy a ticket?"
+accept = ["Onde posso comprar a passagem?", "Onde compro a passagem?"]
+tip = "'Passagem' is a ticket for travel. A ticket for a show is an 'ingresso'."
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "The train is at the platform and you're not sure it's yours."
+say = "Esse trem vai pro aeroporto?"
+short = "Vai pro aeroporto?"
+polished = "Com licença, esse trem vai pro aeroporto?"
+meaning = "Does this train go to the airport?"
+accept = ["Esse trem vai para o aeroporto?"]
+tip = "'Pro' is the spoken form of 'para o'."
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "You and your friend want a photo together in front of the monument."
+say = "Pode tirar uma foto da gente?"
+short = "Uma foto, por favor?"
+polished = "Com licença, você pode tirar uma foto da gente?"
+meaning = "Can you take our picture?"
+accept = ["Você pode tirar uma foto nossa?", "Tira uma foto da gente?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "You're planning tomorrow with the hotel receptionist."
+say = "Que horas abre o museu?"
+short = "Abre que horas?"
+polished = "Com licença, que horas abre o museu?"
+meaning = "What time does the museum open?"
+accept = ["A que horas abre o museu?", "Que horas o museu abre?"]
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "You checked out in the morning, but your flight isn't until tonight."
+say = "Posso deixar minhas malas aqui?"
+short = "Minhas malas aqui?"
+polished = "Será que eu posso deixar minhas malas aqui?"
+meaning = "Can I leave my bags here?"
+accept = ["Posso deixar as malas aqui?", "Posso deixar minha bagagem aqui?"]

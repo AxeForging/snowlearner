@@ -1,0 +1,198 @@
+# decks/es: social. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "social"
+situation = "Perguntam de onde você é."
+say = "Soy de Brasil"
+polished = "Soy de Brasil, de São Paulo"
+meaning = "Sou do Brasil"
+
+[[phrase]]
+topic = "social"
+situation = "Quer saber com o que a pessoa trabalha."
+say = "¿A qué te dedicas?"
+polished = "Y tú, ¿a qué te dedicas?"
+meaning = "Com o que você trabalha?"
+tip = "Muito mais natural que '¿Cuál es tu trabajo?'."
+
+[[phrase]]
+topic = "social"
+situation = "A pessoa fala rápido demais."
+say = "¿Puedes hablar más despacio?"
+short = "Más despacio, por favor"
+polished = "Perdón, ¿puedes hablar un poco más despacio?"
+meaning = "Você pode falar mais devagar?"
+accept = ["¿Podrías hablar más despacio?", "Más despacio, por favor"]
+
+[[phrase]]
+topic = "social"
+situation = "Não sabe uma palavra."
+say = "¿Cómo se dice esto en español?"
+short = "¿Cómo se dice?"
+polished = "Perdona, ¿me podrías decir cómo se dice esto en español?"
+meaning = "Como se diz isso em espanhol?"
+
+[[phrase]]
+topic = "social"
+situation = "Alguém pede desculpas por algo pequeno."
+say = "No pasa nada"
+short = "Tranqui"
+polished = "No te preocupes, no pasa nada"
+meaning = "Não tem problema"
+accept = ["No te preocupes"]
+
+[[phrase]]
+topic = "social"
+situation = "Um amigo pergunta se você está chegando."
+say = "Ya voy en camino"
+short = "Ya voy"
+polished = "Ya voy en camino, nos vemos pronto"
+meaning = "Já estou a caminho"
+accept = ["Voy en camino"]
+
+[[phrase]]
+topic = "social"
+situation = "Está indo embora da festa."
+say = "Me encantó verte"
+polished = "Me encantó mucho volver a verte"
+meaning = "Adorei te ver"
+accept = ["Qué bueno verte"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você encontra um vizinho no elevador."
+say = "¿Cómo va todo?"
+polished = "Hola, ¿cómo va todo hoy?"
+meaning = "Como vão as coisas?"
+accept = ["¿Qué tal todo?", "¿Cómo te va?"]
+tip = "Resposta natural: 'Todo bien, ¿y tú?'."
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Sua amiga chega na festa e você a apresenta a um colega."
+say = "Ella es mi amiga Ana."
+short = "Ella es Ana."
+polished = "Te presento a mi amiga Ana."
+meaning = "Essa é minha amiga Ana."
+accept = ["Esta es mi amiga Ana"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "O anfitrião te oferece mais uma bebida e você não quer."
+say = "Así estoy bien, gracias."
+short = "Estoy bien."
+polished = "Así estoy bien por ahora, gracias."
+meaning = "Estou bem assim, obrigado."
+accept = ["Estoy bien, gracias", "No, gracias"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Você quer manter contato com alguém que conheceu hoje."
+say = "¿Cuál es tu número?"
+short = "¿Tu número?"
+polished = "¿Me das tu número de teléfono?"
+meaning = "Qual é o seu número?"
+accept = ["¿Me das tu número?"]
+
+[[phrase]]
+topic = "social"
+level = "A1"
+situation = "Um amigo conta que passou na entrevista de emprego."
+say = "¡Qué buena noticia!"
+short = "¡Qué bien!"
+polished = "¡Qué buena noticia, me alegro mucho por ti!"
+meaning = "Que notícia boa!"
+accept = ["¡Qué buenas noticias!"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você quer conhecer melhor um colega novo."
+say = "¿Quieres tomar un café?"
+short = "¿Un café?"
+polished = "¿Te gustaría tomar un café un día de estos?"
+meaning = "Quer tomar um café?"
+accept = ["¿Tomamos un café?", "¿Vamos por un café?"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Te chamam pra sair hoje, mas você já tem compromisso."
+say = "Hoy no puedo ir."
+short = "No puedo."
+polished = "Lo siento, hoy no puedo ir."
+meaning = "Hoje não vou conseguir ir."
+accept = ["Hoy no puedo", "Esta noche no puedo"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Um amigo conta que foi demitido."
+say = "Lo siento mucho."
+polished = "Lo siento mucho, de verdad."
+meaning = "Sinto muito por isso."
+accept = ["Cuánto lo siento", "Qué pena"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Você chega vinte minutos depois do combinado."
+say = "Perdón por hacerte esperar."
+short = "¡Perdón!"
+polished = "Perdón por hacerte esperar, había mucho tráfico."
+meaning = "Desculpa te fazer esperar."
+accept = ["Perdona por hacerte esperar", "Disculpa la espera"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Na segunda, um colega pergunta como foi seu fim de semana."
+say = "Nada especial, me quedé en casa."
+short = "Nada especial."
+polished = "Nada especial, me quedé en casa descansando."
+meaning = "Nada demais, só fiquei em casa."
+accept = ["Nada, me quedé en casa"]
+
+[[phrase]]
+topic = "social"
+level = "A2"
+situation = "Sexta à tarde, você quer saber os planos do seu amigo."
+say = "¿Qué planes tienes para el fin de semana?"
+short = "¿Qué planes tienes?"
+polished = "Oye, ¿qué planes tienes para este fin de semana?"
+meaning = "O que você vai fazer no fim de semana?"
+accept = ["¿Qué vas a hacer el fin de semana?"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Você cruza na rua com um amigo que não via há anos."
+say = "¡Tanto tiempo!"
+polished = "¡Tanto tiempo! ¿Cómo has estado?"
+meaning = "Quanto tempo!"
+accept = ["¡Cuánto tiempo!", "¡Tanto tiempo sin verte!"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "A conversa está boa, mas você precisa ir embora."
+say = "Ya me tengo que ir."
+short = "Me tengo que ir."
+polished = "Bueno, ya me tengo que ir, pero fue un gusto hablar contigo."
+meaning = "Preciso ir andando."
+accept = ["Ya me voy", "Tengo que irme"]
+
+[[phrase]]
+topic = "social"
+level = "B1"
+situation = "Seu amigo insiste em pagar a conta do bar de novo."
+say = "La próxima la invito yo."
+short = "La próxima invito yo."
+polished = "Gracias, pero la próxima la invito yo."
+meaning = "A próxima é por minha conta."
+accept = ["La próxima va por mi cuenta", "La próxima pago yo"]
+tip = "'Invitar' aqui é pagar pra outra pessoa: 'te invito' = eu pago."
