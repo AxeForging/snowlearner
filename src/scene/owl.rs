@@ -66,7 +66,8 @@ impl Owl {
 
     pub fn draw(&self, c: &mut Canvas) {
         let bob = (self.t * 6.0).sin() * 1.5;
-        let wings = if (self.t * 5.0) as i32 % 2 == 0 { WINGS_UP } else { WINGS_DOWN };
+        // By index, not `if … else`: that form made rustc run out of memory on Windows.
+        let wings = [WINGS_UP, WINGS_DOWN][(self.t * 5.0) as usize % 2];
         c.sprite(wings, PAL, self.x.round() as i32, (self.y + bob).round() as i32, self.dir < 0.0);
     }
 }

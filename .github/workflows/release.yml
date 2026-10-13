@@ -29,17 +29,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev
-      # The Windows runner ran out of memory compiling the app crate (v0.1.5):
-      # give it a bigger page file and one codegen job at a time — slower, lower peak.
-      - if: runner.os == 'Windows'
-        uses: al-cheb/configure-pagefile-action@v1.5
-        with:
-          minimum-size: 16GB
-          maximum-size: 32GB
-          disk-root: "D:"
-      - if: runner.os == 'Windows'
-        shell: bash
-        run: echo "CARGO_BUILD_JOBS=1" >> "$GITHUB_ENV"
       - run: cargo build --release --locked
       - name: package
         shell: bash

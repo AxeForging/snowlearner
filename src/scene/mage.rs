@@ -341,9 +341,28 @@ impl Mage {
     }
 }
 
+const PORTRAIT: i32 = 32;
+
+/// The mage standing still with his staff, whole, on a clear square: the app icon.
+pub fn portrait() -> Canvas {
+    let mut c = Canvas::new(PORTRAIT, PORTRAIT);
+    let mut m = Mage::new(((PORTRAIT - WIDTH) / 2) as f32);
+    m.act = Act::Watch;
+    m.draw(&mut c, PORTRAIT as f32, 0.0);
+    c
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_portrait_shows_the_whole_mage_inside_its_square() {
+        let p = portrait();
+        assert!(p.opaque_in(0, 0, p.w, p.h) > 150, "the mage is drawn");
+        let edges = p.opaque_in(0, 0, 1, p.h) + p.opaque_in(p.w - 1, 0, 1, p.h) + p.opaque_in(0, 0, p.w, 1);
+        assert_eq!(edges, 0, "nothing is cut off at the left, right or top");
+    }
 
     fn run(m: &mut Mage, seconds: f32) -> Vec<Event> {
         let mut out = Vec::new();
