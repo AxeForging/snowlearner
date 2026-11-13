@@ -1,0 +1,306 @@
+# decks/en: tecnologia. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Na daily, o líder pergunta se tem alguma coisa te impedindo de avançar. Não tem nada."
+say = "I have no blockers."
+short = "No blockers."
+polished = "I don't have any blockers today."
+meaning = "Não tenho nenhum impedimento."
+accept = ["I don't have any blockers", "No blockers for me"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Na daily, o líder pergunta o que você vai fazer hoje."
+say = "I'm working on the tests today."
+short = "Working on tests."
+polished = "Today I'm working on the unit tests."
+meaning = "Hoje estou trabalhando nos testes."
+accept = ["Today I'm working on the tests"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Numa call com outra área, alguém pergunta de que time você é."
+say = "I'm on the DevOps team."
+short = "DevOps."
+polished = "Nice to meet you, I'm on the DevOps team."
+meaning = "Sou do time de DevOps."
+accept = ["I work on the DevOps team", "I'm in DevOps"]
+tip = "'DevOps' soa como 'dév-óps', sem 'i' no fim: não é 'devópis'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Primeira semana no time: um serviço deu erro e você não sabe onde ficam os logs. Você pergunta pro colega."
+say = "Where are the logs?"
+short = "The logs?"
+polished = "Sorry, where can I find the logs?"
+meaning = "Onde ficam os logs?"
+accept = ["Where can I find the logs?"]
+tip = "'Logs' é uma sílaba só: 'lógz', sem 'i' no fim."
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Um colega diz que o build quebrou. Você quer saber que mensagem apareceu."
+say = "What's the error?"
+short = "Error?"
+polished = "Can you show me the error message?"
+meaning = "Qual é o erro?"
+accept = ["What's the error message?", "What error do you get?"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Primeiro dia na empresa: você tenta entrar no servidor e não consegue. Você avisa o colega do suporte."
+say = "I can't log in."
+polished = "Sorry, I can't log in to the server."
+meaning = "Não consigo entrar."
+accept = ["I can't sign in", "I can't log on"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "O suporte avisa que clientes estão reclamando e pergunta o que você vê no monitoramento."
+say = "The site is slow."
+short = "It's slow."
+polished = "The site is really slow right now."
+meaning = "O site está lento."
+accept = ["The website is slow", "The site is very slow"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Você terminou uma tarefa e pede pra um colega revisar seu código antes do merge."
+say = "Can you review my pull request?"
+short = "Review my PR?"
+polished = "Could you please review my pull request?"
+meaning = "Pode revisar meu pull request?"
+accept = ["Can you review my PR?", "Can you check my pull request?"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Você está há horas preso num erro e chama um colega mais experiente."
+say = "I need help with this bug."
+short = "I need help."
+polished = "Could you help me with this bug, please?"
+meaning = "Preciso de ajuda com esse bug."
+accept = ["Can you help me with this bug?"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A1"
+situation = "Você corrigiu o problema, e o colega que te ajudou pergunta se deu certo."
+say = "It works now."
+short = "It works!"
+polished = "It works now, thanks for your help."
+meaning = "Agora funciona."
+accept = ["It's working now"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "Na daily, o líder pergunta o que você fez ontem."
+say = "I fixed a bug yesterday."
+short = "Fixed a bug."
+polished = "Yesterday I fixed a bug in the API."
+meaning = "Ontem eu corrigi um bug."
+accept = ["Yesterday I fixed a bug"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "Um alerta toca no seu celular, e um colega pergunta o que houve. O servidor caiu."
+say = "The server is down."
+short = "Server's down!"
+polished = "I think the production server is down."
+meaning = "O servidor caiu."
+accept = ["The server's down", "The server isn't working"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "Depois do incidente, o gerente pergunta o que o time fez pra resolver."
+say = "We rolled back the release."
+short = "We rolled back."
+polished = "We rolled back to the previous version."
+meaning = "Voltamos pra versão anterior."
+accept = ["We rolled the release back"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "O líder pergunta o que está acontecendo. O deploy deu erro e você está investigando."
+say = "The deploy failed, so I'm checking the logs."
+short = "Checking the logs."
+polished = "The deploy failed, so I'm checking the logs right now."
+meaning = "O deploy falhou, então estou olhando os logs."
+accept = ["The deploy failed and I'm checking the logs"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "No meio de um incidente, o líder diz que precisa da Ana, do time de banco de dados. Você liga pra ela."
+say = "Can you join the incident call?"
+short = "Can you join?"
+polished = "Could you join the incident call, please?"
+meaning = "Pode entrar na call do incidente?"
+accept = ["Could you join the incident call?"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "O líder pergunta se tem novidade sobre o erro. Você achou a causa num arquivo de configuração."
+say = "I found the problem in the config."
+short = "Found the problem."
+polished = "I think I found the problem in the config file."
+meaning = "Achei o problema na configuração."
+accept = ["I found the issue in the config"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "Na call do incidente, o gerente pergunta quando sai a próxima atualização."
+say = "I'll send an update in ten minutes."
+short = "Update in ten minutes."
+polished = "I'll send you a status update in ten minutes."
+meaning = "Mando uma atualização em dez minutos."
+accept = ["I'll update you in ten minutes"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "O revisor pediu uma mudança no seu pull request. Você já fez e avisa."
+say = "I updated the code."
+short = "Code updated."
+polished = "Thanks, I updated the code after your comments."
+meaning = "Atualizei o código."
+accept = ["I've updated the code", "I changed the code"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "O líder pede pra você corrigir um bug novo. Antes de começar, você quer saber se já tem chamado aberto."
+say = "Do we have a ticket for this?"
+short = "Is there a ticket?"
+polished = "Do we already have a ticket for this bug?"
+meaning = "Já temos um ticket pra isso?"
+accept = ["Is there a ticket for this?"]
+tip = "'Ticket' soa como 'tíkit', sem 'e' no fim: não é 'tíquete'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "A2"
+situation = "Você vai começar uma correção e pergunta pro colega de qual branch partir."
+say = "Which branch should I use?"
+short = "Which branch?"
+polished = "Sorry, which branch should I start from?"
+meaning = "Qual branch eu devo usar?"
+accept = ["What branch should I use?"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Na daily, o líder pergunta quem pode cuidar de uma tarefa nova. Você assume."
+say = "I'll pick this up after the stand-up."
+short = "I'll pick it up."
+polished = "Sure, I can pick this up right after the stand-up."
+meaning = "Eu pego isso depois da daily."
+accept = ["I'll take this after the stand-up", "I'll pick this up after the daily"]
+tip = "Em inglês, a 'daily' costuma se chamar 'stand-up'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Na call do incidente, o líder pergunta se é melhor tentar corrigir agora ou voltar pra versão anterior."
+say = "Let's roll back first and dig into the cause later."
+short = "Let's roll back first."
+polished = "I suggest we roll back first and dig into the cause later."
+meaning = "Vamos fazer rollback primeiro e investigar a causa depois."
+accept = ["Let's roll back first and look into the cause later"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "O deploy falhou pela terceira vez, e o líder pergunta se você tem novidade."
+say = "I'm looking into why the deploy keeps failing."
+short = "Looking into it."
+polished = "I'm still looking into why the deploy keeps failing."
+meaning = "Estou investigando por que o deploy continua falhando."
+accept = ["I'm checking why the deploy keeps failing"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Seu plantão terminou no meio de um incidente. Você avisa no canal que outra pessoa vai assumir."
+say = "I'm handing this over to the next on-call."
+short = "Handing it over."
+polished = "I'm handing this over to the next person on call."
+meaning = "Estou passando isso pro próximo plantonista."
+accept = ["I'm handing this off to the next on-call"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "O gerente pergunta por que a migração atrasou. Apareceu um problema no banco de dados."
+say = "We ran into a problem with the database."
+short = "We hit a problem."
+polished = "We ran into a problem with the database, but we're on it."
+meaning = "Tivemos um problema com o banco de dados."
+accept = ["We had a problem with the database"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Numa revisão de código por call, você quer sugerir uma melhora pequena sem soar duro com o colega."
+say = "This variable name could be clearer."
+short = "Rename this?"
+polished = "Just a small thing, but this variable name could be a bit clearer."
+meaning = "O nome dessa variável podia ser mais claro."
+accept = ["This name could be clearer"]
+tip = "'Variable' tem a força no começo: 'VÉ-ri-a-bol', não 'variável'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Você não consegue corrigir o erro sozinho porque ele está no banco de dados. O líder pergunta se você resolve."
+say = "I'm going to escalate this to the database team."
+short = "I'll escalate this."
+polished = "I'm going to escalate this to the database team, since it's their area."
+meaning = "Vou escalar isso pro time de banco de dados."
+accept = ["I'll escalate this to the database team"]
+tip = "'Escalate' tem a força no começo: 'ÉS-ka-leit'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Na daily, um colega começa a discutir uma tarefa longa, mas tem um incidente aberto. Você sugere deixar pra depois."
+say = "Can we circle back to this after the incident?"
+short = "Let's circle back."
+polished = "Can we circle back to this once the incident is over?"
+meaning = "Podemos voltar nisso depois do incidente?"
+accept = ["Can we come back to this after the incident?"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Durante o incidente, o gerente pede pra ser avisado se alguma coisa mudar."
+say = "I'll keep you posted."
+polished = "I'll keep you posted on any changes."
+meaning = "Vou te mantendo informado."
+accept = ["I'll keep you updated", "I'll let you know"]
+tip = "'Posted' aqui é 'informado', não 'postado' numa rede social."
+
+[[phrase]]
+topic = "tecnologia"
+level = "B1"
+situation = "Na call do incidente, o líder pergunta se o sistema já está estável."
+say = "The fix is in place, but we're still monitoring."
+short = "It's fixed for now."
+polished = "The fix is in place, but we're still monitoring it closely."
+meaning = "A correção já está aplicada, mas ainda estamos monitorando."
+accept = ["The fix is live, but we're still monitoring"]
