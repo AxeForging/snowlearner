@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "social"
+level = "A1"
 situation = "Alguém pergunta de onde você é."
 say = "I'm from Brazil"
 polished = "I'm originally from Brazil"
@@ -9,6 +10,7 @@ meaning = "Eu sou do Brasil"
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Quer puxar conversa sobre o trabalho da pessoa."
 say = "What do you do for a living?"
 short = "What do you do?"
@@ -18,6 +20,7 @@ accept = ["What do you do?"]
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "A pessoa fala rápido demais pra você."
 say = "Could you speak a little slower?"
 short = "Slower, please"
@@ -27,6 +30,7 @@ accept = ["Could you speak more slowly?", "Can you speak a little slower?"]
 
 [[phrase]]
 topic = "social"
+level = "A1"
 situation = "Não sabe uma palavra em inglês."
 say = "How do you say this in English?"
 short = "How do you say this?"
@@ -35,6 +39,7 @@ meaning = "Como se diz isso em inglês?"
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Alguém pede desculpas por algo pequeno."
 say = "No worries"
 short = "All good"
@@ -44,6 +49,7 @@ accept = ["No problem"]
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Um amigo pergunta se você está chegando."
 say = "I'm on my way"
 short = "On my way!"
@@ -52,6 +58,7 @@ meaning = "Estou a caminho"
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Não entendeu o que a pessoa quis dizer."
 say = "What do you mean?"
 polished = "Sorry, what do you mean by that?"
@@ -59,6 +66,7 @@ meaning = "O que você quer dizer?"
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Está indo embora da festa."
 say = "It was great seeing you"
 short = "Great seeing you"

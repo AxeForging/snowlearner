@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Terminou de comer e quer pagar."
 say = "La cuenta, por favor"
 polished = "Cuando pueda, ¿nos trae la cuenta, por favor?"
@@ -10,6 +11,7 @@ accept = ["¿Me trae la cuenta, por favor?"]
 
 [[phrase]]
 topic = "restaurante"
+level = "A2"
 situation = "Quer levar a comida."
 say = "¿Me lo pone para llevar?"
 short = "Para llevar"
@@ -19,6 +21,7 @@ accept = ["Para llevar, por favor"]
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Tem alergia a nozes."
 say = "Soy alérgico a los frutos secos"
 short = "Sin frutos secos"
@@ -27,6 +30,7 @@ meaning = "Sou alérgico a nozes e castanhas"
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Não sabe o que pedir."
 say = "¿Qué me recomienda?"
 polished = "¿Qué me recomendaría usted?"
@@ -35,6 +39,7 @@ accept = ["¿Qué me recomiendas?"]
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Chegou com um amigo."
 say = "Una mesa para dos, por favor"
 short = "Para dos"
@@ -43,6 +48,7 @@ meaning = "Uma mesa pra dois, por favor"
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Quer saber se aceitam cartão."
 say = "¿Aceptan tarjeta?"
 polished = "¿Se puede pagar con tarjeta?"

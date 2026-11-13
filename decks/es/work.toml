@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "O colega está falando, mas está no mudo."
 say = "Perdón, estás en silencio"
 short = "Estás en silencio"
@@ -11,6 +12,7 @@ accept = ["Estás en silencio", "Tienes el micrófono apagado"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Você quer ver o que o colega está mostrando."
 say = "¿Puedes compartir tu pantalla?"
 short = "¿Compartes pantalla?"
@@ -20,6 +22,7 @@ accept = ["¿Podrías compartir tu pantalla?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Você vai se atrasar para a reunião."
 say = "Voy a llegar unos minutos tarde"
 short = "Llego tarde"
@@ -28,6 +31,7 @@ meaning = "Vou chegar alguns minutos atrasado"
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Precisa confirmar antes de responder."
 say = "Déjame revisarlo y te aviso"
 short = "Lo reviso"
@@ -37,6 +41,7 @@ accept = ["Lo reviso y te aviso"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Não entendeu a explicação."
 say = "¿Me lo puedes explicar paso a paso?"
 short = "¿Me lo explicas?"
@@ -45,6 +50,7 @@ meaning = "Você pode me explicar passo a passo?"
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Perguntam o prazo de uma tarefa."
 say = "¿Cuál es la fecha de entrega?"
 short = "¿Para cuándo es?"
@@ -53,6 +59,7 @@ meaning = "Qual é o prazo de entrega?"
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "A reunião precisa ser adiada."
 say = "¿Podemos pasarlo para mañana?"
 short = "¿Mañana mejor?"
@@ -62,6 +69,7 @@ accept = ["¿Lo podemos pasar para mañana?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A1"
 situation = "Você concorda com a ideia."
 say = "Tiene sentido"
 polished = "Sí, tiene todo el sentido"
@@ -69,6 +77,7 @@ meaning = "Faz sentido"
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Achou um problema sério em produção."
 say = "Creo que hay un error en producción"
 short = "Hay un error"
@@ -77,6 +86,7 @@ meaning = "Acho que tem um erro em produção"
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Vai mandar um resumo depois da reunião."
 say = "Te mando un correo con el resumen"
 short = "Te mando el resumen"
@@ -86,6 +96,7 @@ tip = "Email em espanhol é 'correo' (ou 'mail' na conversa)."
 
 [[phrase]]
 topic = "trabalho"
+level = "A1"
 situation = "Quer saber se o áudio está bom."
 say = "¿Me escuchas bien?"
 short = "¿Me escuchas?"
@@ -95,6 +106,7 @@ accept = ["¿Me oyes bien?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Discorda, mas com educação."
 say = "Entiendo, pero no estoy seguro de que funcione"
 short = "No estoy seguro"

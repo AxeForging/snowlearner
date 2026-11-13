@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "O colega está falando, mas está no mudo."
 say = "Sorry, you're on mute"
 short = "You're muted"
@@ -11,6 +12,7 @@ accept = ["You're on mute"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Você quer ver o que o colega está mostrando."
 say = "Can you share your screen?"
 short = "Share your screen?"
@@ -20,6 +22,7 @@ accept = ["Could you share your screen?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Você vai se atrasar para a daily."
 say = "I'm running a few minutes late"
 short = "Running late!"
@@ -29,6 +32,7 @@ tip = "'Running late' é o jeito natural de dizer que está atrasado."
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Te perguntaram algo e você precisa confirmar antes."
 say = "Let me double-check and get back to you"
 short = "Let me check"
@@ -39,6 +43,7 @@ tip = "'Get back to you' = te dar retorno. Muito usado no trabalho."
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Você não entendeu uma explicação técnica."
 say = "Could you walk me through it?"
 short = "Walk me through it?"
@@ -48,6 +53,7 @@ accept = ["Can you walk me through it?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Você quer confirmar se entendeu direito."
 say = "Just to clarify, you mean the new version?"
 short = "The new version?"
@@ -57,6 +63,7 @@ accept = ["Just to clarify, do you mean the new version?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Você está travado esperando outra equipe."
 say = "I'm blocked on this until they fix the API"
 short = "I'm blocked on this"
@@ -66,6 +73,7 @@ tip = "API em inglês se fala 'ei-pi-ai'."
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Perguntam o prazo de uma tarefa."
 say = "What's the deadline for this?"
 short = "When's it due?"
@@ -75,6 +83,7 @@ accept = ["When is the deadline for this?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "A reunião precisa ser adiada."
 say = "Can we push this to tomorrow?"
 short = "Tomorrow instead?"
@@ -84,6 +93,7 @@ accept = ["Could we push this to tomorrow?", "Can we move this to tomorrow?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Você concorda com a sugestão do colega."
 say = "That makes sense"
 short = "Makes sense"
@@ -93,6 +103,7 @@ tip = "Muito mais natural que 'I agree with you' no dia a dia."
 
 [[phrase]]
 topic = "trabalho"
+level = "B2"
 situation = "Você não tem tempo pra pegar mais tarefas."
 say = "I don't have the bandwidth for this right now"
 short = "I'm swamped right now"
@@ -102,6 +113,7 @@ accept = ["I don't have bandwidth for this right now"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Achou um problema sério em produção."
 say = "I think we have a bug in production"
 short = "Production bug!"
@@ -110,6 +122,7 @@ meaning = "Acho que temos um bug em produção"
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Você vai tirar o dia de folga amanhã."
 say = "I'll be out of office tomorrow"
 short = "I'm off tomorrow"
@@ -119,6 +132,7 @@ accept = ["I'll be off tomorrow"]
 
 [[phrase]]
 topic = "trabalho"
+level = "B1"
 situation = "Terminou a reunião e você vai mandar um resumo."
 say = "I'll send a follow-up email"
 short = "I'll follow up"
@@ -128,6 +142,7 @@ accept = ["I'll send you a follow-up email"]
 
 [[phrase]]
 topic = "trabalho"
+level = "A1"
 situation = "Seu áudio pode estar ruim no começo da call."
 say = "Can you hear me okay?"
 short = "Can you hear me?"
@@ -137,6 +152,7 @@ accept = ["Can you hear me?"]
 
 [[phrase]]
 topic = "trabalho"
+level = "B2"
 situation = "Você discorda, mas com educação."
 say = "I see your point, but I'm not sure that works"
 short = "I'm not sure about that"
@@ -145,6 +161,7 @@ meaning = "Entendo seu ponto, mas não tenho certeza se funciona"
 
 [[phrase]]
 topic = "trabalho"
+level = "A2"
 situation = "Na daily, conte o que fez ontem."
 say = "Yesterday I finished the login page"
 short = "The login page is done"
