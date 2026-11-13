@@ -265,6 +265,7 @@ fn bench_model(settings: &Settings, paths: &Paths, wav: Option<&std::path::Path>
     use crate::speech::bench;
     use crate::speech::resample::{WHISPER_RATE, resample};
     use crate::speech::stt::{self, Recognizer};
+    use crate::speech::window;
     use std::time::Instant;
     let (samples, source) = match wav {
         Some(path) => {
@@ -287,13 +288,12 @@ fn bench_model(settings: &Settings, paths: &Paths, wav: Option<&std::path::Path>
     println!("audio    {source}, {seconds:.1} s, language {}", settings.learning);
     println!();
     println!("threads  window    time     heard");
-    // What whisper gets is longer than the clip: the lead-in and the padding count too.
-    let padded = stt::prepare(&samples).len() as f32 / WHISPER_RATE as f32;
-    for pass in bench::passes(stt::lesson_threads(), cores, padded) {
+    // The first two passes are what a lesson does with audio this long.
+    for pass in bench::passes(stt::lesson_threads(), cores, stt::prepared_seconds(samples.len())) {
         let started = Instant::now();
         let heard = recognizer.transcribe_as(&samples, &settings.learning, pass)?;
         let took = started.elapsed().as_secs_f32();
-        println!("{:>7}  {:>4.1} s  {took:>6.2} s  {heard:?}", pass.threads, pass.window_seconds());
+        println!("{:>7}  {:>4.1} s  {took:>6.2} s  {heard:?}", pass.threads, window::seconds(pass.audio_ctx));
     }
     Ok(())
 }

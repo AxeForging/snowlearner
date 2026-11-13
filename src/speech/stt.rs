@@ -3,6 +3,7 @@
 
 use super::bench::Pass;
 use super::matcher::Expect;
+use super::window;
 use anyhow::{Context, Result, bail};
 use std::path::Path;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
@@ -50,7 +51,8 @@ impl Recognizer {
     /// `samples`: 16 kHz mono. `lang`: ISO code of the language being practiced.
     /// `prompt`: words whisper should expect (an initial prompt), if any.
     pub fn transcribe(&self, samples: &[f32], lang: &str, prompt: Option<&str>) -> Result<String> {
-        self.run(samples, lang, prompt, Pass { threads: lesson_threads(), audio_ctx: 0 })
+        let audio_ctx = window::frames_for(prepared_seconds(samples.len()));
+        self.run(samples, lang, prompt, Pass { threads: lesson_threads(), audio_ctx })
     }
 
     /// One pass run the way `pass` says, for `snowlearner model bench`.
@@ -67,7 +69,8 @@ impl Recognizer {
             params.set_initial_prompt(p);
         }
         params.set_n_threads(pass.threads);
-        if pass.audio_ctx > 0 {
+        // Whisper encodes its whole 30 s window unless told how much of it the audio needs.
+        if pass.audio_ctx < window::FULL {
             params.set_audio_ctx(pass.audio_ctx);
         }
         params.set_no_context(true);
@@ -102,6 +105,11 @@ pub fn prepare(samples: &[f32]) -> Vec<f32> {
         audio.resize(MIN_SAMPLES, 0.0);
     }
     audio
+}
+
+/// How long the audio whisper gets is, for `samples` recorded samples.
+pub fn prepared_seconds(samples: usize) -> f32 {
+    (LEAD_IN + samples).max(MIN_SAMPLES) as f32 / 16_000.0
 }
 
 /// Drops whisper's non-speech annotations like "[BLANK_AUDIO]" or "(music)".
@@ -140,6 +148,13 @@ mod tests {
         let long = vec![0.1; 48_000];
         assert_eq!(prepare(&long).len(), LEAD_IN + long.len(), "long answers are not cut");
         assert_eq!(prepare(&[]).len(), MIN_SAMPLES);
+    }
+
+    #[test]
+    fn the_prepared_length_is_known_without_building_the_audio() {
+        for n in [0, 8_000, 16_000, 48_000] {
+            assert_eq!(prepared_seconds(n), prepare(&vec![0.0; n]).len() as f32 / 16_000.0, "{n} samples");
+        }
     }
 
     #[test]
