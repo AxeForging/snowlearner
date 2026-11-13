@@ -64,3 +64,30 @@ validation, panel tabs, lesson think-time/manual stop.
 - **Magic hand**: hold Ctrl+Alt, or `snowlearner grab` / Ctrl+Alt+G for 15 s. The overlay takes
   clicks only while it's on. Pick up the mage (grumpy lines) or the warrior (shy lines), drag,
   release → they fall into the snow. Frozen warriors can't be lifted; a held mage can't cast.
+
+## Recognition speed (2026-11-13, #58)
+A learner on Windows waited about 16 s for every one-word answer. Two causes, both measured
+with `snowlearner model bench` on the same machine (AMD Ryzen 7 2700, `base` model, 6 threads,
+the same built-in clip):
+
+| build | encoder window 30 s | window 7.5 s |
+|---|---|---|
+| Windows, v0.1.9 as released | 17.21 s | 3.17 s |
+| Windows, whisper.cpp compiled with `/O2` | 3.26 s | 0.67 s |
+| Linux (WSL2) | 3.13 s | 0.64 s |
+
+- **The Windows build of whisper.cpp was not optimized.** With the Visual Studio generator the
+  `cmake` crate (0.1.58) passes `CMAKE_C_FLAGS_RELEASE` and `CMAKE_CXX_FLAGS_RELEASE` itself,
+  replacing CMake's `/O2 /Ob2 /DNDEBUG` with `-nologo -MD -Brepro -W0`: no compiler line of the
+  build had an optimization flag. The release workflow now sets both variables on Windows
+  (`-MD -O2 -Ob2 -DNDEBUG`); a source build on Windows must do the same (README).
+- **Whisper encodes its whole 30 s window even for one word**, and the encoder is nearly all of
+  the time. Lessons now give it the audio plus a 1 s margin, never under 7.5 s
+  (`speech/window.rs`). Longer answers get a wider window, up to whisper's own.
+- **Target:** a one-word answer is transcribed in 1.5 s or less on that machine with the `base`
+  model. `transcribed in N s` in `snowlearner.log` is the real number; `snowlearner model bench`
+  gives it without a microphone, and its first two rows are what a lesson does.
+- **Threads stay at six.** With the optimized Windows build, giving whisper all 16 threads took
+  76.84 s for the pass that takes 3.26 s with six.
+- Not adopted: ggml's `GGML_LLAMAFILE=ON` matrix code, measured at 1.88 s (Windows) and 2.29 s
+  (Linux) for the 30 s window. It is a further gain left for a separate change.
