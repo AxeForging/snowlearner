@@ -41,6 +41,11 @@ impl Paths {
         self.data_dir.join("snowlearner.log")
     }
 
+    /// Answers kept for diagnosis when `keep_recordings` is on (see `speech::recordings`).
+    pub fn recordings_dir(&self) -> PathBuf {
+        self.data_dir.join("recordings")
+    }
+
     pub fn models_dir(&self) -> PathBuf {
         self.data_dir.join("models")
     }

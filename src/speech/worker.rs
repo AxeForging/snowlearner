@@ -105,6 +105,8 @@ pub struct VoiceSettings {
     pub command: String,
     pub speaker: String,
     pub mic: String,
+    /// Where answers are kept for diagnosis (`keep_recordings`); None = not kept.
+    pub recordings: Option<PathBuf>,
 }
 
 impl VoiceSettings {
@@ -120,6 +122,7 @@ impl VoiceSettings {
             command: s.tts_command.clone(),
             speaker: s.speaker.clone(),
             mic: s.mic.clone(),
+            recordings: s.keep_recordings.then(|| paths.recordings_dir()),
         }
     }
 
@@ -283,6 +286,13 @@ fn listen(
             return Ok(None);
         }
         notify(SpeechEvent::Thinking { id });
+        if let Some(dir) = &cfg.recordings {
+            // A failed copy is logged and never stops the lesson.
+            match super::recordings::save(dir, chrono::Local::now(), &rec.samples) {
+                Ok(path) => trace::line(format_args!("kept recording {}", path.display())),
+                Err(e) => trace::line(format_args!("keeping the recording failed: {e:#}")),
+            }
+        }
         let started = Instant::now();
         let model = recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
         let text = model.transcribe_expecting(&rec.samples, lang, expect)?;
@@ -299,5 +309,22 @@ fn listen(
             trace::line(format_args!("listen failed: {e:#}"));
             SpeechEvent::Failed { id, error: format!("{e:#}") }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::paths::Paths;
+    use crate::config::settings::Settings;
+
+    #[test]
+    fn answers_are_kept_next_to_the_log_only_when_the_config_asks() {
+        let paths = Paths { config_dir: PathBuf::from("home/config"), data_dir: PathBuf::from("home/data") };
+        assert_eq!(VoiceSettings::from(&Settings::default(), &paths).recordings, None);
+        let on = Settings { keep_recordings: true, ..Default::default() };
+        let dir = VoiceSettings::from(&on, &paths).recordings.unwrap();
+        assert_eq!(dir, PathBuf::from("home/data/recordings"));
+        assert_eq!(dir.parent(), paths.log_file().parent(), "same folder as snowlearner.log");
     }
 }

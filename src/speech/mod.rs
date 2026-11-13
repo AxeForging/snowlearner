@@ -13,5 +13,7 @@ pub mod worker;
 pub mod audio;
 #[cfg(feature = "stt")]
 pub mod mic;
+#[cfg(feature = "audio")]
+pub mod recordings;
 #[cfg(feature = "stt")]
 pub mod stt;
