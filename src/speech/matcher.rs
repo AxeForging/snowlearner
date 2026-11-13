@@ -531,15 +531,20 @@ mod tests {
     #[test]
     fn a_long_answer_passes_when_the_lessons_own_word_is_there() {
         let tea = ["Tea.", "Tea for me, please."];
+        let coffee = ["Coffee.", "A coffee, please."];
         let bathroom = ["Bathroom?", "Sorry, is there a bathroom?"];
         for (answers, heard) in [
             (tea, "Tea for me please."),
             (tea, "Tea."),
+            (coffee, "A coffee, please."),
+            (coffee, "Coffee."),
             (bathroom, "Sorry, is there a bathroom?"),
             (bathroom, "Sorry, is there bathroom?"),
         ] {
-            let (r, _) = score_any(&answers, answers[0], heard, BEGINNER_SLACK, "en");
-            assert!(r.passed(PASS), "{heard:?} must pass for {:?}: {r:?}", answers[0]);
+            for slack in [0, BEGINNER_SLACK] {
+                let (r, _) = score_any(&answers, answers[0], heard, slack, "en");
+                assert!(r.passed(PASS), "{heard:?} must pass for {:?} (slack {slack}): {r:?}", answers[0]);
+            }
         }
     }
 
