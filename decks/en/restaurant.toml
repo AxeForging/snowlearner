@@ -2,6 +2,60 @@
 
 [[phrase]]
 topic = "restaurante"
+level = "B1"
+situation = "O garçom volta pela terceira vez e vocês ainda não escolheram o prato."
+say = "We haven't decided yet, could we have a few more minutes?"
+short = "We need a minute."
+polished = "Sorry, we haven't quite decided yet, could we have a few more minutes?"
+meaning = "Ainda não decidimos, pode nos dar mais uns minutinhos?"
+accept = ["We haven't decided yet, can we have a few more minutes?", "We're still deciding, could we have a few more minutes?"]
+tip = "'Ainda não decidimos' vira 'We haven't decided yet', com 'yet' no fim. 'We didn't decide yet' soa errado."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "Vocês sentaram do lado da caixa de som e mal conseguem conversar."
+say = "Would you mind if we moved to a quieter table?"
+short = "Could we move tables?"
+polished = "Sorry, would you mind if we moved to a quieter table?"
+meaning = "Você se importa se a gente mudar pra uma mesa mais tranquila?"
+accept = ["Do you mind if we move to a quieter table?", "Would it be okay if we moved to a quieter table?"]
+tip = "Depois de 'Would you mind if' vem o passado, 'if we moved', como no português 'se a gente mudasse'."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "O garçom pergunta o que você vai querer, e um amigo te disse que o bife daqui é ótimo."
+say = "I've heard great things about the steak here."
+short = "I've heard the steak's good."
+polished = "I've heard great things about the steak here, I'll have that, please."
+meaning = "Ouvi falar muito bem do bife daqui."
+accept = ["I've heard the steak here is really good.", "I've heard the steak here is great."]
+tip = "'Steak' rima com 'make' (stêik), não com 'speak'."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "Você comeu demais e o garçom oferece a sobremesa."
+say = "I'm full, I couldn't eat another bite."
+short = "I'm stuffed."
+polished = "No, thank you, it was lovely, but I couldn't eat another bite."
+meaning = "Estou satisfeito, não consigo comer mais nada."
+accept = ["I'm stuffed, I couldn't eat another bite.", "I couldn't eat another thing."]
+tip = "'Estou satisfeito' é 'I'm full'. 'I'm satisfied' soa como 'estou contente com o serviço'."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "O garçom sugere um vinho, mas você vai dirigir depois do jantar."
+say = "I'd rather stick to water, I'm driving."
+short = "Just water for me."
+polished = "Thanks, but I'd rather stick to water, I'm driving tonight."
+meaning = "Prefiro ficar na água, vou dirigir."
+accept = ["I'll stick to water, I'm driving."]
+
+[[phrase]]
+topic = "restaurante"
 level = "A2"
 situation = "Você quer levar a comida pra viagem."
 say = "Can I get this to go?"
