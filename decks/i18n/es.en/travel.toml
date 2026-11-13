@@ -4,6 +4,7 @@
 say = "Tengo una reserva a mi nombre"
 meaning = "I have a reservation under my name"
 situation = "You've just arrived at the hotel."
+tip = "'Under my name' is 'a mi nombre' (or 'a nombre de...'), not 'bajo mi nombre'."
 
 [[phrase]]
 say = "¿El desayuno está incluido?"

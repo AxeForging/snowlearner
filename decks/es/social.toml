@@ -63,7 +63,7 @@ situation = "Está indo embora da festa."
 say = "Me encantó verte"
 polished = "Me encantó mucho volver a verte"
 meaning = "Adorei te ver"
-accept = ["Qué bueno verte"]
+accept = ["Fue un gusto verte", "Qué bueno haberte visto"]
 
 [[phrase]]
 topic = "social"
