@@ -20,6 +20,11 @@ pub struct MatchResult {
     pub score: f32,
     /// Target words (original spelling) with whether each was heard.
     pub words: Vec<WordHit>,
+    /// How many target words are also words of the phrase the lesson teaches
+    /// (`say`), and how many of those were heard. Both 0 when the target was
+    /// scored on its own (`score_lenient`) or shares no word with `say`.
+    pub key_words: usize,
+    pub key_hits: usize,
 }
 
 impl MatchResult {
@@ -30,8 +35,16 @@ impl MatchResult {
     /// A phrase that is merely *similar* (score ≥ threshold) must still have at
     /// least 3 of every 4 words right, so "I'm angry" never passes for
     /// "I'm hungry" just because the letters look alike.
+    ///
+    /// The words the lesson teaches must reach that 3 of 4 on their own (all
+    /// of them when there are fewer than four), so the one word allowed to
+    /// miss is never the lesson's: "See for me please." is not "Tea for me,
+    /// please." for `Tea.`.
     pub fn passed(&self, threshold: f32) -> bool {
         if self.words.is_empty() {
+            return false;
+        }
+        if self.key_words > 0 && (self.key_hits as f32 / self.key_words as f32) < 0.75 {
             return false;
         }
         let hits = self.words.iter().filter(|w| w.hit).count() as f32;
@@ -136,8 +149,9 @@ pub const BEGINNER_SLACK: usize = 1;
 
 /// Same word, allowing 1 slip in words of 3–6 letters and 2 in longer ones
 /// (recognizer slips like "hungre", "repeet", "tomorow") — but not enough to
-/// turn "hungry" into "angry". `slack` adds to that; words of one or two
-/// letters stay exact ("no" is not "so").
+/// turn "hungry" into "angry". Words of one or two letters stay exact ("no" is
+/// not "so"). `slack` adds to that only from five letters up: two slips turn
+/// a shorter word into another one ("tea" into "see", "wait" into "what").
 fn similar(a: &str, b: &str, slack: usize) -> bool {
     if a == b {
         return true;
@@ -145,6 +159,8 @@ fn similar(a: &str, b: &str, slack: usize) -> bool {
     let len = a.chars().count().max(b.chars().count());
     let allowed = if len <= 2 {
         0
+    } else if len <= 4 {
+        1
     } else if len <= 6 {
         1 + slack
     } else {
@@ -160,6 +176,8 @@ fn similar(a: &str, b: &str, slack: usize) -> bool {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expect {
     pub answers: Vec<String>,
+    /// The phrase the lesson teaches: its words must be in any answer that passes.
+    pub say: String,
     pub lang: String,
     pub slack: usize,
     pub threshold: f32,
@@ -170,7 +188,7 @@ pub struct Expect {
 impl Expect {
     pub fn accepts(&self, heard: &str) -> bool {
         let answers: Vec<&str> = self.answers.iter().map(String::as_str).collect();
-        score_any(&answers, heard, self.slack, &self.lang).0.passed(self.threshold)
+        score_any(&answers, &self.say, heard, self.slack, &self.lang).0.passed(self.threshold)
     }
 
     /// The first transcript, unless it misses and the hinted one (`hinted`,
@@ -187,14 +205,34 @@ impl Expect {
     }
 }
 
-/// Best score over several accepted answers; returns it with the answer's index.
-pub fn score_any(answers: &[&str], heard: &str, slack: usize, lang: &str) -> (MatchResult, usize) {
+/// Best score over the accepted answers of the phrase `say`; returns it with
+/// the answer's index. Each answer is scored with `score_tier`.
+pub fn score_any(answers: &[&str], say: &str, heard: &str, slack: usize, lang: &str) -> (MatchResult, usize) {
     answers
         .iter()
         .enumerate()
-        .map(|(i, a)| (score_lenient(a, heard, slack, lang), i))
+        .map(|(i, a)| (score_tier(a, say, heard, slack, lang), i))
         .max_by(|a, b| a.0.score.total_cmp(&b.0.score))
         .unwrap_or_else(|| (score("", heard), 0))
+}
+
+/// `score_lenient` for one answer of the phrase `say` (a short, polished or
+/// accepted form, or `say` itself): the target words that are also words of
+/// `say` are the lesson's, and `MatchResult::passed` holds them to the 3 of 4
+/// bar on their own. An answer that shares no word with `say` ("Hi" for
+/// "Hello.") is judged as before.
+pub fn score_tier(target: &str, say: &str, heard: &str, slack: usize, lang: &str) -> MatchResult {
+    let mut m = score_lenient(target, heard, slack, lang);
+    let say = sounds(normalize(say), lang);
+    let key: Vec<bool> = m
+        .words
+        .iter()
+        .filter(|w| sounds(normalize(&w.word), lang).iter().any(|part| say.contains(part)))
+        .map(|w| w.hit)
+        .collect();
+    m.key_words = key.len();
+    m.key_hits = key.iter().filter(|&&hit| hit).count();
+    m
 }
 
 /// Phrases whisper is known to invent on silence/noise (trained on subtitles).
@@ -309,7 +347,7 @@ pub fn score_lenient(target: &str, heard: &str, slack: usize, lang: &str) -> Mat
         .collect();
 
     if t.is_empty() || h.is_empty() {
-        return MatchResult { score: 0.0, words };
+        return MatchResult { score: 0.0, words, key_words: 0, key_hits: 0 };
     }
 
     let target_joined = t.join(" ");
@@ -322,7 +360,7 @@ pub fn score_lenient(target: &str, heard: &str, slack: usize, lang: &str) -> Mat
             best = best.max(normalized_levenshtein(&target_joined, &window));
         }
     }
-    MatchResult { score: best as f32, words }
+    MatchResult { score: best as f32, words, key_words: 0, key_hits: 0 }
 }
 
 #[cfg(test)]
@@ -334,6 +372,7 @@ mod tests {
     fn expect_pare() -> Expect {
         Expect {
             answers: vec!["¡Pare!".into()],
+            say: "¡Pare!".into(),
             lang: "es".into(),
             slack: 0,
             threshold: PASS,
@@ -411,10 +450,11 @@ mod tests {
 
     #[test]
     fn any_accepted_variant_can_win() {
-        let (m, i) = score_any(&["Could you repeat that?", "Can you repeat that?"], "can you repeat that", 0, "en");
+        let answers = ["Could you repeat that?", "Can you repeat that?"];
+        let (m, i) = score_any(&answers, "Can you repeat that?", "can you repeat that", 0, "en");
         assert!((m.score - 1.0).abs() < 1e-6);
         assert_eq!(i, 1);
-        let (m, _) = score_any(&["Could you repeat that?"], "pizza", 0, "en");
+        let (m, _) = score_any(&["Could you repeat that?"], "Could you repeat that?", "pizza", 0, "en");
         assert!(!m.passed(PASS));
     }
 
@@ -455,6 +495,84 @@ mod tests {
         assert!(!score_lenient("No.", "so", BEGINNER_SLACK, "en").passed(PASS), "no and so mean different things");
         assert!(!score_lenient("Thanks.", "banana", BEGINNER_SLACK, "en").passed(PASS));
         assert_eq!(score_lenient("Hello.", "hello", 0, "en").score, score("Hello.", "hello").score);
+    }
+
+    #[test]
+    fn a_beginners_extra_slip_never_turns_a_short_word_into_another() {
+        for (target, heard) in [("Tea.", "see"), ("Ten.", "two"), ("Now.", "you"), ("Wait!", "what")] {
+            let r = score_lenient(target, heard, BEGINNER_SLACK, "en");
+            assert!(!r.passed(PASS), "{heard:?} passed for {target:?}: {r:?}");
+        }
+        for (target, heard) in [("Tea.", "tee"), ("Wait!", "wayt"), ("Thanks.", "tenks")] {
+            let r = score_lenient(target, heard, BEGINNER_SLACK, "en");
+            assert!(r.passed(PASS), "{heard:?} must pass for {target:?}: {r:?}");
+        }
+    }
+
+    #[test]
+    fn a_long_answer_fails_when_the_lessons_own_word_is_wrong() {
+        // From a pre-A1 learner's history; all three passed before #68.
+        let tea = ["Tea.", "Tea for me, please."];
+        let bathroom = ["Bathroom?", "Sorry, is there a bathroom?"];
+        for (answers, heard) in [
+            (tea, "See for me please."),
+            (tea, "If all please...use me..please"),
+            (bathroom, "What is the battery? Sorry, is there a battery?"),
+        ] {
+            let (r, _) = score_any(&answers, answers[0], heard, BEGINNER_SLACK, "en");
+            assert!(!r.passed(PASS), "{heard:?} passed for {:?}: {r:?}", answers[0]);
+        }
+        // Scored on its own, the long answer still lets the wrong word through:
+        // the lesson's word is what stops it.
+        assert!(score_lenient(tea[1], "See for me please.", BEGINNER_SLACK, "en").passed(PASS));
+        assert!(score_lenient(bathroom[1], "What is the battery? Sorry, is there a battery?", 0, "en").passed(PASS));
+    }
+
+    #[test]
+    fn a_long_answer_passes_when_the_lessons_own_word_is_there() {
+        let tea = ["Tea.", "Tea for me, please."];
+        let bathroom = ["Bathroom?", "Sorry, is there a bathroom?"];
+        for (answers, heard) in [
+            (tea, "Tea for me please."),
+            (tea, "Tea."),
+            (bathroom, "Sorry, is there a bathroom?"),
+            (bathroom, "Sorry, is there bathroom?"),
+        ] {
+            let (r, _) = score_any(&answers, answers[0], heard, BEGINNER_SLACK, "en");
+            assert!(r.passed(PASS), "{heard:?} must pass for {:?}: {r:?}", answers[0]);
+        }
+    }
+
+    #[test]
+    fn one_of_four_lesson_words_may_slip_as_in_the_phrase_itself() {
+        let say = "Can you share your screen?";
+        let answers = [say, "Could you please share your screen?"];
+        let (r, _) = score_any(&answers, say, "Could you please your screen", 0, "en");
+        assert_eq!((r.key_words, r.key_hits), (4, 3), "{r:?}");
+        assert!(r.passed(PASS), "{r:?}");
+    }
+
+    #[test]
+    fn an_answer_sharing_no_word_with_the_phrase_is_judged_as_before() {
+        let r = score_tier("Hi", "Hello.", "Hi", 0, "en");
+        assert_eq!(r.key_words, 0);
+        assert_eq!(r, score_lenient("Hi", "Hi", 0, "en"));
+        assert!(r.passed(PASS));
+    }
+
+    #[test]
+    fn the_hinted_pass_holds_the_lessons_word_to_the_same_bar() {
+        let tea = Expect {
+            answers: vec!["Tea.".into(), "Tea for me, please.".into()],
+            say: "Tea.".into(),
+            lang: "en".into(),
+            slack: BEGINNER_SLACK,
+            threshold: PASS,
+            hint: "Water. Coffee. Tea.".into(),
+        };
+        assert!(!tea.accepts("See for me please."));
+        assert_eq!(tea.pick("See for me please.".into(), |_| Some("See for me, please.".into())), "See for me please.");
+        assert!(tea.accepts("Tea for me, please."));
     }
 
     #[test]
@@ -512,7 +630,7 @@ mod tests {
                 assert!(r.passed(PASS), "{target:?} heard as {heard:?}: {r:?}");
             }
         }
-        assert!(score_any(&["Pollo.", "Pollo, por favor"], "Poyo, por favor", 0, "es").0.passed(PASS));
+        assert!(score_any(&["Pollo.", "Pollo, por favor"], "Pollo.", "Poyo, por favor", 0, "es").0.passed(PASS));
     }
 
     #[test]

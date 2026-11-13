@@ -33,7 +33,8 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
   talk…), and you tick the topics you want in the panel (Enter on any option lists them all,
   with how many items each topic has at your level): new items you hear and repeat, known ones you say **from memory**. Missed ones come
   back until you get them. Answers are checked by **how they sound** (Spanish *poyo* is *pollo*,
-  accents never matter), and a slip of a letter or two doesn't count against you.
+  accents never matter), and a slip of a letter or two doesn't count against you; a longer
+  answer counts only when the word the lesson teaches is in it.
 - 📈 **Progress** (`Ctrl+Alt+P`): what you already know, what you're learning now and what
   comes next, per stage and per topic.
 - 🎙️ It listens like a patient teacher: thinking time before you start, room to hesitate
