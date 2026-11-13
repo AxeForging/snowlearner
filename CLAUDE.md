@@ -87,6 +87,22 @@ New actors go in `scene/<actor>.rs`; new platform integrations in the matching d
 - README clips are generated (`scripts/render-docs.sh`); don't hand-edit images. The overlay clip
   uses `scripts/docs-backdrop.html` (fictional editor) — never a real screen capture.
 
+## Agents
+
+Specialists in `.claude/agents/`. They advise and never edit: what they propose becomes a backlog
+item and a pull request like any other change. Every proposal carries its sources, or says it has none.
+
+| Agent | Runs when |
+|---|---|
+| `feedback-router` | A learner says how a lesson, phrase, level, topic or mechanic felt. It classifies the feedback and calls the specialists below. Start here; the learner is not asked to judge the language |
+| `language-teacher` | Deck content is written, leveled or questioned. Reviews every new or changed deck entry before it ships |
+| `job-interviewer` | Content about interviews, work or tech roles is planned. Its drafts go to `language-teacher` |
+| `game-designer` | A mechanic, pacing or balance change is planned or questioned |
+| `researcher` | A decision needs evidence. The other agents call it for sources |
+
+Speech-recognition complaints and bugs go to no specialist: the router reports them for
+investigation (`src/speech/matcher.rs`, `src/speech/endpoint.rs`).
+
 ## Commands
 
 ```sh
