@@ -57,8 +57,9 @@ const BUILTIN: &[(&str, &[&str])] = &[
     ("pt-BR", &[PT, include_str!("../../decks/pt.basics.toml")]),
 ];
 
-/// Answer tiers for the generated decks, hand-curated and keyed by `say`
-/// (`<lang>.lexicaster.tiers.toml`), so regenerating a deck never loses them.
+/// Answer tiers and levels for the generated decks, hand-curated and keyed by
+/// `say` (`<lang>.lexicaster.tiers.toml`), so regenerating a deck never loses
+/// them. The generator only knows one level a unit; the phrase's own is here.
 const TIERS: &[(&str, &str)] = &[
     ("en", include_str!("../../decks/en.lexicaster.tiers.toml")),
     ("es", include_str!("../../decks/es.lexicaster.tiers.toml")),
@@ -140,6 +141,9 @@ struct TierFile {
     short: Option<String>,
     #[serde(default)]
     polished: Option<String>,
+    /// CEFR level of this phrase, in place of the unit's level in the generated deck.
+    #[serde(default)]
+    level: Option<String>,
 }
 
 /// Same phrase once case, accents and punctuation go.
@@ -496,9 +500,10 @@ impl Deck {
         Ok(self)
     }
 
-    /// Sets the short / polished tiers from an overlay (`[[tier]]` entries keyed
-    /// by `say`, compared ignoring case and punctuation). An entry whose `say`
-    /// is not in the deck is an error: a stale overlay must not go unnoticed.
+    /// Sets the short / polished tiers, and the level when the entry has one,
+    /// from an overlay (`[[tier]]` entries keyed by `say`, compared ignoring
+    /// case and punctuation). An entry whose `say` is not in the deck is an
+    /// error: a stale overlay must not go unnoticed.
     pub fn apply_tiers(&mut self, src: &str) -> Result<()> {
         let file: TiersFile = toml::from_str(src).context("invalid tier overlay TOML")?;
         for t in file.tiers {
@@ -507,6 +512,13 @@ impl Deck {
                 bail!("tier overlay entry {:?} matches no phrase in the deck (stale overlay?)", t.say);
             };
             (p.short, p.polished) = clean_tiers(&p.say, t.short, t.polished);
+            if let Some(level) = t.level {
+                let level = level.trim().to_uppercase();
+                if !LEVELS.contains(&level.as_str()) {
+                    bail!("tier overlay entry {:?} has level {level:?}; use one of {LEVELS:?}", t.say);
+                }
+                p.level = Some(level);
+            }
         }
         Ok(())
     }
@@ -978,6 +990,27 @@ mod tests {
                 panic!("{lang}: {e:#}");
             }
         }
+    }
+
+    /// The generator copies one level a unit, so every phrase of a generated
+    /// topic would share it; the overlay holds each phrase's own.
+    #[test]
+    fn every_tier_overlay_entry_levels_its_phrase() {
+        for (lang, _, tiers) in GENERATED {
+            let file: TiersFile = toml::from_str(tiers).unwrap();
+            for t in file.tiers {
+                assert!(t.level.is_some(), "{lang}: {:?} has no level of its own", t.say);
+            }
+        }
+    }
+
+    #[test]
+    fn a_tier_overlay_level_replaces_the_generated_one() {
+        let mut d = Deck::parse(&format!("{HEAD}[[phrase]]\nsay='Hi'\nmeaning='x'\nlevel='B1'")).unwrap();
+        d.apply_tiers("[[tier]]\nsay='Hi'\nlevel='a1'").unwrap();
+        assert_eq!(d.phrases[0].level.as_deref(), Some("A1"));
+        let err = d.apply_tiers("[[tier]]\nsay='Hi'\nlevel='Z9'").unwrap_err();
+        assert!(format!("{err:#}").contains("Z9"));
     }
 
     #[test]
