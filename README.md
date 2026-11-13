@@ -120,6 +120,7 @@ mage attacks, summons and nudges you, and how much each answer melts (12–25%).
 snowlearner audio mics            # list microphones (* = configured)
 snowlearner audio speakers
 snowlearner audio test-mic        # live meter, then shows what the recognizer heard
+snowlearner model bench           # how long recognition takes on this machine (no mic needed)
 snowlearner voices list --lang pt-BR
 snowlearner voices test --lang en --voice af_heart
 ```
@@ -213,6 +214,7 @@ The built-in decks combine hand-written phrases, the first words and expressions
 make test               # unit + binary tests
 make test-speech        # real speech recognition end-to-end (needs model + espeak-ng)
 make lint               # rustfmt --check + clippy -D warnings (all feature sets)
+gh workflow run release --ref <branch>  # build the three OS archives as artifacts, without publishing
 scripts/render-docs.sh  # re-render the README clips (animated WebP) from the real scene
 ```
 

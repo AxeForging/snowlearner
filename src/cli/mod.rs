@@ -213,6 +213,12 @@ pub enum ModelAction {
     },
     /// Print the model path and whether it exists.
     Path,
+    /// Time speech recognition on this machine (no microphone needed).
+    Bench {
+        /// A WAV file to transcribe instead of the built-in clip.
+        #[arg(long)]
+        wav: Option<PathBuf>,
+    },
 }
 
 pub fn main() -> anyhow::Result<()> {

@@ -233,6 +233,30 @@ fn model_download_rejects_unknown_sizes_without_touching_the_network() {
     assert!(stderr(&o).contains("unknown model"));
 }
 
+#[cfg(feature = "stt")]
+#[test]
+fn model_bench_without_a_model_says_how_to_get_one() {
+    let o = Home::new().run(&["model", "bench"]);
+    assert!(!o.status.success());
+    assert!(stderr(&o).contains("snowlearner model download"), "{}", stderr(&o));
+}
+
+#[cfg(feature = "stt")]
+#[test]
+fn model_bench_reports_a_wav_it_cannot_read() {
+    let o = Home::new().run(&["model", "bench", "--wav", "/nope/answer.wav"]);
+    assert!(!o.status.success());
+    assert!(stderr(&o).contains("reading /nope/answer.wav"), "{}", stderr(&o));
+}
+
+#[cfg(not(feature = "stt"))]
+#[test]
+fn model_bench_in_a_build_without_recognition_says_so() {
+    let o = Home::new().run(&["model", "bench"]);
+    assert!(!o.status.success());
+    assert!(stderr(&o).contains("no speech recognition"), "{}", stderr(&o));
+}
+
 #[test]
 fn progress_without_the_app_prints_a_path_that_starts_with_words() {
     let home = Home::new();

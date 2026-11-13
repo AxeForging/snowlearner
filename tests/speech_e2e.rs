@@ -150,3 +150,38 @@ fn the_vocabulary_hint_does_not_turn_a_different_word_into_the_target() {
         assert!(!expect.accepts(&heard), "said {said:?}, heard {heard:?}, passed for {target:?}");
     }
 }
+
+/// `snowlearner model bench` through the real binary: it loads the model, times
+/// a spoken file and reports what it heard in every pass.
+#[cfg(unix)]
+#[test]
+#[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
+fn model_bench_times_a_spoken_wav_through_the_real_binary() {
+    let home = tempfile::tempdir().unwrap();
+    let model = std::env::var("SNOWLEARNER_TEST_MODEL").expect("set SNOWLEARNER_TEST_MODEL");
+    let models = home.path().join("data/models");
+    std::fs::create_dir_all(&models).unwrap();
+    std::os::unix::fs::symlink(&model, models.join("ggml-base.bin")).unwrap();
+    let wav = home.path().join("say.wav");
+    let ok = Command::new("espeak-ng")
+        .args(["-v", "en-us", "-s", "140", "-w"])
+        .arg(&wav)
+        .arg("Good morning everyone")
+        .status()
+        .unwrap();
+    assert!(ok.success());
+    let out = Command::new(env!("CARGO_BIN_EXE_snowlearner"))
+        .args(["model", "bench", "--wav"])
+        .arg(&wav)
+        .env("SNOWLEARNER_HOME", home.path())
+        .output()
+        .unwrap();
+    let (stdout, stderr) = (String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    assert!(out.status.success(), "{stderr}");
+    assert!(stdout.lines().any(|l| l.starts_with("engine   ")), "the engine names its CPU features: {stdout}");
+    let passes: Vec<&str> = stdout.lines().filter(|l| l.contains(" s  \"")).collect();
+    assert!(passes.len() >= 2, "what lessons use is timed twice: {stdout}");
+    for pass in &passes[..2] {
+        assert!(pass.to_lowercase().contains("morning"), "the lesson passes hear the file: {stdout}");
+    }
+}

@@ -1,3 +1,4 @@
+pub mod bench;
 pub mod endpoint;
 pub mod highpass;
 pub mod matcher;

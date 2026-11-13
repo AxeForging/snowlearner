@@ -23,7 +23,8 @@ src/
                      voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs,
                      highpass.rs (DC/rumble removal before measuring),
                      resident.rs (loads the whisper model on demand, frees it when idle),
-                     trace.rs (timestamped speech steps in the log);
+                     trace.rs (timestamped speech steps in the log),
+                     bench.rs (what `model bench` times: its clip and its passes);
                      audio.rs with `audio`; mic.rs + stt.rs with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs, path.rs (words → chunks →
                      phrases, unlock window), progress.rs (known/learning/next per stage & topic)
@@ -53,6 +54,7 @@ tests/install.rs     install.sh end to end against a local fake release (real sc
 tests/speech_e2e.rs  real whisper run on synthesized speech (#[ignore], needs a model)
 install.sh / install.ps1  one-command installers (download release, verify SHA-256, `setup`)
 .github/workflows/   ci.yml Linux-only (free-tier minutes); release.yml builds all OSes on `v*` tags
+                     (run by hand it builds the same archives as artifacts and publishes nothing)
 ```
 
 Naming: files are the noun they hold (`snow.rs` holds `Snow`); a directory's `mod.rs` is
