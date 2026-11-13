@@ -18,7 +18,11 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    in a row) until you get it right; auto mode drops it back to repeat.
 4. **Fair recognition** — each word may have 1 slip (3–6 letters) or 2 (7+), punctuation
    and accents ignored; pass when every word is heard, or when the phrase is very similar
-   with ≥ 3/4 of the words. "I'm angry" never passes for "I'm hungry".
+   with ≥ 3/4 of the words. "I'm angry" never passes for "I'm hungry". A pre-A1 learner
+   gets one more slip, only in words of 5+ letters (two slips turn "tea" into "see" and
+   "wait" into "what"). In a short, polished or accepted answer, the words it shares with
+   the phrase itself (`say`) must reach that 3/4 on their own — all of them when fewer than
+   four — so "See for me please." never passes for "Tea." (#68).
 5. **The fight** — the fire mage appears only during lessons, charges while you speak,
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun

@@ -533,7 +533,7 @@ impl Lesson {
                 let answers = p.answers();
                 let texts: Vec<&str> = answers.iter().map(|(_, a)| *a).collect();
                 let lang = &self.deck.language;
-                let (m, best) = matcher::score_any(&texts, &text, slack, lang);
+                let (m, best) = matcher::score_any(&texts, &p.say, &text, slack, lang);
                 let passed = m.passed(self.opts.threshold);
                 let whole = answers
                     .iter()
@@ -866,6 +866,7 @@ fn expect(deck: &Deck, i: usize, slack: usize, threshold: f32) -> matcher::Expec
     hint.push(&p.say);
     matcher::Expect {
         answers: p.answers().into_iter().map(|(_, a)| a.to_string()).collect(),
+        say: p.say.clone(),
         lang: deck.language.clone(),
         slack,
         threshold,
@@ -1250,6 +1251,28 @@ mod tests {
         assert!(tag.contains("memória"), "{tag}");
         assert!(parts.iter().all(|p| p.lang != "en" || p.speed == Speed::Slow));
         assert!(!passed, "the usual check from A1 up");
+    }
+
+    const TEA_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
+         [[phrase]]\nsay='Tea.'\npolished='Tea for me, please.'\nmeaning='Chá.'\n\
+         situation='O garçom pergunta o que você quer beber.'\ntopic='restaurante'\nlevel='PRE-A1'";
+
+    #[test]
+    fn a_long_answer_with_another_word_does_not_pass_for_the_lessons_word() {
+        let answers = |heard: &str| {
+            let mut o = options(true);
+            o.max_level = PRE_A1.into();
+            o.answer = Answer::All;
+            let mut f = fixture_with(o);
+            f.lesson.set_deck(Deck::parse(TEA_DECK).unwrap(), &mut f.scene);
+            let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: heard.into() }));
+            f.scene.hud.caption.as_ref().unwrap().status == Status::Passed
+        };
+        assert!(!answers("See for me please."), "a pre-A1 learner's history: it passed before #68");
+        assert!(answers("Tea for me please."));
+        assert!(answers("Tea."));
     }
 
     #[test]

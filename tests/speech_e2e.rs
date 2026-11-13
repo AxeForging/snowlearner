@@ -120,6 +120,7 @@ fn a_short_spanish_word_on_its_own_is_recognized_with_the_vocabulary_hint() {
     for word in ["¡Pare!", "Sí.", "Pollo.", "Leche.", "¡Ayuda!"] {
         let expect = matcher::Expect {
             answers: vec![word.into()],
+            say: word.into(),
             lang: "es".into(),
             slack: 0,
             threshold: 0.72,
@@ -141,6 +142,7 @@ fn the_vocabulary_hint_does_not_turn_a_different_word_into_the_target() {
     for (target, said) in [("¡Pare!", "Vale"), ("Pollo.", "Pelo"), ("Sí.", "No"), ("¡Ayuda!", "Mañana")] {
         let expect = matcher::Expect {
             answers: vec![target.into()],
+            say: target.into(),
             lang: "es".into(),
             slack: 0,
             threshold: 0.72,
@@ -149,6 +151,30 @@ fn the_vocabulary_hint_does_not_turn_a_different_word_into_the_target() {
         let heard = r.transcribe_expecting(&synth(said, "es", dir.path()), "es", Some(&expect)).unwrap();
         assert!(!expect.accepts(&heard), "said {said:?}, heard {heard:?}, passed for {target:?}");
     }
+}
+
+/// A long answer with another word in place of the lesson's must not pass,
+/// whatever whisper makes of it: "Coffee for me, please." passed for `Tea.`
+/// before #68, since three of its four words are right.
+#[test]
+#[ignore = "needs SNOWLEARNER_TEST_MODEL and espeak-ng"]
+fn a_long_answer_with_another_word_does_not_pass_for_the_lessons_word() {
+    let dir = tempfile::tempdir().unwrap();
+    let r = recognizer();
+    let tea = matcher::Expect {
+        answers: vec!["Tea.".into(), "Tea for me, please.".into()],
+        say: "Tea.".into(),
+        lang: "en".into(),
+        slack: matcher::BEGINNER_SLACK,
+        threshold: 0.72,
+        hint: "Water. Coffee. Beer. Tea.".into(),
+    };
+    let coffee = synth("Coffee for me, please.", "en-us", dir.path());
+    let heard = r.transcribe_expecting(&coffee, "en", Some(&tea)).unwrap();
+    assert!(!tea.accepts(&heard), "said coffee, heard {heard:?}, passed for Tea.");
+    let right = synth("Tea for me, please.", "en-us", dir.path());
+    let heard = r.transcribe_expecting(&right, "en", Some(&tea)).unwrap();
+    assert!(tea.accepts(&heard), "said it right, heard {heard:?}");
 }
 
 /// `snowlearner model bench` through the real binary: it loads the model, times
