@@ -1,78 +1,60 @@
 name: release
 
-# Builds every OS only when a version is tagged (`git tag v0.1.0 && git push --tags`);
-# regular CI stays Linux-only to save runner minutes.
-#
-# Run by hand (`gh workflow run release --ref <branch>`) it builds the same three
-# archives and keeps them as workflow artifacts without publishing: the way to try
-# a branch on Windows or macOS, and to rehearse a release before tagging it.
+# EXPERIMENT BRANCH for #58, never merged: builds Windows variants of whisper.cpp
+# (and one Linux variant) with verbose logs, to find why the MSVC build is slow.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
 
 env:
-  # Portable whisper.cpp (AVX2/FMA baseline) instead of -march=native of the runner.
   GGML_NATIVE: "OFF"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
-          # 22.04 → glibc 2.35: runs on most Linux desktops from 2022 on.
-          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, archive: tar.gz }
-          # macOS 14 runners were retired on 2026-11-02; a retired label cancels the whole release.
-          - { os: macos-15, target: aarch64-apple-darwin, archive: tar.gz }
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
+          - { os: windows-latest, variant: win-msvc, bin: snowlearner.exe }
+          - { os: windows-latest, variant: win-clangcl, bin: snowlearner.exe }
+          - { os: windows-latest, variant: win-llamafile, bin: snowlearner.exe }
+          - { os: windows-latest, variant: win-flags, bin: snowlearner.exe }
+          - { os: ubuntu-22.04, variant: linux-llamafile, bin: snowlearner }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev
-      - run: cargo build --release --locked
-      - name: package
+      - name: variant
         shell: bash
         run: |
-          name=snowlearner-${{ matrix.target }}
-          mkdir "$name"
-          cp README.md LICENSE "$name"/
-          if [ "${{ matrix.archive }}" = zip ]; then
-            cp target/release/snowlearner.exe "$name"/
-            7z a "$name.zip" "$name" >/dev/null
-            file="$name.zip"
-          else
-            cp target/release/snowlearner "$name"/
-            tar -czf "$name.tar.gz" "$name"
-            file="$name.tar.gz"
-          fi
-          if command -v sha256sum >/dev/null; then sha256sum "$file" > "$file.sha256"; else shasum -a 256 "$file" > "$file.sha256"; fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.target }}
-          path: snowlearner-${{ matrix.target }}.*
-
-  publish:
-    needs: build
-    # Only a tag publishes; a manual run stops at the build artifacts.
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-      - name: create release
-        env:
-          GH_TOKEN: ${{ github.token }}
+          case "${{ matrix.variant }}" in
+            win-clangcl) echo "CMAKE_GENERATOR_TOOLSET=ClangCL" >> "$GITHUB_ENV" ;;
+            win-llamafile|linux-llamafile) echo "GGML_LLAMAFILE=ON" >> "$GITHUB_ENV" ;;
+            win-flags)
+              echo "CMAKE_C_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG" >> "$GITHUB_ENV"
+              echo "CMAKE_CXX_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG" >> "$GITHUB_ENV"
+              ;;
+          esac
+      - name: build (verbose, log kept)
+        shell: bash
+        run: cargo build --release --locked -vv > build.log 2>&1 || { tail -80 build.log; exit 1; }
+      - name: what the native build was given
+        if: always()
+        shell: bash
         run: |
-          gh release create "${{ github.ref_name }}" dist/* \
-            --title "snowlearner ${{ github.ref_name }}" \
-            --notes "Instale com um comando: veja o README. Linux x86_64, macOS (Apple Silicon) e Windows x86_64." \
-            --verify-tag
+          grep -a -E "running: |CMAKE_(C|CXX)_FLAGS|CMAKE_BUILD_TYPE|CMAKE_GENERATOR|The C compiler identification|GGML_LLAMAFILE|Adding CPU backend variant" build.log | cut -c1-1500 | head -60 || true
+          echo "--- one ggml compile line"
+          grep -a -m3 -E "(cl\\.exe|clang-cl|ClCompile|/arch:AVX2|-mavx2).*" build.log | cut -c1-2500 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exp-${{ matrix.variant }}
+          path: |
+            target/release/${{ matrix.bin }}
+            build.log
