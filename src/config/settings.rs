@@ -81,6 +81,9 @@ pub struct Settings {
     pub max_level: String,
     /// Phrases per day you aim for.
     pub daily_goal: u32,
+    /// Diagnostics: keep the last answers the speech model heard as WAV files
+    /// next to the log (`<data>/recordings`). Your voice, never sent anywhere.
+    pub keep_recordings: bool,
 }
 
 impl Default for Settings {
@@ -116,6 +119,7 @@ impl Default for Settings {
             topics: Vec::new(),
             max_level: "B2".into(),
             daily_goal: 10,
+            keep_recordings: false,
         }
     }
 }
@@ -153,7 +157,8 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
     # answer: all | short | complete | polished\n\
-    # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\n";
+    # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
+    # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -353,6 +358,22 @@ mod tests {
         assert_eq!(Settings::load(&p).unwrap().native, Native::En);
         std::fs::write(&p, "native = 'pt'\n").unwrap();
         assert_eq!(Settings::load(&p).unwrap().native, Native::PtBr, "pt is read as pt-BR");
+    }
+
+    #[test]
+    fn recordings_are_kept_only_when_asked_and_the_written_config_says_how() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        assert!(!Settings::default().keep_recordings, "your voice is not kept unless you ask");
+        Settings::write_default(&p, false).unwrap();
+        let written = std::fs::read_to_string(&p).unwrap();
+        assert!(written.contains("# keep_recordings:"), "explained in the header");
+        assert!(written.contains("keep_recordings = false"));
+        std::fs::write(&p, "keep_recordings = true\n").unwrap();
+        let s = Settings::load(&p).unwrap();
+        assert!(s.keep_recordings);
+        s.save(&p).unwrap();
+        assert_eq!(Settings::load(&p).unwrap(), s, "the panel's saves keep it on");
     }
 
     #[test]

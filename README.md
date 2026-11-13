@@ -187,7 +187,13 @@ voice_learning = ""
 mode = "auto"            # auto | window | overlay
 summary_time = "21:00"
 model = "base"           # tiny | base | small
+keep_recordings = false  # true = keep your last 20 answers as WAV (see below)
 ```
+
+`keep_recordings` is for diagnosing what the speech model heard. Each answer it transcribes
+is saved to `recordings/` in the folder of `snowlearner.log`, exactly as the model got it, and
+only the newest 20 are kept. They are your voice: nothing sends them anywhere. Replay one with
+`snowlearner model bench --wav <file>`. Set it back to `false` and delete the folder when done.
 
 ### Your own phrases
 

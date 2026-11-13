@@ -24,7 +24,8 @@ src/
                      highpass.rs (DC/rumble removal before measuring),
                      resident.rs (loads the whisper model on demand, frees it when idle),
                      trace.rs (timestamped speech steps in the log),
-                     bench.rs (what `model bench` times: its clip and its passes);
+                     bench.rs (what `model bench` times: its clip and its passes),
+                     recordings.rs (`keep_recordings`: answers kept as WAV for diagnosis);
                      audio.rs with `audio`; mic.rs + stt.rs with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs, path.rs (words → chunks →
                      phrases, unlock window), progress.rs (known/learning/next per stage & topic)

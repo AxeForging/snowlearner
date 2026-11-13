@@ -103,6 +103,15 @@ fn invalid_config_is_reported_with_the_bad_key() {
 }
 
 #[test]
+fn a_config_that_keeps_recordings_is_accepted_and_nothing_is_recorded_without_a_lesson() {
+    let home = Home::new();
+    home.config("keep_recordings = true\n");
+    let o = home.run(&["decks"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    assert!(!home.dir.path().join("data").join("recordings").exists(), "only answers are kept");
+}
+
+#[test]
 fn report_on_an_empty_day_says_so() {
     let o = Home::new().run(&["report", "--date", "2026-01-01"]);
     assert!(o.status.success(), "{}", stderr(&o));
