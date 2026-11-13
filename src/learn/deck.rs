@@ -31,7 +31,7 @@ macro_rules! themed {
 
 /// The hand-curated decks, one folder per language.
 const EN: &str = themed!("en":
-    "work", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "work", "tech", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
     "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
 );
 pub(crate) const ES: &str = themed!("es":
@@ -815,6 +815,21 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    /// Fewest items a rung of the tech topic holds.
+    const TECH_RUNG_MIN: usize = 8;
+
+    /// The tech topic climbs the same ladder as the core ones. English only:
+    /// the other decks have no tech theme yet.
+    #[test]
+    fn the_tech_topic_climbs_from_pre_a1_to_b1_in_english() {
+        let deck = Deck::builtin("en").unwrap();
+        let tech: Vec<&Phrase> = deck.phrases.iter().filter(|p| p.topic == "tecnologia").collect();
+        for level in LADDER {
+            let n = tech.iter().filter(|p| p.level.as_deref() == Some(*level)).count();
+            assert!(n >= TECH_RUNG_MIN, "en: tecnologia {level} has {n} items, a rung needs {TECH_RUNG_MIN}");
         }
     }
 

@@ -884,3 +884,100 @@ say = "Call me."
 polished = "Call me anytime."
 meaning = "Me liga."
 accept = ["Just call me"]
+
+# ---------------------------------------------------------------- pre-A1: tech
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Seu deploy de agora quebrou o login. Um colega pergunta o que fazer, e você quer voltar pra versão anterior."
+say = "Roll back!"
+polished = "We need to roll back now."
+meaning = "Faz o rollback!"
+accept = ["Rollback!", "Roll it back!"]
+tip = "'Roll' termina com 'l' de verdade: 'rôul', não 'rôu'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "O líder do time pergunta quem está de plantão hoje à noite, e é você."
+say = "I'm on call."
+polished = "I'm on call this week."
+meaning = "Estou de plantão."
+accept = ["I'm on call tonight", "Me, I'm on call"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Na daily, o líder pergunta como está sua tarefa. Você não consegue avançar porque depende de outra pessoa."
+say = "Blocked."
+polished = "I'm blocked, waiting for a review."
+meaning = "Travado."
+accept = ["I'm blocked", "I'm stuck"]
+tip = "'Blocked' tem uma sílaba só: 'blókt'. O '-ed' não vira 'éd'."
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Um colega pergunta se você já revisou o pull request dele. Você revisou e aprovou."
+say = "Approved."
+polished = "I approved your pull request."
+meaning = "Aprovado."
+accept = ["It's approved", "I approved it"]
+tip = "'Approved' soa como 'aprúvd'. O '-ed' não vira sílaba."
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "O líder pergunta se o bug que você estava corrigindo já foi resolvido. Já foi."
+say = "Fixed."
+polished = "Yes, it's fixed in production."
+meaning = "Corrigido."
+accept = ["It's fixed", "All fixed"]
+tip = "'Fixed' soa como 'fíkst', uma sílaba só."
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "O gerente de produto pergunta no chat se a versão nova já está no ar. Você acabou de fazer o deploy."
+say = "Deployed."
+polished = "It's deployed to production now."
+meaning = "Deploy feito, já está no ar."
+accept = ["It's deployed", "It's live"]
+tip = "'Deployed' soa como 'diplóid'. O '-ed' não vira sílaba."
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Um colega mostra a mudança dele na tela e pergunta o que você achou. Está tudo certo."
+say = "Looks good."
+polished = "Looks good to me, nice work."
+meaning = "Está bom."
+accept = ["Looks good to me", "Looks great"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Um alerta disparou e o líder pergunta no chat quem pode olhar. Você vai cuidar disso."
+say = "On it!"
+polished = "I'm on it, checking now."
+meaning = "Deixa comigo!"
+accept = ["I'm on it", "I got it"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Na revisão, um colega acha um erro no seu código antes de ir pra produção. Você agradece."
+say = "Good catch!"
+polished = "Good catch, thanks! I'll fix it."
+meaning = "Boa, bem visto!"
+accept = ["Nice catch!"]
+
+[[phrase]]
+topic = "tecnologia"
+level = "PRE-A1"
+situation = "Um colega diz que a aplicação travou e pergunta o que fazer."
+say = "Restart it."
+polished = "Can you try restarting it?"
+meaning = "Reinicia."
+accept = ["Just restart it", "Try restarting it"]

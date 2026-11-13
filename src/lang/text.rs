@@ -367,6 +367,7 @@ pub fn kokoro_language(native: Native, letter: char) -> Option<(&'static str, Op
 pub const TOPICS: &[(&str, &str)] = &[
     ("primeiros contatos", "first contact"),
     ("trabalho", "work"),
+    ("tecnologia", "tech"),
     ("restaurante", "restaurant"),
     ("viagem", "travel"),
     ("compras", "shopping"),
