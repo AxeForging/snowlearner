@@ -19,11 +19,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, variant: win-msvc, bin: snowlearner.exe }
-          - { os: windows-latest, variant: win-clangcl, bin: snowlearner.exe }
-          - { os: windows-latest, variant: win-llamafile, bin: snowlearner.exe }
-          - { os: windows-latest, variant: win-flags, bin: snowlearner.exe }
-          - { os: ubuntu-22.04, variant: linux-llamafile, bin: snowlearner }
+          - { os: windows-latest, variant: win-o2, bin: snowlearner.exe }
+          - { os: windows-latest, variant: win-o2-llamafile, bin: snowlearner.exe }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -33,14 +30,9 @@ jobs:
       - name: variant
         shell: bash
         run: |
-          case "${{ matrix.variant }}" in
-            win-clangcl) echo "CMAKE_GENERATOR_TOOLSET=ClangCL" >> "$GITHUB_ENV" ;;
-            win-llamafile|linux-llamafile) echo "GGML_LLAMAFILE=ON" >> "$GITHUB_ENV" ;;
-            win-flags)
-              echo "CMAKE_C_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG" >> "$GITHUB_ENV"
-              echo "CMAKE_CXX_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG" >> "$GITHUB_ENV"
-              ;;
-          esac
+          echo "CMAKE_C_FLAGS_RELEASE=-MD -O2 -Ob2 -DNDEBUG" >> "$GITHUB_ENV"
+          echo "CMAKE_CXX_FLAGS_RELEASE=-MD -O2 -Ob2 -DNDEBUG" >> "$GITHUB_ENV"
+          if [ "${{ matrix.variant }}" = win-o2-llamafile ]; then echo "GGML_LLAMAFILE=ON" >> "$GITHUB_ENV"; fi
       - name: build (verbose, log kept)
         shell: bash
         run: cargo build --release --locked -vv > build.log 2>&1 || { tail -80 build.log; exit 1; }
