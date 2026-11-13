@@ -1,0 +1,18 @@
+# Where this repo's backlog lives: the GitHub Project the backlog tooling adds issues to and
+# moves across columns. Names only; IDs are resolved at run time.
+# Board: https://github.com/orgs/AxeForging/projects/6
+version: 1
+project:
+  owner: AxeForging
+  number: 6
+fields:
+  status: Status
+defaults:
+  status: Backlog
+columns:
+  ready: Ready
+  in_progress: In progress
+  review: In review
+labels:
+  feature: enhancement
+  bug: bug
