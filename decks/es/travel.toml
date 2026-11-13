@@ -8,6 +8,7 @@ say = "Tengo una reserva a mi nombre"
 short = "Tengo una reserva"
 polished = "Hola, tengo una reserva a mi nombre"
 meaning = "Tenho uma reserva no meu nome"
+tip = "No meu nome = 'a mi nombre' (ou 'a nombre de Silva'). 'En nombre de' é em nome de alguém, representando."
 
 [[phrase]]
 topic = "viagem"
@@ -41,10 +42,10 @@ topic = "viagem"
 level = "B1"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "¿Cuánto se tarda en llegar al centro?"
-short = "¿Está lejos el centro?"
+short = "¿Cuánto se tarda?"
 polished = "Disculpe, ¿sabe cuánto se tarda en llegar al centro?"
 meaning = "Quanto tempo leva pra chegar no centro?"
-accept = ["¿Cuánto tiempo se tarda al centro?"]
+accept = ["¿Cuánto tiempo se tarda en llegar al centro?", "¿Cuánto se demora en llegar al centro?"]
 
 [[phrase]]
 topic = "viagem"

@@ -90,6 +90,7 @@ short = "Tomorrow instead?"
 polished = "Would it be possible to push this to tomorrow?"
 meaning = "Podemos passar isso pra amanhã?"
 accept = ["Could we push this to tomorrow?", "Can we move this to tomorrow?"]
+tip = "'Push' é empurrar, não puxar: 'push to tomorrow' = empurrar pra amanhã, adiar."
 
 [[phrase]]
 topic = "trabalho"
@@ -99,7 +100,7 @@ say = "That makes sense"
 short = "Makes sense"
 polished = "That makes a lot of sense, thanks"
 meaning = "Isso faz sentido"
-tip = "Muito mais natural que 'I agree with you' no dia a dia."
+tip = "'Fazer sentido' é 'make sense', nunca 'do sense': aqui o 'fazer' vira 'make'."
 
 [[phrase]]
 topic = "trabalho"
@@ -108,8 +109,9 @@ situation = "Você não tem tempo pra pegar mais tarefas."
 say = "I don't have the bandwidth for this right now"
 short = "I'm swamped right now"
 polished = "I'm afraid I don't have the bandwidth for this right now"
-meaning = "Não tenho capacidade pra isso agora"
+meaning = "Agora não tenho tempo pra pegar isso"
 accept = ["I don't have bandwidth for this right now"]
+tip = "'Bandwidth' (banda de internet) aqui é figurado: tempo e cabeça pra mais uma tarefa. É o 'estou sem braço' do escritório."
 
 [[phrase]]
 topic = "trabalho"
@@ -126,9 +128,9 @@ level = "A2"
 situation = "Você vai tirar o dia de folga amanhã."
 say = "I'll be out of office tomorrow"
 short = "I'm off tomorrow"
-polished = "Just a heads-up, I'll be out of office tomorrow"
+polished = "Just a heads-up, I'll be out of the office tomorrow"
 meaning = "Vou estar fora do escritório amanhã"
-accept = ["I'll be off tomorrow"]
+accept = ["I'll be off tomorrow", "I'll be out of the office tomorrow"]
 
 [[phrase]]
 topic = "trabalho"
@@ -148,7 +150,7 @@ say = "Can you hear me okay?"
 short = "Can you hear me?"
 polished = "Sorry, can you hear me okay?"
 meaning = "Você está me ouvindo bem?"
-accept = ["Can you hear me?"]
+accept = ["Can everyone hear me okay?", "Is my audio okay?"]
 
 [[phrase]]
 topic = "trabalho"

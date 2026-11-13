@@ -74,6 +74,7 @@ situation = "Você concorda com a ideia."
 say = "Tiene sentido"
 polished = "Sí, tiene todo el sentido"
 meaning = "Faz sentido"
+tip = "Faz sentido = 'tiene sentido' (o sentido se 'tem'). 'Hace sentido' é decalque e soa errado pra muitos."
 
 [[phrase]]
 topic = "trabalho"

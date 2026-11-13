@@ -39,6 +39,7 @@ situation = "The meeting needs to be pushed back."
 say = "Tiene sentido"
 meaning = "That makes sense"
 situation = "You agree with the idea."
+tip = "'Makes sense' is 'tiene sentido' (it has sense). 'Hace sentido' is a calque many speakers reject."
 
 [[phrase]]
 say = "Creo que hay un error en producción"

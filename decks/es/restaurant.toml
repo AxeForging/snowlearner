@@ -15,9 +15,9 @@ level = "A2"
 situation = "Quer levar a comida."
 say = "¿Me lo pone para llevar?"
 short = "Para llevar"
-polished = "¿Me lo pone para llevar, por favor?"
+polished = "Disculpe, ¿me lo puede poner para llevar, por favor?"
 meaning = "Pode embalar pra viagem?"
-accept = ["Para llevar, por favor"]
+accept = ["Para llevar, por favor", "¿Me lo puede poner para llevar?", "¿Me lo envuelve para llevar?"]
 
 [[phrase]]
 topic = "restaurante"
