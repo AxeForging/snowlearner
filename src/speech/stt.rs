@@ -1,10 +1,26 @@
 //! Local speech recognition with whisper.cpp. Runs fully offline on every OS;
 //! the language is pinned to the one being practiced.
 
+use super::bench::Pass;
 use super::matcher::Expect;
 use anyhow::{Context, Result, bail};
 use std::path::Path;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+/// Threads lessons give whisper: every core, up to six.
+pub fn lesson_threads() -> i32 {
+    std::thread::available_parallelism().map(|n| n.get().min(6) as i32).unwrap_or(4)
+}
+
+/// What whisper.cpp was built with and found on this CPU (AVX2, FMA…), in its own words.
+pub fn system_info() -> String {
+    whisper_rs::print_system_info().trim().to_string()
+}
+
+/// The whisper.cpp version this build carries.
+pub fn engine_version() -> &'static str {
+    whisper_rs::get_whisper_version()
+}
 
 pub struct Recognizer {
     ctx: WhisperContext,
@@ -19,6 +35,7 @@ impl Recognizer {
         let path = model.to_str().context("model path is not valid UTF-8")?;
         let ctx = WhisperContext::new_with_params(path, WhisperContextParameters::default())
             .with_context(|| format!("loading speech model {}", model.display()))?;
+        super::trace::line(format_args!("speech engine: {} threads, {}", lesson_threads(), system_info()));
         Ok(Recognizer { ctx })
     }
 
@@ -33,6 +50,15 @@ impl Recognizer {
     /// `samples`: 16 kHz mono. `lang`: ISO code of the language being practiced.
     /// `prompt`: words whisper should expect (an initial prompt), if any.
     pub fn transcribe(&self, samples: &[f32], lang: &str, prompt: Option<&str>) -> Result<String> {
+        self.run(samples, lang, prompt, Pass { threads: lesson_threads(), audio_ctx: 0 })
+    }
+
+    /// One pass run the way `pass` says, for `snowlearner model bench`.
+    pub fn transcribe_as(&self, samples: &[f32], lang: &str, pass: Pass) -> Result<String> {
+        self.run(samples, lang, None, pass)
+    }
+
+    fn run(&self, samples: &[f32], lang: &str, prompt: Option<&str>, pass: Pass) -> Result<String> {
         let mut state = self.ctx.create_state().context("creating recognizer state")?;
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
         let code = lang.split(['-', '_']).next().unwrap_or(lang).to_ascii_lowercase();
@@ -40,7 +66,10 @@ impl Recognizer {
         if let Some(p) = prompt {
             params.set_initial_prompt(p);
         }
-        params.set_n_threads(std::thread::available_parallelism().map(|n| n.get().min(6) as i32).unwrap_or(4));
+        params.set_n_threads(pass.threads);
+        if pass.audio_ctx > 0 {
+            params.set_audio_ctx(pass.audio_ctx);
+        }
         params.set_no_context(true);
         params.set_single_segment(true);
         params.set_suppress_blank(true);

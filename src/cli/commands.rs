@@ -63,6 +63,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
             println!("{} ({})", p.display(), if p.exists() { "present" } else { "missing" });
             Ok(())
         }
+        Cmd::Model { action: ModelAction::Bench { wav } } => bench_model(&settings, &paths, wav.as_deref()),
         Cmd::Doctor => doctor(&settings, &paths),
         Cmd::Audio { action } => audio(&settings, &paths, action),
         Cmd::Voices { action } => voices(&settings, action),
@@ -254,6 +255,51 @@ fn test_mic(settings: &Settings, paths: &Paths) -> Result<()> {
 
 #[cfg(all(feature = "audio", not(feature = "stt")))]
 fn test_mic(_: &Settings, _: &Paths) -> Result<()> {
+    bail!("this build has no speech recognition")
+}
+
+/// Times the speech model the way lessons run it, then with other thread counts
+/// and narrower encoder windows, so a slow machine shows where the time goes.
+#[cfg(feature = "stt")]
+fn bench_model(settings: &Settings, paths: &Paths, wav: Option<&std::path::Path>) -> Result<()> {
+    use crate::speech::bench;
+    use crate::speech::resample::{WHISPER_RATE, resample};
+    use crate::speech::stt::{self, Recognizer};
+    use std::time::Instant;
+    let (samples, source) = match wav {
+        Some(path) => {
+            let bytes = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
+            let (mono, rate) = crate::speech::audio::decode_wav(&bytes)?;
+            (resample(&mono, rate, WHISPER_RATE), path.display().to_string())
+        }
+        None => (bench::clip(), "built-in clip".to_string()),
+    };
+    let model = paths.model_file(&settings.model);
+    let started = Instant::now();
+    let recognizer = Recognizer::load(&model)?;
+    let loaded = started.elapsed().as_secs_f32();
+    let cores = std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1);
+    let seconds = samples.len() as f32 / WHISPER_RATE as f32;
+    println!("snowlearner {}, whisper.cpp {}", env!("CARGO_PKG_VERSION"), stt::engine_version());
+    println!("model    {} at {} (loaded in {loaded:.2} s)", settings.model, model.display());
+    println!("cpu      {cores} threads available, lessons use {}", stt::lesson_threads());
+    println!("engine   {}", stt::system_info());
+    println!("audio    {source}, {seconds:.1} s, language {}", settings.learning);
+    println!();
+    println!("threads  window    time     heard");
+    // What whisper gets is longer than the clip: the lead-in and the padding count too.
+    let padded = stt::prepare(&samples).len() as f32 / WHISPER_RATE as f32;
+    for pass in bench::passes(stt::lesson_threads(), cores, padded) {
+        let started = Instant::now();
+        let heard = recognizer.transcribe_as(&samples, &settings.learning, pass)?;
+        let took = started.elapsed().as_secs_f32();
+        println!("{:>7}  {:>4.1} s  {took:>6.2} s  {heard:?}", pass.threads, pass.window_seconds());
+    }
+    Ok(())
+}
+
+#[cfg(not(feature = "stt"))]
+fn bench_model(_: &Settings, _: &Paths, _: Option<&std::path::Path>) -> Result<()> {
     bail!("this build has no speech recognition")
 }
 
