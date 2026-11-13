@@ -7,7 +7,6 @@ pub mod resident;
 pub mod trace;
 pub mod tts;
 pub mod voices;
-pub mod window;
 pub mod worker;
 
 #[cfg(feature = "audio")]
