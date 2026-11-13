@@ -21,7 +21,8 @@ jobs:
         include:
           # 22.04 → glibc 2.35: runs on most Linux desktops from 2022 on.
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, archive: tar.gz }
-          - { os: macos-14, target: aarch64-apple-darwin, archive: tar.gz }
+          # macOS 14 runners were retired on 2026-11-02; a retired label cancels the whole release.
+          - { os: macos-15, target: aarch64-apple-darwin, archive: tar.gz }
           - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
     runs-on: ${{ matrix.os }}
     steps:
