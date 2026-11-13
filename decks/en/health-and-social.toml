@@ -40,3 +40,44 @@ short = "Text me."
 polished = "Please text me if you need anything at all."
 meaning = "Me manda mensagem se precisar de alguma coisa."
 accept = ["Message me if you need anything", "Call me if you need anything"]
+
+[[phrase]]
+topic = "saúde e social"
+level = "B2"
+situation = "Um amigo pergunta por que você sumiu dos últimos encontros da turma."
+say = "I've been running on empty lately, so I've been staying in."
+short = "I've been staying in lately."
+polished = "Sorry I've been so quiet, I've been running on empty and staying in."
+meaning = "Ando sem energia nenhuma, então tenho ficado em casa."
+accept = ["I've been exhausted lately, so I've been staying home."]
+
+[[phrase]]
+topic = "saúde e social"
+level = "B2"
+situation = "Sua amiga reclama de dor nas costas há semanas e ainda não foi ao médico."
+say = "If I were you, I'd get that checked out."
+short = "You should get that checked."
+polished = "Honestly, if I were you, I'd get that checked out by a doctor."
+meaning = "Se eu fosse você, mandava examinar isso."
+accept = ["If I were you, I'd have that checked out."]
+
+[[phrase]]
+topic = "saúde e social"
+level = "B2"
+situation = "Os amigos te chamam pra uma festa, mas você ainda está se recuperando de uma gripe."
+say = "I'd better sit this one out, I'm still getting over the flu."
+short = "I'll sit this one out."
+polished = "Thanks for asking, but I'd better sit this one out, I'm still getting over the flu."
+meaning = "É melhor eu ficar de fora dessa, ainda estou me recuperando da gripe."
+accept = ["I think I'll skip this one, I'm still getting over the flu."]
+tip = "Gripe é 'the flu', com 'the'. 'Estou com gripe' é 'I have the flu', nunca 'I'm with flu'."
+
+[[phrase]]
+topic = "saúde e social"
+level = "B2"
+situation = "Um amigo conta que foi demitido de surpresa ontem e está abalado."
+say = "That must have been really hard to hear."
+short = "That must be hard."
+polished = "I'm so sorry, that must have been really hard to hear."
+meaning = "Isso deve ter sido muito difícil de ouvir."
+accept = ["That must have been tough to hear."]

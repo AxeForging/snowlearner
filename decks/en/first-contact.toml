@@ -78,3 +78,44 @@ short = "Let's keep in touch."
 polished = "We should definitely keep in touch."
 meaning = "A gente devia manter contato."
 accept = ["We should stay in touch", "Let's stay in touch"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B2"
+situation = "Num jantar, alguém pergunta se você sente falta do Brasil e se pensa em voltar."
+say = "I do miss it, but I'm not ready to move back just yet."
+short = "I miss it, but I'm happy here."
+polished = "Honestly, I do miss it, but I'm not ready to move back just yet."
+meaning = "Sinto falta, sim, mas ainda não é hora de voltar."
+accept = ["I miss it, but I'm not ready to go back yet."]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B2"
+situation = "Você reencontra alguém que conheceu na semana passada, mas esqueceu o nome da pessoa."
+say = "Sorry, your name has completely slipped my mind."
+short = "Sorry, remind me of your name?"
+polished = "I'm so sorry, your name has completely slipped my mind."
+meaning = "Desculpa, seu nome me fugiu completamente."
+accept = ["Sorry, I've forgotten your name.", "Sorry, what was your name again?"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B2"
+situation = "Numa festa, o rosto de um convidado te parece conhecido, mas você não lembra de onde."
+say = "You look familiar, but I can't quite place you."
+short = "You look familiar."
+polished = "Sorry, you look really familiar, but I can't quite place you."
+meaning = "Você não me é estranho, mas não consigo lembrar de onde te conheço."
+accept = ["I know you from somewhere, but I can't remember where."]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B2"
+situation = "Um vizinho pergunta o que você acha da cidade; você gosta, mas o frio te pegou de surpresa."
+say = "I love it here, though the winters take some getting used to."
+short = "I love it, except for the winters."
+polished = "I really love it here, though I have to say the winters take some getting used to."
+meaning = "Adoro morar aqui, embora o inverno exija um tempo de adaptação."
+accept = ["I love it here, but the winters take some getting used to."]
+tip = "'Used to' se fala 'iús-tu': o 'd' some e o 's' não vira 'z'."

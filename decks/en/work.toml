@@ -385,3 +385,43 @@ short = "Tomorrow at nine?"
 polished = "Would it work to meet tomorrow at nine?"
 meaning = "Vamos nos ver amanhã às nove."
 accept = ["Let's meet at nine tomorrow"]
+
+[[phrase]]
+topic = "trabalho"
+level = "B2"
+situation = "O gerente quer a entrega na sexta, mas ainda faltam os testes."
+say = "We could hit Friday, but only if we cut the testing short."
+short = "Friday's possible, but risky."
+polished = "We could probably hit Friday, but only if we cut the testing short."
+meaning = "Dá pra entregar na sexta, mas só se a gente encurtar os testes."
+accept = ["We can make Friday, but only if we cut testing short."]
+
+[[phrase]]
+topic = "trabalho"
+level = "B2"
+situation = "Você esqueceu de mandar o arquivo e o colega ficou parado esperando por ele."
+say = "That's on me, I should have sent it yesterday."
+short = "That's on me."
+polished = "Sorry, that's on me, I really should have sent it yesterday."
+meaning = "Foi culpa minha, eu devia ter mandado ontem."
+accept = ["That's my fault, I should have sent it yesterday."]
+
+[[phrase]]
+topic = "trabalho"
+level = "B2"
+situation = "O chefe pede o relatório agora, mas um colega ainda está revisando os números."
+say = "I'm having the numbers double-checked before I send it."
+short = "The numbers are being checked."
+polished = "I'm just having the numbers double-checked before I send it over."
+meaning = "Estou pedindo pra revisarem os números antes de eu mandar."
+accept = ["I'm getting the numbers double-checked before I send it."]
+
+[[phrase]]
+topic = "trabalho"
+level = "B2"
+situation = "Na reunião, a ideia do colega é boa, mas cara; você sugere começar com algo menor."
+say = "Wouldn't it make more sense to start smaller?"
+short = "Why not start smaller?"
+polished = "I wonder if it would make more sense to start with something smaller."
+meaning = "Não faria mais sentido começar com algo menor?"
+accept = ["Wouldn't it be better to start smaller?"]

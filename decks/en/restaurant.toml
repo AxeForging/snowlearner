@@ -111,3 +111,46 @@ short = "It was delicious."
 polished = "Everything was delicious, thank you so much."
 meaning = "Estava tudo delicioso."
 accept = ["It was all delicious", "Everything was great"]
+
+[[phrase]]
+topic = "restaurante"
+level = "B2"
+situation = "Seu bife chegou bem passado, mas você pediu mal passado."
+say = "I think there's been a mix-up, I ordered it rare."
+short = "I ordered it rare."
+polished = "Sorry, I think there's been a mix-up, I ordered mine rare."
+meaning = "Acho que houve uma confusão, eu pedi mal passado."
+accept = ["I think there's been a mistake, I ordered it rare."]
+tip = "'Rare' aqui não é raro: é mal passado. Ao ponto é 'medium'; bem passado, 'well done'."
+
+[[phrase]]
+topic = "restaurante"
+level = "B2"
+situation = "Você não pode comer laticínio e o prato vem com um molho cremoso."
+say = "Could you check whether the sauce has any dairy in it?"
+short = "Does the sauce have dairy?"
+polished = "Would you mind checking with the kitchen whether the sauce has any dairy in it?"
+meaning = "Você pode verificar se o molho tem algum laticínio?"
+accept = ["Could you find out if the sauce has any dairy?", "Could you check if the sauce has any dairy in it?"]
+tip = "'Dairy' (déri) é laticínio; não confunda com 'diary' (dáiari), que é diário."
+
+[[phrase]]
+topic = "restaurante"
+level = "B2"
+situation = "Faz quarenta minutos que vocês pediram e a mesa que chegou depois já está comendo."
+say = "Our food seems to be taking a while, could you check on it?"
+short = "Could you check on our food?"
+polished = "Sorry to bother you, but our food seems to be taking a while, could you check on it?"
+meaning = "Nossa comida parece estar demorando, você pode dar uma olhada?"
+accept = ["We ordered quite a while ago, could you check on our food?", "We ordered a while ago, could you check on our order?"]
+
+[[phrase]]
+topic = "restaurante"
+level = "B2"
+situation = "Você reservou mesa pra quatro, mas dois amigos resolveram vir de última hora."
+say = "Is there any chance you could fit two more people in?"
+short = "Can you fit two more?"
+polished = "I know it's short notice, but is there any chance you could fit two more in?"
+meaning = "Tem alguma chance de vocês encaixarem mais duas pessoas?"
+accept = ["Any chance you could squeeze in two more people?"]
+tip = "'Short notice' = em cima da hora. 'Notice' é aviso, não notícia (que é 'news')."
