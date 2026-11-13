@@ -5,6 +5,7 @@ use super::bench::Pass;
 use super::matcher::Expect;
 use anyhow::{Context, Result, bail};
 use std::path::Path;
+use std::sync::OnceLock;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 /// Threads lessons give whisper: every core, up to six.
@@ -13,8 +14,13 @@ pub fn lesson_threads() -> i32 {
 }
 
 /// What whisper.cpp was built with and found on this CPU (AVX2, FMA…), in its own words.
-pub fn system_info() -> String {
-    whisper_rs::print_system_info().trim().to_string()
+///
+/// Asked once per process and kept: whisper.cpp writes the text into one static
+/// buffer, so two threads asking at the same moment read it half written (it
+/// came back as invalid UTF-8 when the speech tests loaded models in parallel).
+pub fn system_info() -> &'static str {
+    static INFO: OnceLock<String> = OnceLock::new();
+    INFO.get_or_init(|| whisper_rs::print_system_info().trim().to_string())
 }
 
 /// The whisper.cpp version this build carries.
@@ -140,6 +146,23 @@ mod tests {
         let long = vec![0.1; 48_000];
         assert_eq!(prepare(&long).len(), LEAD_IN + long.len(), "long answers are not cut");
         assert_eq!(prepare(&[]).len(), MIN_SAMPLES);
+    }
+
+    #[test]
+    fn the_engine_describes_itself_the_same_way_from_every_thread() {
+        let ask = || {
+            let mut info = system_info();
+            for _ in 0..200 {
+                info = system_info();
+            }
+            info
+        };
+        let threads: Vec<_> = (0..8).map(|_| std::thread::spawn(ask)).collect();
+        let here = system_info();
+        assert!(!here.is_empty());
+        for t in threads {
+            assert_eq!(t.join().expect("asking from a thread must not panic"), here);
+        }
     }
 
     #[test]

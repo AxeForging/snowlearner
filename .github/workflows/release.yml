@@ -35,6 +35,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev
+      # MSVC only: the `cmake` crate replaces CMake's Release flags with its own, and those
+      # carry no optimization flag, so whisper.cpp was compiled unoptimized and recognition
+      # ran about 5.5x slower than on Linux (#58). Giving the flags ourselves stops that.
+      # Dashes, not slashes: Git Bash rewrites a value that starts with a slash into a path.
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "CMAKE_C_FLAGS_RELEASE=-MD -O2 -Ob2 -DNDEBUG" >> "$GITHUB_ENV"
+          echo "CMAKE_CXX_FLAGS_RELEASE=-MD -O2 -Ob2 -DNDEBUG" >> "$GITHUB_ENV"
       - run: cargo build --release --locked
       - name: package
         shell: bash

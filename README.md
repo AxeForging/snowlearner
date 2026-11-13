@@ -88,6 +88,14 @@ on your machine and how to fix the rest; started from the menu, the app logs to 
 Build dependencies: Rust ≥ 1.85, CMake and a C/C++ compiler (for whisper.cpp).
 Linux also needs ALSA and libclang headers (`dnf install alsa-lib-devel clang-devel` /
 `apt install libasound2-dev libclang-dev`) and, at runtime, `speech-dispatcher` or `espeak-ng`.
+On Windows set the two variables below before building, or whisper.cpp is compiled without
+optimization and recognition takes about five times longer (the released binaries are built with them):
+
+```powershell
+$env:CMAKE_C_FLAGS_RELEASE = "-MD -O2 -Ob2 -DNDEBUG"
+$env:CMAKE_CXX_FLAGS_RELEASE = "-MD -O2 -Ob2 -DNDEBUG"
+```
+
 Feature flags: `stt` (default: mic + recognition), `audio` (devices + playback only),
 `gpu` (default: only used for see-through windows on native Wayland/macOS),
 none (hotkey confirms your answer, CPU-only drawing). `SNOWLEARNER_RENDERER=cpu|gpu` forces one.
