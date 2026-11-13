@@ -2,9 +2,14 @@ name: release
 
 # Builds every OS only when a version is tagged (`git tag v0.1.0 && git push --tags`);
 # regular CI stays Linux-only to save runner minutes.
+#
+# Run by hand (`gh workflow run release --ref <branch>`) it builds the same three
+# archives and keeps them as workflow artifacts without publishing: the way to try
+# a branch on Windows or macOS, and to rehearse a release before tagging it.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 env:
   # Portable whisper.cpp (AVX2/FMA baseline) instead of -march=native of the runner.
@@ -54,6 +59,8 @@ jobs:
 
   publish:
     needs: build
+    # Only a tag publishes; a manual run stops at the build artifacts.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
