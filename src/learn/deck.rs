@@ -882,6 +882,16 @@ mod tests {
         }
     }
 
+    /// The core topics keep climbing to B2 in English. Spanish stops at B1 for now.
+    #[test]
+    fn core_topics_reach_b2_in_english() {
+        let deck = Deck::builtin("en").unwrap();
+        for topic in CORE_TOPICS {
+            let n = deck.phrases.iter().filter(|p| p.topic == *topic && p.level.as_deref() == Some("B2")).count();
+            assert!(n >= RUNG_MIN, "en: {topic} B2 has {n} items, a rung needs {RUNG_MIN}");
+        }
+    }
+
     #[test]
     fn builtin_decks_have_no_duplicate_phrases() {
         for lang in Deck::builtin_languages() {

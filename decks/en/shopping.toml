@@ -165,3 +165,55 @@ say = "I think I was charged twice."
 short = "I was charged twice."
 polished = "Excuse me, I think I was charged twice for this."
 meaning = "Acho que me cobraram duas vezes."
+
+[[phrase]]
+topic = "compras"
+level = "B2"
+situation = "Sua cafeteira quebrou em uma semana e a loja oferece trocar por outra igual."
+say = "I'd rather have a refund than a replacement."
+short = "I'd prefer a refund."
+polished = "To be honest, I'd rather have a refund than a replacement, if that's okay."
+meaning = "Prefiro o reembolso a uma troca."
+accept = ["I'd prefer a refund to a replacement."]
+tip = "Reembolso é 'refund'. 'Devolution' não é devolução: é descentralizar poder político."
+
+[[phrase]]
+topic = "compras"
+level = "B2"
+situation = "No caixa, você lembra que o mesmo fone está mais barato no site da própria loja."
+say = "It's cheaper on your website, could you match that price?"
+short = "Do you price match?"
+polished = "I noticed it's cheaper on your website, would you be able to match that price?"
+meaning = "Está mais barato no site de vocês, dá pra cobrir esse preço?"
+accept = ["It's cheaper on your website, do you price match?"]
+
+[[phrase]]
+topic = "compras"
+level = "B2"
+situation = "Você vai comprar uma estante grande, mas não tem carro nem ferramentas."
+say = "Can I have it delivered and assembled?"
+short = "Do you deliver?"
+polished = "Would it be possible to have it delivered and assembled at home?"
+meaning = "Dá pra pedir a entrega e a montagem?"
+accept = ["Can you deliver it and put it together?"]
+tip = "Montar móvel é 'assemble' ou 'put together'; 'mount' é fixar, como uma TV na parede."
+
+[[phrase]]
+topic = "compras"
+level = "B2"
+situation = "A jaqueta que você quer tem um pequeno rasgo na costura; você ainda quer levar."
+say = "It has a small tear, could you knock a little off the price?"
+short = "Any discount for the tear?"
+polished = "I'd still take it, but since it has a small tear, could you knock a little off?"
+meaning = "Tem um rasguinho, dá pra fazer um desconto?"
+accept = ["It's got a small tear, could you knock a bit off the price?", "It has a small tear, could you give me a discount?"]
+
+[[phrase]]
+topic = "compras"
+level = "B2"
+situation = "Ontem o vendedor disse que o produto chegaria hoje, mas a prateleira está vazia."
+say = "I was told it would be back in stock today."
+short = "I was told it'd be in today."
+polished = "Sorry, I was told yesterday that it would be back in stock today."
+meaning = "Me disseram que ia voltar ao estoque hoje."
+accept = ["Someone told me it would be back in stock today."]

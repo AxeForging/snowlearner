@@ -127,3 +127,45 @@ short = "My bags here?"
 polished = "Would it be okay to leave my bags here?"
 meaning = "Posso deixar minhas malas aqui?"
 accept = ["Could I leave my bags here?", "Can I leave my luggage here?"]
+
+[[phrase]]
+topic = "viagem"
+level = "B2"
+situation = "Seu voo atrasou e a conexão é apertada; você pergunta à atendente no portão."
+say = "If I miss my connection, will I get rebooked automatically?"
+short = "Will I get rebooked?"
+polished = "If I end up missing my connection, would I be rebooked automatically?"
+meaning = "Se eu perder a conexão, vocês me remarcam automaticamente?"
+accept = ["If I miss my connection, will you rebook me automatically?", "If we land late, will I still make my connection?"]
+tip = "Perder voo ou conexão é 'miss'; 'lose' é perder um objeto."
+
+[[phrase]]
+topic = "viagem"
+level = "B2"
+situation = "O ar-condicionado do quarto do hotel não funciona e está muito quente."
+say = "Could you have someone look at the air conditioning?"
+short = "The AC isn't working."
+polished = "Sorry to bother you, could you have someone take a look at the air conditioning?"
+meaning = "Vocês podem mandar alguém dar uma olhada no ar-condicionado?"
+accept = ["Could you send someone to look at the air conditioning?"]
+
+[[phrase]]
+topic = "viagem"
+level = "B2"
+situation = "Seu quarto fica em cima do bar do hotel e o barulho não te deixou dormir."
+say = "The noise kept me up all night, could I switch rooms?"
+short = "Could I switch rooms?"
+polished = "The noise from the bar kept me up all night, is there any way I could switch rooms?"
+meaning = "O barulho não me deixou dormir a noite toda, posso trocar de quarto?"
+accept = ["The noise kept me awake all night, could I change rooms?"]
+
+[[phrase]]
+topic = "viagem"
+level = "B2"
+situation = "No check-out, cobraram o café da manhã, mas o site do hotel dizia que estava incluso."
+say = "According to your website, breakfast was supposed to be included."
+short = "Breakfast was supposed to be included."
+polished = "I'm sorry, but according to your website, breakfast was supposed to be included in the rate."
+meaning = "Segundo o site de vocês, o café da manhã era pra estar incluso."
+accept = ["The website said breakfast was included in the rate.", "It said online that breakfast was included."]
+tip = "'Supposed to' (era pra) se fala 'supôus-tu': o 'd' some na fala."
