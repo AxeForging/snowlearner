@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "saúde"
+level = "A1"
 situation = "Você não está bem."
 say = "Necesito ver a un médico"
 short = "Necesito un médico"
@@ -10,6 +11,7 @@ meaning = "Preciso ver um médico"
 
 [[phrase]]
 topic = "saúde"
+level = "A1"
 situation = "Mostre onde dói."
 say = "Me duele aquí"
 polished = "Me duele justo aquí"
@@ -17,6 +19,7 @@ meaning = "Dói aqui"
 
 [[phrase]]
 topic = "saúde"
+level = "A1"
 situation = "Na farmácia, dor de cabeça."
 say = "¿Tiene algo para el dolor de cabeza?"
 short = "¿Algo para la cabeza?"
@@ -25,6 +28,7 @@ meaning = "Tem algo pra dor de cabeça?"
 
 [[phrase]]
 topic = "saúde"
+level = "A2"
 situation = "Conte desde quando está mal."
 say = "Me siento mal desde ayer"
 short = "Me siento mal"

@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "compras"
+level = "A1"
 situation = "O vendedor oferece ajuda, mas você só está olhando."
 say = "I'm just looking, thanks"
 short = "Just looking"
@@ -11,6 +12,7 @@ accept = ["Just looking, thanks"]
 
 [[phrase]]
 topic = "compras"
+level = "A1"
 situation = "Quer provar uma roupa."
 say = "Can I try this on?"
 polished = "Would it be okay if I tried this on?"
@@ -19,6 +21,7 @@ accept = ["Could I try this on?"]
 
 [[phrase]]
 topic = "compras"
+level = "A2"
 situation = "Precisa de um tamanho maior."
 say = "Do you have this in a bigger size?"
 short = "A bigger size?"
@@ -28,6 +31,7 @@ accept = ["Do you have this in a larger size?"]
 
 [[phrase]]
 topic = "compras"
+level = "A2"
 situation = "O produto veio com defeito."
 say = "I'd like to return this"
 polished = "Hi, I'd like to return this, please"

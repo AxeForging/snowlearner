@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Você chegou no hotel."
 say = "Tengo una reserva a mi nombre"
 short = "Tengo una reserva"
@@ -10,6 +11,7 @@ meaning = "Tenho uma reserva no meu nome"
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Quer saber se o café da manhã está incluso."
 say = "¿El desayuno está incluido?"
 short = "¿Incluye desayuno?"
@@ -19,6 +21,7 @@ accept = ["¿Está incluido el desayuno?"]
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Sua mala não apareceu."
 say = "Mi maleta no llegó"
 polished = "Disculpe, mi maleta no llegó"
@@ -26,6 +29,7 @@ meaning = "Minha mala não chegou"
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Está perdido procurando o metrô."
 say = "¿Cómo llego a la estación de metro?"
 short = "¿El metro?"
@@ -34,6 +38,7 @@ meaning = "Como eu chego na estação de metrô?"
 
 [[phrase]]
 topic = "viagem"
+level = "B1"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "¿Cuánto se tarda en llegar al centro?"
 short = "¿Está lejos el centro?"
@@ -43,6 +48,7 @@ accept = ["¿Cuánto tiempo se tarda al centro?"]
 
 [[phrase]]
 topic = "viagem"
+level = "A1"
 situation = "Na imigração, perguntam o motivo da viagem."
 say = "Estoy de vacaciones"
 polished = "Estoy aquí de vacaciones por una semana"
@@ -51,6 +57,7 @@ accept = ["Vengo de vacaciones"]
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Quer um táxi pra ir ao aeroporto."
 say = "¿Me puede pedir un taxi al aeropuerto?"
 short = "Un taxi, por favor"

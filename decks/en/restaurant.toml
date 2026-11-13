@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "restaurante"
+level = "A2"
 situation = "Você quer levar a comida pra viagem."
 say = "Can I get this to go?"
 short = "To go, please"
@@ -11,6 +12,7 @@ accept = ["Could I get this to go?"]
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Você tem alergia a amendoim."
 say = "I'm allergic to peanuts"
 short = "No peanuts, please"
@@ -20,6 +22,7 @@ tip = "Alergia é sério: fale devagar e aponte no cardápio se precisar."
 
 [[phrase]]
 topic = "restaurante"
+level = "A2"
 situation = "Terminou de comer e quer pagar."
 say = "Could we get the check, please?"
 short = "Check, please"
@@ -30,6 +33,7 @@ tip = "Nos EUA é 'check'; no Reino Unido, 'bill'."
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Chegou no restaurante com um amigo."
 say = "A table for two, please"
 short = "Two, please"
@@ -38,6 +42,7 @@ meaning = "Uma mesa pra dois, por favor"
 
 [[phrase]]
 topic = "restaurante"
+level = "A1"
 situation = "Não sabe o que pedir."
 say = "What do you recommend?"
 short = "Any recommendations?"
@@ -46,6 +51,7 @@ meaning = "O que você recomenda?"
 
 [[phrase]]
 topic = "restaurante"
+level = "A2"
 situation = "Quer saber se aceitam cartão."
 say = "Do you take credit cards?"
 short = "Card okay?"

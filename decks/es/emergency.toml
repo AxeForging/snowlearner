@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "emergência"
+level = "A1"
 situation = "Aconteceu um acidente."
 say = "Llame a una ambulancia, por favor"
 short = "Una ambulancia"
@@ -11,6 +12,7 @@ accept = ["Llamen a una ambulancia"]
 
 [[phrase]]
 topic = "emergência"
+level = "A2"
 situation = "Perdeu o passaporte."
 say = "Perdí mi pasaporte"
 polished = "Disculpe, perdí mi pasaporte"
@@ -18,6 +20,7 @@ meaning = "Perdi meu passaporte"
 
 [[phrase]]
 topic = "emergência"
+level = "A1"
 situation = "Precisa de ajuda na rua."
 say = "¿Me puede ayudar, por favor?"
 short = "Ayuda, por favor"

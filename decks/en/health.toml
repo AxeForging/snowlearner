@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "saúde"
+level = "A1"
 situation = "Você não está bem e precisa de atendimento."
 say = "I need to see a doctor"
 short = "I need a doctor"
@@ -10,6 +11,7 @@ meaning = "Preciso ver um médico"
 
 [[phrase]]
 topic = "saúde"
+level = "A1"
 situation = "Na consulta, mostre onde dói."
 say = "It hurts right here"
 short = "It hurts here"
@@ -19,6 +21,7 @@ accept = ["It hurts here"]
 
 [[phrase]]
 topic = "saúde"
+level = "A1"
 situation = "Na farmácia, procurando remédio pra dor de cabeça."
 say = "Do you have something for a headache?"
 short = "Something for a headache?"
@@ -27,6 +30,7 @@ meaning = "Tem algo pra dor de cabeça?"
 
 [[phrase]]
 topic = "saúde"
+level = "B1"
 situation = "O médico pergunta há quanto tempo você está assim."
 say = "I've been feeling sick since yesterday"
 short = "I feel sick"

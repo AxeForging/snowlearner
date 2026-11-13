@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "social"
+level = "PRE-A1"
 situation = "Perguntam de onde você é."
 say = "Soy de Brasil"
 polished = "Soy de Brasil, de São Paulo"
@@ -9,6 +10,7 @@ meaning = "Sou do Brasil"
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Quer saber com o que a pessoa trabalha."
 say = "¿A qué te dedicas?"
 polished = "Y tú, ¿a qué te dedicas?"
@@ -17,6 +19,7 @@ tip = "Muito mais natural que '¿Cuál es tu trabajo?'."
 
 [[phrase]]
 topic = "social"
+level = "A1"
 situation = "A pessoa fala rápido demais."
 say = "¿Puedes hablar más despacio?"
 short = "Más despacio, por favor"
@@ -26,6 +29,7 @@ accept = ["¿Podrías hablar más despacio?", "Más despacio, por favor"]
 
 [[phrase]]
 topic = "social"
+level = "A1"
 situation = "Não sabe uma palavra."
 say = "¿Cómo se dice esto en español?"
 short = "¿Cómo se dice?"
@@ -34,6 +38,7 @@ meaning = "Como se diz isso em espanhol?"
 
 [[phrase]]
 topic = "social"
+level = "A1"
 situation = "Alguém pede desculpas por algo pequeno."
 say = "No pasa nada"
 short = "Tranqui"
@@ -43,6 +48,7 @@ accept = ["No te preocupes"]
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Um amigo pergunta se você está chegando."
 say = "Ya voy en camino"
 short = "Ya voy"
@@ -52,6 +58,7 @@ accept = ["Voy en camino"]
 
 [[phrase]]
 topic = "social"
+level = "A2"
 situation = "Está indo embora da festa."
 say = "Me encantó verte"
 polished = "Me encantó mucho volver a verte"

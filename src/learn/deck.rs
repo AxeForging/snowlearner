@@ -818,6 +818,19 @@ mod tests {
         }
     }
 
+    /// An unleveled phrase passes every `max_level` but pre-A1, so one in a
+    /// built-in deck reaches beginners it was never meant for. Custom decks
+    /// may still leave the level out.
+    #[test]
+    fn every_builtin_phrase_has_a_level() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            for p in &deck.phrases {
+                assert!(p.level.is_some(), "{lang}: {:?} has no level", p.say);
+            }
+        }
+    }
+
     #[test]
     fn builtin_decks_have_no_duplicate_phrases() {
         for lang in Deck::builtin_languages() {

@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "telefone"
+level = "A1"
 situation = "A pessoa que você procura não está."
 say = "¿Puedo dejar un mensaje?"
 polished = "¿Podría dejarle un mensaje, por favor?"
@@ -9,6 +10,7 @@ meaning = "Posso deixar um recado?"
 
 [[phrase]]
 topic = "telefone"
+level = "A2"
 situation = "Ligou pro número errado."
 say = "Perdón, creo que me equivoqué de número"
 short = "Número equivocado, perdón"

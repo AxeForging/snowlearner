@@ -2,6 +2,7 @@
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Você chegou no hotel."
 say = "I have a reservation under my name"
 short = "I have a reservation"
@@ -11,6 +12,7 @@ accept = ["I have a reservation"]
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Quer saber se o café da manhã está incluso."
 say = "Is breakfast included?"
 short = "Breakfast included?"
@@ -19,6 +21,7 @@ meaning = "O café da manhã está incluso?"
 
 [[phrase]]
 topic = "viagem"
+level = "A1"
 situation = "Precisa saber até que horas pode ficar no quarto."
 say = "What time is check-out?"
 short = "Check-out time?"
@@ -27,6 +30,7 @@ meaning = "Que horas é o check-out?"
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Sua mala não apareceu na esteira."
 say = "My luggage didn't arrive"
 short = "Lost luggage"
@@ -37,6 +41,7 @@ tip = "'Luggage' não tem plural: nunca 'luggages'."
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Está perdido e procura a estação."
 say = "How do I get to the train station?"
 short = "Train station?"
@@ -45,6 +50,7 @@ meaning = "Como eu chego na estação de trem?"
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "No check-in do voo."
 say = "Could I get a window seat, please?"
 short = "Window seat, please"
@@ -54,6 +60,7 @@ accept = ["Can I get a window seat, please?", "Can I have a window seat?"]
 
 [[phrase]]
 topic = "viagem"
+level = "B1"
 situation = "Quer saber quanto tempo leva até o centro."
 say = "How long does it take to get downtown?"
 short = "How far is downtown?"
@@ -63,6 +70,7 @@ tip = "'Downtown' é o centro da cidade nos EUA."
 
 [[phrase]]
 topic = "viagem"
+level = "A2"
 situation = "Na imigração, perguntam o motivo da viagem."
 say = "I'm here on vacation"
 short = "On vacation"
