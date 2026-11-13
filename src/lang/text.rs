@@ -369,6 +369,7 @@ pub const TOPICS: &[(&str, &str)] = &[
     ("trabalho", "work"),
     ("tecnologia", "tech"),
     ("entrevista", "job interview"),
+    ("cibersegurança", "cybersecurity"),
     ("restaurante", "restaurant"),
     ("viagem", "travel"),
     ("compras", "shopping"),

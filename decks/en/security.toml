@@ -1,0 +1,225 @@
+# decks/en: cibersegurança. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "Um colega levanta pra pegar café e deixa o notebook aberto e desbloqueado. Você lembra ele."
+say = "Lock your screen."
+polished = "Please lock your screen before you go."
+meaning = "Bloqueie a tela."
+accept = ["Lock your computer.", "Lock your laptop."]
+tip = "'Screen' começa direto no 's', sem 'i' antes: não é 'iscrín'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "Um colega conta que a senha dele apareceu numa lista de senhas vazadas."
+say = "Change your password."
+short = "Change it."
+polished = "Please change your password right away."
+meaning = "Troque a sua senha."
+accept = ["Change your password now.", "You need to change your password."]
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "Um colega mostra um e-mail estranho e pergunta se deve abrir o link. Parece phishing."
+say = "Don't click the link."
+short = "Don't click it."
+polished = "Please don't click the link, it looks like phishing."
+meaning = "Não clique no link."
+accept = ["Don't click on the link.", "Don't open the link."]
+tip = "'Click' e 'link' terminam em K seco, sem 'i' no fim: não é 'clíqui' nem 'línqui'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "Um colega recebeu um SMS estranho pedindo dados do banco e pergunta o que fazer."
+say = "Report it to security."
+short = "Tell security."
+polished = "Please report it to the security team."
+meaning = "Reporte isso pro time de segurança."
+accept = ["Report it to the security team.", "Send it to security."]
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "O scanner achou uma falha conhecida num servidor antigo. Um dev pergunta o que fazer."
+say = "We need to patch this."
+short = "Patch it."
+polished = "We need to patch this server today."
+meaning = "Precisamos aplicar o patch nisso."
+accept = ["We need to patch it.", "We have to patch this."]
+tip = "'Patch' termina em 'tch' seco: 'pétch', sem 'i' no fim. Não é 'pátchi'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "Você viu logins estranhos num servidor e chamou o time pra uma call. Todos já entraram."
+say = "We have a security incident."
+short = "Security incident."
+polished = "Thanks for joining, we have a security incident."
+meaning = "Temos um incidente de segurança."
+accept = ["We've got a security incident.", "There's a security incident."]
+tip = "'Incident' tem a força no começo: 'ÍN-si-dent'. Não é 'in-ci-DEN-te'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A1"
+situation = "Primeiro dia no time de segurança. O líder pergunta o que você precisa pra começar."
+say = "I need access to the repo."
+short = "I need access."
+polished = "Can I get access to the repo, please?"
+meaning = "Preciso de acesso ao repositório."
+accept = ["I need access to the repository.", "I need repo access."]
+tip = "'Access' soa 'ÉK-ses', com 'ks' e a força no começo: não é 'acésso'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "O gerente pergunta se a falha no servidor já foi resolvida. Vocês aplicaram o patch hoje cedo."
+say = "We applied the security patch."
+short = "We patched it."
+polished = "Yes, we applied the security patch this morning."
+meaning = "Aplicamos o patch de segurança."
+accept = ["We installed the security patch.", "We've applied the security patch."]
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "Um colega de outra área pergunta como pode proteger melhor a conta dele."
+say = "You should turn on MFA."
+short = "Turn on MFA."
+polished = "I'd recommend turning on MFA for your account."
+meaning = "Você devia ativar o MFA."
+accept = ["You should enable MFA.", "You should turn on two-factor authentication."]
+tip = "'MFA' se diz letra por letra, com os nomes ingleses: 'ém-éf-ÊI'. Não é 'eme-efe-a'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "O scanner de segredos disparou um alerta, e o líder pergunta o que aconteceu."
+say = "Someone pushed a secret to the repo."
+short = "Someone pushed a secret."
+polished = "It looks like someone pushed a secret to the repo by mistake."
+meaning = "Alguém subiu uma credencial pro repositório."
+accept = ["Someone committed a secret to the repo.", "Someone pushed a secret to the repository."]
+tip = "Aqui 'secret' é uma credencial (senha, token, chave). E a força é no começo: 'SÍ-krit'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "O líder pergunta se o pentest achou alguma coisa. Você achou uma falha na página de login."
+say = "I found a vulnerability in the login page."
+short = "I found a vulnerability."
+polished = "I found a vulnerability in the login page, and I can reproduce it."
+meaning = "Achei uma vulnerabilidade na página de login."
+accept = ["I found a security issue in the login page.", "There's a vulnerability in the login page."]
+tip = "'Vulnerability' tem a força no 'bi': 'vâl-ne-ra-BÍ-li-ti'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "Na revisão de acessos, o líder pergunta se você achou algo. Um ex-colega ainda tem acesso."
+say = "He left the company, but he still has access."
+short = "He still has access."
+polished = "He left the company last month, but he still has admin access."
+meaning = "Ele saiu da empresa, mas ainda tem acesso."
+accept = ["She left the company, but she still has access.", "He's gone, but he still has access."]
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "No canal de segurança, alguém pergunta se há algo pra reportar. Chegou um e-mail pedindo sua senha."
+say = "I got a strange email asking for my password."
+short = "I got a strange email."
+polished = "Hi, I got a strange email asking me for my password."
+meaning = "Recebi um e-mail estranho pedindo minha senha."
+accept = ["I got a weird email asking for my password.", "I received a strange email asking for my password."]
+tip = "'Email' soa 'Í-meil', com a força no começo e L de verdade no fim: não é 'imêiu'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "A2"
+situation = "Você achou uma chave de API aparecendo nos logs e escreve pro dev dono do serviço."
+say = "The API key is in the logs, so please rotate it."
+short = "Please rotate it."
+polished = "The API key is in the logs, so could you rotate it today?"
+meaning = "A chave de API está nos logs, então troque ela, por favor."
+accept = ["The API key is in the logs, so please change it.", "The API key leaked in the logs, so please rotate it."]
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Na call do incidente de segurança, o líder pergunta o que vocês já fizeram até agora."
+say = "We've isolated the affected servers while we investigate."
+short = "We've isolated the servers."
+polished = "So far, we've isolated the affected servers while we investigate."
+meaning = "Isolamos os servidores afetados enquanto investigamos."
+accept = ["We isolated the affected servers while we investigate.", "We've isolated the affected servers while we look into it."]
+tip = "'Isolated' começa com 'ai': 'ÁI-so-lei-tid'. Não é 'i-zo-LA-do'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Na call do incidente, o líder pergunta se já sabem como o invasor entrou."
+say = "We're still figuring out how the attacker got in."
+short = "We don't know yet."
+polished = "We're still figuring out how the attacker got in, and we'll update you soon."
+meaning = "Ainda estamos descobrindo como o invasor entrou."
+accept = ["We're still working out how the attacker got in.", "We're still trying to figure out how they got in."]
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Depois de um ataque de phishing, o time de segurança pergunta se alguém clicou no link."
+say = "I clicked the link before I realized it was phishing."
+short = "I clicked the link."
+polished = "I'm afraid I clicked the link before I realized it was phishing."
+meaning = "Cliquei no link antes de perceber que era phishing."
+accept = ["I clicked the link before I noticed it was phishing.", "I clicked on the link before I realized it was phishing."]
+tip = "'Realize' é 'perceber', não 'realizar' (que é 'carry out' ou 'do')."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Você contou ao PO que achou uma SQL injection na busca. Ele pergunta se é grave."
+say = "Yes, an attacker could use it to read customer data."
+short = "Yes, it's serious."
+polished = "Yes, it's serious, because an attacker could use it to read customer data."
+meaning = "Sim, um invasor poderia usar isso pra ler dados de clientes."
+accept = ["Yes, attackers could use it to read customer data.", "Yes, someone could use it to read customer data."]
+tip = "'Data' é 'dados', não 'data' do calendário (isso é 'date'). Soa 'DÊI-ta' ou 'DÉ-ta'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Um dev descreveu uma falha de segurança numa issue pública do GitHub. Você responde a ele."
+say = "Could you take this down and report it privately instead?"
+short = "Please report it privately."
+polished = "Could you please take this down and report it to us privately instead?"
+meaning = "Você pode tirar isso do ar e reportar em particular?"
+accept = ["Can you take this down and report it privately instead?", "Could you delete this and report it privately instead?"]
+tip = "'Privately' começa com 'ai': 'PRÁI-vet-li'. Não é 'pri-vá-tli'."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Um dev apagou o commit que tinha uma chave de API e acha que está tudo resolvido."
+say = "The key is already compromised, so we still need to rotate it."
+short = "We still need to rotate it."
+polished = "Thanks, but the key is already compromised, so we still need to rotate it."
+meaning = "A chave já está comprometida, então ainda precisamos trocar."
+accept = ["The key was already exposed, so we still need to rotate it.", "The key is already compromised, so we still have to rotate it."]
+tip = "'Compromised' tem a força no começo e 'ai': 'KÓM-pro-maizd', sem 'e' no fim."
+
+[[phrase]]
+topic = "cibersegurança"
+level = "B1"
+situation = "Na call do incidente, o gerente pergunta se dados de clientes foram roubados."
+say = "We don't think any data was taken, but we're still checking."
+short = "Not as far as we know."
+polished = "We don't think any data was taken, but we're still checking the logs."
+meaning = "Achamos que nenhum dado foi levado, mas ainda estamos verificando."
+accept = ["We don't think any data was stolen, but we're still checking.", "We don't think any data was taken, but we're still looking."]
+tip = "'Data' é 'dados', não 'data' do calendário (isso é 'date'). Soa 'DÊI-ta' ou 'DÉ-ta'."
