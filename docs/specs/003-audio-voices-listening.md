@@ -88,8 +88,9 @@ same built-in clip, whisper's full 30 s window):
   76.84 s for the pass that takes 3.26 s with six.
 - **Tried and rejected: a narrower encoder window.** Whisper encodes its whole 30 s window even
   for one word, and a 7.5 s window (`audio_ctx` 375) cut a pass to 0.67 s. It also made
-  recognition worse in the end-to-end tests: "Muchas gracias" was heard as "Muchas latias", and
-  with the vocabulary hint "Vale" was accepted as "¡Pare!". Accepting a wrong answer costs a
-  learner more than two seconds, so lessons keep the full window. Other widths were not tested.
+  recognition worse in the one end-to-end run made with it: "Muchas gracias" was heard as
+  "Muchas latias", and with the vocabulary hint "Vale" was accepted as "¡Pare!". Accepting a
+  wrong answer costs a learner more than two seconds, so lessons keep the full window. Other
+  widths were not tested.
 - **Not adopted yet:** ggml's `GGML_LLAMAFILE=ON` matrix code, measured at 1.88 s (Windows) and
   2.29 s (Linux) for the same pass. It does not touch the window; it is left for its own change.
