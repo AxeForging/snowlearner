@@ -1,0 +1,332 @@
+# decks/en: entrevista. The header and tips are in deck.toml; src/learn/deck.rs joins the files.
+# Each cue plays the interviewer's question in English ({{...}}) before asking for the answer ({}).
+# The longest items leave the Portuguese context out of the cue, so the caption stays on screen;
+# the situation still carries it for recall.
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Entrevista de emprego por vídeo. Depois das apresentações, o entrevistador pergunta se vocês já podem começar."
+cue = "Entrevista de emprego por vídeo. Depois das apresentações, o entrevistador pergunta se vocês já podem começar. {{Ready to get started?}} Diga: {}"
+say = "Yes, I'm ready."
+short = "I'm ready."
+polished = "Yes, I'm ready whenever you are."
+meaning = "Sim, estou pronto."
+accept = ["Yes, let's get started.", "Sure, I'm ready."]
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Entrevista por vídeo com uma empresa de fora. O entrevistador quer saber onde você mora."
+cue = "Entrevista por vídeo com uma empresa de fora. O entrevistador quer saber onde você mora. {{Where are you based?}} Diga: {}"
+say = "I live in Brazil."
+short = "In Brazil."
+polished = "I live in Brazil, and I can work in your time zone."
+meaning = "Moro no Brasil."
+accept = ["I'm based in Brazil.", "I'm in Brazil."]
+tip = "'Brazil' termina com L de verdade, a ponta da língua encosta atrás dos dentes: não é 'brasiu'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Começo da entrevista. O entrevistador pergunta qual é o seu cargo hoje."
+cue = "Começo da entrevista. O entrevistador pergunta qual é o seu cargo hoje. {{What's your current role?}} Diga: {}"
+say = "I'm a DevOps engineer."
+short = "DevOps engineer."
+polished = "I'm a DevOps engineer at a tech company."
+meaning = "Sou engenheiro de DevOps."
+accept = ["I work as a DevOps engineer.", "I'm a software developer.", "I'm a software engineer.", "I'm a security engineer."]
+tip = "Cargo leva artigo: 'I'm A DevOps engineer', nunca 'I'm DevOps engineer'. Se você é dev ou de segurança, diga 'I'm a software developer' ou 'I'm a security engineer': também vale."
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Começo de uma entrevista de emprego por vídeo. O entrevistador agradece por você ter entrado na chamada."
+cue = "Começo de uma entrevista de emprego por vídeo. O entrevistador agradece por você ter entrado na chamada. {{Thanks for joining us today.}} Diga: {}"
+say = "Thank you for having me."
+short = "Thanks for having me."
+polished = "Thank you for having me, I'm happy to be here."
+meaning = "Obrigado por me receber."
+accept = ["Thank you for inviting me.", "Thanks for the invitation."]
+tip = "Aqui 'having me' não é 'me ter': 'thank you for having me' é 'obrigado por me receber'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Fim da entrevista. O entrevistador diz que o tempo acabou e agradece a conversa."
+cue = "Fim da entrevista. O entrevistador diz que o tempo acabou e agradece a conversa. {{That's all the time we have today.}} Diga: {}"
+say = "Thank you for your time."
+short = "Thanks for your time."
+polished = "Thank you for your time, it was great talking to you."
+meaning = "Obrigado pelo seu tempo."
+accept = ["Thank you so much for your time.", "Thanks a lot for your time."]
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Antes de começar, o entrevistador pergunta se tudo bem fazer a entrevista em inglês. Para você está tudo bem."
+cue = "Antes de começar, o entrevistador pergunta se tudo bem fazer a entrevista em inglês. Para você está tudo bem. {{Is it okay to do the interview in English?}} Diga: {}"
+say = "Yes, English is fine."
+short = "Yes, fine."
+polished = "Yes, English is fine, but please speak a little slower."
+meaning = "Sim, pode ser em inglês."
+accept = ["Yes, English is okay.", "Yes, that's fine."]
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Entrevista para uma vaga técnica. O entrevistador pergunta se você já trabalhou com Linux. Você usa todo dia."
+cue = "Entrevista para uma vaga técnica. O entrevistador pergunta se você já trabalhou com Linux. Você usa todo dia. {{Have you worked with Linux?}} Diga: {}"
+say = "Yes, I use Linux every day."
+short = "Yes, every day."
+polished = "Yes, I use Linux every day at work."
+meaning = "Sim, uso Linux todo dia."
+accept = ["Yes, I use it every day.", "Yes, I work with Linux every day."]
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "O entrevistador pergunta se você já usou Kubernetes. Você ainda não usou no trabalho, mas está estudando."
+cue = "O entrevistador pergunta se você já usou Kubernetes. Você ainda não usou no trabalho, mas está estudando. {{Have you used Kubernetes?}} Diga: {}"
+say = "Not yet, but I'm learning it."
+short = "Not yet."
+polished = "Not yet, but I'm learning it right now."
+meaning = "Ainda não, mas estou aprendendo."
+accept = ["No, but I'm learning it.", "Not yet, but I'm learning."]
+tip = "'Ainda não' é 'not yet'. 'Still not' existe, mas soa como reclamação ('continua sem...'), não como resposta."
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Entrevista de emprego. O entrevistador pergunta em que projeto você está trabalhando agora. Você está migrando sistemas para a nuvem."
+cue = "Entrevista de emprego. O entrevistador pergunta em que projeto você está trabalhando agora. Você está migrando sistemas para a nuvem. {{What project are you currently working on?}} Diga: {}"
+say = "I'm working on a cloud migration."
+short = "A cloud migration."
+polished = "Right now, I'm helping move our services to the cloud."
+meaning = "Estou trabalhando numa migração para a nuvem."
+accept = ["I'm working on a migration to the cloud.", "We're moving our services to the cloud."]
+tip = "'Currently' é 'atualmente'. Cuidado: 'actually' é 'na verdade', não 'atualmente'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A1"
+situation = "Entrevista técnica. O entrevistador faz uma pergunta longa e rápida e você não entende tudo."
+cue = "Entrevista técnica. O entrevistador faz uma pergunta longa e rápida e você não entende tudo. {{How would you design a system that handles millions of requests per second?}} Diga: {}"
+say = "Can you repeat the question, please?"
+short = "Can you repeat that?"
+polished = "Sorry, could you repeat the question, please?"
+meaning = "Pode repetir a pergunta, por favor?"
+accept = ["Could you repeat the question?", "Can you say that again, please?", "Sorry, can you repeat that?"]
+tip = "'Question' soa 'kués-tchan', com 'tch': não 'kues-tiôn'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Fim da entrevista. O entrevistador pergunta se você tem alguma pergunta. Você quer saber o que acontece agora no processo seletivo."
+cue = "Fim da entrevista. O entrevistador pergunta se você tem alguma pergunta. Você quer saber o que acontece agora no processo seletivo. {{Do you have any questions for us?}} Diga: {}"
+say = "What are the next steps?"
+short = "Next steps?"
+polished = "Could you tell me what the next steps are?"
+meaning = "Quais são os próximos passos?"
+accept = ["What's the next step?", "What happens next?"]
+tip = "Dentro de outra frase a ordem muda: 'Could you tell me what the next steps ARE?', não 'what ARE the next steps'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista de emprego. O entrevistador pergunta quando você pode começar. Você precisa de duas semanas."
+cue = "Entrevista de emprego. O entrevistador pergunta quando você pode começar. Você precisa de duas semanas. {{When can you start?}} Diga: {}"
+say = "I can start in two weeks."
+short = "In two weeks."
+polished = "I can start in two weeks, after my notice period."
+meaning = "Posso começar em duas semanas."
+accept = ["I can start in a month.", "I can start in thirty days."]
+tip = "Troque pelo seu prazo: no Brasil o aviso prévio costuma ser de 30 dias, então 'in a month' ou 'in thirty days' também valem."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista para dev. O entrevistador pergunta o que você construiu recentemente. Você fez uma API para o app da empresa."
+cue = "Entrevista para dev. O entrevistador pergunta o que você construiu recentemente. Você fez uma API para o app da empresa. {{What's something you built recently?}} Diga: {}"
+say = "I built an API for our app."
+short = "I built an API."
+polished = "Last month, I built an API for our mobile app."
+meaning = "Construí uma API para o nosso app."
+accept = ["I made an API for our app.", "I built a new API for our app."]
+tip = "'API' se diz letra por letra, com os nomes ingleses: 'ei-pi-ái'. Por isso é 'AN API', com 'an'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista de emprego. O entrevistador pergunta se você topa trabalhar remoto. Você gosta de trabalhar de casa."
+cue = "Entrevista de emprego. O entrevistador pergunta se você topa trabalhar remoto. Você gosta de trabalhar de casa. {{Are you open to remote work?}} Diga: {}"
+say = "Yes, I like working from home."
+short = "Yes, I am."
+polished = "Yes, I like working from home, and I have a good setup."
+meaning = "Sim, gosto de trabalhar de casa."
+accept = ["Yes, I love working from home.", "Yes, I like working remotely."]
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista de emprego. O entrevistador pergunta quantos anos de experiência você tem."
+cue = "Entrevista de emprego. O entrevistador pergunta quantos anos de experiência você tem. {{How many years of experience do you have?}} Diga: {}"
+say = "I have five years of experience."
+short = "Five years."
+polished = "I have about five years of experience in tech."
+meaning = "Tenho cinco anos de experiência."
+tip = "Numa entrevista de verdade, troque 'five' pelos seus anos. 'Experience' tem a força no 'pi': 'iks-PÍ-ri-ens'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista para segurança. O entrevistador pergunta quais são as suas principais tarefas hoje."
+cue = "Entrevista para segurança. O entrevistador pergunta quais são as suas principais tarefas hoje. {{What are your main responsibilities?}} Diga: {}"
+say = "I look for security issues in our code."
+short = "I find security issues."
+polished = "I look for security issues in our code and help the team fix them."
+meaning = "Procuro falhas de segurança no nosso código."
+accept = ["I find security issues in our code.", "I look for security problems in our code."]
+tip = "'Issue' soa 'í-shu', com 'sh': não 'íssue'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista técnica. O entrevistador pede que você explique o que é DevOps, em uma frase."
+cue = "Entrevista técnica. O entrevistador pede que você explique o que é DevOps, em uma frase. {{What is DevOps?}} Diga: {}"
+say = "DevOps means developers and operations work together."
+short = "Dev and ops working together."
+polished = "DevOps means developers and operations teams work together to ship faster."
+meaning = "DevOps é quando desenvolvimento e operações trabalham juntos."
+accept = ["It's when developers and operations work together.", "DevOps is developers and operations working together."]
+tip = "'Developers' tem a força no 'vel': 'di-VÉ-lo-pers', não 'de-ve-lo-PÉRS'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista técnica. O entrevistador pergunta o que é um conflito de merge no Git."
+cue = "O entrevistador pergunta: {{What is a merge conflict?}} Diga: {}"
+say = "It happens when two people change the same line."
+short = "Two changes on the same line."
+polished = "It happens when two people change the same line, and Git can't merge them on its own."
+meaning = "Acontece quando duas pessoas mudam a mesma linha."
+accept = ["It's when two people change the same line.", "It happens when two people edit the same line."]
+tip = "'Merge' é uma sílaba só: 'mârdj', sem 'i' no fim. Não é 'mérgi'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Primeira pergunta da entrevista: o entrevistador pede que você fale um pouco sobre você."
+cue = "Primeira pergunta da entrevista: o entrevistador pede que você fale um pouco sobre você. {{Tell me about yourself.}} Diga: {}"
+say = "I'm an engineer from Brazil, and I love solving problems."
+short = "I'm an engineer from Brazil."
+polished = "Sure. I'm an engineer from Brazil, and I really love solving hard problems."
+meaning = "Sou engenheiro, do Brasil, e adoro resolver problemas."
+accept = ["I'm an engineer from Brazil, and I enjoy solving problems."]
+tip = "'Engineer' tem a força no fim: 'en-dji-NÍR'. E vem com artigo: 'AN engineer'."
+
+[[phrase]]
+topic = "entrevista"
+level = "A2"
+situation = "Entrevista de emprego. O entrevistador pergunta por que você quer trabalhar nessa empresa."
+cue = "O entrevistador pergunta: {{Why do you want to work for our company?}} Diga: {}"
+say = "I like your products, and I want to learn from your team."
+short = "I want to learn from your team."
+polished = "I really like your products, and I'd love to learn from your team and grow here."
+meaning = "Gosto dos produtos de vocês e quero aprender com o time."
+accept = ["I like your product, and I want to learn from your team."]
+tip = "'Aprender com alguém' é 'learn FROM': 'learn with' quer dizer 'estudar junto'."
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "Entrevista de emprego. O entrevistador pergunta há quanto tempo você está na empresa atual. Faz dois anos."
+cue = "Entrevista de emprego. O entrevistador pergunta há quanto tempo você está na empresa atual. Faz dois anos. {{How long have you been at your current company?}} Diga: {}"
+say = "I've been there for two years."
+short = "Two years."
+polished = "I've been at my current company for about two years now."
+meaning = "Estou lá há dois anos."
+accept = ["I've been there for two years now.", "I've worked there for two years."]
+tip = "Troque pelo seu tempo. 'Há dois anos', para algo que continua, é 'I've been... for two years': não 'I am there for two years' nem 'since two years'."
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "Na entrevista, você contou que automatizou os deploys do time. Agora o entrevistador quer saber qual foi o resultado."
+cue = "O entrevistador pergunta: {{What was the outcome of your actions?}} Diga: {}"
+say = "Deploys went from two hours to ten minutes."
+short = "Deploys got much faster."
+polished = "Our deploys went from two hours to ten minutes, and we had fewer failures."
+meaning = "Os deploys passaram de duas horas para dez minutos."
+accept = ["Our deploys went from two hours to ten minutes."]
+tip = "Numa entrevista de verdade, use os seus números. 'Went from... to...' é 'passou de... para...'."
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "O entrevistador pergunta por que você quer sair da empresa atual. Você não quer falar mal dela: quer crescer."
+cue = "O entrevistador pergunta por que você quer sair da empresa atual. Você não quer falar mal dela: quer crescer. {{Why do you want to leave your current company?}} Diga: {}"
+say = "I'm looking for new challenges and room to grow."
+short = "I want to grow."
+polished = "I've learned a lot there, but now I'm looking for new challenges and room to grow."
+meaning = "Busco novos desafios e espaço para crescer."
+accept = ["I'm looking for new challenges and a chance to grow.", "I want new challenges and more room to grow."]
+tip = "'Room to grow' é 'espaço para crescer': aqui 'room' não é 'sala'."
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "O entrevistador pede que você conte um desafio recente no trabalho e como resolveu. Os deploys do time eram lentos e você automatizou o processo."
+cue = "O entrevistador pergunta: {{Tell me about a challenge you faced recently in your role.}} Diga: {}"
+say = "Our deploys were slow, so I automated the whole process."
+short = "I automated our slow deploys."
+polished = "Our deploys were slow and often failed, so I automated the whole process with a pipeline."
+meaning = "Nossos deploys eram lentos, então automatizei o processo todo."
+accept = ["Our deploys were slow, so I automated them."]
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "O entrevistador pede que você conte um erro recente e o que aprendeu. Uma vez você derrubou a produção, e desde então sempre testa antes."
+cue = "O entrevistador pergunta: {{Tell me about a recent failure and what you learned from the experience.}} Diga: {}"
+say = "I broke production once, and now I always test first."
+short = "I learned to test first."
+polished = "I once broke production by mistake, and I learned to always test in staging first."
+meaning = "Uma vez derrubei a produção, e agora sempre testo antes."
+accept = ["I broke production once, so now I always test first."]
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "Fim da entrevista. O entrevistador pergunta se você tem alguma pergunta. Você quer saber como é um dia normal nessa vaga."
+cue = "Fim da entrevista. O entrevistador pergunta se você tem alguma pergunta. Você quer saber como é um dia normal nessa vaga. {{Do you have any questions for us?}} Diga: {}"
+say = "What does a typical day look like for this role?"
+short = "What's a typical day like?"
+polished = "Could you tell me what a typical day looks like for this role?"
+meaning = "Como é um dia normal nessa vaga?"
+accept = ["What does a typical day look like on this team?", "What's a typical day like in this role?"]
+tip = "Não traduza 'como é': 'How is a typical day?' soa estranho. Diga 'What does it look like?' ou 'What is it like?'."
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "O entrevistador pergunta quanto você espera ganhar. Você prefere ouvir primeiro a faixa salarial da vaga."
+cue = "O entrevistador pergunta: {{What are your salary expectations?}} Diga: {}"
+say = "I'm flexible, but what's the salary range for this role?"
+short = "I'm flexible."
+polished = "I'm flexible, but could you share the salary range for this role first?"
+meaning = "Sou flexível, mas qual é a faixa salarial da vaga?"
+accept = ["I'm open, but what's the range for this role?", "I'm flexible, but what's the budget for this role?"]
+tip = "'Salary' tem a força no começo: 'SÉ-la-ri', não 'sa-LÁ-ri'."
+
+[[phrase]]
+topic = "entrevista"
+level = "B1"
+situation = "O entrevistador pergunta qual é o seu maior ponto forte e o que você ainda está melhorando. Você aprende rápido e está melhorando o inglês."
+cue = "O entrevistador pergunta: {{What is your biggest strength and area of growth?}} Diga: {}"
+say = "My strength is that I learn fast, and I'm working on my English."
+short = "I learn fast."
+polished = "My biggest strength is that I learn fast, and right now I'm working on my spoken English."
+meaning = "Meu ponto forte é que aprendo rápido, e estou melhorando meu inglês."
+accept = ["I learn fast, and I'm working on my English.", "My strength is learning fast, and I'm improving my English."]
+tip = "'Strength' começa direto no 's', sem 'i' antes: não 'is-trength'. É uma sílaba só."

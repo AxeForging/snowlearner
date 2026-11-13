@@ -31,7 +31,7 @@ macro_rules! themed {
 
 /// The hand-curated decks, one folder per language.
 const EN: &str = themed!("en":
-    "work", "tech", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
+    "work", "tech", "job-interview", "travel", "restaurant", "shopping", "health", "social", "phone", "emergency",
     "first-contact", "routine-and-transport", "health-and-social", "home-and-paperwork", "slang-and-small-talk",
 );
 pub(crate) const ES: &str = themed!("es":
@@ -830,6 +830,27 @@ mod tests {
         for level in LADDER {
             let n = tech.iter().filter(|p| p.level.as_deref() == Some(*level)).count();
             assert!(n >= TECH_RUNG_MIN, "en: tecnologia {level} has {n} items, a rung needs {TECH_RUNG_MIN}");
+        }
+    }
+
+    /// Fewest items a level of the interview topic holds.
+    const INTERVIEW_RUNG_MIN: usize = 6;
+
+    /// The interview topic runs from A1 to B1 in English. Each item plays the
+    /// interviewer's question in English, then asks for the answer.
+    #[test]
+    fn interview_items_play_the_question_in_english_then_ask_for_the_answer() {
+        let deck = Deck::builtin("en").unwrap();
+        let items: Vec<&Phrase> = deck.phrases.iter().filter(|p| p.topic == "entrevista").collect();
+        for level in ["A1", "A2", "B1"] {
+            let n = items.iter().filter(|p| p.level.as_deref() == Some(level)).count();
+            assert!(n >= INTERVIEW_RUNG_MIN, "en: entrevista {level} has {n} items");
+        }
+        for p in items {
+            let spoken: Vec<&str> = p.cue.iter().filter(|s| s.is_target()).map(|s| s.text()).collect();
+            assert_eq!(spoken.len(), 2, "{:?}: the question, then the answer", p.say);
+            assert_ne!(spoken[0], p.say, "{:?}: the first English part is the question", p.say);
+            assert_eq!(spoken[1], p.say, "{:?}: the lesson ends asking for the answer", p.say);
         }
     }
 
