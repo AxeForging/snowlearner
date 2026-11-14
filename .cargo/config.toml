@@ -1,0 +1,6 @@
+[env]
+# ggml's llamafile matrix kernels: one recognition pass took 1.88 s instead of 3.26 s on the
+# reporting machine (#58, #72). whisper-rs-sys hands every GGML_* variable to CMake, but its
+# build script does not rerun when one changes: after editing this, `cargo clean -p whisper-rs-sys`.
+# A variable already set in the environment wins over this one.
+GGML_LLAMAFILE = "ON"

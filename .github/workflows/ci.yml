@@ -32,9 +32,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libclang-dev libxkbcommon-dev libwayland-dev espeak-ng
+      # whisper-rs-sys does not rebuild when a GGML_* variable changes (.cargo/config.toml):
+      # a new build option needs a new key, or the cached whisper.cpp is tested instead.
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ggml-portable
+          key: ggml-portable-llamafile
       - run: cargo test
       - run: cargo test --no-default-features
       - name: speech end-to-end
