@@ -51,6 +51,23 @@ pub fn passes(lesson_threads: i32, cores: i32, clip_seconds: f32) -> Vec<Pass> {
     out
 }
 
+/// Two passes run at the same time, as a lesson could run its plain and its
+/// hinted pass: the threads each one gets. Lesson threads each, then half of
+/// them each, since more threads on one pass made it far slower on the
+/// reporting machine (16 threads: 76.84 s against 3.26 s with six). Nothing to
+/// time on a single core.
+pub fn pairs(lesson_threads: i32, cores: i32) -> Vec<(i32, i32)> {
+    if cores < 2 {
+        return Vec::new();
+    }
+    let half = (lesson_threads / 2).max(1);
+    let mut out = vec![(lesson_threads, lesson_threads)];
+    if half != lesson_threads {
+        out.push((half, half));
+    }
+    out
+}
+
 /// The built-in clip: a voiced hum in syllable-like pulses, 16 kHz mono. It is
 /// not speech, so what whisper hears in it means nothing; it is the same audio
 /// on every machine, which is what makes two timings comparable.
@@ -102,6 +119,14 @@ mod tests {
         assert_eq!(windows(&passes(6, 16, 7.5)), [750, 375], "7.5 s fills the narrowest window exactly");
         assert_eq!(windows(&passes(6, 16, 10.0)), [750]);
         assert!(windows(&passes(6, 16, 20.0)).is_empty());
+    }
+
+    #[test]
+    fn two_passes_at_once_are_timed_with_the_lesson_threads_and_with_half() {
+        assert_eq!(pairs(6, 16), [(6, 6), (3, 3)]);
+        assert_eq!(pairs(4, 4), [(4, 4), (2, 2)]);
+        assert_eq!(pairs(1, 2), [(1, 1)], "one thread cannot be split");
+        assert!(pairs(1, 1).is_empty(), "a single core runs nothing at once");
     }
 
     #[test]

@@ -92,5 +92,36 @@ same built-in clip, whisper's full 30 s window):
   "Muchas latias", and with the vocabulary hint "Vale" was accepted as "¡Pare!". Accepting a
   wrong answer costs a learner more than two seconds, so lessons keep the full window. Other
   widths were not tested.
-- **Not adopted yet:** ggml's `GGML_LLAMAFILE=ON` matrix code, measured at 1.88 s (Windows) and
-  2.29 s (Linux) for the same pass. It does not touch the window; it is left for its own change.
+- **Adopted in #72: ggml's `GGML_LLAMAFILE=ON` matrix code**, first measured at 1.88 s (Windows)
+  and 2.29 s (Linux) for the same pass. It does not touch the window. `.cargo/config.toml` turns
+  it on for every build inside the repository (CI, releases, `make`); `cargo install --git` does
+  not read that file (README).
+
+## The hinted second pass (2026-11-14, #72)
+When the first pass is not accepted, a lesson runs a second pass with the expected words as a
+hint (`Recognizer::transcribe_expecting`), so that answer takes two passes. Each pass is logged
+with what it heard, its time and its verdict (`first pass "…" in N s: …`).
+
+In one practice session on v0.1.13 (20 answers, the reporting machine), 15 were accepted on the
+first pass in 2.8–3.1 s; the hinted pass ran for 5, turned 3 of them into a pass ("Ten", "Nine",
+"Cold", 5.8–9.5 s in all) and changed nothing for 2 (6.1 s). The first pass had lost or changed
+the word's first sound ("Ten" → "And", "Cold" → "Hold"). So the hinted pass stays: it rescues
+right answers.
+
+Measured with `model bench` on the reporting machine (6 threads per pass, full window):
+
+| build | one pass | two passes at the same time |
+|---|---|---|
+| v0.1.13 | 3.15–3.46 s | 4.53–4.67 s (3 + 3 threads: 6.13–6.42 s) |
+| `GGML_LLAMAFILE=ON` | 1.79–2.14 s | 2.48–2.85 s (3 + 3 threads: 2.97–3.22 s) |
+
+Every 30 s row heard the same text in both builds ("10, please.", "Cold.", "4" from the Windows
+Zira voice), and the speech end-to-end tests pass with it.
+
+- **Tried and rejected: running both passes at once on v0.1.13.** They share the CPU, so every
+  answer would take about 4.6 s, above the target, against 3.3 s for three answers in four.
+- **Adopted: the faster build.** The hinted pass still runs after the first one; with one pass
+  at about 1.9 s, an answer that needs it takes about 3.8 s.
+- **Not adopted: both passes at once on the faster build** (about 2.5 s for every answer). It
+  doubles the CPU spent on every answer to speed up one in four; it is worth its own change only
+  if real sessions show hinted answers above 4 s.

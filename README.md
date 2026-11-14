@@ -97,6 +97,10 @@ $env:CMAKE_C_FLAGS_RELEASE = "-MD -O2 -Ob2 -DNDEBUG"
 $env:CMAKE_CXX_FLAGS_RELEASE = "-MD -O2 -Ob2 -DNDEBUG"
 ```
 
+A build inside the repository also turns on whisper.cpp's faster matrix code (`GGML_LLAMAFILE`,
+`.cargo/config.toml`); `cargo install --git` does not read that file, so set `GGML_LLAMAFILE=ON`
+yourself before it (`$env:GGML_LLAMAFILE = "ON"` on Windows).
+
 Feature flags: `stt` (default: mic + recognition), `audio` (devices + playback only),
 `gpu` (default: only used for see-through windows on native Wayland/macOS),
 none (hotkey confirms your answer, CPU-only drawing). `SNOWLEARNER_RENDERER=cpu|gpu` forces one.

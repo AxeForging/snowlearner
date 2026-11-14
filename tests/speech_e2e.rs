@@ -210,4 +210,9 @@ fn model_bench_times_a_spoken_wav_through_the_real_binary() {
     for pass in &passes[..2] {
         assert!(pass.to_lowercase().contains("morning"), "the lesson passes hear the file: {stdout}");
     }
+    let pairs: Vec<&str> = stdout.lines().filter(|l| l.contains(" + ")).collect();
+    assert!(!pairs.is_empty(), "two passes at once are timed: {stdout}");
+    for pair in pairs {
+        assert_eq!(pair.to_lowercase().matches("morning").count(), 2, "both passes hear the file: {stdout}");
+    }
 }

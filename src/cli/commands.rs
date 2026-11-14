@@ -295,6 +295,29 @@ fn bench_model(settings: &Settings, paths: &Paths, wav: Option<&std::path::Path>
         let took = started.elapsed().as_secs_f32();
         println!("{:>7}  {:>4.1} s  {took:>6.2} s  {heard:?}", pass.threads, pass.window_seconds());
     }
+    let pairs = bench::pairs(stt::lesson_threads(), cores);
+    if !pairs.is_empty() {
+        println!();
+        println!("two passes at once (a lesson's plain and hinted pass, if run together)");
+        println!("threads     first    second      both  heard");
+    }
+    let lang = settings.learning.as_str();
+    let run = |threads: i32| {
+        let started = Instant::now();
+        let heard = recognizer.transcribe_as(&samples, lang, bench::Pass { threads, audio_ctx: 0 });
+        (heard, started.elapsed().as_secs_f32())
+    };
+    for (a, b) in pairs {
+        let started = Instant::now();
+        let ((first, t1), (second, t2)) = std::thread::scope(|s| {
+            let other = s.spawn(|| run(b));
+            let mine = run(a);
+            (mine, other.join().expect("a bench pass crashed"))
+        });
+        let both = started.elapsed().as_secs_f32();
+        let (first, second) = (first?, second?);
+        println!("{a:>3} + {b:<3}  {t1:>6.2} s  {t2:>6.2} s  {both:>6.2} s  {first:?} / {second:?}");
+    }
     Ok(())
 }
 
