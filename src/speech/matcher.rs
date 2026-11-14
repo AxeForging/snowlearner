@@ -186,9 +186,14 @@ pub struct Expect {
 }
 
 impl Expect {
-    pub fn accepts(&self, heard: &str) -> bool {
+    /// How `heard` scores against the best of the answers, as the lesson judges it.
+    pub fn judge(&self, heard: &str) -> MatchResult {
         let answers: Vec<&str> = self.answers.iter().map(String::as_str).collect();
-        score_any(&answers, &self.say, heard, self.slack, &self.lang).0.passed(self.threshold)
+        score_any(&answers, &self.say, heard, self.slack, &self.lang).0
+    }
+
+    pub fn accepts(&self, heard: &str) -> bool {
+        self.judge(heard).passed(self.threshold)
     }
 
     /// The first transcript, unless it misses and the hinted one (`hinted`,
@@ -400,6 +405,15 @@ mod tests {
         });
         assert_eq!(heard, "¡Paré!");
         assert_eq!(prompt, "Leche. Correo. ¡Pare!");
+    }
+
+    #[test]
+    fn the_verdict_and_the_score_come_from_the_same_judgment() {
+        let e = expect_pare();
+        assert_eq!(e.judge("¡Pare!").score, 1.0);
+        assert!(e.accepts("¡Pare!") && e.judge("¡Pare!").passed(e.threshold));
+        let miss = e.judge("¿Vale?");
+        assert!(!e.accepts("¿Vale?") && !miss.passed(e.threshold) && miss.score < 1.0);
     }
 
     #[test]
