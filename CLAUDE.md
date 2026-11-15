@@ -18,7 +18,8 @@ src/
                      owl = ice owl + its snowballs, backdrop, hud, rng)
   render/            canvas.rs (CPU pixels), font.rs (bitmap font), screen.rs (picks the presenter),
                      cpu.rs (softbuffer present, default), damage.rs (redraw only what changed),
-                     gpu.rs (wgpu present, `gpu` feature, see-through fallback), png_out.rs
+                     gpu.rs (wgpu present, `gpu` feature, see-through fallback), png_out.rs,
+                     icon.rs (the mage as .ico/.png for the Start menu and app menu, written by `setup`)
   speech/            voices.rs (SpeechEngine trait + system/http/command engines), tts.rs (OS
                      voices), worker.rs (thread), matcher.rs, endpoint.rs (listening), resample.rs,
                      highpass.rs (DC/rumble removal before measuring),

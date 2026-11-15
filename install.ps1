@@ -34,18 +34,20 @@ try {
         Write-Host "Adicionado ao PATH (abra um novo terminal para usar 'snowlearner')."
     }
 
-    $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Snowlearner.lnk'
-    $link = (New-Object -ComObject WScript.Shell).CreateShortcut($startMenu)
-    $link.TargetPath = "$dir\snowlearner.exe"
-    $link.Arguments = 'run'
-    $link.Save()
-    Write-Host "Atalho criado no menu Iniciar."
-    Write-Host ""
-
     $setupArgs = @('setup')
     if ($env:SNOWLEARNER_LANG) { $setupArgs += @('--lang', $env:SNOWLEARNER_LANG) }
     if ($env:SNOWLEARNER_NATIVE) { $setupArgs += @('--native', $env:SNOWLEARNER_NATIVE) }
     & "$dir\snowlearner.exe" @setupArgs
+
+    # After setup: it writes the mage as snowlearner.ico next to the exe (render::icon::ICO_FILE).
+    $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Snowlearner.lnk'
+    $link = (New-Object -ComObject WScript.Shell).CreateShortcut($startMenu)
+    $link.TargetPath = "$dir\snowlearner.exe"
+    $link.Arguments = 'run'
+    if (Test-Path "$dir\snowlearner.ico") { $link.IconLocation = "$dir\snowlearner.ico,0" }
+    $link.Save()
+    Write-Host ""
+    Write-Host "Atalho criado no menu Iniciar."
 }
 finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue

@@ -370,6 +370,30 @@ fn setup_writes_the_config_with_the_chosen_language_and_a_launcher() {
 }
 
 #[test]
+fn setup_shows_the_mage_in_the_app_menu_and_rewrites_it_every_time() {
+    if !cfg!(all(unix, not(target_os = "macos"))) {
+        return;
+    }
+    use snowlearner::render::{icon, png_out};
+    let home = Home::new();
+    for _ in 0..2 {
+        let o = home.setup(&["--no-model"]);
+        assert!(o.status.success(), "{}", stderr(&o));
+        assert!(!stdout(&o).contains("! ícone"), "{}", stdout(&o));
+    }
+    let entry = std::fs::read_to_string(home.dir.path().join("xdg/applications/snowlearner.desktop")).unwrap();
+    let path = entry.lines().find_map(|l| l.strip_prefix("Icon=")).expect("an Icon= line");
+    let png = std::fs::read(path).unwrap_or_else(|e| panic!("Icon={path} must exist: {e}"));
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png)).read_info().unwrap();
+    let mut px = vec![0u8; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut px).unwrap();
+    px.truncate(info.buffer_size());
+    let art = snowlearner::scene::mage::portrait();
+    assert_eq!((info.width, info.height), (art.w as u32 * icon::PNG_SCALE, art.h as u32 * icon::PNG_SCALE));
+    assert_eq!(px, png_out::upscale(&art, icon::PNG_SCALE), "the menu icon is the mage");
+}
+
+#[test]
 fn setup_again_keeps_the_existing_config() {
     let home = Home::new();
     home.config("learning = \"es\"\ndaily_goal = 7\n");

@@ -152,7 +152,8 @@ fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, native: bool
         println!("✓ reconhecimento  modelo {} pronto (offline)", settings.model);
     }
 
-    let exe = std::env::current_exe()?.canonicalize()?.display().to_string();
+    let exe_path = std::env::current_exe()?.canonicalize()?;
+    let exe = exe_path.display().to_string();
     if gnome::available() {
         match gnome::install(&exe, &shortcut_list(&settings)) {
             Ok(()) => println!(
@@ -167,16 +168,51 @@ fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, native: bool
         println!("! atalhos         configure no seu desktop: `snowlearner doctor` mostra como");
     }
 
+    #[cfg(windows)]
+    match write_ico(&exe_path) {
+        Ok(f) => println!("✓ ícone           {}", f.display()),
+        Err(e) => println!("! ícone           não gravado ({e:#})"),
+    }
+
     #[cfg(all(unix, not(target_os = "macos")))]
-    match crate::control::launcher::applications_dir().map(|d| crate::control::launcher::install(&exe, &d)) {
-        Some(Ok(f)) => println!("✓ menu de apps    {}", f.display()),
-        Some(Err(e)) => println!("! menu de apps    {e:#}"),
-        None => {}
+    {
+        use crate::control::launcher;
+        let icon = match write_menu_icon(paths) {
+            Ok(f) => f.display().to_string(),
+            Err(e) => {
+                println!("! ícone           não gravado ({e:#})");
+                launcher::FALLBACK_ICON.to_string()
+            }
+        };
+        match launcher::applications_dir().map(|d| launcher::install(&exe, &icon, &d)) {
+            Some(Ok(f)) => println!("✓ menu de apps    {}", f.display()),
+            Some(Err(e)) => println!("! menu de apps    {e:#}"),
+            None => {}
+        }
     }
 
     println!("\nPronto! Abra o Snowlearner pelo menu de apps ou rode: snowlearner");
     println!("Você começa pelas primeiras palavras; veja seu progresso com {}.", settings.hotkey_progress);
     Ok(())
+}
+
+/// The mage as an `.ico` next to the executable, where `install.ps1` points
+/// the Start menu shortcut. Rewritten on every `setup`, so a new mage reaches the menu.
+#[cfg(windows)]
+fn write_ico(exe: &std::path::Path) -> Result<std::path::PathBuf> {
+    use crate::render::icon;
+    let file = exe.parent().context("the executable has no folder")?.join(icon::ICO_FILE);
+    let bytes = icon::ico(&crate::scene::mage::portrait(), &icon::ICO_SCALES)?;
+    std::fs::write(&file, bytes).with_context(|| format!("writing {}", file.display()))?;
+    Ok(file)
+}
+
+/// The mage as a PNG for the app menu entry, rewritten on every `setup`.
+#[cfg(all(unix, not(target_os = "macos")))]
+fn write_menu_icon(paths: &Paths) -> Result<std::path::PathBuf> {
+    let file = paths.menu_icon_file();
+    png_out::write(&crate::scene::mage::portrait(), crate::render::icon::PNG_SCALE, &file)?;
+    Ok(file)
 }
 
 fn voices(settings: &Settings, action: VoicesAction) -> Result<()> {
