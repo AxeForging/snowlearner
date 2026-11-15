@@ -46,6 +46,11 @@ impl Paths {
         self.data_dir.join("recordings")
     }
 
+    /// The mage as a PNG for the Linux app menu (written by `setup`).
+    pub fn menu_icon_file(&self) -> PathBuf {
+        self.data_dir.join("snowlearner.png")
+    }
+
     pub fn models_dir(&self) -> PathBuf {
         self.data_dir.join("models")
     }
