@@ -1700,8 +1700,12 @@ mod tests {
         let mut f = fixture(true);
         let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
         f.send(Input::Speech(SpeechEvent::Spoken { id }));
-        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Thank you for watching!".into() }));
-        assert_eq!(f.scene.hud.caption.as_ref().unwrap().heard.as_deref(), Some("(silêncio)"));
+        for _ in 0..2 {
+            // The first one gets the extra listen, like any silence (#98).
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "Thank you for watching!".into() }));
+        }
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!((cap.status, cap.heard.as_deref()), (Status::Silent, Some("(silêncio)")));
         assert!(f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap().is_empty());
     }
 
