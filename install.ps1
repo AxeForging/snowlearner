@@ -1,8 +1,8 @@
 # Installs snowlearner in one step (Windows x86_64):
 #   irm https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.ps1 | iex
-# Downloads the latest release, checks its SHA-256, installs to
-# %LOCALAPPDATA%\Programs\snowlearner, adds it to your PATH and the Start menu,
-# then runs `snowlearner setup`. $env:SNOWLEARNER_LANG = "es" picks Spanish.
+# Downloads the latest release, checks its SHA-256, closes the app if it is
+# open, installs to %LOCALAPPDATA%\Programs\snowlearner, adds it to your PATH
+# and the Start menu, then runs `snowlearner setup`. $env:SNOWLEARNER_LANG = "es" picks Spanish.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
@@ -24,7 +24,35 @@ try {
     if ($expected -ne $actual) { throw "checksum não confere (esperado $expected, veio $actual)" }
 
     Expand-Archive "$tmp\$asset" -DestinationPath $tmp -Force
-    Copy-Item "$tmp\snowlearner-$target\snowlearner.exe" "$dir\snowlearner.exe" -Force
+
+    # Windows does not let a running exe be overwritten: close the open app first.
+    $exe = "$dir\snowlearner.exe"
+    $open = @(Get-Process snowlearner -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe })
+    if ($open.Count -gt 0) {
+        Write-Host "Fechando o Snowlearner aberto para atualizar..."
+        # `quit` may print to stderr (app not answering); with 'Stop' PowerShell 5.1 would abort on that.
+        $ErrorActionPreference = 'Continue'
+        & $exe quit *> $null
+        $ErrorActionPreference = 'Stop'
+    }
+    # The exe stays locked for a moment after the app exits (Wait-Process returns
+    # before that, #85), so the copy itself is retried until it goes through.
+    $deadline = (Get-Date).AddSeconds(60)
+    while ($true) {
+        try {
+            Copy-Item "$tmp\snowlearner-$target\snowlearner.exe" $exe -Force -ErrorAction Stop
+            break
+        }
+        catch {
+            if ((Get-Date) -gt $deadline) {
+                Write-Host "Não deu para trocar $exe ($($_.Exception.Message))." -ForegroundColor Red
+                Write-Host "Se o Snowlearner estiver aberto, feche-o (snowlearner quit ou pelo painel) e rode o instalador de novo." -ForegroundColor Red
+                return
+            }
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    if ($open.Count -gt 0) { Write-Host "Snowlearner fechado para a atualização. Abra de novo quando terminar." }
     Write-Host "Instalado em $dir\snowlearner.exe"
 
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')

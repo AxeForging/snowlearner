@@ -169,7 +169,7 @@ fn setup(mut settings: Settings, paths: &Paths, lang: Option<&str>, native: bool
         println!("✓ reconhecimento  modelo {} pronto (offline)", settings.model);
     }
 
-    let exe_path = std::env::current_exe()?.canonicalize()?;
+    let exe_path = crate::config::paths::plain(std::env::current_exe()?.canonicalize()?);
     let exe = exe_path.display().to_string();
     if gnome::available() {
         match gnome::install(&exe, &shortcut_list(&settings)) {
