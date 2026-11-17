@@ -19,6 +19,8 @@ gpu = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
 
 [dependencies]
 anyhow = "1"
+# The panel's Ctrl+V (a speech API key is too long to type); no image support.
+arboard = { version = "3.7", default-features = false }
 bytemuck = { version = "1", features = ["derive"], optional = true }
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }

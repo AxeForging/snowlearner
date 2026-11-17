@@ -73,6 +73,30 @@ whisper.cpp would get it (`transcriber::prepare`: 0.3 s lead-in, at least 1.1 s)
 - Switching from a missing local model to a server in the panel takes effect for listening after
   a restart (`can_listen` is decided when the speech worker starts).
 
+## Recognition on Groq's cloud (`stt_engine = "groq"`, #94)
+- **Request.** The `openai` shape against `https://api.groq.com/openai/v1` with
+  `model = whisper-large-v3-turbo` and `Authorization: Bearer {stt_key}`
+  (https://console.groq.com/docs/speech-to-text, https://console.groq.com/docs/api-reference).
+  Address and model are built in: `stt_url`/`stt_model` stay for the learner's own server, so
+  switching between Groq and it needs no editing.
+- **Key check before a lesson.** `Remote::check_key` is `GET {url}/models` with the key:
+  200 = taken; 401/403 = `Refusal::KeyRefused`; no key = `Refusal::KeyMissing` without a request.
+  The panel runs it (`Job::CheckKey` → `SpeechEvent::KeyWorks` / `Refused`) when a key is saved or
+  Groq is picked with one; `doctor` runs it whenever a key is set.
+- **Refusals by name.** 401/403 and 429 (`Refusal::Limited`) during a lesson arrive as
+  `SpeechEvent::Refused` and are said with `text::refusal` in the learner's language; the turn goes
+  to self-confirmation like any failed recognition.
+- **The key is never shown whole.** `ApiKey`'s `Debug` and `mask_key` keep its first and last four
+  characters (`gsk_…WXYZ`); the panel shows stars while it is typed, and a new key starts from an
+  empty field. It is stored in plain text in the config file.
+- **Panel.** *Groq (nuvem)* is always offered in *Reconhecimento*; picking it without a key opens
+  *Chave*. Ctrl+V pastes into any open field (`arboard`, text only); on GNOME Wayland pasting may
+  fail, which the panel says, and `stt_key` can be written in the config file instead. The panel is
+  one row taller (224 px) for the *Chave* row.
+- **Not measured.** No answer has gone through Groq from this repository: a key is the learner's.
+  Free-plan limits for Whisper were not readable on Groq's rate-limits page (the Developer plan
+  lists 20 requests per minute and 7,200 audio seconds per hour).
+
 ## Docs
 Animated WebP clips in the README rendered from `snowlearner snapshot --scenario … --frames`.
 

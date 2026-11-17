@@ -3,6 +3,7 @@
 //! ignored after a cancel.
 
 use super::endpoint::ListenPlan;
+use super::remote::Refusal;
 #[cfg(feature = "stt")]
 use super::resident::Resident;
 use super::trace;
@@ -38,6 +39,10 @@ pub enum Job {
     MicTest {
         id: u64,
         lang: String,
+    },
+    /// Whether the speech server takes the key (`stt_key`), from the panel.
+    CheckKey {
+        id: u64,
     },
     /// End the current listen now ("I'm done"). Handled out of band.
     StopListening,
@@ -77,6 +82,15 @@ pub enum SpeechEvent {
         id: u64,
         error: String,
     },
+    /// The speech server turned the request down for its key or its limit.
+    Refused {
+        id: u64,
+        refusal: Refusal,
+    },
+    /// The speech server takes the key (`Job::CheckKey`).
+    KeyWorks {
+        id: u64,
+    },
 }
 
 impl SpeechEvent {
@@ -88,7 +102,9 @@ impl SpeechEvent {
             | SpeechEvent::Thinking { id }
             | SpeechEvent::Heard { id, .. }
             | SpeechEvent::NoSpeech { id }
-            | SpeechEvent::Failed { id, .. } => *id,
+            | SpeechEvent::Failed { id, .. }
+            | SpeechEvent::Refused { id, .. }
+            | SpeechEvent::KeyWorks { id } => *id,
         }
     }
 }
@@ -228,6 +244,7 @@ impl Speech {
                             recognizer.touch(Instant::now());
                             notify(ev);
                         }
+                        Job::CheckKey { id } => notify(check_key(id, &cfg)),
                         #[cfg(not(feature = "stt"))]
                         Job::Listen { id, .. } | Job::MicTest { id, .. } => {
                             let _ = &stop_worker;
@@ -324,7 +341,35 @@ fn listen(
         }
         Err(e) => {
             trace::line(format_args!("listen failed: {e:#}"));
-            SpeechEvent::Failed { id, error: format!("{e:#}") }
+            failure(id, e)
+        }
+    }
+}
+
+/// `e` as the event the app shows: a refusal by name, anything else as text.
+fn failure(id: u64, e: anyhow::Error) -> SpeechEvent {
+    match super::remote::refusal(&e) {
+        Some(refusal) => SpeechEvent::Refused { id, refusal },
+        None => SpeechEvent::Failed { id, error: format!("{e:#}") },
+    }
+}
+
+/// Asks the speech server whether it takes the key, without recording anything.
+fn check_key(id: u64, cfg: &VoiceSettings) -> SpeechEvent {
+    let Some(server) = &cfg.remote else {
+        return SpeechEvent::Failed { id, error: "recognition is on this computer: no server to check".into() };
+    };
+    let started = Instant::now();
+    let result = server.check_key();
+    let took = started.elapsed().as_secs_f32();
+    match result {
+        Ok(()) => {
+            trace::line(format_args!("key {} works at {} ({took:.1} s)", server.key.masked(), server.url));
+            SpeechEvent::KeyWorks { id }
+        }
+        Err(e) => {
+            trace::line(format_args!("key {} check failed: {e:#}", server.key.masked()));
+            failure(id, e)
         }
     }
 }
@@ -347,6 +392,24 @@ mod tests {
         };
         let server = VoiceSettings::from(&asr, &paths).remote.expect("a server");
         assert_eq!(server.endpoint(), "http://192.168.15.4:9000/asr");
+    }
+
+    #[test]
+    fn a_refused_key_or_a_reached_limit_reaches_the_app_by_name() {
+        let limited = anyhow::Error::new(Refusal::Limited).context("speech server at x answered HTTP 429");
+        assert_eq!(failure(7, limited), SpeechEvent::Refused { id: 7, refusal: Refusal::Limited });
+        let down = anyhow::anyhow!("speech server at x did not answer");
+        assert_eq!(failure(7, down), SpeechEvent::Failed { id: 7, error: "speech server at x did not answer".into() });
+    }
+
+    #[test]
+    fn checking_a_key_without_a_server_says_there_is_none_and_sends_nothing() {
+        let paths = Paths { config_dir: PathBuf::from("home/config"), data_dir: PathBuf::from("home/data") };
+        let local = VoiceSettings::from(&Settings::default(), &paths);
+        assert!(matches!(check_key(3, &local), SpeechEvent::Failed { id: 3, .. }));
+        let groq = Settings { stt_engine: crate::speech::remote::SttEngine::Groq, ..Default::default() };
+        let groq = VoiceSettings::from(&groq, &paths);
+        assert_eq!(check_key(3, &groq), SpeechEvent::Refused { id: 3, refusal: Refusal::KeyMissing });
     }
 
     #[test]

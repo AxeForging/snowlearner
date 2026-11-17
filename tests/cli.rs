@@ -262,6 +262,35 @@ fn doctor_names_the_speech_server_and_whether_it_answers() {
 }
 
 #[test]
+fn doctor_checks_the_speech_key_and_never_prints_it_whole() {
+    let home = Home::new();
+    home.config("stt_engine = 'groq'\n");
+    let out = stdout(&home.run(&["doctor"]));
+    assert!(out.contains("groq server at https://api.groq.com/openai/v1/audio/transcriptions"), "{out}");
+    assert!(out.contains("needs an API key"), "no key, no request: {out}");
+
+    let server = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = server.local_addr().unwrap().port();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for mut s in server.incoming().flatten() {
+            let mut buf = [0u8; 2048];
+            let n = std::io::Read::read(&mut s, &mut buf).unwrap_or(0);
+            let _ = tx.send(String::from_utf8_lossy(&buf[..n]).to_string());
+            let _ = std::io::Write::write_all(&mut s, b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}");
+        }
+    });
+    let key = "gsk_0123456789abcdefWXYZ";
+    home.config(&format!("stt_engine = 'openai'\nstt_url = 'http://127.0.0.1:{port}/v1'\nstt_key = '{key}'\n"));
+    let o = home.run(&["doctor"]);
+    let (out, err) = (stdout(&o), stderr(&o));
+    assert!(out.contains("takes the key gsk_…WXYZ"), "{out}");
+    assert!(!out.contains(key) && !err.contains(key), "the key is never printed whole: {out}{err}");
+    let req = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap();
+    assert!(req.starts_with("GET /v1/models "), "{req}");
+}
+
+#[test]
 fn model_download_rejects_unknown_sizes_without_touching_the_network() {
     let o = Home::new().run(&["model", "download", "--name", "gigantic"]);
     assert!(!o.status.success());

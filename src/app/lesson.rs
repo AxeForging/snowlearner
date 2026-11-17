@@ -575,14 +575,25 @@ impl Lesson {
             (State::Challenge { stage, .. }, SpeechEvent::Failed { error, .. }) if *stage == Stage::Listening => {
                 // Mic or model trouble: fall back to self-confirmation.
                 *stage = Stage::Confirm;
-                scene.hud.toast(T::MicUnavailable.fill(self.opts.native, &[&error]), 6.0);
-                if let Some(c) = &mut scene.hud.caption {
-                    c.listen = None;
-                    c.status = Status::Confirm;
-                    c.footer = T::FooterConfirm.fill(self.opts.native, &[&self.opts.hotkey]);
-                }
+                self.confirm_instead(scene, T::MicUnavailable.fill(self.opts.native, &[&error]));
+            }
+            (State::Challenge { stage, .. }, SpeechEvent::Refused { refusal, .. }) if *stage == Stage::Listening => {
+                // The speech server refused the key or hit its limit: said in the
+                // learner's words, and the lesson goes on by self-confirmation.
+                *stage = Stage::Confirm;
+                self.confirm_instead(scene, crate::lang::text::refusal(self.opts.native, refusal).to_string());
             }
             _ => {}
+        }
+    }
+
+    /// Listening failed: `note` says why, and the learner confirms the answer themselves.
+    fn confirm_instead(&self, scene: &mut Scene, note: String) {
+        scene.hud.toast(note, 6.0);
+        if let Some(c) = &mut scene.hud.caption {
+            c.listen = None;
+            c.status = Status::Confirm;
+            c.footer = T::FooterConfirm.fill(self.opts.native, &[&self.opts.hotkey]);
         }
     }
 
@@ -1655,6 +1666,21 @@ mod tests {
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Confirm);
         f.send(Input::Primary);
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Passed);
+    }
+
+    #[test]
+    fn a_refused_key_or_a_reached_limit_is_said_in_the_learners_words_and_the_lesson_goes_on() {
+        use crate::speech::remote::Refusal;
+        for (refusal, said) in [(Refusal::KeyRefused, T::SttKeyRefused), (Refusal::Limited, T::SttLimited)] {
+            let mut f = fixture(true);
+            let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            f.send(Input::Speech(SpeechEvent::Refused { id, refusal }));
+            assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Confirm, "{refusal:?}");
+            assert_eq!(f.scene.hud.toast.as_ref().unwrap().text, said.get(Native::PtBr));
+            f.send(Input::Primary);
+            assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Passed, "confirmed by hand");
+        }
     }
 
     #[test]

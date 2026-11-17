@@ -14,11 +14,11 @@ use crate::learn::picker::Practice;
 use crate::learn::progress::{Progress, Tally};
 use crate::render::canvas::{Canvas, Rgba, hex};
 use crate::render::font;
-use crate::speech::remote::SttEngine;
+use crate::speech::remote::{SttEngine, mask_key};
 use crate::speech::voices::{TtsEngine, kokoro_default, kokoro_voice};
 
 pub const WIDTH: i32 = 232;
-pub const HEIGHT: i32 = 212;
+pub const HEIGHT: i32 = 224;
 const ROW_H: i32 = 12;
 const TABS_Y: i32 = 13;
 const TOP: i32 = 28;
@@ -51,6 +51,8 @@ pub enum Item {
     SttEngine,
     /// Address of that Whisper server (typed in the panel).
     SttEndpoint,
+    /// API key for the speech server (Groq's), typed or pasted in the panel.
+    SttKey,
     Engine,
     /// Address of the HTTP voice server (typed in the panel).
     Endpoint,
@@ -98,6 +100,7 @@ pub const AUDIO: &[Item] = &[
     Item::TestMic,
     Item::SttEngine,
     Item::SttEndpoint,
+    Item::SttKey,
     Item::Engine,
     Item::Endpoint,
     Item::VoiceNative,
@@ -231,6 +234,13 @@ fn each<V>(s: &Settings, values: impl IntoIterator<Item = V>, set: impl Fn(&mut 
         .collect()
 }
 
+/// A key being typed, as the panel shows it: stars, but its last four
+/// characters, so the learner sees the paste landed without showing the key.
+fn hidden(key: &str) -> String {
+    let n = key.chars().count();
+    key.chars().enumerate().map(|(i, c)| if i + 4 < n { '*' } else { c }).collect()
+}
+
 /// Completes a typed voice server address: `192.168.0.10:8880` becomes
 /// `http://192.168.0.10:8880/v1` (Kokoro-FastAPI's base). An explicit path
 /// is kept. None when it can't be an http(s) address.
@@ -324,6 +334,21 @@ impl Menu {
     /// Keys while the address field is open: type, fix, save or cancel.
     fn edit_key(&mut self, key: Key, s: &mut Settings) -> Action {
         let Some((target, buf)) = &mut self.edit else { return Action::None };
+        if *target == Item::SttKey && key == Key::Enter {
+            let typed = buf.trim().to_string();
+            if typed.chars().any(char::is_whitespace) {
+                self.test_result = T::KeyInvalid.get(s.native).into();
+                return Action::None;
+            }
+            // A key alone means Groq's: its keys are what this field is for.
+            if s.stt_engine == SttEngine::Local && !typed.is_empty() {
+                s.stt_engine = SttEngine::Groq;
+            }
+            s.stt_key = typed;
+            self.edit = None;
+            self.test_result = if s.stt_key.is_empty() { T::KeyRemoved } else { T::KeyChecking }.get(s.native).into();
+            return Action::Changed(Item::SttKey);
+        }
         if *target == Item::SttEndpoint && key == Key::Enter {
             match normalize_stt_url(buf) {
                 Some(url) => {
@@ -418,9 +443,10 @@ impl Menu {
             Item::Goal => each(s, GOALS.iter().copied(), |c, g| c.daily_goal = g),
             Item::Mode => each(s, [WindowMode::Auto, WindowMode::Window, WindowMode::Overlay], |c, m| c.mode = m),
             Item::Mic => each(s, with_default(&self.mics), |c, m| c.mic = m),
-            // A server is offered only once its address is set (`stt_url` is required for it).
+            // A server is offered only once its address is set (`stt_url` is required for it);
+            // Groq's address is built in, and choosing it without a key opens the key field.
             Item::SttEngine => {
-                let mut all = vec![SttEngine::Local];
+                let mut all = vec![SttEngine::Local, SttEngine::Groq];
                 if !s.stt_url.is_empty() {
                     all.extend([SttEngine::Openai, SttEngine::Asr]);
                 }
@@ -568,6 +594,10 @@ impl Menu {
                 self.test_result = T::AddressTyping.get(s.native).into();
                 Action::None
             }
+            Item::SttKey => {
+                self.open_key_field(T::KeyTyping, s);
+                Action::None
+            }
             other => {
                 if other == Item::Topic || !self.choices(other, s).is_empty() {
                     self.open_list(other, s);
@@ -578,6 +608,40 @@ impl Menu {
     }
 
     pub fn key(&mut self, key: Key, s: &mut Settings) -> Action {
+        let action = self.handle_key(key, s);
+        self.ask_for_key(action, s)
+    }
+
+    /// Pasted text goes into the open field as if typed; nothing happens
+    /// when no field is open. Line breaks and tabs are dropped.
+    pub fn paste(&mut self, text: &str, s: &mut Settings) {
+        if self.edit.is_none() {
+            return;
+        }
+        for c in text.chars().filter(|c| !c.is_control()) {
+            self.edit_key(Key::Char(c), s);
+        }
+    }
+
+    /// Groq was just chosen without a key: the key field opens at once, so
+    /// the learner is not left with a recognizer that refuses every answer.
+    fn ask_for_key(&mut self, action: Action, s: &Settings) -> Action {
+        if action == Action::Changed(Item::SttEngine) && s.stt_engine == SttEngine::Groq && s.stt_key.trim().is_empty()
+        {
+            self.list = None;
+            self.open_key_field(T::SttKeyMissing, s);
+        }
+        action
+    }
+
+    /// Moves to the key row and opens its field, empty, with `note` under it.
+    fn open_key_field(&mut self, note: T, s: &Settings) {
+        self.sel = self.items().iter().position(|i| *i == Item::SttKey).unwrap_or(self.sel);
+        self.edit = Some((Item::SttKey, String::new()));
+        self.test_result = note.get(s.native).into();
+    }
+
+    fn handle_key(&mut self, key: Key, s: &mut Settings) -> Action {
         if self.edit.is_some() {
             return self.edit_key(key, s);
         }
@@ -611,6 +675,11 @@ impl Menu {
     /// Click at art coordinates: tabs switch pages; rows select and activate
     /// (a choice row opens its list); a click on an open list's row picks it.
     pub fn click(&mut self, x: i32, y: i32, s: &mut Settings) -> Action {
+        let action = self.handle_click(x, y, s);
+        self.ask_for_key(action, s)
+    }
+
+    fn handle_click(&mut self, x: i32, y: i32, s: &mut Settings) -> Action {
         if !(0..WIDTH).contains(&x) {
             return Action::None;
         }
@@ -703,7 +772,10 @@ impl Menu {
                 SttEngine::Local => T::SttLocal.get(n).into(),
                 SttEngine::Openai => T::SttOpenai.get(n).into(),
                 SttEngine::Asr => T::SttAsr.get(n).into(),
+                SttEngine::Groq => T::SttGroq.get(n).into(),
             },
+            Item::SttKey if s.stt_key.trim().is_empty() => T::KeyNone.get(n).into(),
+            Item::SttKey => mask_key(&s.stt_key),
             Item::SttEndpoint if s.stt_url.is_empty() => T::AddressNone.get(n).into(),
             Item::SttEndpoint => {
                 let url = s.stt_url.split_once("://").map_or(s.stt_url.as_str(), |(_, r)| r);
@@ -750,6 +822,7 @@ impl Menu {
             Item::Endpoint => T::ItemEndpoint,
             Item::SttEngine => T::ItemSttEngine,
             Item::SttEndpoint => T::ItemSttEndpoint,
+            Item::SttKey => T::ItemSttKey,
             Item::VoiceNative => T::ItemVoiceNative,
             Item::VoiceLearning => T::ItemVoiceLearning,
             Item::TestVoices => T::ItemTestVoices,
@@ -932,7 +1005,7 @@ impl Menu {
             {
                 // The end of what is typed, so the cursor stays in view.
                 let room = c.w - 70;
-                let mut shown: String = buf.clone();
+                let mut shown: String = if *target == Item::SttKey { hidden(buf) } else { buf.clone() };
                 while font::text_width(&shown) > room - 8 && !shown.is_empty() {
                     shown.remove(0);
                 }
@@ -1308,14 +1381,95 @@ mod tests {
         assert_eq!(s.stt_engine, SttEngine::Local);
     }
 
+    const GROQ_KEY: &str = "gsk_0123456789abcdefWXYZ";
+
+    #[test]
+    fn choosing_groq_without_a_key_opens_the_key_field() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::SttEngine);
+        assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::SttEngine));
+        assert_eq!(s.stt_engine, SttEngine::Groq);
+        assert_eq!(m.item(), Item::SttKey);
+        assert_eq!(m.editing(), Some(""), "the field is open, empty");
+        assert_eq!(m.test_result, T::SttKeyMissing.get(s.native));
+        m.paste(&format!("  {GROQ_KEY}\r\n"), &mut s);
+        assert_eq!(m.editing(), Some(format!("  {GROQ_KEY}").as_str()), "line breaks dropped");
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::SttKey));
+        assert_eq!(s.stt_key, GROQ_KEY, "saved trimmed");
+        assert_eq!(m.test_result, T::KeyChecking.get(s.native), "the app checks it next");
+        assert_eq!(m.value(Item::SttKey, &s), "gsk_…WXYZ", "never shown whole");
+        s.validate().unwrap();
+    }
+
+    #[test]
+    fn choosing_groq_with_a_key_asks_nothing() {
+        let mut m = menu();
+        let mut s = Settings { stt_key: GROQ_KEY.into(), ..Settings::default() };
+        select(&mut m, Item::SttEngine);
+        assert_eq!(m.key(Key::Right, &mut s), Action::Changed(Item::SttEngine));
+        assert_eq!((s.stt_engine, m.editing()), (SttEngine::Groq, None));
+    }
+
+    #[test]
+    fn a_key_typed_while_recognition_is_local_picks_groq_and_an_empty_one_removes_it() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::SttKey);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::None, "Enter opens the field");
+        assert_eq!(m.test_result, T::KeyTyping.get(s.native));
+        type_text(&mut m, &mut s, GROQ_KEY);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::SttKey));
+        assert_eq!((s.stt_engine, s.stt_key.as_str()), (SttEngine::Groq, GROQ_KEY));
+        m.key(Key::Enter, &mut s);
+        assert_eq!(m.editing(), Some(""), "a new key starts empty: the old one is never put on screen");
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::SttKey));
+        assert_eq!((s.stt_key.as_str(), m.value(Item::SttKey, &s)), ("", T::KeyNone.get(s.native).to_string()));
+    }
+
+    #[test]
+    fn a_key_with_a_space_inside_keeps_the_field_open() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::SttKey);
+        m.key(Key::Enter, &mut s);
+        m.paste("gsk_abc def", &mut s);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::None);
+        assert_eq!(m.editing(), Some("gsk_abc def"), "kept for fixing");
+        assert_eq!(m.test_result, T::KeyInvalid.get(s.native));
+        assert!(s.stt_key.is_empty());
+    }
+
+    #[test]
+    fn pasting_with_no_field_open_does_nothing() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        m.paste(GROQ_KEY, &mut s);
+        assert_eq!((m.editing(), s), (None, Settings::default()));
+    }
+
+    #[test]
+    fn a_key_being_typed_shows_only_its_last_four_characters() {
+        assert_eq!(hidden(GROQ_KEY), format!("{}WXYZ", "*".repeat(GROQ_KEY.len() - 4)));
+        assert_eq!(hidden("abc"), "abc", "too short to hide yet");
+    }
+
+    #[test]
+    fn the_audio_tab_result_lines_fit_above_the_footer() {
+        // Three wrapped lines under the last row (see `draw`).
+        let y = TOP + AUDIO.len() as i32 * ROW_H + 6;
+        let last = y + 10 + 2 * (ROW_H - 1);
+        assert!(last + font::LINE_H <= HEIGHT - 13, "the third line at {last} runs into the footer");
+    }
+
     #[test]
     fn a_speech_server_is_offered_only_once_it_has_an_address() {
         let m = menu();
         let s = Settings::default();
         let engines = |s: &Settings| m.choices(Item::SttEngine, s).iter().map(|c| c.stt_engine).collect::<Vec<_>>();
-        assert_eq!(engines(&s), [SttEngine::Local], "a server without an address would not load");
+        assert_eq!(engines(&s), [SttEngine::Local, SttEngine::Groq], "a server without an address would not load");
         let with = Settings { stt_url: "http://192.168.15.4:9000".into(), ..s };
-        assert_eq!(engines(&with), [SttEngine::Local, SttEngine::Openai, SttEngine::Asr]);
+        assert_eq!(engines(&with), [SttEngine::Local, SttEngine::Groq, SttEngine::Openai, SttEngine::Asr]);
         for c in m.choices(Item::SttEngine, &with) {
             c.validate().unwrap();
         }
@@ -1513,9 +1667,16 @@ mod tests {
                 (SttEngine::Local, ""),
                 (SttEngine::Openai, "http://192.168.15.6:9000/v1"),
                 (SttEngine::Asr, "http://192.168.100.200:65535"),
+                (SttEngine::Groq, ""),
             ] {
-                let s = Settings { native, stt_engine: engine, stt_url: url.into(), ..Settings::default() };
-                for item in [Item::SttEngine, Item::SttEndpoint] {
+                let s = Settings {
+                    native,
+                    stt_engine: engine,
+                    stt_url: url.into(),
+                    stt_key: GROQ_KEY.into(),
+                    ..Settings::default()
+                };
+                for item in [Item::SttEngine, Item::SttEndpoint, Item::SttKey] {
                     let row = font::text_width(Menu::label(item, native)) + font::text_width(&m.value(item, &s));
                     // label from x = 10, "< value >" ends 6 from the edge, at least one blank cell between.
                     let selected = row + font::text_width("< > ") + 10 + 6 + font::ADVANCE;

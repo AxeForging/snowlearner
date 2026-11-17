@@ -15,6 +15,7 @@ use crate::learn::deck::Deck;
 use crate::render::{canvas::Canvas, png_out};
 use crate::scene::Scene;
 use crate::scene::hud::{Caption, Status};
+use crate::speech::remote::SttEngine;
 use crate::store::history::History;
 use anyhow::{Context, Result, bail};
 use chrono::{Local, NaiveDate};
@@ -536,14 +537,18 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
     match settings.remote_stt() {
         // With a server the local model is neither needed nor loaded.
         Some(server) => {
-            let answers = server.reachable();
+            // With a key (always with Groq), asking whether it is taken also says the server answers.
+            let keyed = !server.key.is_empty() || settings.stt_engine == SttEngine::Groq;
+            let answers = if keyed { server.check_key() } else { server.reachable() };
+            let masked = server.key.masked();
+            let key = if server.key.is_empty() { String::new() } else { format!(", takes the key {masked}") };
             println!(
                 "{}recognition   {} server at {}{}",
                 ok(stt_built && answers.is_ok()),
                 settings.stt_engine.name(),
                 server.endpoint(),
                 match &answers {
-                    Ok(()) => " (answers; your answers' audio goes there)".to_string(),
+                    Ok(()) => format!(" (answers{key}; your answers' audio goes there)"),
                     Err(e) => format!(" — {e:#}"),
                 }
             );
