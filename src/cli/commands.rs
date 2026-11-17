@@ -5,7 +5,11 @@ use crate::app::platform::{self, Session};
 use crate::config::level::Commitment;
 use crate::config::paths::Paths;
 use crate::config::settings::{MODELS, Settings};
-use crate::control::{console, gnome, ipc::{self, Command}, notice};
+use crate::control::{
+    console, gnome,
+    ipc::{self, Command},
+    notice,
+};
 use crate::lang::{Native, T};
 use crate::learn::deck::Deck;
 use crate::render::{canvas::Canvas, png_out};
