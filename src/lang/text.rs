@@ -66,6 +66,8 @@ texts! {
     ItemTestMic => "> Testar microfone", "> Test microphone";
     ItemEngine => "Motor de voz", "Voice engine";
     ItemEndpoint => "Endereço", "Address";
+    ItemSttEngine => "Reconhecimento", "Recognition";
+    ItemSttEndpoint => "Servidor", "Server";
     ItemVoiceNative => "Minha voz", "My voice";
     ItemVoiceLearning => "Voz do idioma", "Learning voice";
     ItemTestVoices => "> Testar vozes", "> Test voices";
@@ -110,6 +112,12 @@ texts! {
     AddressSaved => "Endereço salvo. Enter: testar as vozes.", "Address saved. Enter: test the voices.";
     AddressInvalid => "Endereço inválido: use http://IP:porta/v1", "Invalid address: use http://IP:port/v1";
     AddressTyping => "Digite o endereço · Enter salva · Esc cancela", "Type the address · Enter saves · Esc cancels";
+    SttLocal => "neste computador", "this computer";
+    SttOpenai => "servidor OpenAI", "OpenAI server";
+    SttAsr => "servidor ASR", "ASR server";
+    AddressNone => "nenhum", "none";
+    SttAddressSaved => "Endereço salvo. Enter: testar o microfone.", "Address saved. Enter: test the microphone.";
+    SttAddressInvalid => "Endereço inválido: use http://IP:porta", "Invalid address: use http://IP:port";
     SaySomething => "fale algo…", "say something…";
     PanelFooter => "*ao reiniciar  ↑↓ ←→ Enter  Tab: aba  Esc", "*on restart  ↑↓ ←→ Enter  Tab: tab  Esc";
     ProgressFooter => "Tab: aba  Esc: fechar", "Tab: tab  Esc: close";

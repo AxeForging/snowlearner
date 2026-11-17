@@ -8,6 +8,7 @@
 use snowlearner::speech::matcher;
 use snowlearner::speech::resample::{WHISPER_RATE, resample, to_mono};
 use snowlearner::speech::stt::Recognizer;
+use snowlearner::speech::transcriber::Transcriber;
 use std::path::Path;
 use std::process::Command;
 

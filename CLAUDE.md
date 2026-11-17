@@ -26,8 +26,10 @@ src/
                      resident.rs (loads the whisper model on demand, frees it when idle),
                      trace.rs (timestamped speech steps in the log),
                      bench.rs (what `model bench` times: its clip and its passes),
-                     recordings.rs (`keep_recordings`: answers kept as WAV for diagnosis);
-                     audio.rs with `audio`; mic.rs + stt.rs with `stt`
+                     recordings.rs (`keep_recordings`: answers kept as WAV for diagnosis),
+                     transcriber.rs (the lesson's two passes, shared by both recognizers),
+                     remote.rs (`stt_engine`: a Whisper server, openai or asr shape);
+                     audio.rs with `audio`; mic.rs + stt.rs (whisper.cpp) with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs, path.rs (words → chunks →
                      phrases, unlock window), progress.rs (known/learning/next per stage & topic)
   control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts),

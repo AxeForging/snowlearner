@@ -300,8 +300,17 @@ fn test_mic(settings: &Settings, paths: &Paths) -> Result<()> {
         println!("No speech detected. Check the mic and its volume, or pick another: `snowlearner audio mics`.");
         return Ok(());
     }
-    let recognizer = crate::speech::stt::Recognizer::load(&paths.model_file(&settings.model))?;
-    let text = recognizer.transcribe(&rec.samples, &settings.learning, None)?;
+    use crate::speech::transcriber::Transcriber;
+    let text = match settings.remote_stt() {
+        Some(server) => {
+            println!("Sending it to {}...", server.endpoint());
+            server.pass(&rec.samples, &settings.learning, None)?
+        }
+        None => {
+            let recognizer = crate::speech::stt::Recognizer::load(&paths.model_file(&settings.model))?;
+            recognizer.transcribe(&rec.samples, &settings.learning, None)?
+        }
+    };
     println!("Heard: \"{text}\"");
     Ok(())
 }
@@ -341,7 +350,7 @@ fn bench_model(settings: &Settings, paths: &Paths, wav: Option<&std::path::Path>
     println!();
     println!("threads  window    time     heard");
     // What whisper gets is longer than the clip: the lead-in and the padding count too.
-    let padded = stt::prepare(&samples).len() as f32 / WHISPER_RATE as f32;
+    let padded = crate::speech::transcriber::prepare(&samples).len() as f32 / WHISPER_RATE as f32;
     for pass in bench::passes(stt::lesson_threads(), cores, padded) {
         let started = Instant::now();
         let heard = recognizer.transcribe_as(&samples, &settings.learning, pass)?;
@@ -524,15 +533,34 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
     );
     let stt_built = cfg!(feature = "stt");
     let model = paths.model_file(&settings.model);
-    println!(
-        "{}recognition   {}",
-        ok(stt_built && model.exists()),
-        match (stt_built, model.exists()) {
-            (false, _) => "not in this build (phrases are confirmed with the hotkey)".to_string(),
-            (true, true) => format!("whisper {} at {}", settings.model, model.display()),
-            (true, false) => format!("model missing — run `snowlearner model download` ({})", model.display()),
+    match settings.remote_stt() {
+        // With a server the local model is neither needed nor loaded.
+        Some(server) => {
+            let answers = server.reachable();
+            println!(
+                "{}recognition   {} server at {}{}",
+                ok(stt_built && answers.is_ok()),
+                settings.stt_engine.name(),
+                server.endpoint(),
+                match &answers {
+                    Ok(()) => " (answers; your answers' audio goes there)".to_string(),
+                    Err(e) => format!(" — {e:#}"),
+                }
+            );
+            if !stt_built {
+                println!("              this build has no microphone support, so it is not used");
+            }
         }
-    );
+        None => println!(
+            "{}recognition   {}",
+            ok(stt_built && model.exists()),
+            match (stt_built, model.exists()) {
+                (false, _) => "not in this build (phrases are confirmed with the hotkey)".to_string(),
+                (true, true) => format!("whisper {} at {} (local, offline)", settings.model, model.display()),
+                (true, false) => format!("model missing — run `snowlearner model download` ({})", model.display()),
+            }
+        ),
+    }
     #[cfg(feature = "stt")]
     {
         let mic =

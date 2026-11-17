@@ -107,6 +107,8 @@ pub struct VoiceSettings {
     pub mic: String,
     /// Where answers are kept for diagnosis (`keep_recordings`); None = not kept.
     pub recordings: Option<PathBuf>,
+    /// The Whisper server answers go to; None = whisper.cpp in the app.
+    pub remote: Option<super::remote::Remote>,
 }
 
 impl VoiceSettings {
@@ -123,6 +125,7 @@ impl VoiceSettings {
             speaker: s.speaker.clone(),
             mic: s.mic.clone(),
             recordings: s.keep_recordings.then(|| paths.recordings_dir()),
+            remote: s.remote_stt(),
         }
     }
 
@@ -149,7 +152,7 @@ impl Speech {
     pub fn start(cfg: VoiceSettings, notify: impl Fn(SpeechEvent) + Send + 'static) -> Speech {
         let voice = cfg.voice();
         let (tts, tts_ok) = (voice.describe(), voice.available());
-        let can_listen = cfg!(feature = "stt") && cfg.model.exists();
+        let can_listen = cfg!(feature = "stt") && (cfg.remote.is_some() || cfg.model.exists());
         let (tx, rx) = mpsc::channel::<(u64, Job)>();
         let stop = Arc::new(AtomicBool::new(false));
         let stop_worker = stop.clone();
@@ -262,26 +265,32 @@ fn listen(
     stop: &AtomicBool,
     notify: &impl Fn(SpeechEvent),
 ) -> SpeechEvent {
+    use super::transcriber::Transcriber;
     stop.store(false, Ordering::SeqCst);
     trace::line(format_args!("listen [{lang}] think {:.1} s, expected {:.1} s", plan.think, plan.expected));
     let result = (|| -> anyhow::Result<Option<String>> {
         // Open the mic right away and load the model meanwhile: after an idle
         // release the load used to keep the mic closed while the prompt
         // already said "speak now", eating the start of a quick answer.
+        // A Whisper server needs no local model.
         let (rec, loaded) = std::thread::scope(|s| {
-            let loading = s.spawn(|| {
-                let started = Instant::now();
-                let loaded = recognizer.get_or_load(&cfg.model, started, super::stt::Recognizer::load).map(|_| ());
-                trace::line(format_args!("speech model ready in {:.1} s", started.elapsed().as_secs_f32()));
-                loaded
+            let loading = cfg.remote.is_none().then(|| {
+                s.spawn(|| {
+                    let started = Instant::now();
+                    let loaded = recognizer.get_or_load(&cfg.model, started, super::stt::Recognizer::load).map(|_| ());
+                    trace::line(format_args!("speech model ready in {:.1} s", started.elapsed().as_secs_f32()));
+                    loaded
+                })
             });
             let rec = super::mic::record(plan, &cfg.mic, stop, |level, speaking| {
                 notify(SpeechEvent::Level { id, level, speaking })
             });
-            (rec, loading.join())
+            (rec, loading.map(|l| l.join()))
         });
         let rec = rec?;
-        loaded.map_err(|_| anyhow::anyhow!("loading the speech model crashed"))??;
+        if let Some(loaded) = loaded {
+            loaded.map_err(|_| anyhow::anyhow!("loading the speech model crashed"))??;
+        }
         if !rec.heard_speech {
             return Ok(None);
         }
@@ -294,8 +303,16 @@ fn listen(
             }
         }
         let started = Instant::now();
-        let model = recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
-        let text = model.transcribe_expecting(&rec.samples, lang, expect)?;
+        let text = match &cfg.remote {
+            Some(server) => {
+                trace::line(format_args!("sending the answer to {}", server.endpoint()));
+                server.transcribe_expecting(&rec.samples, lang, expect)?
+            }
+            None => {
+                let model = recognizer.get_or_load(&cfg.model, Instant::now(), super::stt::Recognizer::load)?;
+                model.transcribe_expecting(&rec.samples, lang, expect)?
+            }
+        };
         trace::line(format_args!("heard {text:?} (transcribed in {:.1} s)", started.elapsed().as_secs_f32()));
         Ok(Some(text))
     })();
@@ -317,6 +334,20 @@ mod tests {
     use super::*;
     use crate::config::paths::Paths;
     use crate::config::settings::Settings;
+
+    #[test]
+    fn answers_stay_on_the_machine_unless_a_server_is_chosen() {
+        let paths = Paths { config_dir: PathBuf::from("home/config"), data_dir: PathBuf::from("home/data") };
+        let default = VoiceSettings::from(&Settings::default(), &paths);
+        assert_eq!(default.remote, None, "local whisper.cpp: no server, so no connection is ever made");
+        let asr = Settings {
+            stt_engine: crate::speech::remote::SttEngine::Asr,
+            stt_url: "http://192.168.15.4:9000/".into(),
+            ..Default::default()
+        };
+        let server = VoiceSettings::from(&asr, &paths).remote.expect("a server");
+        assert_eq!(server.endpoint(), "http://192.168.15.4:9000/asr");
+    }
 
     #[test]
     fn answers_are_kept_next_to_the_log_only_when_the_config_asks() {
