@@ -229,8 +229,8 @@ texts! {
     AlreadyRunning => "O Snowlearner já está aberto: o painel dele foi aberto.",
         "Snowlearner is already open: its panel is now showing.";
     StartFailed => "O Snowlearner não abriu", "Snowlearner did not start";
-    PortBlocked => "A porta {0} não está livre: outro programa a usa ou o sistema a reservou (o WSL em modo mirrored reserva uma faixa de portas do Windows). Troque ipc_port em {1} por uma porta livre.",
-        "Port {0} is not free: another program uses it or the system reserved it (WSL in mirrored mode reserves a range of Windows ports). Change ipc_port in {1} to a free port.";
+    PortBlocked => "A porta {0} não está livre: outro programa a usa ou o sistema a reservou (o WSL em modo mirrored reserva uma faixa de portas do Windows). Troque ipc_port em {1} por uma porta livre",
+        "Port {0} is not free: another program uses it or the system reserved it (WSL in mirrored mode reserves a range of Windows ports). Change ipc_port in {1} to a free port";
     // ---------------------------------------------------------------- scene
     WarriorCheer => "Vai lá, você consegue!", "Go on, you can do it!";
     MageBlackHole => "Nããão! O buraco negro!", "Nooo! The black hole!";
