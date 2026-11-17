@@ -223,12 +223,19 @@ pub fn score_any(answers: &[&str], say: &str, heard: &str, slack: usize, lang: &
 
 /// `score_lenient` for one answer of the phrase `say` (a short, polished or
 /// accepted form, or `say` itself): the target words that are also words of
-/// `say` are the lesson's, and `MatchResult::passed` holds them to the 3 of 4
-/// bar on their own. An answer that shares no word with `say` ("Hi" for
-/// "Hello.") is judged as before.
+/// `say` are the lesson's. Each must be heard exactly, folded as `sounds` folds
+/// it, with no slip: whisper's slips are other real words ("bedroom" for
+/// "bathroom", "smile" for "small", "eighty" for "eight"), and a slip allowed
+/// on the lesson's word teaches the wrong one (#80). A misheard right answer is
+/// rescued by the hinted pass (`Expect::pick`), which spells the word right.
+/// `MatchResult::passed` holds them to the 3 of 4 bar on their own. An answer
+/// that shares no word with `say` ("Restroom?" for "Bathroom?") stands in for
+/// it: its own words are held exact, and only the usual bar applies.
 pub fn score_tier(target: &str, say: &str, heard: &str, slack: usize, lang: &str) -> MatchResult {
-    let mut m = score_lenient(target, heard, slack, lang);
     let say = sounds(normalize(say), lang);
+    let own = sounds(normalize(target), lang);
+    let exact = if own.iter().any(|w| say.contains(w)) { &say } else { &own };
+    let mut m = score_held(target, heard, slack, lang, exact);
     let key: Vec<bool> = m
         .words
         .iter()
@@ -337,6 +344,12 @@ pub fn score(target: &str, heard: &str) -> MatchResult {
 /// `score` with `slack` extra slips per word (`BEGINNER_SLACK` at pre-A1),
 /// comparing words by how they sound in `lang` (the deck language).
 pub fn score_lenient(target: &str, heard: &str, slack: usize, lang: &str) -> MatchResult {
+    score_held(target, heard, slack, lang, &[])
+}
+
+/// `score_lenient`, but a target word that sounds like one of `exact` counts
+/// as heard only when it was heard exactly.
+fn score_held(target: &str, heard: &str, slack: usize, lang: &str, exact: &[String]) -> MatchResult {
     let t = normalize(target);
     let h = sounds(align_to_target(&t, normalize(heard)), lang);
     let t = sounds(t, lang);
@@ -346,7 +359,8 @@ pub fn score_lenient(target: &str, heard: &str, slack: usize, lang: &str) -> Mat
         .split_whitespace()
         .map(|orig| {
             let parts = sounds(normalize(orig), lang);
-            let hit = !parts.is_empty() && parts.iter().all(|p| h.iter().any(|hw| similar(p, hw, slack)));
+            let found = |p: &String| h.iter().any(|hw| hw == p || (!exact.contains(p) && similar(p, hw, slack)));
+            let hit = !parts.is_empty() && parts.iter().all(found);
             WordHit { word: orig.to_string(), hit }
         })
         .collect();
@@ -560,6 +574,76 @@ mod tests {
                 assert!(r.passed(PASS), "{heard:?} must pass for {:?} (slack {slack}): {r:?}", answers[0]);
             }
         }
+    }
+
+    /// Phrases from the basics deck, each with every form a learner may say.
+    const NEAR_MISSES: [(&[&str], &str); 4] = [
+        (&["Bathroom?", "Sorry, is there a bathroom?", "Restroom?", "Toilet?"], "Sorry, is there a bedroom?"),
+        (&["Small.", "A small one, please.", "Small, please"], "Smile one, please."),
+        (&["Seven.", "At seven, please."], "Heaven, maybe..."),
+        (&["Eight.", "Eight, please."], "Eighty."),
+    ];
+
+    #[test]
+    fn another_real_word_never_passes_as_the_lessons_word() {
+        // #80: all four passed before, three only with the beginner's slip.
+        for (answers, heard) in NEAR_MISSES {
+            for slack in [0, BEGINNER_SLACK] {
+                let (r, _) = score_any(answers, answers[0], heard, slack, "en");
+                assert!(!r.passed(PASS), "{heard:?} passed for {:?} (slack {slack}): {r:?}", answers[0]);
+            }
+        }
+    }
+
+    #[test]
+    fn every_form_of_the_answer_still_passes_alone_or_said_together() {
+        for (answers, _) in NEAR_MISSES {
+            let together = format!("{} {}", answers[0], answers[1]);
+            for heard in answers.iter().copied().chain([together.as_str()]) {
+                for slack in [0, BEGINNER_SLACK] {
+                    let (r, _) = score_any(answers, answers[0], heard, slack, "en");
+                    assert!(r.passed(PASS), "{heard:?} must pass for {:?} (slack {slack}): {r:?}", answers[0]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn the_hinted_pass_rescues_the_lessons_word_misheard_as_another() {
+        let small = Expect {
+            answers: NEAR_MISSES[1].0.iter().map(|a| a.to_string()).collect(),
+            say: "Small.".into(),
+            lang: "en".into(),
+            slack: BEGINNER_SLACK,
+            threshold: PASS,
+            hint: "Big. Small.".into(),
+        };
+        assert_eq!(
+            small.pick("Smile one, please.".into(), |_| Some("Small one, please.".into())),
+            "Small one, please."
+        );
+        assert_eq!(
+            small.pick("Smile one, please.".into(), |_| Some("Smile one, please.".into())),
+            "Smile one, please."
+        );
+        assert!(!small.accepts("Smile one, please."));
+    }
+
+    #[test]
+    fn the_other_words_of_an_answer_keep_their_slips() {
+        let tea = ["Tea.", "Tea for me, please."];
+        let (r, _) = score_any(&tea, "Tea.", "Tea for me, pleese.", 0, "en");
+        assert!(r.words.iter().all(|w| w.hit), "{r:?}");
+        let (r, _) = score_any(&tea, "Tea.", "Tee for me, please.", BEGINNER_SLACK, "en");
+        assert!(!r.passed(PASS), "but not the lesson's word: {r:?}");
+    }
+
+    #[test]
+    fn an_answer_standing_in_for_the_lessons_word_is_held_exact_too() {
+        // "restroom" is 3 slips from "bedroom": a beginner's budget for 8 letters.
+        let r = score_tier("Restroom?", "Bathroom?", "Sorry, is there a bedroom?", BEGINNER_SLACK, "en");
+        assert!(!r.passed(PASS), "{r:?}");
+        assert!(score_tier("Restroom?", "Bathroom?", "Restroom, please?", BEGINNER_SLACK, "en").passed(PASS));
     }
 
     #[test]

@@ -553,7 +553,7 @@ impl Lesson {
                 let words = if passed {
                     shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: other.is_none() }).collect()
                 } else {
-                    matcher::score_lenient(&shown, &text, slack, &self.deck.language).words
+                    matcher::score_tier(&shown, &p.say, &text, slack, &self.deck.language).words
                 };
                 if let Some(c) = &mut scene.hud.caption {
                     c.feedback = Some(words);
@@ -1240,17 +1240,48 @@ mod tests {
     }
 
     #[test]
-    fn a_pre_a1_learner_always_hears_the_answer_slower_and_gets_a_gentler_check() {
-        let (passed, parts, tag) = beginner_answers(PRE_A1, "tenks");
+    fn a_pre_a1_learner_always_hears_the_answer_slower() {
+        let (passed, parts, tag) = beginner_answers(PRE_A1, "Thanks!");
         assert!(tag.contains("repita"), "never from memory at pre-A1: {tag}");
         let target = parts.iter().find(|p| p.lang == "en").expect("the answer is read out");
         assert_eq!(target.speed, Speed::Slower);
-        assert!(passed, "one extra slip is fine for a beginner");
+        assert!(passed);
 
-        let (passed, parts, tag) = beginner_answers("A1", "tenks");
+        let (passed, parts, tag) = beginner_answers("A1", "Thanks!");
         assert!(tag.contains("memória"), "{tag}");
         assert!(parts.iter().all(|p| p.lang != "en" || p.speed == Speed::Slow));
-        assert!(!passed, "the usual check from A1 up");
+        assert!(passed);
+    }
+
+    #[test]
+    fn the_lessons_own_word_gets_no_slip_at_any_level() {
+        // #80: a slip on the lesson's word is another word; the hinted pass
+        // rescues a right answer whisper misspelled.
+        for level in [PRE_A1, "A1"] {
+            let (passed, _, _) = beginner_answers(level, "tenks");
+            assert!(!passed, "{level}");
+        }
+    }
+
+    const SMALL_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
+         [[phrase]]\nsay='Small.'\npolished='A small one, please.'\naccept=['Small, please']\nmeaning='Pequeno.'\n\
+         situation='O atendente pergunta o tamanho do café.'\ntopic='restaurante'\nlevel='PRE-A1'";
+
+    #[test]
+    fn another_word_for_the_lessons_word_fails_and_is_marked_missing() {
+        let mut o = options(true);
+        o.max_level = PRE_A1.into();
+        o.answer = Answer::All;
+        let mut f = fixture_with(o);
+        f.lesson.set_deck(Deck::parse(SMALL_DECK).unwrap(), &mut f.scene);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        // Heard in a learner's practice on 2026-11-17, and accepted then.
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Smile one, please.".into() }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.status, Status::Failed);
+        let small = cap.feedback.as_ref().unwrap().iter().find(|w| w.word.to_lowercase().starts_with("small"));
+        assert!(small.is_some_and(|w| !w.hit), "{:?}", cap.feedback);
     }
 
     const TEA_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
