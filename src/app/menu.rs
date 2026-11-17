@@ -14,6 +14,7 @@ use crate::learn::picker::Practice;
 use crate::learn::progress::{Progress, Tally};
 use crate::render::canvas::{Canvas, Rgba, hex};
 use crate::render::font;
+use crate::speech::remote::SttEngine;
 use crate::speech::voices::{TtsEngine, kokoro_default, kokoro_voice};
 
 pub const WIDTH: i32 = 232;
@@ -46,6 +47,10 @@ pub enum Item {
     Quit,
     Mic,
     TestMic,
+    /// Who turns answers into text: the app or a Whisper server.
+    SttEngine,
+    /// Address of that Whisper server (typed in the panel).
+    SttEndpoint,
     Engine,
     /// Address of the HTTP voice server (typed in the panel).
     Endpoint,
@@ -91,6 +96,8 @@ pub const GAME: &[Item] = &[
 pub const AUDIO: &[Item] = &[
     Item::Mic,
     Item::TestMic,
+    Item::SttEngine,
+    Item::SttEndpoint,
     Item::Engine,
     Item::Endpoint,
     Item::VoiceNative,
@@ -185,7 +192,8 @@ pub struct Menu {
     /// has them), as written in the settings; the app keeps this current.
     pub keys_taken: Vec<String>,
     /// The address being typed; keys go to it until Enter or Esc.
-    edit: Option<String>,
+    /// The address field open for typing: which item, and what is typed so far.
+    edit: Option<(Item, String)>,
     /// The list open over the rows (every option of one item at once).
     list: Option<List>,
 }
@@ -227,6 +235,18 @@ fn each<V>(s: &Settings, values: impl IntoIterator<Item = V>, set: impl Fn(&mut 
 /// `http://192.168.0.10:8880/v1` (Kokoro-FastAPI's base). An explicit path
 /// is kept. None when it can't be an http(s) address.
 pub fn normalize_url(raw: &str) -> Option<String> {
+    complete_url(raw, "/v1")
+}
+
+/// Completes a typed Whisper server address: `http://` when missing, the path
+/// as typed (`/v1` for the OpenAI shape, none for `/asr`). None when it can't
+/// be an http(s) address.
+pub fn normalize_stt_url(raw: &str) -> Option<String> {
+    complete_url(raw, "")
+}
+
+/// `raw` with a scheme, and `default_path` when it has no path of its own.
+fn complete_url(raw: &str, default_path: &str) -> Option<String> {
     let t = raw.trim();
     if t.is_empty() || t.chars().any(char::is_whitespace) {
         return None;
@@ -240,7 +260,7 @@ pub fn normalize_url(raw: &str) -> Option<String> {
     if rest.is_empty() || rest.starts_with('/') {
         return None;
     }
-    let path = if rest.contains('/') { "" } else { "/v1" };
+    let path = if rest.contains('/') { "" } else { default_path };
     Some(format!("{}://{rest}{path}", scheme.to_ascii_lowercase()))
 }
 
@@ -298,12 +318,31 @@ impl Menu {
 
     /// The address being typed, if the field is open.
     pub fn editing(&self) -> Option<&str> {
-        self.edit.as_deref()
+        self.edit.as_ref().map(|(_, buf)| buf.as_str())
     }
 
     /// Keys while the address field is open: type, fix, save or cancel.
     fn edit_key(&mut self, key: Key, s: &mut Settings) -> Action {
-        let Some(buf) = &mut self.edit else { return Action::None };
+        let Some((target, buf)) = &mut self.edit else { return Action::None };
+        if *target == Item::SttEndpoint && key == Key::Enter {
+            match normalize_stt_url(buf) {
+                Some(url) => {
+                    // An address alone picks the server's shape: `/v1` speaks OpenAI's.
+                    if s.stt_engine == SttEngine::Local {
+                        s.stt_engine = if url.ends_with("/v1") { SttEngine::Openai } else { SttEngine::Asr };
+                    }
+                    s.stt_url = url;
+                    self.edit = None;
+                    self.sel = self.items().iter().position(|i| *i == Item::TestMic).unwrap_or(self.sel);
+                    self.test_result = T::SttAddressSaved.get(s.native).into();
+                    return Action::Changed(Item::SttEndpoint);
+                }
+                None => {
+                    self.test_result = T::SttAddressInvalid.get(s.native).into();
+                    return Action::None;
+                }
+            }
+        }
         match key {
             Key::Char(c) if !c.is_control() && buf.chars().count() < 200 => buf.push(c),
             Key::Backspace => drop(buf.pop()),
@@ -379,6 +418,14 @@ impl Menu {
             Item::Goal => each(s, GOALS.iter().copied(), |c, g| c.daily_goal = g),
             Item::Mode => each(s, [WindowMode::Auto, WindowMode::Window, WindowMode::Overlay], |c, m| c.mode = m),
             Item::Mic => each(s, with_default(&self.mics), |c, m| c.mic = m),
+            // A server is offered only once its address is set (`stt_url` is required for it).
+            Item::SttEngine => {
+                let mut all = vec![SttEngine::Local];
+                if !s.stt_url.is_empty() {
+                    all.extend([SttEngine::Openai, SttEngine::Asr]);
+                }
+                each(s, all, |c, e| c.stt_engine = e)
+            }
             Item::Speaker => each(s, with_default(&self.speakers), |c, m| c.speaker = m),
             Item::Engine => {
                 // Only offer engines that can work with the current config.
@@ -515,8 +562,9 @@ impl Menu {
             Item::Quit => Action::Quit,
             Item::TestMic => Action::TestMic,
             Item::TestVoices => Action::TestVoices,
-            Item::Endpoint => {
-                self.edit = Some(s.tts_url.clone());
+            Item::Endpoint | Item::SttEndpoint => {
+                let url = if item == Item::Endpoint { &s.tts_url } else { &s.stt_url };
+                self.edit = Some((item, url.clone()));
                 self.test_result = T::AddressTyping.get(s.native).into();
                 Action::None
             }
@@ -651,6 +699,16 @@ impl Menu {
                 let url = s.tts_url.split_once("://").map_or(s.tts_url.as_str(), |(_, r)| r);
                 shorten(url, 22)
             }
+            Item::SttEngine => match s.stt_engine {
+                SttEngine::Local => T::SttLocal.get(n).into(),
+                SttEngine::Openai => T::SttOpenai.get(n).into(),
+                SttEngine::Asr => T::SttAsr.get(n).into(),
+            },
+            Item::SttEndpoint if s.stt_url.is_empty() => T::AddressNone.get(n).into(),
+            Item::SttEndpoint => {
+                let url = s.stt_url.split_once("://").map_or(s.stt_url.as_str(), |(_, r)| r);
+                shorten(url, 22)
+            }
             Item::Engine => match s.tts_engine {
                 TtsEngine::System => T::EngineSystem.get(n).into(),
                 TtsEngine::Http => "HTTP (Kokoro…)".into(),
@@ -690,6 +748,8 @@ impl Menu {
             Item::TestMic => T::ItemTestMic,
             Item::Engine => T::ItemEngine,
             Item::Endpoint => T::ItemEndpoint,
+            Item::SttEngine => T::ItemSttEngine,
+            Item::SttEndpoint => T::ItemSttEndpoint,
             Item::VoiceNative => T::ItemVoiceNative,
             Item::VoiceLearning => T::ItemVoiceLearning,
             Item::TestVoices => T::ItemTestVoices,
@@ -867,8 +927,8 @@ impl Menu {
                 }
             }
             font::draw(c, 10, y - 2, Self::label(*item, n), if selected { hex(0xffffff) } else { ink });
-            if *item == Item::Endpoint
-                && let Some(buf) = &self.edit
+            if let Some((target, buf)) = &self.edit
+                && target == item
             {
                 // The end of what is typed, so the cursor stays in view.
                 let room = c.w - 70;
@@ -1217,6 +1277,51 @@ mod tests {
     }
 
     #[test]
+    fn the_speech_server_address_is_typed_and_picks_the_servers_shape() {
+        for (typed, url, engine) in [
+            ("192.168.15.4:9000", "http://192.168.15.4:9000", SttEngine::Asr),
+            ("192.168.15.6:9000/v1/", "http://192.168.15.6:9000/v1", SttEngine::Openai),
+        ] {
+            let mut m = menu();
+            let mut s = Settings::default();
+            select(&mut m, Item::SttEndpoint);
+            assert_eq!(m.key(Key::Enter, &mut s), Action::None, "Enter starts editing");
+            assert_eq!(m.editing(), Some(""), "no address yet");
+            type_text(&mut m, &mut s, typed);
+            assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::SttEndpoint));
+            assert_eq!((s.stt_url.as_str(), s.stt_engine), (url, engine));
+            assert_eq!(s.tts_url, Settings::default().tts_url, "the voice address is another field");
+            assert_eq!(m.item(), Item::TestMic, "Enter again tries the mic through the server");
+            s.validate().unwrap();
+        }
+    }
+
+    #[test]
+    fn a_bad_speech_server_address_keeps_the_field_open() {
+        let mut m = menu();
+        let mut s = Settings::default();
+        select(&mut m, Item::SttEndpoint);
+        m.key(Key::Enter, &mut s);
+        type_text(&mut m, &mut s, "ftp://x");
+        assert_eq!(m.key(Key::Enter, &mut s), Action::None);
+        assert_eq!(m.editing(), Some("ftp://x"), "kept for fixing");
+        assert_eq!(s.stt_engine, SttEngine::Local);
+    }
+
+    #[test]
+    fn a_speech_server_is_offered_only_once_it_has_an_address() {
+        let m = menu();
+        let s = Settings::default();
+        let engines = |s: &Settings| m.choices(Item::SttEngine, s).iter().map(|c| c.stt_engine).collect::<Vec<_>>();
+        assert_eq!(engines(&s), [SttEngine::Local], "a server without an address would not load");
+        let with = Settings { stt_url: "http://192.168.15.4:9000".into(), ..s };
+        assert_eq!(engines(&with), [SttEngine::Local, SttEngine::Openai, SttEngine::Asr]);
+        for c in m.choices(Item::SttEngine, &with) {
+            c.validate().unwrap();
+        }
+    }
+
+    #[test]
     fn the_tts_address_is_typed_saved_and_leads_to_the_voice_test() {
         let mut m = menu();
         let mut s = Settings::default();
@@ -1397,6 +1502,26 @@ mod tests {
             let mut c = Canvas::new(WIDTH, HEIGHT);
             m.draw(&mut c, &s, 0.0);
             assert_eq!(c.opaque_in(0, 0, WIDTH, HEIGHT), (WIDTH * HEIGHT) as usize);
+        }
+    }
+
+    #[test]
+    fn the_recognition_rows_fit_the_panel_with_a_server_selected() {
+        let m = menu();
+        for native in Native::ALL {
+            for (engine, url) in [
+                (SttEngine::Local, ""),
+                (SttEngine::Openai, "http://192.168.15.6:9000/v1"),
+                (SttEngine::Asr, "http://192.168.100.200:65535"),
+            ] {
+                let s = Settings { native, stt_engine: engine, stt_url: url.into(), ..Settings::default() };
+                for item in [Item::SttEngine, Item::SttEndpoint] {
+                    let row = font::text_width(Menu::label(item, native)) + font::text_width(&m.value(item, &s));
+                    // label from x = 10, "< value >" ends 6 from the edge, at least one blank cell between.
+                    let selected = row + font::text_width("< > ") + 10 + 6 + font::ADVANCE;
+                    assert!(selected <= WIDTH, "{item:?} {native:?} {engine:?}: {selected}px");
+                }
+            }
         }
     }
 

@@ -5,6 +5,7 @@ use super::level::Commitment;
 use crate::lang::Native;
 use crate::learn::deck::{Answer, LEVELS};
 use crate::learn::picker::Practice;
+use crate::speech::remote::{Remote, SttEngine};
 use crate::speech::voices::TtsEngine;
 use anyhow::{Context, Result, bail};
 use chrono::NaiveTime;
@@ -66,6 +67,13 @@ pub struct Settings {
     pub tts_model: String,
     /// Command template for `command`: {text} {lang} {voice} {out}.
     pub tts_command: String,
+    /// Who turns answers into text: local (whisper.cpp in the app, offline) |
+    /// openai | asr (a Whisper server at `stt_url`: each answer's audio goes there).
+    pub stt_engine: SttEngine,
+    /// Base URL of that server: `http://host:port/v1` for openai, `http://host:port` for asr.
+    pub stt_url: String,
+    /// Model asked of an openai server ("" = the server's default).
+    pub stt_model: String,
     /// Microphone name ("" = system default). `snowlearner audio mics` lists them.
     pub mic: String,
     /// Speaker for audio the app plays itself ("" = default).
@@ -113,6 +121,9 @@ impl Default for Settings {
             tts_url: "http://localhost:8880/v1".into(),
             tts_model: "kokoro".into(),
             tts_command: String::new(),
+            stt_engine: SttEngine::Local,
+            stt_url: String::new(),
+            stt_model: String::new(),
             mic: String::new(),
             speaker: String::new(),
             practice: Practice::Auto,
@@ -166,7 +177,8 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # answer: all | short | complete | polished\n\
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
     # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
-    # ipc_port: local port for `snowlearner say|menu|quit`; change it if another program holds it\n\n";
+    # ipc_port: local port for `snowlearner say|menu|quit`; change it if another program holds it\n\
+    # stt_engine: local (offline) | openai | asr = a Whisper server at stt_url hears your answers\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -207,6 +219,9 @@ impl Settings {
         if self.tts_engine == TtsEngine::Http && !self.tts_url.starts_with("http") {
             bail!("`tts_url` must be an http(s) URL, got {:?}", self.tts_url);
         }
+        if self.stt_engine != SttEngine::Local && !self.stt_url.starts_with("http") {
+            bail!("`stt_url` must be an http(s) URL when `stt_engine` is not \"local\", got {:?}", self.stt_url);
+        }
         if self.tts_engine == TtsEngine::Command && self.tts_command.trim().is_empty() {
             bail!("`tts_command` is required when `tts_engine = \"command\"`");
         }
@@ -215,6 +230,11 @@ impl Settings {
         }
         self.summary_at()?;
         Ok(())
+    }
+
+    /// The Whisper server answers go to, or None when recognition is local.
+    pub fn remote_stt(&self) -> Option<Remote> {
+        Remote::new(self.stt_engine, &self.stt_url, &self.stt_model)
     }
 
     /// The voice engine these settings describe.
@@ -296,6 +316,9 @@ mod tests {
             ("daily_goal = 0", "daily_goal"),
             ("tts_engine = 'http'\ntts_url = 'localhost'", "tts_url"),
             ("tts_engine = 'command'", "tts_command"),
+            ("stt_engine = 'asr'", "stt_url"),
+            ("stt_engine = 'openai'\nstt_url = '192.168.15.6:9000/v1'", "stt_url"),
+            ("stt_engine = 'cloud'", "stt_engine"),
             ("answer = 'longest'", "answer"),
             ("native = 'fr'", "native"),
         ] {

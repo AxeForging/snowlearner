@@ -238,6 +238,30 @@ fn doctor_reports_every_subsystem() {
 }
 
 #[test]
+fn doctor_names_the_speech_server_and_whether_it_answers() {
+    let home = Home::new();
+    let server = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = server.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        for mut s in server.incoming().flatten() {
+            let mut buf = [0u8; 1024];
+            let _ = std::io::Read::read(&mut s, &mut buf);
+            let _ = std::io::Write::write_all(&mut s, b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+        }
+    });
+    home.config(&format!("stt_engine = 'asr'\nstt_url = 'http://127.0.0.1:{port}'\n"));
+    let o = home.run(&["doctor"]);
+    let out = stdout(&o);
+    assert!(out.contains(&format!("asr server at http://127.0.0.1:{port}/asr (answers")), "{out}");
+    assert!(!out.contains("model missing"), "a server needs no local model: {out}");
+
+    let closed = free_port();
+    home.config(&format!("stt_engine = 'openai'\nstt_url = 'http://127.0.0.1:{closed}/v1'\n"));
+    let out = stdout(&home.run(&["doctor"]));
+    assert!(out.contains("did not answer"), "{out}");
+}
+
+#[test]
 fn model_download_rejects_unknown_sizes_without_touching_the_network() {
     let o = Home::new().run(&["model", "download", "--name", "gigantic"]);
     assert!(!o.status.success());

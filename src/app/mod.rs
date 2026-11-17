@@ -657,7 +657,14 @@ impl App {
                 self.lesson.set_options(|o| o.daily_goal = g, scene);
             }
             Item::Mode => scene.hud.toast(T::ModeRestart.get(n), 3.0),
-            Item::Mic | Item::Speaker | Item::Engine | Item::Endpoint | Item::VoiceNative | Item::VoiceLearning => {
+            Item::Mic
+            | Item::Speaker
+            | Item::Engine
+            | Item::Endpoint
+            | Item::VoiceNative
+            | Item::VoiceLearning
+            | Item::SttEngine
+            | Item::SttEndpoint => {
                 self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
                 if matches!(item, Item::Engine | Item::Endpoint) {
                     let desc = self.settings.voice().describe();

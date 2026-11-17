@@ -223,7 +223,7 @@ const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 /// `localhost` resolves to `::1` first, but local TTS servers (Docker, WSL)
 /// often listen on IPv4 only, and on Windows `::1` then hangs for 21 s
 /// instead of refusing. Such URLs try IPv4 first.
-fn ipv4_first(url: &str) -> bool {
+pub(crate) fn ipv4_first(url: &str) -> bool {
     let rest = url.split_once("://").map_or(url, |(_, r)| r);
     let authority = rest.split('/').next().unwrap_or(rest);
     let host = authority.rsplit_once(':').map_or(authority, |(h, _)| h);

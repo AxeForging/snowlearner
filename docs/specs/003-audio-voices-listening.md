@@ -45,6 +45,34 @@ Kokoro defaults when the voice is empty: pt-BR `pf_dora`, en `af_heart`, es `ef_
 `snowlearner voices list [--lang]`, `snowlearner voices test [--lang] [--voice]`;
 panel: engine, native voice, target voice, test voices.
 
+## Recognition on a server (`stt_engine`, #59)
+| engine | request | reply |
+|---|---|---|
+| `local` (default) | whisper.cpp in the app | — |
+| `openai` | `POST {stt_url}/audio/transcriptions`, multipart: `file` (WAV), `language`, `response_format=json`, `model` when `stt_model` is set, `prompt` on the hinted pass | `{"text": …}` |
+| `asr` | `POST {stt_url}/asr?language=…&output=json[&initial_prompt=…]`, multipart: `audio_file` (WAV) | `{"text": …, "segments": …}` |
+
+Both shapes were read from the reporter's servers' own OpenAPI (Whisper Asr Webservice 1.9.1):
+`192.168.15.4:9000` exposes only `/asr`, `192.168.15.6:9000` both. The WAV is the answer as
+whisper.cpp would get it (`transcriber::prepare`: 0.3 s lead-in, at least 1.1 s), 16-bit mono 16 kHz.
+
+- **Opt-in.** The default is `local`; with it no request is ever made. Otherwise the answer's audio
+  goes to `stt_url` only, and the README says so.
+- **Same lesson logic.** `transcriber::Transcriber` holds the two passes (the hinted one only when
+  the first missed) and their log lines for both recognizers; the server is one more `pass`.
+- **Timeouts.** 3 s to connect, 30 s per answer: a server loading `large-v3-turbo` for its first
+  request took 18 s. A failure is a `SpeechEvent::Failed` → self-confirmation, reason in the log.
+- **Measured** with a synthetic clip ("Me too, I love pizza.", Windows SAPI voice), 2026-11-17:
+  `/asr` 0.6–0.9 s on .4 and 0.4 s on .6; `/v1` with `base` 0.2 s on .6. Local `base` is about
+  1.9 s per pass on the same machine.
+- **Known quirk.** On `/v1` with model `base`, the hint "Me too." made the server drop those words
+  ("I love pizza."); `turbo`, `large-v3-turbo` and `/asr` kept them. The hinted pass only runs after
+  a miss, so the worst case is an answer that is not rescued.
+- The panel's *Reconhecimento* row offers a server only once *Servidor* has an address (a server
+  without one would not load). A typed address ending in `/v1` picks `openai`, others `asr`.
+- Switching from a missing local model to a server in the panel takes effect for listening after
+  a restart (`can_listen` is decided when the speech worker starts).
+
 ## Docs
 Animated WebP clips in the README rendered from `snowlearner snapshot --scenario … --frames`.
 
