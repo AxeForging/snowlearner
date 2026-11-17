@@ -1,7 +1,7 @@
-//! Speech recognition on a Whisper server the learner runs, instead of
-//! whisper.cpp inside the app. Opt-in: with `stt_engine = "local"` (the
-//! default) nothing leaves the machine; otherwise each answer's audio goes to
-//! `stt_url` and nowhere else.
+//! Speech recognition on a Whisper server, instead of whisper.cpp inside the
+//! app: one the learner runs, or Groq's cloud with the learner's API key.
+//! Opt-in: with `stt_engine = "local"` (the default) nothing leaves the
+//! machine; otherwise each answer's audio goes to that one server and nowhere else.
 
 use super::transcriber::{Transcriber, clean, prepare};
 use anyhow::{Result, anyhow};
@@ -19,6 +19,8 @@ pub enum SttEngine {
     Openai,
     /// `POST {stt_url}/asr`: Whisper ASR Webservice's own shape.
     Asr,
+    /// Groq's cloud (`GROQ_URL`), OpenAI-compatible, with the key in `stt_key`.
+    Groq,
 }
 
 impl SttEngine {
@@ -28,8 +30,81 @@ impl SttEngine {
             SttEngine::Local => "local",
             SttEngine::Openai => "openai",
             SttEngine::Asr => "asr",
+            SttEngine::Groq => "groq",
         }
     }
+}
+
+/// Groq's OpenAI-compatible API (https://console.groq.com/docs/speech-to-text).
+pub const GROQ_URL: &str = "https://api.groq.com/openai/v1";
+/// The model Groq is asked for. Fixed: `stt_model` belongs to the learner's own
+/// server, and a name meant for it would make Groq refuse every answer (#94).
+pub const GROQ_MODEL: &str = "whisper-large-v3-turbo";
+
+/// An API key. Never shown whole: `Debug` and `masked` keep only its ends.
+#[derive(Clone, PartialEq, Eq, Default)]
+pub struct ApiKey(String);
+
+impl ApiKey {
+    pub fn new(key: &str) -> ApiKey {
+        ApiKey(key.trim().to_string())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// The key as it may be shown: see `mask_key`.
+    pub fn masked(&self) -> String {
+        mask_key(&self.0)
+    }
+}
+
+impl std::fmt::Debug for ApiKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ApiKey({})", self.masked())
+    }
+}
+
+/// A key as it may appear on screen and in logs: its first and last four
+/// characters (`gsk_…1a2b`), or only `…` when it is too short to hide anything.
+pub fn mask_key(key: &str) -> String {
+    let chars: Vec<char> = key.trim().chars().collect();
+    if chars.len() < 12 {
+        return "…".into();
+    }
+    let head: String = chars[..4].iter().collect();
+    let tail: String = chars[chars.len() - 4..].iter().collect();
+    format!("{head}…{tail}")
+}
+
+/// Why a speech server turned an answer or a key down, so the learner reads
+/// it in their own language instead of an HTTP status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Refusal {
+    /// Groq was picked but `stt_key` is empty.
+    KeyMissing,
+    /// HTTP 401 or 403: the key is wrong or revoked.
+    KeyRefused,
+    /// HTTP 429: the plan's limit was reached for now.
+    Limited,
+}
+
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Refusal::KeyMissing => "the speech server needs an API key (stt_key)",
+            Refusal::KeyRefused => "the speech server refused the API key",
+            Refusal::Limited => "the speech server's usage limit was reached; try again later",
+        })
+    }
+}
+
+impl std::error::Error for Refusal {}
+
+/// The refusal behind `e`, if a server turned the request down for its key or its limit.
+pub fn refusal(e: &anyhow::Error) -> Option<Refusal> {
+    e.chain().find_map(|c| c.downcast_ref::<Refusal>().copied())
 }
 
 /// Longest wait for the server to accept the connection.
@@ -48,6 +123,8 @@ pub struct Remote {
     pub url: String,
     /// Model name sent to an OpenAI-compatible server; empty = the server's default.
     pub model: String,
+    /// Sent as `Authorization: Bearer` when set.
+    pub key: ApiKey,
     pub timeout: Duration,
 }
 
@@ -63,11 +140,14 @@ const BOUNDARY: &str = "snowlearner-answer-7d1f3c";
 
 impl Remote {
     /// The server these settings point at, or None for the local recognizer.
-    pub fn new(engine: SttEngine, url: &str, model: &str) -> Option<Remote> {
+    /// Groq ignores `url` and `model`: its own are built in.
+    pub fn new(engine: SttEngine, url: &str, model: &str, key: &str) -> Option<Remote> {
+        let (url, model) = if engine == SttEngine::Groq { (GROQ_URL, GROQ_MODEL) } else { (url, model) };
         (engine != SttEngine::Local).then(|| Remote {
             engine,
             url: url.trim_end_matches('/').to_string(),
             model: model.to_string(),
+            key: ApiKey::new(key),
             timeout: ANSWER_TIMEOUT,
         })
     }
@@ -75,9 +155,27 @@ impl Remote {
     /// Where answers are sent, for the log and `doctor`.
     pub fn endpoint(&self) -> String {
         match self.engine {
-            SttEngine::Openai => format!("{}/audio/transcriptions", self.url),
+            SttEngine::Openai | SttEngine::Groq => format!("{}/audio/transcriptions", self.url),
             _ => format!("{}/asr", self.url),
         }
+    }
+
+    /// Whether the server takes the key, before a lesson depends on it:
+    /// `GET {url}/models` (OpenAI's model list) with the key. A refused key
+    /// or a missing one comes back as a `Refusal`.
+    pub fn check_key(&self) -> Result<()> {
+        if self.key.is_empty() {
+            return Err(Refusal::KeyMissing.into());
+        }
+        let url = format!("{}/models", self.url);
+        send(&url, self.timeout, |a| self.authorized(a.get(&url)).call())
+            .map(|_| ())
+            .map_err(|e| explain(e, &url, self.timeout))
+    }
+
+    /// `req` with the key, when there is one.
+    fn authorized<B>(&self, req: ureq::RequestBuilder<B>) -> ureq::RequestBuilder<B> {
+        if self.key.is_empty() { req } else { req.header("Authorization", format!("Bearer {}", self.key.0)) }
     }
 
     /// Whether anything answers at `stt_url`: any HTTP status counts, only a
@@ -95,7 +193,7 @@ impl Remote {
         let audio = wav(&prepare(samples));
         let content_type = format!("multipart/form-data; boundary={BOUNDARY}");
         match self.engine {
-            SttEngine::Openai => {
+            SttEngine::Openai | SttEngine::Groq => {
                 let mut fields = vec![("language", code.as_str()), ("response_format", "json")];
                 if !self.model.is_empty() {
                     fields.push(("model", self.model.as_str()));
@@ -118,9 +216,12 @@ impl Remote {
 
 impl Transcriber for Remote {
     fn pass(&self, samples: &[f32], lang: &str, prompt: Option<&str>) -> Result<String> {
+        if self.engine == SttEngine::Groq && self.key.is_empty() {
+            return Err(Refusal::KeyMissing.into());
+        }
         let req = self.request(samples, lang, prompt);
         let reply = send(&req.url, self.timeout, |a| {
-            a.post(&req.url).header("Content-Type", &req.content_type).send(&req.body[..])
+            self.authorized(a.post(&req.url)).header("Content-Type", &req.content_type).send(&req.body[..])
         })
         .and_then(|mut r| r.body_mut().read_to_string())
         .map_err(|e| explain(e, &self.endpoint(), self.timeout))?;
@@ -157,6 +258,12 @@ fn send<T>(
 /// A failed request in the learner's terms: down, slow, or refusing.
 fn explain(e: ureq::Error, url: &str, timeout: Duration) -> anyhow::Error {
     match e {
+        ureq::Error::StatusCode(code @ (401 | 403)) => {
+            anyhow::Error::new(Refusal::KeyRefused).context(format!("speech server at {url} answered HTTP {code}"))
+        }
+        ureq::Error::StatusCode(429) => {
+            anyhow::Error::new(Refusal::Limited).context(format!("speech server at {url} answered HTTP 429"))
+        }
         ureq::Error::StatusCode(code) => anyhow!("speech server at {url} answered HTTP {code}"),
         ureq::Error::Timeout(_) => anyhow!("speech server at {url} took longer than {} s", timeout.as_secs()),
         other => anyhow!("speech server at {url} did not answer — is it running? ({other})"),
@@ -268,12 +375,85 @@ mod tests {
     }
 
     fn remote(engine: SttEngine, url: &str) -> Remote {
-        Remote::new(engine, url, "").unwrap()
+        Remote::new(engine, url, "", "").unwrap()
     }
+
+    const KEY: &str = "gsk_0123456789abcdefWXYZ";
 
     #[test]
     fn the_local_engine_has_no_server() {
-        assert_eq!(Remote::new(SttEngine::Local, "http://x:9000", "base"), None);
+        assert_eq!(Remote::new(SttEngine::Local, "http://x:9000", "base", KEY), None);
+    }
+
+    #[test]
+    fn groq_uses_its_own_address_and_model_whatever_the_home_server_has() {
+        let r = Remote::new(SttEngine::Groq, "http://192.168.15.6:9000/v1", "small", KEY).unwrap();
+        assert_eq!(r.endpoint(), "https://api.groq.com/openai/v1/audio/transcriptions");
+        let req = r.request(&[0.0; 100], "en", None);
+        assert_eq!(req.url, r.endpoint());
+        assert!(String::from_utf8_lossy(&req.body).contains("name=\"model\"\r\n\r\nwhisper-large-v3-turbo\r\n"));
+    }
+
+    #[test]
+    fn the_key_goes_in_the_authorization_header_only_when_set() {
+        let (base, rx) = server(OK_JSON, Duration::ZERO);
+        let r = Remote::new(SttEngine::Openai, &format!("{base}/v1"), "", KEY).unwrap();
+        r.pass(&[0.0; 100], "en", None).unwrap();
+        let req = rx.recv_timeout(Duration::from_secs(2)).unwrap().to_ascii_lowercase();
+        assert!(req.contains(&format!("authorization: bearer {}", KEY.to_ascii_lowercase())), "{req:.300}");
+
+        let (base, rx) = server(OK_JSON, Duration::ZERO);
+        remote(SttEngine::Openai, &format!("{base}/v1")).pass(&[0.0; 100], "en", None).unwrap();
+        let req = rx.recv_timeout(Duration::from_secs(2)).unwrap().to_ascii_lowercase();
+        assert!(!req.contains("authorization:"), "no key, no header: {req:.300}");
+    }
+
+    #[test]
+    fn a_key_the_server_takes_passes_the_check() {
+        let (base, rx) = server(OK_JSON, Duration::ZERO);
+        Remote::new(SttEngine::Openai, &format!("{base}/v1"), "", KEY).unwrap().check_key().unwrap();
+        let req = rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(req.starts_with("GET /v1/models "), "{req:.80}");
+    }
+
+    #[test]
+    fn a_refused_key_or_a_reached_limit_is_named_not_shown_as_a_status() {
+        const CASES: [(&str, Refusal); 3] = [
+            ("401 Unauthorized", Refusal::KeyRefused),
+            ("403 Forbidden", Refusal::KeyRefused),
+            ("429 Too Many Requests", Refusal::Limited),
+        ];
+        for (status, want) in CASES {
+            let (base, _rx) = server(empty(status), Duration::ZERO);
+            let r = Remote::new(SttEngine::Openai, &format!("{base}/v1"), "", KEY).unwrap();
+            let err = r.check_key().unwrap_err();
+            assert_eq!(refusal(&err), Some(want), "{status}: {err:#}");
+            let (base, _rx) = server(empty(status), Duration::ZERO);
+            let r = Remote { url: format!("{base}/v1"), ..r };
+            assert_eq!(refusal(&r.pass(&[0.0; 100], "en", None).unwrap_err()), Some(want), "{status} on an answer");
+        }
+        let (base, _rx) = server(empty("500 Internal Server Error"), Duration::ZERO);
+        let err = Remote::new(SttEngine::Openai, &format!("{base}/v1"), "", KEY).unwrap().check_key().unwrap_err();
+        assert_eq!(refusal(&err), None, "{err:#}");
+    }
+
+    #[test]
+    fn groq_without_a_key_says_so_before_sending_anything() {
+        let r = Remote::new(SttEngine::Groq, "", "", "  ").unwrap();
+        assert_eq!(refusal(&r.check_key().unwrap_err()), Some(Refusal::KeyMissing));
+        assert_eq!(refusal(&r.pass(&[0.0; 100], "en", None).unwrap_err()), Some(Refusal::KeyMissing));
+    }
+
+    #[test]
+    fn the_key_is_never_shown_whole() {
+        assert_eq!(mask_key(KEY), "gsk_…WXYZ");
+        assert_eq!(mask_key("short-key"), "…", "too short to show any of it");
+        let r = Remote::new(SttEngine::Groq, "", "", KEY).unwrap();
+        let shown = format!("{r:?} {}", r.key.masked());
+        assert!(!shown.contains("0123456789abcdef"), "{shown}");
+        let (base, _rx) = server(empty("401 Unauthorized"), Duration::ZERO);
+        let err = Remote::new(SttEngine::Openai, &format!("{base}/v1"), "", KEY).unwrap().check_key().unwrap_err();
+        assert!(!format!("{err:#} {err:?}").contains("0123456789abcdef"));
     }
 
     #[test]

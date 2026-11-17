@@ -68,6 +68,7 @@ texts! {
     ItemEndpoint => "Endereço", "Address";
     ItemSttEngine => "Reconhecimento", "Recognition";
     ItemSttEndpoint => "Servidor", "Server";
+    ItemSttKey => "Chave", "Key";
     ItemVoiceNative => "Minha voz", "My voice";
     ItemVoiceLearning => "Voz do idioma", "Learning voice";
     ItemTestVoices => "> Testar vozes", "> Test voices";
@@ -115,6 +116,17 @@ texts! {
     SttLocal => "neste computador", "this computer";
     SttOpenai => "servidor OpenAI", "OpenAI server";
     SttAsr => "servidor ASR", "ASR server";
+    SttGroq => "Groq (nuvem)", "Groq (cloud)";
+    KeyNone => "nenhuma", "none";
+    KeyTyping => "Cole a chave (Ctrl+V) · Enter salva · Esc cancela", "Paste the key (Ctrl+V) · Enter saves · Esc cancels";
+    KeyInvalid => "Chave inválida: ela não tem espaços.", "Invalid key: a key has no spaces.";
+    KeyChecking => "Conferindo a chave...", "Checking the key...";
+    KeyWorks => "✓ Chave aceita. Enter: testar o microfone.", "✓ Key accepted. Enter: test the microphone.";
+    KeyRemoved => "Chave apagada.", "Key removed.";
+    PasteFailed => "Não deu para colar: {0}", "Could not paste: {0}";
+    SttKeyMissing => "O Groq precisa de uma chave: cole aqui (Ctrl+V).", "Groq needs a key: paste it here (Ctrl+V).";
+    SttKeyRefused => "Chave recusada pelo servidor de reconhecimento.", "The recognition server refused the key.";
+    SttLimited => "Limite do Groq atingido por agora. Tente mais tarde.", "Groq's limit is reached for now. Try again later.";
     AddressNone => "nenhum", "none";
     SttAddressSaved => "Endereço salvo. Enter: testar o microfone.", "Address saved. Enter: test the microphone.";
     SttAddressInvalid => "Endereço inválido: use http://IP:porta", "Invalid address: use http://IP:port";
@@ -336,6 +348,17 @@ impl T {
 
 /// A language's name in the learner's own words ("es" → "espanhol" / "Spanish").
 /// Unknown codes (custom decks) stay as written.
+/// Why the speech server turned an answer or a key down, in the learner's language.
+pub fn refusal(native: Native, why: crate::speech::remote::Refusal) -> &'static str {
+    use crate::speech::remote::Refusal;
+    match why {
+        Refusal::KeyMissing => T::SttKeyMissing,
+        Refusal::KeyRefused => T::SttKeyRefused,
+        Refusal::Limited => T::SttLimited,
+    }
+    .get(native)
+}
+
 pub fn language_name(native: Native, code: &str) -> String {
     let base = code.split(['-', '_']).next().unwrap_or(code).to_ascii_lowercase();
     let name = match (native, base.as_str()) {

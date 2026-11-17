@@ -68,12 +68,15 @@ pub struct Settings {
     /// Command template for `command`: {text} {lang} {voice} {out}.
     pub tts_command: String,
     /// Who turns answers into text: local (whisper.cpp in the app, offline) |
-    /// openai | asr (a Whisper server at `stt_url`: each answer's audio goes there).
+    /// openai | asr (a Whisper server at `stt_url`: each answer's audio goes there) |
+    /// groq (Groq's cloud, with `stt_key`).
     pub stt_engine: SttEngine,
     /// Base URL of that server: `http://host:port/v1` for openai, `http://host:port` for asr.
     pub stt_url: String,
     /// Model asked of an openai server ("" = the server's default).
     pub stt_model: String,
+    /// API key sent to the speech server (Groq's `gsk_…`); "" = none.
+    pub stt_key: String,
     /// Microphone name ("" = system default). `snowlearner audio mics` lists them.
     pub mic: String,
     /// Speaker for audio the app plays itself ("" = default).
@@ -124,6 +127,7 @@ impl Default for Settings {
             stt_engine: SttEngine::Local,
             stt_url: String::new(),
             stt_model: String::new(),
+            stt_key: String::new(),
             mic: String::new(),
             speaker: String::new(),
             practice: Practice::Auto,
@@ -178,7 +182,8 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
     # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
     # ipc_port: local port for `snowlearner say|menu|quit`; change it if another program holds it\n\
-    # stt_engine: local (offline) | openai | asr = a Whisper server at stt_url hears your answers\n\n";
+    # stt_engine: local (offline) | openai | asr = a Whisper server at stt_url hears your answers\n\
+    #   | groq = Groq's cloud hears them, with your API key in stt_key (console.groq.com/keys)\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -219,7 +224,10 @@ impl Settings {
         if self.tts_engine == TtsEngine::Http && !self.tts_url.starts_with("http") {
             bail!("`tts_url` must be an http(s) URL, got {:?}", self.tts_url);
         }
-        if self.stt_engine != SttEngine::Local && !self.stt_url.starts_with("http") {
+        if self.stt_key.trim().chars().any(char::is_whitespace) {
+            bail!("`stt_key` must be one word with no spaces inside");
+        }
+        if matches!(self.stt_engine, SttEngine::Openai | SttEngine::Asr) && !self.stt_url.starts_with("http") {
             bail!("`stt_url` must be an http(s) URL when `stt_engine` is not \"local\", got {:?}", self.stt_url);
         }
         if self.tts_engine == TtsEngine::Command && self.tts_command.trim().is_empty() {
@@ -234,7 +242,7 @@ impl Settings {
 
     /// The Whisper server answers go to, or None when recognition is local.
     pub fn remote_stt(&self) -> Option<Remote> {
-        Remote::new(self.stt_engine, &self.stt_url, &self.stt_model)
+        Remote::new(self.stt_engine, &self.stt_url, &self.stt_model, &self.stt_key)
     }
 
     /// The voice engine these settings describe.
@@ -319,6 +327,7 @@ mod tests {
             ("stt_engine = 'asr'", "stt_url"),
             ("stt_engine = 'openai'\nstt_url = '192.168.15.6:9000/v1'", "stt_url"),
             ("stt_engine = 'cloud'", "stt_engine"),
+            ("stt_engine = 'groq'\nstt_key = 'gsk_abc def'", "stt_key"),
             ("answer = 'longest'", "answer"),
             ("native = 'fr'", "native"),
         ] {
@@ -389,6 +398,21 @@ mod tests {
         assert_eq!(Settings::load(&p).unwrap().native, Native::En);
         std::fs::write(&p, "native = 'pt'\n").unwrap();
         assert_eq!(Settings::load(&p).unwrap().native, Native::PtBr, "pt is read as pt-BR");
+    }
+
+    #[test]
+    fn groq_needs_only_its_key_and_keeps_the_home_servers_address() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("c.toml");
+        let src = "stt_engine = 'groq'\nstt_key = ' gsk_0123456789abcdef '\nstt_url = 'http://192.168.15.4:9000'";
+        std::fs::write(&p, src).unwrap();
+        let s = Settings::load(&p).unwrap();
+        let groq = s.remote_stt().unwrap();
+        assert_eq!(groq.endpoint(), "https://api.groq.com/openai/v1/audio/transcriptions");
+        assert_eq!(groq.key.masked(), "gsk_…cdef", "the key, trimmed");
+        assert_eq!(s.stt_url, "http://192.168.15.4:9000", "kept for switching back");
+        let alone = Settings { stt_engine: SttEngine::Groq, stt_url: String::new(), ..s };
+        alone.validate().unwrap();
     }
 
     #[test]

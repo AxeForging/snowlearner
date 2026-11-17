@@ -664,8 +664,17 @@ impl App {
             | Item::VoiceNative
             | Item::VoiceLearning
             | Item::SttEngine
-            | Item::SttEndpoint => {
+            | Item::SttEndpoint
+            | Item::SttKey => {
                 self.speech.send(Job::Configure(Box::new(VoiceSettings::from(&self.settings, &self.paths))));
+                // A key, or Groq picked with one, is checked at once: before a lesson depends on it.
+                let groq = self.settings.stt_engine == crate::speech::remote::SttEngine::Groq;
+                let keyed = !self.settings.stt_key.trim().is_empty();
+                if keyed && (item == Item::SttKey || (item == Item::SttEngine && groq)) {
+                    self.test_id += 1;
+                    self.menu.test_result = T::KeyChecking.get(n).into();
+                    self.speech.send(Job::CheckKey { id: self.test_id });
+                }
                 if matches!(item, Item::Engine | Item::Endpoint) {
                     let desc = self.settings.voice().describe();
                     scene.hud.toast(T::VoiceToast.fill(n, &[&desc]), 3.0);
@@ -787,6 +796,14 @@ impl App {
         }
     }
 
+    /// Ctrl+V in the panel's open field: the clipboard's text goes in as if typed.
+    fn paste_into_panel(&mut self) {
+        match arboard::Clipboard::new().and_then(|mut c| c.get_text()) {
+            Ok(text) => self.menu.paste(&text, &mut self.settings),
+            Err(e) => self.menu.test_result = T::PasteFailed.fill(self.settings.native, &[&e]),
+        }
+    }
+
     /// Results of the panel's mic/voice tests (not lesson events).
     fn test_event(&mut self, ev: SpeechEvent) {
         if ev.id() != self.test_id {
@@ -809,6 +826,11 @@ impl App {
                 self.menu.meter = None;
                 self.menu.test_result = T::TestError.fill(n, &[&error]);
             }
+            SpeechEvent::Refused { refusal, .. } => {
+                self.menu.meter = None;
+                self.menu.test_result = crate::lang::text::refusal(n, refusal).into();
+            }
+            SpeechEvent::KeyWorks { .. } => self.menu.test_result = T::KeyWorks.get(n).into(),
             // The worker reports Spoken even after a part failed: keep the error.
             SpeechEvent::Spoken { .. } if !self.menu.test_result.starts_with(&failed) => {
                 self.menu.test_result = T::TestVoicesDone.get(n).into()
@@ -1154,7 +1176,9 @@ impl ApplicationHandler<UserEvent> for App {
                     ..
                 } => {
                     let (editing, ctrl) = (self.menu.editing().is_some(), self.modifiers.state().control_key());
-                    if let Some(k) = menu_key(&logical_key, editing, ctrl) {
+                    if editing && ctrl && matches!(&logical_key, Key::Character(c) if c.eq_ignore_ascii_case("v")) {
+                        self.paste_into_panel();
+                    } else if let Some(k) = menu_key(&logical_key, editing, ctrl) {
                         let action = self.menu.key(k, &mut self.settings);
                         self.menu_action(action, el);
                     }

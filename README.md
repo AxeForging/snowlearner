@@ -52,8 +52,9 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
 |---|---|---|---|
 | ![lesson](docs/img/lesson.webp) | ![fight](docs/img/fight.webp) | ![ice owl](docs/img/snowstorm.webp) | ![black hole](docs/img/blackhole.webp) |
 
-No cloud, no LLM required: recognition is whisper.cpp running offline. A Whisper server you run
-can do it instead (`stt_engine`, below); only then does your answers' audio leave the machine.
+No cloud, no LLM required: recognition is whisper.cpp running offline. A Whisper server you run,
+or Groq's cloud with your own key, can do it instead (`stt_engine`, below); only then does your
+answers' audio leave the machine.
 **No GPU needed**: everything is drawn on the CPU and blitted to the window, redrawing only
 what changed. About 2–3% of one CPU core and ~30 MB RAM while running (release build; the
 speech model adds ~150 MB during a lesson and is freed 2 minutes after).
@@ -161,6 +162,7 @@ speak) and get device choice, playback, the panel pickers and the CLI for free.
 | `local` (default) | whisper.cpp inside the app, offline: nothing leaves the machine | `model = "base"` |
 | `openai` | a Whisper server with the OpenAI-compatible API: `POST {stt_url}/audio/transcriptions` | `stt_url = "http://192.168.0.10:9000/v1"`, `stt_model = ""` (server default) |
 | `asr` | [Whisper ASR Webservice](https://github.com/ahmetoner/whisper-asr-webservice)'s own API: `POST {stt_url}/asr` | `stt_url = "http://192.168.0.10:9000"` |
+| `groq` | [Groq](https://console.groq.com/docs/speech-to-text)'s cloud, `whisper-large-v3-turbo`, free plan available | `stt_key = "gsk_…"` (from console.groq.com/keys) |
 
 With `openai` or `asr`, **each answer's audio is sent to `stt_url`** (plain HTTP on your network
 unless the URL is `https`), and to nowhere else. The local model is then neither needed nor
@@ -169,6 +171,15 @@ loaded. The panel's *Reconhecimento* and *Servidor* rows set it; typing an addre
 and `snowlearner audio test-mic` tries it. A server that is down, slower than 30 s or answering an
 error ends the turn like a failed recognition: you confirm the answer yourself, and the reason
 goes to `snowlearner.log`.
+
+With `groq`, **each answer's audio goes to Groq's servers** (`api.groq.com`, over HTTPS), under
+Groq's terms. Pick *Groq (nuvem)* in *Reconhecimento*: the *Chave* field opens; paste your key
+(Ctrl+V) and press Enter, and the panel says at once whether Groq takes it. The key is saved in
+plain text in the config file, like the other settings, and is shown only as `gsk_…1a2b`
+on screen, in the log and in `snowlearner doctor`. A refused key or a reached limit (HTTP 429)
+is said in your language and the lesson goes on by self-confirmation. Groq's model is fixed;
+`stt_model` is only for your own `openai` server. `stt_key` is also sent, as a Bearer token, to an
+`openai` server that needs one.
 
 **How listening works:** the mic ignores the first 250 ms (echo of the voice), gives you 6 s to start
 (10 s when recalling from memory — `listen_seconds` tunes it), calibrates on the quietest moments,
@@ -204,7 +215,8 @@ listen_seconds = 6.0     # time to start answering (recall gets +4)
 mic = ""                 # "" = system default (see `snowlearner audio mics`)
 speaker = ""
 tts_engine = "system"    # system | http | command
-stt_engine = "local"     # local | openai | asr (a Whisper server at stt_url, see Audio & voices)
+stt_engine = "local"     # local | openai | asr (a Whisper server at stt_url) | groq (see Audio & voices)
+stt_key = ""             # API key for groq (or an openai server that needs one)
 voice_native = ""        # "" = automatic
 voice_learning = ""
 mode = "auto"            # auto | window | overlay
