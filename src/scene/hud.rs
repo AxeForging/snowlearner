@@ -19,6 +19,8 @@ pub enum Status {
     Failed,
     /// No recognizer available: say it, then confirm with the hotkey.
     Confirm,
+    /// Nothing was heard twice in a row: waiting for the learner to try again.
+    Silent,
 }
 
 impl Status {
@@ -30,6 +32,7 @@ impl Status {
             Status::Passed => T::StatusPassed,
             Status::Failed => T::StatusFailed,
             Status::Confirm => T::StatusConfirm,
+            Status::Silent => T::StatusSilent,
         }
         .get(native)
     }
@@ -341,9 +344,9 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, ti
     rows += meaning_lines.len() as i32;
     let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&T::Heard.fill(native, &[h]), inner)).unwrap_or_default();
     rows += heard_lines.len() as i32;
-    if !cap.footer.is_empty() {
-        rows += 1;
-    }
+    // A long footer wraps instead of running off the panel (#98).
+    let footer_lines = font::wrap(&cap.footer, inner);
+    rows += footer_lines.len() as i32;
     let ph = rows * lh + 8;
     let px = (c.w - pw) / 2;
     // Below the progress corner, above the characters and their bubbles. A
@@ -358,7 +361,7 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, ti
     let icon_c = cap.status.color();
     match cap.status {
         Status::Speaking => c.sprite(SPEAKER, &[('#', icon_c)], px + 6, y + 4, false),
-        Status::Listening | Status::Confirm => c.sprite(MIC, &[('#', icon_c)], px + 6, y + 3, false),
+        Status::Listening | Status::Confirm | Status::Silent => c.sprite(MIC, &[('#', icon_c)], px + 6, y + 3, false),
         Status::Passed => c.sprite(CHECK, &[('#', icon_c)], px + 6, y + 5, false),
         Status::Failed => c.sprite(CROSS, &[('#', icon_c)], px + 6, y + 4, false),
         Status::Thinking => {}
@@ -408,8 +411,9 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, ti
         font::draw(c, px + 6, y, l, hex(0xc9d3e8));
         y += lh;
     }
-    if !cap.footer.is_empty() {
-        font::draw(c, px + 6, y, &cap.footer, hex(0x6e74b8));
+    for l in &footer_lines {
+        font::draw(c, px + 6, y, l, hex(0x6e74b8));
+        y += lh;
     }
 }
 
@@ -599,6 +603,29 @@ mod tests {
         let alts = vec!["curta: Hungry!".to_string(), "polida: I'm actually quite hungry, could we eat?".to_string()];
         assert!(alts.iter().all(|a| font::supports(a)));
         assert!(alt_px(alts) > 0);
+    }
+
+    #[test]
+    fn a_long_footer_wraps_inside_the_caption_instead_of_running_off_it() {
+        // Seen cut at "para t" on a learner's Linux screen (#98).
+        let footer = "Ctrl+Alt+Shift+M ou clique no orbe para tentar de novo · fecha em 25 s".to_string();
+        assert!(font::text_width(&footer) > 300 - 12, "needs two lines in the widest caption");
+        let cap = Caption { footer, status: Status::Silent, tag: String::new(), ..caption(None) };
+        let hud = Hud { caption: Some(cap), ..Default::default() };
+        let mut c = Canvas::new(320, 180);
+        hud.draw(&mut c, 170, 0.0);
+        let ink = Some(hex(0x6e74b8));
+        let mut xs = Vec::new();
+        for y in 0..180 {
+            for x in 0..320 {
+                if c.get(x, y) == ink {
+                    xs.push(x);
+                }
+            }
+        }
+        assert!(!xs.is_empty(), "the footer is drawn");
+        let (px, pw) = (10, 300);
+        assert!(xs.iter().all(|&x| x < px + pw - 6), "the footer stays inside the panel");
     }
 
     #[test]

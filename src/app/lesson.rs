@@ -55,6 +55,9 @@ pub struct Options {
     /// Seconds you get to start answering (recall gets +4).
     pub listen_seconds: f32,
     pub hotkey: String,
+    /// Whether `hotkey` reaches the app on this machine (a global hotkey that
+    /// registered, or a GNOME shortcut). When not, hints name only the orb.
+    pub hotkey_works: bool,
     pub summary_hotkey: String,
     pub summary_at: NaiveTime,
     /// Seconds idle before the warrior nudges you (from the commitment level).
@@ -107,6 +110,8 @@ pub struct Lesson {
     goal_celebrated: bool,
     paused: bool,
     last_primary: f32,
+    /// Silences in a row on this question: the first one listens again on its own.
+    silences: u32,
 }
 
 impl Lesson {
@@ -131,6 +136,7 @@ impl Lesson {
             done_today,
             paused: false,
             last_primary: f32::NEG_INFINITY,
+            silences: 0,
         }
     }
 
@@ -423,6 +429,7 @@ impl Lesson {
         self.last_phrase = Some(p.say.clone());
         let job = self.job_id();
         self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job };
+        self.silences = 0;
         self.idle_for = 0.0;
         scene.set_practicing(true);
         let ask = self.line(if mode == Mode::Recall { Lines::MageAskRecall } else { Lines::MageAskRepeat });
@@ -542,7 +549,7 @@ impl Lesson {
                 let said = passed.then(|| whole.unwrap_or(&answers[best]).0);
                 if !passed && matcher::is_hallucination(&text) {
                     // Whisper invented "Thank you for watching" out of noise: that's silence.
-                    self.silence(scene);
+                    self.silence(scene, jobs);
                     return;
                 }
                 // Feedback is shown on the asked phrase. When another option on
@@ -571,7 +578,9 @@ impl Lesson {
                 }
                 self.finish_attempt(phrase, tries, &text, m.score, said, scene);
             }
-            (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::NoSpeech { .. }) => self.silence(scene),
+            (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::NoSpeech { .. }) => {
+                self.silence(scene, jobs)
+            }
             (State::Challenge { stage, .. }, SpeechEvent::Failed { error, .. }) if *stage == Stage::Listening => {
                 // Mic or model trouble: fall back to self-confirmation.
                 *stage = Stage::Confirm;
@@ -597,20 +606,41 @@ impl Lesson {
         }
     }
 
-    /// Nothing (real) was heard: not a wrong answer — don't record it, don't
-    /// auto-retry; wait for the learner.
-    fn silence(&mut self, scene: &mut Scene) {
+    /// Nothing (real) was heard: not a wrong answer, never recorded. The
+    /// first time the mic opens again at once (the learner may just have been
+    /// slow to start); the second time in a row the lesson says it heard
+    /// nothing and waits for the learner, counting down to closing, so someone
+    /// who walked away is asked at most twice (#98).
+    fn silence(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
+        let n = self.opts.native;
+        self.silences += 1;
+        if self.silences == 1 {
+            scene.mage_say(T::MageSayAgain.get(n), 2.5);
+            self.after_cue(scene, jobs);
+            return;
+        }
         if let State::Challenge { stage, .. } = &mut self.state {
             *stage = Stage::WaitUser { until: self.clock + WAIT_USER };
         }
         scene.set_listening(false);
-        let n = self.opts.native;
         scene.mage_say(T::MageHeardNothing.get(n), 2.5);
+        let footer = self.silence_footer(WAIT_USER);
         if let Some(c) = &mut scene.hud.caption {
-            c.status = Status::Failed;
+            c.status = Status::Silent;
             c.listen = None;
             c.heard = Some(T::Silence.get(n).into());
-            c.footer = T::FooterSilence.fill(n, &[&self.opts.hotkey]);
+            c.footer = footer;
+        }
+    }
+
+    /// What to do after a silence, and in how many seconds the question closes.
+    /// The hotkey is named only where it reaches the app.
+    fn silence_footer(&self, left: f32) -> String {
+        let (n, secs) = (self.opts.native, left.max(0.0).ceil() as u32);
+        if self.opts.hotkey_works {
+            T::FooterSilence.fill(n, &[&self.opts.hotkey, &secs])
+        } else {
+            T::FooterSilenceOrb.fill(n, &[&secs])
         }
     }
 
@@ -760,6 +790,12 @@ impl Lesson {
                 self.replay(phrase, tries, scene, jobs)
             }
             State::Challenge { stage: Stage::WaitUser { until }, .. } if self.clock >= until => self.close(scene),
+            State::Challenge { stage: Stage::WaitUser { until }, .. } => {
+                let footer = self.silence_footer(until - self.clock);
+                if let Some(c) = &mut scene.hud.caption {
+                    c.footer = footer;
+                }
+            }
             State::Summary { close_at: Some(t), .. } if self.clock >= t => self.close(scene),
             _ => {}
         }
@@ -770,6 +806,7 @@ impl Lesson {
         let p = self.phrase(phrase).clone();
         let job = self.job_id();
         self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job };
+        self.silences = 0; // asked again: the next silence gets its own second chance
         let tag = self.tag(&p, Mode::Repeat);
         let shown = self.shown(&p);
         if let Some(c) = &mut scene.hud.caption {
@@ -910,6 +947,7 @@ mod tests {
             can_listen,
             listen_seconds: 7.0,
             hotkey: "Ctrl+Alt+M".into(),
+            hotkey_works: true,
             summary_hotkey: "Ctrl+Alt+J".into(),
             summary_at: NaiveTime::from_hms_opt(21, 0, 0).unwrap(),
             ask_every: 60.0,
@@ -1544,23 +1582,81 @@ mod tests {
         assert_eq!(f.lesson.done_today(), 1);
     }
 
+    /// Starts a challenge and lets the cue end: the mic is open. Returns its job id.
+    fn listening(f: &mut Fixture) -> u64 {
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        id
+    }
+
+    fn listens(jobs: &[Job], id: u64) -> bool {
+        jobs.iter().any(|j| matches!(j, Job::Listen { id: l, .. } if *l == id))
+    }
+
+    fn no_attempts(f: &Fixture) -> bool {
+        f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap().is_empty()
+    }
+
     #[test]
-    fn silence_waits_for_the_learner_instead_of_retrying_on_its_own() {
+    fn a_first_silence_listens_again_at_once_without_counting_an_attempt() {
         let mut f = fixture(true);
-        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
-        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        let id = listening(&mut f);
+        let jobs = f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        assert!(listens(&jobs, id), "the mic opens again on its own: {jobs:?}");
+        assert_eq!(f.scene.hud.caption.as_ref().unwrap().status, Status::Listening);
+        assert_eq!(f.scene.mage_bubble(), Some("Hã? Fala de novo!"));
+        assert!(no_attempts(&f), "silence is not an attempt");
+    }
+
+    #[test]
+    fn whispers_invented_words_count_as_silence_too() {
+        let mut f = fixture(true);
+        let id = listening(&mut f);
+        let jobs = f.send(Input::Speech(SpeechEvent::Heard { id, text: "Thank you for watching!".into() }));
+        assert!(listens(&jobs, id), "{jobs:?}");
+        assert!(no_attempts(&f));
+    }
+
+    #[test]
+    fn a_second_silence_says_so_and_counts_down_to_closing() {
+        let mut f = fixture(true);
+        let id = listening(&mut f);
         f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
-        assert!(f.tick(10.0).is_empty(), "no automatic retry");
-        assert!(f.scene.hud.caption.as_ref().unwrap().footer.contains("tentar de novo"));
-        assert!(f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap().is_empty(), "not an attempt");
-        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        let jobs = f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        assert!(!listens(&jobs, id), "no third listen on its own");
+        let footer = |f: &Fixture| f.scene.hud.caption.as_ref().unwrap().footer.clone();
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.status, Status::Silent, "not the wrong-answer header");
+        assert_eq!(cap.heard.as_deref(), Some("(silêncio)"));
+        assert_eq!(footer(&f), "Ctrl+Alt+M ou clique no orbe para tentar de novo · fecha em 25 s");
+        assert!(f.tick(10.5).is_empty(), "no automatic retry");
+        assert!(footer(&f).ends_with("fecha em 15 s"), "{}", footer(&f));
+        f.tick(WAIT_USER - 10.5 + 0.5);
+        assert!(f.lesson.is_idle(), "closes when the count reaches 0: someone who walked away was asked twice");
+        assert!(no_attempts(&f));
+    }
+
+    #[test]
+    fn after_two_silences_the_learner_asks_again_and_gets_a_fresh_second_chance() {
+        let mut f = fixture(true);
+        let id = listening(&mut f);
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        f.tick(1.0);
+        let (id, parts) = Fixture::speak_job(&f.send(Input::Primary));
         assert_eq!(parts[0].text, f.current_say(), "retries when asked");
-        f.send(Input::Dismiss);
-        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
         f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        assert!(listens(&f.send(Input::Speech(SpeechEvent::NoSpeech { id })), id), "its own extra listen");
+    }
+
+    #[test]
+    fn where_the_hotkey_does_not_reach_the_app_the_silence_hint_names_only_the_orb() {
+        let mut f = fixture_with(Options { hotkey_works: false, ..options(true) });
+        let id = listening(&mut f);
         f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
-        f.tick(WAIT_USER + 0.5);
-        assert!(f.lesson.is_idle(), "gives up quietly if you walk away");
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        let footer = &f.scene.hud.caption.as_ref().unwrap().footer;
+        assert_eq!(footer, "Clique no orbe para tentar de novo · fecha em 25 s");
     }
 
     #[test]
@@ -1604,8 +1700,12 @@ mod tests {
         let mut f = fixture(true);
         let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
         f.send(Input::Speech(SpeechEvent::Spoken { id }));
-        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Thank you for watching!".into() }));
-        assert_eq!(f.scene.hud.caption.as_ref().unwrap().heard.as_deref(), Some("(silêncio)"));
+        for _ in 0..2 {
+            // The first one gets the extra listen, like any silence (#98).
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "Thank you for watching!".into() }));
+        }
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!((cap.status, cap.heard.as_deref()), (Status::Silent, Some("(silêncio)")));
         assert!(f.lesson.history.day_summary("en", Local::now().date_naive()).unwrap().is_empty());
     }
 
@@ -1869,9 +1969,12 @@ mod tests {
         f.send(Input::Speech(SpeechEvent::Spoken { id }));
         assert_eq!(f.scene.hud.caption.as_ref().unwrap().footer, "Done? Ctrl+Alt+M · Esc: cancel");
         f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
+        assert_eq!(f.scene.mage_bubble(), Some("Huh? Say it again!"));
+        f.send(Input::Speech(SpeechEvent::NoSpeech { id }));
         let cap = f.scene.hud.caption.as_ref().unwrap();
         assert_eq!(cap.heard.as_deref(), Some("(silence)"));
         assert_eq!(f.scene.mage_bubble(), Some("Huh? I heard nothing!"));
+        assert_eq!(cap.footer, "Ctrl+Alt+M or click the orb to try again · closes in 25 s");
         f.send(Input::Dismiss);
         f.send(Input::Summary);
         let summary = f.scene.hud.summary.as_ref().unwrap();

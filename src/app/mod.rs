@@ -161,6 +161,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         can_listen: speech.can_listen,
         listen_seconds: settings.listen_seconds,
         hotkey: settings.hotkey_challenge.clone(),
+        hotkey_works: practice_key_works(hotkeys.as_ref(), &settings),
         summary_hotkey: settings.hotkey_summary.clone(),
         summary_at: settings.summary_at()?,
         ask_every: commitment.pace().ask_every,
@@ -232,6 +233,16 @@ fn taken_keys(hotkeys: &Hotkeys, s: &Settings) -> Vec<String> {
     let all = bindings(s);
     let lost = |cmd| all.iter().find(|(_, c)| *c == cmd).map(|(k, _)| k.to_string());
     hotkeys.taken.iter().filter_map(|(cmd, _)| lost(*cmd)).collect()
+}
+
+/// Whether the practice hotkey reaches the app here: a global hotkey that
+/// registered, or our GNOME shortcut. Neither (Wayland without `setup`, a
+/// combination another program holds) means hints name only the orb.
+fn practice_key_works(hotkeys: Option<&Hotkeys>, s: &Settings) -> bool {
+    match hotkeys {
+        Some(h) => !taken_keys(h, s).contains(&s.hotkey_challenge),
+        None => crate::control::gnome::installed() && crate::control::gnome::missing(&["say"]).is_empty(),
+    }
 }
 
 /// Built-in decks plus any custom `<decks_dir>/<lang>.toml`.
@@ -715,8 +726,9 @@ impl App {
             }
         }
         let (practice, recap) = (self.settings.hotkey_challenge.clone(), self.settings.hotkey_summary.clone());
+        let works = practice_key_works(self.hotkeys.as_ref(), &self.settings);
         let Some(scene) = &mut self.scene else { return };
-        let keys = |o: &mut lesson::Options| (o.hotkey, o.summary_hotkey) = (practice, recap);
+        let keys = |o: &mut lesson::Options| (o.hotkey, o.hotkey_works, o.summary_hotkey) = (practice, works, recap);
         self.lesson.set_options(keys, scene);
         scene.hud.cheats = None; // rebuilt with the new keys when next shown
         scene.hud.toast(note, 4.0);

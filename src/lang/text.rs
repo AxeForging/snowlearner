@@ -195,8 +195,11 @@ texts! {
     VoiceUnavailable => "Voz indisponível: {0}", "Voice unavailable: {0}";
     MicUnavailable => "Microfone/reconhecimento indisponível: {0}", "Microphone/recognition unavailable: {0}";
     MageHeardNothing => "Hã? Não ouvi nada!", "Huh? I heard nothing!";
+    MageSayAgain => "Hã? Fala de novo!", "Huh? Say it again!";
     Silence => "(silêncio)", "(silence)";
-    FooterSilence => "Não ouvi nada. {0} ou clique no orbe para tentar de novo", "I heard nothing. {0} or click the orb to try again";
+    FooterSilence => "{0} ou clique no orbe para tentar de novo · fecha em {1} s",
+        "{0} or click the orb to try again · closes in {1} s";
+    FooterSilenceOrb => "Clique no orbe para tentar de novo · fecha em {0} s", "Click the orb to try again · closes in {0} s";
     Learned => "Aprendeu: {0}", "Learned: {0}";
     StageFirst => "{0} Primeira: {1}", "{0} First: {1}";
     NewItem => "{0} · Nova {1}: {2}", "{0} · New {1}: {2}";
@@ -227,6 +230,7 @@ texts! {
     StatusThinking => "PENSANDO", "THINKING";
     StatusPassed => "ACERTOU!", "RIGHT!";
     StatusFailed => "QUASE! TENTE DE NOVO", "ALMOST! TRY AGAIN";
+    StatusSilent => "NÃO OUVI NADA", "I HEARD NOTHING";
     StatusConfirm => "FALE E CONFIRME", "SAY IT AND CONFIRM";
     Heard => "Ouvi: \"{0}\"", "I heard: \"{0}\"";
     Speaking => "falando", "speaking";

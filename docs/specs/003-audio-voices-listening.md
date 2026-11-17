@@ -27,6 +27,16 @@ Status: approved in chat (2026-09-27).
 - **Visible**: live level meter + "speaking" indicator in the caption.
 - **Whisper junk filter**: transcripts that are only a known hallucination
   ("Thank you for watching", "Legendas pela comunidade Amara.org"…) count as silence.
+- **Silence** (`Lesson::silence`, #98): nothing heard, or only a known hallucination, is never an
+  attempt. The first silence of a question opens the mic again at once ("Hã? Fala de novo!"):
+  the learner may just have been slow to start. A second silence in a row shows *NÃO OUVI NADA*
+  (`Status::Silent`, not the wrong-answer header) and a footer counting down to closing
+  ("… · fecha em 25 s"); the hotkey or the orb asks again, with a fresh second chance. So a
+  learner who walked away is asked twice at most, never in a loop (the reason for 9352f02).
+  The footer names the hotkey only when it reaches the app here (a global hotkey that registered,
+  or the GNOME shortcut); otherwise only the orb. A long footer wraps inside the caption.
+  Before #98 the first silence already waited 25 s under "QUASE! TENTE DE NOVO" with no sign of
+  what came next, and a learner on Linux read it as frozen.
 
 ## Audio devices
 - `mic` / `speaker` settings (empty = system default), chosen by name.
