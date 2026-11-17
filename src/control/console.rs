@@ -5,13 +5,14 @@
 use std::path::Path;
 
 /// Frees a console opened just for us and sends stdout/stderr to `log`
-/// (the previous run's is kept as `.log.old`).
+/// (the previous run's is kept as `.log.old`). True when it did: from then on
+/// nothing printed reaches the learner's screen.
 ///
 /// `FreeConsole` leaves the std handles holding the closed console's handle
 /// values. Windows hands those values to the next files opened — the history
 /// database — and every `eprintln!` then wrote into it and corrupted it.
 #[cfg(windows)]
-pub fn release_own_console(log: &Path) {
+pub fn release_own_console(log: &Path) -> bool {
     use std::os::windows::io::IntoRawHandle;
     use windows_sys::Win32::System::Console::{
         FreeConsole, GetConsoleProcessList, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, SetStdHandle,
@@ -19,7 +20,7 @@ pub fn release_own_console(log: &Path) {
     let mut ids = [0u32; 2];
     // SAFETY: the buffer is valid for `ids.len()` entries; FreeConsole has no preconditions.
     if unsafe { GetConsoleProcessList(ids.as_mut_ptr(), ids.len() as u32) } != 1 || unsafe { FreeConsole() } == 0 {
-        return;
+        return false;
     }
     // A null handle makes std drop the writes; the log file, if it opens, gets them.
     let out = open_log(log).map(|f| f.into_raw_handle()).unwrap_or(std::ptr::null_mut());
@@ -30,10 +31,13 @@ pub fn release_own_console(log: &Path) {
         SetStdHandle(STD_OUTPUT_HANDLE, out);
         SetStdHandle(STD_ERROR_HANDLE, out);
     }
+    true
 }
 
 #[cfg(not(windows))]
-pub fn release_own_console(_log: &Path) {}
+pub fn release_own_console(_log: &Path) -> bool {
+    false
+}
 
 #[cfg_attr(not(windows), allow(dead_code))]
 fn open_log(log: &Path) -> std::io::Result<std::fs::File> {

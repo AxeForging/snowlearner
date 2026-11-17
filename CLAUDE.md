@@ -33,7 +33,8 @@ src/
   control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts),
                      console.rs (Windows: frees the console, logs to snowlearner.log),
                      launcher.rs (Linux app-menu entry),
-                     modkeys.rs (global Ctrl+Alt state where the OS allows)
+                     modkeys.rs (global Ctrl+Alt state where the OS allows),
+                     notice.rs (Windows: a message box when the app cannot start)
   lang/              native.rs (the learner's own language: pt-BR | en), text.rs (EVERY
                      user-facing string, both languages, plus topic/language/voice names)
   config/            settings.rs, level.rs (commitment), paths.rs

@@ -2,10 +2,14 @@
 
 use super::{AudioAction, Cli, Cmd, ConfigAction, ModelAction, RunArgs, ShortcutAction, VoicesAction};
 use crate::app::platform::{self, Session};
+use crate::config::level::Commitment;
 use crate::config::paths::Paths;
 use crate::config::settings::{MODELS, Settings};
-use crate::control::gnome;
-use crate::control::ipc::{self, Command};
+use crate::control::{
+    console, gnome,
+    ipc::{self, Command},
+    notice,
+};
 use crate::lang::{Native, T};
 use crate::learn::deck::Deck;
 use crate::render::{canvas::Canvas, png_out};
@@ -25,10 +29,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
     };
     let settings = load_settings(&paths, &cli.run, setup_lang.as_deref())?;
     match cli.command.unwrap_or(Cmd::Run) {
-        Cmd::Run => {
-            crate::control::console::release_own_console(&paths.log_file());
-            crate::app::run(settings, paths, cli.run.level)
-        }
+        Cmd::Run => run(settings, paths, cli.run.level),
         Cmd::Setup { lang, no_model } => setup(settings, &paths, lang.as_deref(), cli.run.native.is_some(), no_model),
         Cmd::Say => remote(&settings, Command::Challenge),
         Cmd::Summary => remote(&settings, Command::Summary),
@@ -90,6 +91,22 @@ fn load_settings(paths: &Paths, run: &RunArgs, setup_lang: Option<&str>) -> Resu
     }
     s.validate()?;
     Ok(s)
+}
+
+/// Starts the app, unless one is already running: that one opens its panel,
+/// and this start ends before touching the log the running app writes to.
+fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Result<()> {
+    let native = settings.native;
+    if ipc::send(settings.ipc_port, Command::Menu).is_ok() {
+        println!("{}", T::AlreadyRunning.get(native));
+        return Ok(());
+    }
+    let released = console::release_own_console(&paths.log_file());
+    let result = crate::app::run(settings, paths, level);
+    if let (true, Err(e)) = (released, &result) {
+        notice::error(T::StartFailed.get(native), &format!("{e:#}"));
+    }
+    result
 }
 
 fn remote(settings: &Settings, cmd: Command) -> Result<()> {

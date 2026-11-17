@@ -4,3 +4,4 @@ pub mod hotkeys;
 pub mod ipc;
 pub mod launcher;
 pub mod modkeys;
+pub mod notice;
