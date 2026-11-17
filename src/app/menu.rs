@@ -626,9 +626,7 @@ impl Menu {
     /// Groq was just chosen without a key: the key field opens at once, so
     /// the learner is not left with a recognizer that refuses every answer.
     fn ask_for_key(&mut self, action: Action, s: &Settings) -> Action {
-        if action == Action::Changed(Item::SttEngine)
-            && s.stt_engine == SttEngine::Groq
-            && s.stt_key.trim().is_empty()
+        if action == Action::Changed(Item::SttEngine) && s.stt_engine == SttEngine::Groq && s.stt_key.trim().is_empty()
         {
             self.list = None;
             self.open_key_field(T::SttKeyMissing, s);
