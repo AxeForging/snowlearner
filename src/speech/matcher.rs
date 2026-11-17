@@ -618,8 +618,14 @@ mod tests {
             threshold: PASS,
             hint: "Big. Small.".into(),
         };
-        assert_eq!(small.pick("Smile one, please.".into(), |_| Some("Small one, please.".into())), "Small one, please.");
-        assert_eq!(small.pick("Smile one, please.".into(), |_| Some("Smile one, please.".into())), "Smile one, please.");
+        assert_eq!(
+            small.pick("Smile one, please.".into(), |_| Some("Small one, please.".into())),
+            "Small one, please."
+        );
+        assert_eq!(
+            small.pick("Smile one, please.".into(), |_| Some("Smile one, please.".into())),
+            "Smile one, please."
+        );
         assert!(!small.accepts("Smile one, please."));
     }
 
