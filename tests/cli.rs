@@ -1,7 +1,9 @@
 //! Drives the real `snowlearner` binary with an isolated SNOWLEARNER_HOME.
 
 use chrono::Local;
+use snowlearner::config::settings::Settings;
 use snowlearner::control::ipc::{self, Command};
+use snowlearner::lang::T;
 use snowlearner::store::history::{Attempt, History};
 use std::process::{Command as Proc, Output};
 use std::sync::mpsc;
@@ -335,6 +337,34 @@ fn progress_opens_the_panel_of_a_running_instance() {
     assert!(o.status.success(), "{}", stderr(&o));
     assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), Command::Progress);
     assert!(stdout(&o).is_empty(), "the panel shows it, not the terminal");
+}
+
+#[test]
+fn starting_again_opens_the_running_apps_panel_instead_of_failing() {
+    let home = Home::new();
+    let (tx, rx) = mpsc::channel();
+    let addr = ipc::serve(0, move |c| tx.send(c).unwrap()).unwrap();
+    home.config(&format!("ipc_port = {}\n", addr.port()));
+    let o = home.run(&[]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), Command::Menu);
+    let native = Settings::default().native;
+    assert!(stdout(&o).contains(T::AlreadyRunning.get(native)), "{}", stdout(&o));
+}
+
+#[test]
+fn starting_on_a_port_another_program_holds_names_the_port_and_where_to_change_it() {
+    let home = Home::new();
+    // Holds the port and never answers, like a program that is not snowlearner.
+    let held = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = held.local_addr().unwrap().port();
+    home.config(&format!("ipc_port = {port}\n"));
+    let o = home.run(&[]);
+    assert!(!o.status.success());
+    let err = stderr(&o);
+    assert!(err.contains(&port.to_string()) && err.contains("ipc_port"), "{err}");
+    assert!(err.contains("config.toml"), "says which file to edit: {err}");
+    assert!(!err.contains("already running"), "nothing else was running: {err}");
 }
 
 impl Home {

@@ -50,6 +50,7 @@ pub struct Settings {
     pub summary_time: String,
     /// 0..1 similarity needed for a phrase to count.
     pub match_threshold: f32,
+    /// Local port of the control channel (`snowlearner say|menu|quit`).
     pub ipc_port: u16,
     /// Whisper model size: tiny | base | small.
     pub model: String,
@@ -103,7 +104,7 @@ impl Default for Settings {
             orb_y: -1,
             summary_time: "21:00".into(),
             match_threshold: 0.72,
-            ipc_port: 47821,
+            ipc_port: DEFAULT_IPC_PORT,
             model: "base".into(),
             listen_seconds: 6.0,
             voice_native: String::new(),
@@ -151,6 +152,12 @@ pub fn normalize_topics(topics: &[String]) -> Vec<String> {
 
 pub const MODELS: &[&str] = &["tiny", "base", "small"];
 
+/// Below every range a system hands out or reserves on its own: Linux's
+/// ephemeral ports (32768–60999 by default), the Windows ports WSL takes in
+/// mirrored mode (44619–48715 on the machine that reported #84) and the
+/// Windows dynamic range (49152–65535). The old 47821 sat inside the first two.
+pub const DEFAULT_IPC_PORT: u16 = 31821;
+
 const HEADER: &str = "# snowlearner config (also editable live: `snowlearner menu`)\n\
     # learning: deck to practice (\"en\", \"es\", \"pt-BR\" or a custom decks/<name>.toml)\n\
     # native: your own language, \"pt-BR\" or \"en\" (never the one you learn)\n\
@@ -158,7 +165,8 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
     # answer: all | short | complete | polished\n\
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
-    # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\n";
+    # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
+    # ipc_port: local port for `snowlearner say|menu|quit`; change it if another program holds it\n\n";
 
 impl Settings {
     /// Missing file → defaults. Invalid file → error naming the problem.
@@ -358,6 +366,18 @@ mod tests {
         assert_eq!(Settings::load(&p).unwrap().native, Native::En);
         std::fs::write(&p, "native = 'pt'\n").unwrap();
         assert_eq!(Settings::load(&p).unwrap().native, Native::PtBr, "pt is read as pt-BR");
+    }
+
+    #[test]
+    fn the_default_port_is_outside_the_ranges_systems_take_on_their_own() {
+        let port = Settings::default().ipc_port;
+        assert!(port < 32768, "Linux ephemeral ports start at 32768; WSL and Windows reserve higher ones");
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        Settings::write_default(&p, false).unwrap();
+        let written = std::fs::read_to_string(&p).unwrap();
+        assert!(written.contains(&format!("ipc_port = {port}")));
+        assert!(written.contains("# ipc_port:"), "explained in the header");
     }
 
     #[test]

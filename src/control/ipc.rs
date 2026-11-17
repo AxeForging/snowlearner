@@ -55,31 +55,51 @@ impl Command {
 
 const GREETING: &str = "snowlearner";
 
-/// Binds the port (fails if another instance owns it) and serves commands on a
-/// background thread.
-pub fn serve(port: u16, on_command: impl Fn(Command) + Send + 'static) -> Result<SocketAddr> {
-    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, port))
-        .with_context(|| format!("port {port} is busy — is snowlearner already running? (`snowlearner quit`)"))?;
-    let addr = listener.local_addr()?;
-    std::thread::Builder::new().name("ipc".into()).spawn(move || {
-        for stream in listener.incoming().flatten() {
-            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-            let mut reader = BufReader::new(&stream);
-            let mut line = String::new();
-            if reader.read_line(&mut line).is_err() {
-                continue;
-            }
-            let reply = match Command::parse(&line) {
-                Some(cmd) => {
-                    on_command(cmd);
-                    format!("{GREETING} ok\n")
+/// The control port, taken by this instance before anything else starts.
+/// [`Claimed::serve`] answers commands on it once the app is ready.
+pub struct Claimed {
+    listener: TcpListener,
+}
+
+/// Takes the port. It fails when another snowlearner holds it, but also when
+/// another program does or the system reserved it (WSL in mirrored mode
+/// reserves a range of Windows ports), so the caller says which applies.
+pub fn claim(port: u16) -> std::io::Result<Claimed> {
+    TcpListener::bind((Ipv4Addr::LOCALHOST, port)).map(|listener| Claimed { listener })
+}
+
+impl Claimed {
+    /// Serves commands on a background thread.
+    pub fn serve(self, on_command: impl Fn(Command) + Send + 'static) -> Result<SocketAddr> {
+        let listener = self.listener;
+        let addr = listener.local_addr()?;
+        std::thread::Builder::new().name("ipc".into()).spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+                let mut reader = BufReader::new(&stream);
+                let mut line = String::new();
+                if reader.read_line(&mut line).is_err() {
+                    continue;
                 }
-                None => format!("{GREETING} error unknown command {:?}\n", line.trim()),
-            };
-            let _ = (&stream).write_all(reply.as_bytes());
-        }
-    })?;
-    Ok(addr)
+                let reply = match Command::parse(&line) {
+                    Some(cmd) => {
+                        on_command(cmd);
+                        format!("{GREETING} ok\n")
+                    }
+                    None => format!("{GREETING} error unknown command {:?}\n", line.trim()),
+                };
+                let _ = (&stream).write_all(reply.as_bytes());
+            }
+        })?;
+        Ok(addr)
+    }
+}
+
+/// [`claim`] and [`Claimed::serve`] in one step.
+pub fn serve(port: u16, on_command: impl Fn(Command) + Send + 'static) -> Result<SocketAddr> {
+    claim(port)
+        .with_context(|| format!("port {port} is taken (another snowlearner, another program or a reserved range)"))?
+        .serve(on_command)
 }
 
 /// Sends one command to the running app.
@@ -117,8 +137,7 @@ mod tests {
     #[test]
     fn a_second_instance_cannot_bind_the_same_port() {
         let addr = serve(0, |_| {}).unwrap();
-        let err = format!("{:#}", serve(addr.port(), |_| {}).unwrap_err());
-        assert!(err.contains("already running"), "{err}");
+        assert!(claim(addr.port()).is_err());
     }
 
     #[test]

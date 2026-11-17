@@ -89,6 +89,13 @@ impl AudioLists {
 }
 
 pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Result<()> {
+    // The port first: when it is taken, nothing else has been opened yet.
+    let port = settings.ipc_port;
+    let claimed = ipc::claim(port).map_err(|e| {
+        let config = paths.config_file();
+        anyhow::Error::new(e).context(T::PortBlocked.fill(settings.native, &[&port, &config.display()]))
+    })?;
+
     let session = Session::detect();
     let xwayland = std::env::var_os("DISPLAY").is_some_and(|d| !d.is_empty());
     let resolved = platform::resolve(settings.mode, session, xwayland);
@@ -102,7 +109,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
     let proxy = event_loop.create_proxy();
 
     let ipc_proxy = proxy.clone();
-    ipc::serve(settings.ipc_port, move |cmd| {
+    claimed.serve(move |cmd| {
         let _ = ipc_proxy.send_event(UserEvent::Ipc(cmd));
     })?;
 

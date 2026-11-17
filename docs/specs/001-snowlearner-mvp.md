@@ -55,6 +55,12 @@ pairs work too.
   and `snowlearner snapshot out.png` renders frames without a window.
 - Speech runs on a worker thread; results come back as winit user events.
 - IPC: localhost TCP (`127.0.0.1:<ipc_port>`), line protocol `challenge|summary|quit`.
+  The port is taken before anything else starts. A second start that finds a snowlearner
+  there sends it `menu` and exits without touching its log. When anything else holds the port,
+  the error names the port and the config file; on Windows it shows in a message box, since the
+  console was released. Default `ipc_port` 31821, below the ranges systems take on their own:
+  Linux ephemeral ports (32768–60999), WSL mirrored mode (44619–48715 measured in #84) and the
+  Windows dynamic range (49152–65535).
 - Storage: SQLite (`attempts` table) in the platform data dir; `SNOWLEARNER_HOME`
   overrides all paths (tests, portable installs).
 
