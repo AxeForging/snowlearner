@@ -1,8 +1,8 @@
 # Installs snowlearner in one step (Windows x86_64):
 #   irm https://raw.githubusercontent.com/AxeForging/snowlearner/main/install.ps1 | iex
-# Downloads the latest release, checks its SHA-256, installs to
-# %LOCALAPPDATA%\Programs\snowlearner, adds it to your PATH and the Start menu,
-# then runs `snowlearner setup`. $env:SNOWLEARNER_LANG = "es" picks Spanish.
+# Downloads the latest release, checks its SHA-256, closes the app if it is
+# open, installs to %LOCALAPPDATA%\Programs\snowlearner, adds it to your PATH
+# and the Start menu, then runs `snowlearner setup`. $env:SNOWLEARNER_LANG = "es" picks Spanish.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
@@ -24,7 +24,23 @@ try {
     if ($expected -ne $actual) { throw "checksum não confere (esperado $expected, veio $actual)" }
 
     Expand-Archive "$tmp\$asset" -DestinationPath $tmp -Force
-    Copy-Item "$tmp\snowlearner-$target\snowlearner.exe" "$dir\snowlearner.exe" -Force
+
+    # Windows does not let a running exe be overwritten: close the open app first.
+    $exe = "$dir\snowlearner.exe"
+    $open = @(Get-Process snowlearner -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe })
+    if ($open.Count -gt 0) {
+        Write-Host "Fechando o Snowlearner aberto para atualizar..."
+        # `quit` may print to stderr (app not answering); with 'Stop' PowerShell 5.1 would abort on that.
+        $ErrorActionPreference = 'Continue'
+        & $exe quit *> $null
+        $ErrorActionPreference = 'Stop'
+        $open | Wait-Process -Timeout 15 -ErrorAction SilentlyContinue
+        if (@(Get-Process -Id $open.Id -ErrorAction SilentlyContinue).Count -gt 0) {
+            throw "o Snowlearner continua aberto. Feche-o (snowlearner quit ou pelo painel) e rode o instalador de novo."
+        }
+        Write-Host "Snowlearner fechado. Abra de novo depois da atualização."
+    }
+    Copy-Item "$tmp\snowlearner-$target\snowlearner.exe" $exe -Force
     Write-Host "Instalado em $dir\snowlearner.exe"
 
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')

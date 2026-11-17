@@ -59,3 +59,30 @@ impl Paths {
         self.models_dir().join(format!("ggml-{name}.bin"))
     }
 }
+
+/// `path` without the `\\?\` prefix Windows puts on canonical paths
+/// (`canonicalize` returns `\\?\C:\…`): the form people read and other programs
+/// expect. Network paths (`\\?\UNC\…`) and every other path are left as they are.
+pub fn plain(path: PathBuf) -> PathBuf {
+    let drive = path
+        .to_string_lossy()
+        .strip_prefix(r"\\?\")
+        .filter(|rest| rest.as_bytes().get(1) == Some(&b':'))
+        .map(PathBuf::from);
+    drive.unwrap_or(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_windows_canonical_path_reads_without_its_verbatim_prefix() {
+        let exe = r"C:\Users\livepc\AppData\Local\Programs\snowlearner\snowlearner.exe";
+        assert_eq!(plain(PathBuf::from(format!(r"\\?\{exe}"))), PathBuf::from(exe));
+        assert_eq!(plain(PathBuf::from(exe)), PathBuf::from(exe), "already plain");
+        let unc = r"\\?\UNC\server\share\snowlearner.exe";
+        assert_eq!(plain(PathBuf::from(unc)), PathBuf::from(unc), "a network path keeps its prefix");
+        assert_eq!(plain(PathBuf::from("/usr/bin/snowlearner")), PathBuf::from("/usr/bin/snowlearner"));
+    }
+}
