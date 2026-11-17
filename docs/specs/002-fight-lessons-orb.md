@@ -22,7 +22,16 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    gets one more slip, only in words of 5+ letters (two slips turn "tea" into "see" and
    "wait" into "what"). In a short, polished or accepted answer, the words it shares with
    the phrase itself (`say`) must reach that 3/4 on their own — all of them when fewer than
-   four — so "See for me please." never passes for "Tea." (#68).
+   four — so "See for me please." never passes for "Tea." (#68). Those words get **no slip**
+   at any level: each must be heard exactly (case, punctuation, accents and the deck
+   language's sound folds aside). An answer form sharing no word with `say` ("Restroom?" for
+   "Bathroom?") stands in for it and is held exact the same way. Whisper's slips are other
+   real words, so a slip on the lesson's word taught the wrong one: in the learner's practice
+   (2026-11-14 to 11-17) "bedroom" passed for "Bathroom?", "smile" for "Small." (twice),
+   "heaven" for "Seven." and "eighty" for "Eight." — the last even without the beginner's
+   slip. A right answer misheard this way gets the hinted second pass, which spelled the
+   exact word in 13 of 16 misses (#80). The slips above still apply to the other words of a
+   longer answer ("please" heard as "pleese").
 5. **The fight** — the fire mage appears only during lessons, charges while you speak,
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
