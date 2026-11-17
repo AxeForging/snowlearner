@@ -635,6 +635,7 @@ fn lesson_caption(p: &crate::learn::deck::Phrase, native: Native, status: Status
         status,
         feedback: None,
         heard: None,
+        tip: None,
         footer: String::new(),
         tag: match &p.level {
             Some(l) => format!("{topic} · {l} · {repeat}"),
@@ -721,7 +722,7 @@ fn snapshot(
                         c.feedback = Some(
                             c.say
                                 .split_whitespace()
-                                .map(|w| crate::speech::matcher::WordHit { word: w.into(), hit: true })
+                                .map(|w| crate::speech::matcher::WordHit { word: w.into(), hit: true, stand_in: None })
                                 .collect(),
                         );
                     }

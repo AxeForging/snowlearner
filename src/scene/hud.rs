@@ -61,6 +61,8 @@ pub struct Caption {
     pub status: Status,
     pub feedback: Option<Vec<WordHit>>,
     pub heard: Option<String>,
+    /// The phrase's tip, shown after a miss until the phrase is passed (#102).
+    pub tip: Option<String>,
     pub footer: String,
     /// Small right-aligned header label: "trabalho · A2 · de memória".
     pub tag: String,
@@ -148,6 +150,8 @@ const TARGET: Rgba = hex(0x9be8ff);
 const ALT: Rgba = hex(0x6fb4d0);
 const HIT: Rgba = hex(0x7dff9b);
 const MISS: Rgba = hex(0xff6b6b);
+/// What to change after a miss: the word heard instead, the phrase's tip.
+const ADVICE: Rgba = hex(0xffd98a);
 const PANEL: Rgba = hex(0x0e0c2c);
 const BORDER: Rgba = hex(0x4ea2d8);
 
@@ -344,6 +348,14 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, ti
     rows += meaning_lines.len() as i32;
     let heard_lines = cap.heard.as_ref().map(|h| font::wrap(&T::Heard.fill(native, &[h]), inner)).unwrap_or_default();
     rows += heard_lines.len() as i32;
+    // The word heard in place of the lesson's (#102), then the phrase's tip.
+    let instead = cap.feedback.iter().flatten().filter_map(|w| {
+        let word = w.word.trim_matches(|ch: char| !ch.is_alphanumeric());
+        w.stand_in.as_ref().map(|s| T::HeardInstead.fill(native, &[s, &word]))
+    });
+    let tip = cap.tip.iter().map(|t| T::TipPrefix.fill(native, &[t]));
+    let advice_lines: Vec<String> = instead.chain(tip).flat_map(|l| font::wrap(&l, inner)).collect();
+    rows += advice_lines.len() as i32;
     // A long footer wraps instead of running off the panel (#98).
     let footer_lines = font::wrap(&cap.footer, inner);
     rows += footer_lines.len() as i32;
@@ -409,6 +421,10 @@ fn draw_caption(c: &mut Canvas, cap: &Caption, native: Native, ground_y: i32, ti
     }
     for l in &heard_lines {
         font::draw(c, px + 6, y, l, hex(0xc9d3e8));
+        y += lh;
+    }
+    for l in &advice_lines {
+        font::draw(c, px + 6, y, l, ADVICE);
         y += lh;
     }
     for l in &footer_lines {
@@ -512,6 +528,7 @@ mod tests {
             status: Status::Listening,
             feedback,
             heard: None,
+            tip: None,
             footer: String::new(),
             tag: "social · A1 · repita".into(),
             listen: None,
@@ -529,7 +546,10 @@ mod tests {
 
     #[test]
     fn feedback_colors_each_target_word_by_hit_or_miss() {
-        let fb = vec![WordHit { word: "I'm".into(), hit: true }, WordHit { word: "hungry".into(), hit: false }];
+        let fb = vec![
+            WordHit { word: "I'm".into(), hit: true, stand_in: None },
+            WordHit { word: "hungry".into(), hit: false, stand_in: None },
+        ];
         let t = tokens(&caption(Some(fb)));
         assert_eq!(t.iter().find(|t| t.text == "I'm").unwrap().color, HIT);
         assert_eq!(t.iter().find(|t| t.text == "hungry").unwrap().color, MISS);
@@ -626,6 +646,37 @@ mod tests {
         assert!(!xs.is_empty(), "the footer is drawn");
         let (px, pw) = (10, 300);
         assert!(xs.iter().all(|&x| x < px + pw - 6), "the footer stays inside the panel");
+    }
+
+    #[test]
+    fn the_word_heard_instead_and_the_tip_wrap_inside_the_caption() {
+        // #102: a refused near miss says what was heard, then how to say it.
+        let fb = vec![WordHit { word: "Eight,".into(), hit: false, stand_in: Some("eighty (80)".into()) }];
+        let tip = "'Eight' acaba no 't', sem 'i' depois, senão vira 'eighty' (80). Pausa antes do 'please'.";
+        for native in Native::ALL {
+            let cap = Caption {
+                status: Status::Failed,
+                heard: Some("80 please.".into()),
+                tip: Some(tip.into()),
+                ..caption(Some(fb.clone()))
+            };
+            let said = T::HeardInstead.fill(native, &[&"eighty (80)", &"Eight"]);
+            assert!(said.contains("\"eighty (80)\"") && said.contains("\"Eight\""), "{said}");
+            assert!(font::text_width(&T::TipPrefix.fill(native, &[&tip])) > 300 - 12, "the tip needs two lines");
+            let hud = Hud { caption: Some(cap), ..Default::default() };
+            let mut c = Canvas::new(320, 240);
+            hud.draw(&mut c, 230, 0.0);
+            let mut xs = Vec::new();
+            for y in 0..240 {
+                for x in 0..320 {
+                    if c.get(x, y) == Some(ADVICE) {
+                        xs.push(x);
+                    }
+                }
+            }
+            assert!(!xs.is_empty(), "the advice is drawn");
+            assert!(xs.iter().all(|&x| x < 10 + 300 - 6), "the advice stays inside the panel");
+        }
     }
 
     #[test]

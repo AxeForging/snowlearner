@@ -446,6 +446,7 @@ impl Lesson {
             status: Status::Speaking,
             feedback: None,
             heard: None,
+            tip: None,
             footer: String::new(),
             tag: self.tag(&p, mode),
             listen: None,
@@ -558,13 +559,15 @@ impl Lesson {
                 let other =
                     said.and_then(|t| p.tiers().into_iter().find(|(tier, _)| *tier == t)).filter(|(_, s)| *s != shown);
                 let words = if passed {
-                    shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: other.is_none() }).collect()
+                    shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: other.is_none(), stand_in: None }).collect()
                 } else {
                     matcher::score_tier(&shown, &p.say, &text, slack, &self.deck.language).words
                 };
                 if let Some(c) = &mut scene.hud.caption {
                     c.feedback = Some(words);
                     c.heard = Some(text.clone());
+                    // After a miss the phrase's tip stays through the next tries (#102).
+                    c.tip = if passed { None } else { p.tip.clone() };
                     if passed {
                         // Now that it's said, show every other way to say it.
                         c.alts = p
@@ -1331,6 +1334,54 @@ mod tests {
         assert_eq!(cap.status, Status::Failed);
         let small = cap.feedback.as_ref().unwrap().iter().find(|w| w.word.to_lowercase().starts_with("small"));
         assert!(small.is_some_and(|w| !w.hit), "{:?}", cap.feedback);
+        assert_eq!(small.and_then(|w| w.stand_in.as_deref()), Some("smile"), "#102: the word heard in its place");
+    }
+
+    const EIGHT_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
+         [[phrase]]\nsay='Eight.'\npolished='Eight, please.'\nmeaning='Oito.'\ntip='Sem i depois do t.'\n\
+         situation='Na padaria, perguntam quantos pães você quer: oito.'\ntopic='restaurante'\nlevel='PRE-A1'";
+
+    #[test]
+    fn a_near_miss_names_the_word_heard_and_the_tip_stays_until_it_passes() {
+        // #102: heard in a learner's practice on 2026-11-17, three times in a row.
+        let mut o = options(true);
+        o.max_level = PRE_A1.into();
+        o.answer = Answer::All;
+        let mut f = fixture_with(o);
+        f.lesson.set_deck(Deck::parse(EIGHT_DECK).unwrap(), &mut f.scene);
+        let id = listening(&mut f);
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "80 please.".into() }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.status, Status::Failed);
+        let eight = cap.feedback.iter().flatten().find(|w| w.word.starts_with("Eight"));
+        assert_eq!(eight.and_then(|w| w.stand_in.as_deref()), Some("eighty (80)"), "{:?}", cap.feedback);
+        assert_eq!(cap.tip.as_deref(), Some("Sem i depois do t."));
+
+        let (retry, _) = Fixture::speak_job(&f.tick(RETRY_PAUSE + 0.2));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert!(cap.feedback.is_none(), "the word heard goes with the old answer");
+        assert_eq!(cap.tip.as_deref(), Some("Sem i depois do t."), "the tip stays for the next try");
+
+        f.send(Input::Speech(SpeechEvent::Spoken { id: retry }));
+        f.send(Input::Speech(SpeechEvent::Heard { id: retry, text: "Eight, please.".into() }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.status, Status::Passed);
+        assert!(cap.tip.is_none(), "passed: nothing left to fix");
+        assert!(cap.feedback.iter().flatten().all(|w| w.stand_in.is_none()));
+    }
+
+    #[test]
+    fn a_miss_with_no_close_word_shows_the_tip_but_names_no_word() {
+        let mut o = options(true);
+        o.max_level = PRE_A1.into();
+        let mut f = fixture_with(o);
+        f.lesson.set_deck(Deck::parse(EIGHT_DECK).unwrap(), &mut f.scene);
+        let id = listening(&mut f);
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Hey, please.".into() }));
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert_eq!(cap.status, Status::Failed);
+        assert!(cap.feedback.iter().flatten().all(|w| w.stand_in.is_none()), "{:?}", cap.feedback);
+        assert!(cap.tip.is_some());
     }
 
     const TEA_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\

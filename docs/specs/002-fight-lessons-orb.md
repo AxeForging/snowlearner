@@ -31,7 +31,11 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    "heaven" for "Seven." and "eighty" for "Eight." — the last even without the beginner's
    slip. A right answer misheard this way gets the hinted second pass, which spelled the
    exact word in 13 of 16 misses (#80). The slips above still apply to the other words of a
-   longer answer ("please" heard as "pleese").
+   longer answer ("please" heard as "pleese"). When such a slip is refused, the caption
+   names it under "Ouvi:": `Ouvi "eighty (80)" no lugar de "Eight"` — a number whisper
+   wrote in digits is named as the word, so the learner sees another number, not a
+   formatting slip. After any miss the phrase's tip shows too, and stays through the
+   next tries until the phrase passes or the lesson moves on (#102).
 5. **The fight** — the fire mage appears only during lessons, charges while you speak,
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
