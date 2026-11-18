@@ -760,6 +760,7 @@ situation = "O médico pergunta, de zero a dez, quanto está doendo: nove."
 say = "Nine."
 polished = "A nine. It really hurts."
 meaning = "Nove."
+tip = "'Hurts' é 'hârts', sem 'i' antes do 's'. Fale tudo junto, sem pausa após 'nine'."
 
 [[phrase]]
 topic = "compras"

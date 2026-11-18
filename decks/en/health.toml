@@ -18,6 +18,7 @@ short = "It hurts here"
 polished = "Doctor, it hurts right here when I press"
 meaning = "Dói bem aqui"
 accept = ["It hurts here"]
+tip = "'Hurts' é uma sílaba só: 'hârts', sem 'i' entre o 't' e o 's'. Não é 'hârtis'."
 
 [[phrase]]
 topic = "saúde"
