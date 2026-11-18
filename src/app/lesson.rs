@@ -559,7 +559,10 @@ impl Lesson {
                 let other =
                     said.and_then(|t| p.tiers().into_iter().find(|(tier, _)| *tier == t)).filter(|(_, s)| *s != shown);
                 let words = if passed {
-                    shown.split_whitespace().map(|w| WordHit { word: w.to_string(), hit: other.is_none(), stand_in: None }).collect()
+                    shown
+                        .split_whitespace()
+                        .map(|w| WordHit { word: w.to_string(), hit: other.is_none(), stand_in: None })
+                        .collect()
                 } else {
                     matcher::score_tier(&shown, &p.say, &text, slack, &self.deck.language).words
                 };
