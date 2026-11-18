@@ -36,7 +36,8 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    wrote in digits is named as the word, so the learner sees another number, not a
    formatting slip. After any miss the phrase's tip shows too, and stays through the
    next tries until the phrase passes or the lesson moves on (#102).
-5. **The fight** — the fire mage appears only during lessons, charges while you speak,
+5. **The fight** — the fire mage appears only during lessons, charges only while your voice
+   is heard (an open mic in silence charges nothing, a pause holds it; shown only, #112),
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
    (big melt, never everything; frost mage stunned). Daily goal + combo in the corner.

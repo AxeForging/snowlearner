@@ -1,6 +1,7 @@
 //! The fire mage — your champion. He only shows up while you practice:
-//! teleports in, charges a fireball while you speak, and casts it at the frost
-//! mage when you get the phrase right (or fizzles when you don't).
+//! teleports in, charges a fireball only while your voice is heard (#112), and
+//! casts it at the frost mage when you get the phrase right (or fizzles when you
+//! don't). The charge is only shown: it never changes how much snow melts.
 
 use super::mage::{BODY, FEET, HEIGHT, WIDTH};
 use crate::render::canvas::{Canvas, Rgba, bayer, hex};
@@ -23,6 +24,13 @@ const ARRIVE: f32 = 0.6;
 const CAST: f32 = 0.35;
 const FIZZLE: f32 = 0.8;
 const LEAVE: f32 = 0.7;
+
+/// Mic level (RMS) below which the learner is taken as silent: a pause holds the charge.
+const QUIET: f32 = 0.015;
+/// Mic level of a normal speaking voice: the charge grows at full speed.
+const VOICE_FULL: f32 = 0.1;
+/// Charge per second at a full voice: about 2 s of speech fills it.
+const CHARGE_RATE: f32 = 0.55;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Act {
@@ -78,15 +86,26 @@ pub struct Pyro {
     pub dir: f32,
     pub act: Act,
     t: f32,
-    /// 0..1 fireball charge, grows while you are speaking.
+    /// 0..1 fireball charge, grows while your voice is heard.
     pub charge: f32,
+    /// 0..1 how loud the learner is speaking right now (0 when silent).
+    voice: f32,
     focused: bool,
     pending_cast: bool,
 }
 
 impl Default for Pyro {
     fn default() -> Self {
-        Pyro { x: 0.0, dir: 1.0, act: Act::Hidden, t: 0.0, charge: 0.0, focused: false, pending_cast: false }
+        Pyro {
+            x: 0.0,
+            dir: 1.0,
+            act: Act::Hidden,
+            t: 0.0,
+            charge: 0.0,
+            voice: 0.0,
+            focused: false,
+            pending_cast: false,
+        }
     }
 }
 
@@ -121,9 +140,22 @@ impl Pyro {
         }
     }
 
-    /// Charging while the learner speaks.
+    /// The mic is open for an answer. The charge itself waits for the voice.
     pub fn focus(&mut self, on: bool) {
         self.focused = on;
+        if !on {
+            self.voice = 0.0;
+        }
+    }
+
+    /// The learner's voice right now: `level` is the mic RMS, `speaking` that
+    /// speech has started. Only heard while the mic is open for an answer.
+    pub fn voice(&mut self, level: f32, speaking: bool) {
+        self.voice = if self.focused && speaking {
+            ((level - QUIET) / (VOICE_FULL - QUIET)).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
     }
 
     pub fn cast(&mut self) {
@@ -149,7 +181,7 @@ impl Pyro {
     pub fn step(&mut self, dt: f32, feet_y: f32) -> Option<Event> {
         self.t += dt;
         if self.focused {
-            self.charge = (self.charge + dt * 0.35).min(1.0);
+            self.charge = (self.charge + dt * CHARGE_RATE * self.voice).min(1.0);
         }
         match self.act {
             Act::Arrive if self.t > ARRIVE => {
@@ -210,10 +242,11 @@ impl Pyro {
             }
         }
 
-        // Staff with a flame crystal; its glow grows with the charge.
+        // Staff with a flame crystal; its glow grows with the charge and
+        // flares with the voice heard right now.
         let (sx, sy) = self.staff_top(feet_y);
-        let glow = 0.3 + self.charge * 0.6 + if self.act == Act::Cast { 0.4 } else { 0.0 };
-        c.glow(sx, sy, 3.0 + self.charge * 7.0, glow * presence, hex(0xff7a2a));
+        let glow = 0.3 + self.charge * 0.6 + self.voice * 0.3 + if self.act == Act::Cast { 0.4 } else { 0.0 };
+        c.glow(sx, sy, 3.0 + self.charge * 7.0 + self.voice * 2.0, glow * presence, hex(0xff7a2a));
         if presence > 0.5 {
             for y in (sy as i32 + 3)..(feet_y as i32) {
                 c.set(sx as i32, y, if y % 5 == 0 { hex(0x8b5a2b) } else { hex(0x5a3418) });
@@ -301,10 +334,58 @@ mod tests {
         p.arrive(20.0, 200.0);
         run(&mut p, 1.0);
         p.focus(true);
+        p.voice(0.12, true);
         run(&mut p, 2.0);
         assert!(p.charge > 0.5);
         p.fizzle();
         assert_eq!(p.charge, 0.0);
         assert_eq!(run(&mut p, 1.0), 0);
+    }
+
+    #[test]
+    fn an_open_mic_in_silence_charges_nothing() {
+        // #112: the power answers the voice, not the open mic.
+        let mut p = Pyro::default();
+        p.arrive(20.0, 200.0);
+        run(&mut p, 1.0);
+        p.focus(true);
+        run(&mut p, 2.0);
+        assert_eq!(p.charge, 0.0, "nothing said yet");
+        p.voice(0.004, false);
+        run(&mut p, 2.0);
+        assert_eq!(p.charge, 0.0, "room noise before speaking");
+    }
+
+    #[test]
+    fn the_charge_grows_with_the_voice_and_holds_in_a_pause() {
+        let mut p = Pyro::default();
+        p.arrive(20.0, 200.0);
+        run(&mut p, 1.0);
+        p.focus(true);
+        p.voice(0.05, true);
+        run(&mut p, 1.0);
+        let soft = p.charge;
+        p.voice(0.12, true);
+        run(&mut p, 1.0);
+        assert!(soft > 0.0 && p.charge - soft > soft, "a fuller voice charges faster: {soft} then {}", p.charge);
+        let before = p.charge;
+        p.voice(0.01, true); // a pause: speech started, nothing heard now
+        run(&mut p, 2.0);
+        assert_eq!(p.charge, before, "a pause holds the charge");
+    }
+
+    #[test]
+    fn the_voice_is_ignored_once_the_mic_closes() {
+        let mut p = Pyro::default();
+        p.arrive(20.0, 200.0);
+        run(&mut p, 1.0);
+        p.voice(0.12, true);
+        run(&mut p, 1.0);
+        assert_eq!(p.charge, 0.0, "not listening yet");
+        p.focus(true);
+        p.voice(0.12, true);
+        p.focus(false);
+        run(&mut p, 1.0);
+        assert_eq!(p.charge, 0.0, "closing the mic forgets the voice");
     }
 }
