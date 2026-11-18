@@ -151,11 +151,8 @@ impl Pyro {
     /// The learner's voice right now: `level` is the mic RMS, `speaking` that
     /// speech has started. Only heard while the mic is open for an answer.
     pub fn voice(&mut self, level: f32, speaking: bool) {
-        self.voice = if self.focused && speaking {
-            ((level - QUIET) / (VOICE_FULL - QUIET)).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
+        self.voice =
+            if self.focused && speaking { ((level - QUIET) / (VOICE_FULL - QUIET)).clamp(0.0, 1.0) } else { 0.0 };
     }
 
     pub fn cast(&mut self) {
