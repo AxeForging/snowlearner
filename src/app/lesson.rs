@@ -520,6 +520,7 @@ impl Lesson {
                 self.after_cue(scene, jobs);
             }
             (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::Level { level, speaking, .. }) => {
+                scene.set_voice(level, speaking);
                 if let Some(m) = scene.hud.caption.as_mut().and_then(|c| c.listen.as_mut()) {
                     m.level = level;
                     m.speaking |= speaking;
@@ -1739,6 +1740,23 @@ mod tests {
         let m = f.scene.hud.caption.as_ref().unwrap().listen.as_ref().unwrap();
         assert!(m.speaking && m.level > 0.1);
         assert!((m.think_left - 5.0).abs() < 0.15, "countdown stops once you talk");
+    }
+
+    #[test]
+    fn the_fire_mage_charges_only_once_the_learner_speaks() {
+        // #112: an open mic in silence charges nothing; the voice does.
+        let mut f = fixture(true);
+        let id = listening(&mut f);
+        let run = |f: &mut Fixture, seconds: f32| {
+            for _ in 0..(seconds * 30.0) as i32 {
+                f.scene.step(1.0 / 30.0);
+            }
+        };
+        run(&mut f, 2.0);
+        assert_eq!(f.scene.pyro.charge, 0.0, "silent so far");
+        f.send(Input::Speech(SpeechEvent::Level { id, level: 0.12, speaking: true }));
+        run(&mut f, 1.0);
+        assert!(f.scene.pyro.charge > 0.3, "{}", f.scene.pyro.charge);
     }
 
     #[test]

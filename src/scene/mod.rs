@@ -502,9 +502,15 @@ impl Scene {
         self.paused
     }
 
-    /// The learner is speaking: the fire mage charges his fireball.
+    /// The mic is open for an answer: the fire mage gets ready.
     pub fn set_listening(&mut self, on: bool) {
         self.pyro.focus(on);
+    }
+
+    /// The learner's voice during an answer (`level` = mic RMS): the fire mage
+    /// charges only while it is heard (#112). Shown only; melt is unchanged.
+    pub fn set_voice(&mut self, level: f32, speaking: bool) {
+        self.pyro.voice(level, speaking);
     }
 
     /// A correct phrase: the fire mage casts. The melt (`pace.melt_fraction`
@@ -1591,6 +1597,31 @@ mod tests {
         assert!(s.snow.fill() <= snow * (1.0 - melt) + 1e-4);
         assert!(s.frost.coverage() <= frost * (1.0 - melt) + 1e-4);
         assert!(s.snow.fill() > 0.0, "one answer never clears everything");
+    }
+
+    #[test]
+    fn the_fire_mages_charge_never_changes_the_melt() {
+        // #112: speaking drives the glow, not the reward.
+        let melted = |voice: bool| {
+            let mut s = Scene::new(240, 135, 2, Commitment::Relentless.pace(), true);
+            bury_to_the_line(&mut s);
+            s.set_practicing(true);
+            run(&mut s, 2.0);
+            s.set_listening(true);
+            if voice {
+                s.set_voice(0.12, true);
+            }
+            run(&mut s, 3.0);
+            assert_eq!(s.pyro.charge > 0.5, voice);
+            s.set_listening(false);
+            let before = s.snow.fill();
+            s.celebrate(1.0, Spell::Fireball);
+            run(&mut s, 3.0);
+            before - s.snow.fill()
+        };
+        let (charged, plain) = (melted(true), melted(false));
+        assert!(plain > 0.0);
+        assert!((charged - plain).abs() < 1e-6, "charged {charged} vs plain {plain}");
     }
 
     #[test]

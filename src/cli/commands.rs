@@ -704,9 +704,11 @@ fn snapshot(
                 script.push((
                     t,
                     Box::new(move |s: &mut Scene| {
+                        let level = 0.03 + 0.12 * ((i as f32 * 1.7).sin().abs());
+                        s.set_voice(level, true);
                         if let Some(m) = s.hud.caption.as_mut().and_then(|c| c.listen.as_mut()) {
                             m.speaking = true;
-                            m.level = 0.03 + 0.12 * ((i as f32 * 1.7).sin().abs());
+                            m.level = level;
                         }
                     }),
                 ));
