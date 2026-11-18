@@ -233,6 +233,7 @@ texts! {
     StatusSilent => "NÃO OUVI NADA", "I HEARD NOTHING";
     StatusConfirm => "FALE E CONFIRME", "SAY IT AND CONFIRM";
     Heard => "Ouvi: \"{0}\"", "I heard: \"{0}\"";
+    HeardInstead => "Ouvi \"{0}\" no lugar de \"{1}\"", "I heard \"{0}\" instead of \"{1}\"";
     Speaking => "falando", "speaking";
     // ---------------------------------------------------------------- app
     PauseOn => "Mago pausado. Bom foco!", "Mage paused. Stay focused!";

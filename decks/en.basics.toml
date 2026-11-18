@@ -751,6 +751,7 @@ situation = "Na padaria, a atendente pergunta quantos pães você quer: oito."
 say = "Eight."
 polished = "Eight, please."
 meaning = "Oito."
+tip = "'Eight' acaba no 't', sem 'i' depois, senão vira 'eighty' (80). Pausa antes do 'please'."
 
 [[phrase]]
 topic = "saúde e social"

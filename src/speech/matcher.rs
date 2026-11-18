@@ -12,6 +12,9 @@ use unicode_normalization::char::is_combining_mark;
 pub struct WordHit {
     pub word: String,
     pub hit: bool,
+    /// Another real word heard in place of this one, the lesson's word held
+    /// exact (#80): "bedroom" for "bathroom", "eighty (80)" for "eight" (#102).
+    pub stand_in: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -337,6 +340,23 @@ fn align_to_target(target: &[String], heard: Vec<String>) -> Vec<String> {
     out
 }
 
+/// The word heard in place of the lesson's word `p` (as `sounds` folds it):
+/// another real word within a slip of it ("bedroom" for "bathroom"), or a
+/// number whisper wrote in digits, named with them ("eighty (80)" for "eight").
+fn stand_in(p: &str, said: &[String], slack: usize, lang: &str) -> Option<String> {
+    said.iter().find_map(|w| {
+        let names = NUMBER_WORDS.iter().find(|(digits, _)| *digits == w.as_str()).map(|(_, names)| *names);
+        let near = |c: &&str| {
+            let heard = sounds(vec![c.to_string()], lang).concat();
+            heard != p && similar(p, &heard, slack)
+        };
+        match names {
+            Some(names) => names.iter().copied().find(near).map(|name| format!("{name} ({w})")),
+            None => Some(w.as_str()).filter(near).map(str::to_string),
+        }
+    })
+}
+
 pub fn score(target: &str, heard: &str) -> MatchResult {
     score_lenient(target, heard, 0, "")
 }
@@ -351,7 +371,8 @@ pub fn score_lenient(target: &str, heard: &str, slack: usize, lang: &str) -> Mat
 /// as heard only when it was heard exactly.
 fn score_held(target: &str, heard: &str, slack: usize, lang: &str, exact: &[String]) -> MatchResult {
     let t = normalize(target);
-    let h = sounds(align_to_target(&t, normalize(heard)), lang);
+    let said = normalize(heard);
+    let h = sounds(align_to_target(&t, said.clone()), lang);
     let t = sounds(t, lang);
 
     // Per original target word: is it (approximately) in what was heard?
@@ -361,7 +382,12 @@ fn score_held(target: &str, heard: &str, slack: usize, lang: &str, exact: &[Stri
             let parts = sounds(normalize(orig), lang);
             let found = |p: &String| h.iter().any(|hw| hw == p || (!exact.contains(p) && similar(p, hw, slack)));
             let hit = !parts.is_empty() && parts.iter().all(found);
-            WordHit { word: orig.to_string(), hit }
+            let stand_in = if hit {
+                None
+            } else {
+                parts.iter().filter(|p| exact.contains(p)).find_map(|p| stand_in(p, &said, slack, lang))
+            };
+            WordHit { word: orig.to_string(), hit, stand_in }
         })
         .collect();
 
@@ -627,6 +653,40 @@ mod tests {
             "Smile one, please."
         );
         assert!(!small.accepts("Smile one, please."));
+    }
+
+    /// The word heard in place of the lesson's word, as `score_tier` reports it.
+    fn stand_ins(answers: &[&str], heard: &str) -> Vec<String> {
+        let (r, _) = score_any(answers, answers[0], heard, BEGINNER_SLACK, "en");
+        r.words.into_iter().filter_map(|w| w.stand_in).collect()
+    }
+
+    #[test]
+    fn a_refused_near_miss_names_the_word_heard_in_its_place() {
+        // #102: "80 please" for "Eight." — the learner said "eighty", and saw a digit.
+        let eight = ["Eight.", "Eight, please."];
+        assert_eq!(stand_ins(&eight, "80 please."), ["eighty (80)"]);
+        assert_eq!(stand_ins(&eight, "Eighty, please."), ["eighty"]);
+        let bathroom = ["Bathroom?", "Sorry, is there a bathroom?"];
+        assert_eq!(stand_ins(&bathroom, "Sorry, is there a bedroom?"), ["bedroom"]);
+    }
+
+    #[test]
+    fn a_miss_with_no_word_close_to_the_lessons_names_none() {
+        let eight = ["Eight.", "Eight, please."];
+        for heard in ["Hey, please.", "Katie, please.", "Please.", "90, please."] {
+            assert!(stand_ins(&eight, heard).is_empty(), "{heard:?}");
+        }
+    }
+
+    #[test]
+    fn an_answer_heard_right_names_no_stand_in() {
+        let eight = ["Eight.", "Eight, please."];
+        for heard in ["8, please.", "Eight.", "8 8 8, please. 8 Braddies."] {
+            let (r, _) = score_any(&eight, "Eight.", heard, BEGINNER_SLACK, "en");
+            assert!(r.passed(PASS), "{heard:?} must pass: {r:?}");
+            assert!(r.words.iter().all(|w| w.stand_in.is_none()), "{heard:?}: {r:?}");
+        }
     }
 
     #[test]
