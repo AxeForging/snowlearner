@@ -44,9 +44,9 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
    (big melt, never everything; frost mage stunned). 6 in a row (12, 18…) call a comet
    instead (#114): it falls on the frost mage (#135), melts 25% on impact and leaves
-   4–6 little fire creatures that run around at random, melting the snow where they
-   pass, from a budget of 37% of the snow left, for about 12 s; on bare ground they
-   melt nothing. In all it never melts more
+   4–6 little fire people (#139) that dash to the deepest, nearest snow arms flailing,
+   run across it melting, then dash to the next patch (now and then a hop), from a
+   budget of 37% of the snow left, for about 12 s; on bare ground they melt nothing. In all it never melts more
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
 6. **More frost mage** — asks the questions and taunts/groans in bubbles; summons
    friends early and often; icicle rain from the top of the screen.

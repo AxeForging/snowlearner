@@ -1,10 +1,10 @@
 //! The comet: the reward for `COMET_COMBO` right answers in a row (#114). It
 //! falls on the frost mage with a dithered tail (#135), melts `COMET_MELT` of
-//! the snow on impact and leaves little fire creatures (`Ember`) that run
-//! across the screen at random, melting the snow where they pass, from a
+//! the snow on impact and leaves little fire people (`Ember`, #139) that dash
+//! to the snow arms flailing, melt it, then dash to the next patch, from a
 //! shared budget of `EMBER_BUDGET` of the snow left. On bare ground they melt
-//! nothing; what a creature has not spent when it fades is lost. Altogether
-//! the comet never melts more than the sun.
+//! nothing; what one has not spent when it fades is lost. Altogether the comet
+//! never melts more than the sun.
 
 use super::rng::Rng;
 use super::snow::Snow;
@@ -27,30 +27,91 @@ const SCATTER: f32 = 28.0;
 const EMBER_RADIUS: f32 = 6.0;
 /// A creature on deep snow spends its share in about this long (s).
 const EMBER_SPEND_S: f32 = 8.0;
-/// A creature's running speed range (px/s).
-const EMBER_SPEED: (f32, f32) = (14.0, 26.0);
-/// Seconds between a creature's chances to turn around.
-const EMBER_TURN: (f32, f32) = (0.6, 2.0);
+/// A fire person's running speed range (px/s): a dash, not a stroll.
+const EMBER_SPEED: (f32, f32) = (32.0, 46.0);
+/// At most this long on one patch before dashing to another (s).
+const EMBER_RETARGET: (f32, f32) = (2.0, 3.0);
+/// How far it runs across a patch it reached (px).
+const EMBER_ACROSS: (f32, f32) = (8.0, 20.0);
+/// Snow counts as worth running to from this height (px).
+const SNOW_WORTH: f32 = 1.0;
+/// How much a farther patch must be deeper to be chosen (px of snow per px away).
+const DISTANCE_COST: f32 = 0.08;
+/// A hop: its length (s), height (px) and the pause between hops (s).
+const HOP_S: f32 = 0.35;
+const HOP_H: f32 = 4.0;
+const HOP_EVERY: (f32, f32) = (1.5, 3.5);
 /// Its last seconds, while it cools and fades out.
 const EMBER_FADE_S: f32 = 1.5;
 /// Tail length, in px along the fall.
 const TAIL: i32 = 44;
 
-/// A fire creature, 7×7, facing right, in two running frames: a flame body
-/// with eyes and little dark feet.
-const RUN_A: &[&str] = &["...H...", "..HWH..", ".HWYWH.", "HWYEYEW", "RWYYYWR", ".RRRRR.", ".D...D."];
-const RUN_B: &[&str] = &["...H...", "..HWH..", ".HWYWH.", "HWYEYEW", "RWYYYWR", ".RRRRR.", "..D.D.."];
+/// A fire person, 9×11, facing right: flame head with eyes and a body. Arms
+/// and legs are drawn on top in two poses each.
+const PERSON: &[&str] = &[
+    "....H....",
+    "...HWH...",
+    "..HWYWH..",
+    "..WEYEW..",
+    "..WYYYW..",
+    "..RWYWR..",
+    "..RYYYR..",
+    "...RRR...",
+];
+/// Arms flung up, or swung down (column, row).
+const ARMS_UP: [(i32, i32); 4] = [(1, 4), (0, 3), (7, 4), (8, 3)];
+const ARMS_DOWN: [(i32, i32); 4] = [(1, 6), (0, 7), (7, 6), (8, 7)];
+/// Legs in stride, or passing (rows 8..=10 under the body).
+const LEGS_APART: [(i32, i32); 6] = [(3, 8), (5, 8), (2, 9), (6, 9), (1, 10), (7, 10)];
+const LEGS_TOGETHER: [(i32, i32); 6] = [(3, 8), (5, 8), (3, 9), (5, 9), (4, 10), (5, 10)];
 
-/// A little fire creature the comet left: it runs across the screen.
+/// A little fire person the comet left: it dashes from snow patch to snow patch.
 pub struct Ember {
     pub x: f32,
-    /// -1 = running left, 1 = right.
+    /// -1 = facing left, 1 = right.
     pub dir: f32,
     speed: f32,
-    turn_in: f32,
+    /// Where it is running to.
+    target: f32,
+    retarget_in: f32,
+    /// Time into the current hop (s), or None on the ground.
+    hop: Option<f32>,
+    hop_in: f32,
+    /// Running clock for the arms and legs.
+    run_t: f32,
     budget: f32,
     rate: f32,
     life: f32,
+}
+
+impl Ember {
+    /// Arms up (else down) and legs apart (else passing) right now: both
+    /// keep swapping while it runs.
+    pub fn pose(&self) -> (bool, bool) {
+        ((self.run_t * 8.0) as i32 % 2 == 0, (self.run_t * 10.0) as i32 % 2 == 0)
+    }
+
+    /// Height off the snow while hopping (px).
+    fn lift(&self) -> f32 {
+        self.hop.map_or(0.0, |t| (std::f32::consts::PI * t / HOP_S).sin() * HOP_H)
+    }
+}
+
+/// The snow worth running to from `x`: deep and near win. With no snow left
+/// anywhere it runs to the far edge.
+fn pick_target(x: f32, snow: &Snow, width: f32, rng: &mut Rng) -> f32 {
+    let (lo, hi) = (2.0, width - 3.0);
+    let best = (lo as i32..=hi as i32)
+        .step_by(4)
+        .map(|c| c as f32)
+        .filter(|&c| snow.height_at(c) >= SNOW_WORTH)
+        .map(|c| (c, snow.height_at(c) - (c - x).abs() * DISTANCE_COST + rng.range(0.0, 2.0)))
+        .max_by(|a, b| a.1.total_cmp(&b.1));
+    match best {
+        Some((c, _)) => c,
+        None if x < width / 2.0 => hi,
+        None => lo,
+    }
 }
 
 pub struct Comet {
@@ -115,28 +176,48 @@ impl Comet {
             for _ in 0..n.min(MAX_EMBERS) {
                 let x = (self.to_x + rng.range(-SCATTER, SCATTER)).clamp(2.0, width - 3.0);
                 let rate = share / (EMBER_SPEND_S * EMBER_RADIUS);
-                let dir = if rng.chance(0.5) { 1.0 } else { -1.0 };
-                let (speed, turn_in) = (rng.range(EMBER_SPEED.0, EMBER_SPEED.1), rng.range(EMBER_TURN.0, EMBER_TURN.1));
-                let life = EMBER_LIFE * rng.range(0.9, 1.0);
-                self.embers.push(Ember { x, dir, speed, turn_in, budget: share, rate, life });
+                let speed = rng.range(EMBER_SPEED.0, EMBER_SPEED.1);
+                let target = pick_target(x, snow, width, rng);
+                let dir = if target >= x { 1.0 } else { -1.0 };
+                let retarget_in = rng.range(EMBER_RETARGET.0, EMBER_RETARGET.1);
+                let hop_in = rng.range(0.3, HOP_EVERY.1);
+                let (life, run_t) = (EMBER_LIFE * rng.range(0.9, 1.0), rng.range(0.0, 1.0));
+                let budget = share;
+                let e = Ember { x, dir, speed, target, retarget_in, hop: None, hop_in, run_t, budget, rate, life };
+                self.embers.push(e);
             }
             return Some(Impact { x: self.to_x });
         }
+        let (lo, hi) = (2.0, width - 3.0);
         for e in &mut self.embers {
             e.life -= dt;
-            e.turn_in -= dt;
-            if e.turn_in <= 0.0 {
-                e.turn_in = rng.range(EMBER_TURN.0, EMBER_TURN.1);
-                if rng.chance(0.5) {
-                    e.dir = -e.dir;
+            e.run_t += dt;
+            e.retarget_in -= dt;
+            if (e.target - e.x).abs() < 1.5 || e.retarget_in <= 0.0 {
+                // Reached it: run across what is left here, or dash to the next patch.
+                e.target = if snow.height_at(e.x) >= SNOW_WORTH && e.retarget_in > 0.0 {
+                    let side = if rng.chance(0.5) { 1.0 } else { -1.0 };
+                    (e.x + side * rng.range(EMBER_ACROSS.0, EMBER_ACROSS.1)).clamp(lo, hi)
+                } else {
+                    e.retarget_in = rng.range(EMBER_RETARGET.0, EMBER_RETARGET.1);
+                    pick_target(e.x, snow, width, rng)
+                };
+            }
+            let gap = e.target - e.x;
+            if gap.abs() > 0.5 {
+                e.dir = gap.signum();
+                e.x = (e.x + e.dir * (e.speed * dt).min(gap.abs())).clamp(lo, hi);
+            }
+            e.hop_in -= dt;
+            e.hop = match e.hop {
+                Some(t) if t + dt < HOP_S => Some(t + dt),
+                Some(_) => None,
+                None if e.hop_in <= 0.0 => {
+                    e.hop_in = rng.range(HOP_EVERY.0, HOP_EVERY.1);
+                    Some(0.0)
                 }
-            }
-            e.x += e.dir * e.speed * dt;
-            let (lo, hi) = (2.0, width - 3.0);
-            if e.x < lo || e.x > hi {
-                e.x = e.x.clamp(lo, hi);
-                e.dir = -e.dir; // bumps the edge and runs back
-            }
+                None => None,
+            };
             e.budget -= snow.burn(e.x, EMBER_RADIUS, e.rate, dt, e.budget);
         }
         self.embers.retain(|e| e.life > 0.0);
@@ -182,14 +263,20 @@ impl Comet {
         }
         for (i, e) in self.embers.iter().enumerate() {
             let x = e.x.round() as i32;
-            let y = (ground_y - snow.height_at(e.x)).round() as i32;
+            let feet = (ground_y - snow.height_at(e.x) - e.lift()).round() as i32;
+            let top = feet - 11;
             let heat = (e.life / EMBER_FADE_S).min(1.0);
             let flick = ((time * 9.0 + i as f32 * 1.3).sin() * 0.5 + 0.5) > 0.5;
             let (hot, warm) = if flick { (0xfff4b0, 0xffc13d) } else { (0xffc13d, 0xff7a2a) };
-            // Its feet swap as it runs; it faces where it goes.
-            let frame = if (e.x / 3.0) as i32 % 2 == 0 { RUN_A } else { RUN_B };
             let flip = e.dir < 0.0;
-            for (row, line) in frame.iter().enumerate() {
+            let mut put = |col: i32, row: i32, rgb: u32| {
+                let col = if flip { 8 - col } else { col };
+                let (px, py) = (x - 4 + col, top + row);
+                if bayer(px, py) < heat {
+                    c.set(px, py, hex(rgb));
+                }
+            };
+            for (row, line) in PERSON.iter().enumerate() {
                 for (col, ch) in line.chars().enumerate() {
                     let rgb = match ch {
                         'H' => hot,
@@ -197,18 +284,21 @@ impl Comet {
                         'Y' => 0xffd64a,
                         'R' => 0xd93a2a,
                         'E' => 0x1b1942,
-                        'D' => 0x4a2216,
                         _ => continue,
                     };
-                    let col = if flip { 6 - col as i32 } else { col as i32 };
-                    let (px, py) = (x - 3 + col, y - frame.len() as i32 + row as i32);
-                    if bayer(px, py) < heat {
-                        c.set(px, py, hex(rgb));
-                    }
+                    put(col as i32, row as i32, rgb);
                 }
             }
+            // Flailing arms and running legs, swapping as it runs.
+            let (arms_up, legs_apart) = e.pose();
+            for (col, row) in if arms_up { ARMS_UP } else { ARMS_DOWN } {
+                put(col, row, warm);
+            }
+            for (col, row) in if legs_apart { LEGS_APART } else { LEGS_TOGETHER } {
+                put(col, row, 0xd93a2a);
+            }
             if heat >= 1.0 {
-                c.glow(e.x, y as f32 - 4.0, 5.0, 0.6, hex(warm));
+                c.glow(e.x, top as f32 + 3.0, 5.0, 0.6, hex(warm));
             }
         }
     }
@@ -272,17 +362,39 @@ mod tests {
     }
 
     #[test]
-    fn a_creature_on_bare_ground_melts_nothing() {
+    fn on_bare_ground_they_run_edge_to_edge_and_melt_nothing() {
         let mut snow = Snow::new(200, 60.0);
-        snow.add(5.0, 30.0, 1.0); // snow far from where they land and can run in 2 s
-        let before = snow.total();
-        let mut c = Comet::new(160.0, 200.0);
+        let mut c = Comet::new(100.0, 200.0);
         run(&mut c, &mut snow, 1.3);
-        let landed = snow.total();
-        assert!(!c.embers.is_empty());
-        run(&mut c, &mut snow, 2.0);
-        assert_eq!(snow.total(), landed, "they run on bare ground");
-        assert!(landed <= before);
+        let start: Vec<f32> = c.embers.iter().map(|e| e.x).collect();
+        run(&mut c, &mut snow, 1.5);
+        assert_eq!(snow.total(), 0.0);
+        assert!(c.embers.iter().zip(&start).all(|(e, s)| (e.x - s).abs() > 30.0), "they keep running");
+    }
+
+    #[test]
+    fn they_dash_to_the_snow() {
+        let mut snow = Snow::new(200, 60.0);
+        snow.add(185.0, 30.0, 5.0); // snow only at the right edge
+        let mut c = Comet::new(60.0, 200.0);
+        run(&mut c, &mut snow, 1.25);
+        let landed: f32 = c.embers.iter().map(|e| e.x).sum::<f32>() / c.embers.len() as f32;
+        run(&mut c, &mut snow, 5.0);
+        assert!(c.embers.iter().all(|e| e.x > 150.0), "all ran to the snow from about {landed}");
+    }
+
+    #[test]
+    fn their_arms_and_legs_keep_moving() {
+        let mut snow = pile();
+        let mut c = Comet::new(100.0, 200.0);
+        run(&mut c, &mut snow, 1.3);
+        let mut rng = Rng::new(9);
+        let mut poses = std::collections::HashSet::new();
+        for _ in 0..15 {
+            c.step(1.0 / 30.0, &mut snow, 200.0, &mut rng);
+            poses.insert(c.embers[0].pose());
+        }
+        assert_eq!(poses.len(), 4, "arms up and down, legs apart and passing: {poses:?}");
     }
 
     #[test]
@@ -302,6 +414,7 @@ mod tests {
         let (first, last) = (&xs[40], &xs[xs.len() - 1]);
         assert!(!first.is_empty() && first.len() == last.len());
         assert!(first.iter().zip(last).any(|(a, b)| (a - b).abs() > 20.0), "they run about");
+        assert!(xs.iter().flatten().all(|x| x.is_finite()));
         assert!(xs.iter().flatten().all(|x| (2.0..=197.0).contains(x)), "never off screen");
     }
 
