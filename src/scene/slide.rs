@@ -62,5 +62,14 @@ mod tests {
             assert!(font::supports(line), "{line}");
             assert!(line.len() <= 24, "{line}");
         }
+        // The snowboard taunt (#117), with every language it can name.
+        for n in Native::ALL {
+            let study = ["en", "es", "pt", "fr", "it", "de"].map(|l| crate::lang::text::language_name(n, l));
+            let lines = study.iter().map(|l| T::MageGoStudy.fill(n, &[l])).chain([T::MageSnowboard.get(n).into()]);
+            for line in lines {
+                assert!(font::supports(&line), "{line}");
+                assert!(line.len() <= 24, "{line}");
+            }
+        }
     }
 }

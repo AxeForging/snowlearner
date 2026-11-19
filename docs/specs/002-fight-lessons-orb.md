@@ -49,7 +49,11 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    budget of 37% of the snow left, for about 12 s; on bare ground they melt nothing. In all it never melts more
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
 6. **More frost mage** — asks the questions and taunts/groans in bubbles; summons
-   friends early and often; icicle rain from the top of the screen.
+   friends early and often; icicle rain from the top of the screen. When you have been
+   away (the idle nudge) and the pile is deep (`owl::PILE_LEVEL`), he rides a snowboard
+   down it and taunts in two bubbles, "Que pista boa de esqui!" then "Estuda {língua},
+   hein?" (#117). The warrior slides on skis and one ski run in three ends in a tumble.
+   All of it is a show: no snow moves.
 7. **Warrior vs mobs** — frost slimes/bats come from the edges; the warrior fights with his
    sword (bites chill him, wins warm him).
 8. **Control** — magic orb (overlay: its own draggable window; window mode: in-scene):

@@ -278,6 +278,8 @@ texts! {
     MageOwl => "Coruja de gelo, venha!", "Ice owl, come to me!";
     WarriorSlide => "Uhuu! Escorregando!", "Wheee! Sliding!";
     MageSlide => "Aaah! Escorrega!", "Aaah! Slippery!";
+    MageSnowboard => "Que pista boa de esqui!", "Nice ski slope you made!";
+    MageGoStudy => "Estuda {0}, hein?", "Go study {0}, eh?";
 }
 
 lines! {
