@@ -107,11 +107,15 @@ pub struct Warrior {
     pub foe: Option<f32>,
     swing_cd: f32,
     swing_t: f32,
+    /// Time left on the finishing strike's arc (#113).
+    finish_t: f32,
     /// Sliding down a steep pile (set by the scene): crouched, no steps.
     pub sliding: bool,
 }
 
 const BUILD_TIME: f32 = 2.5;
+/// How long the finishing strike's arc stays on screen (s).
+pub const FINISH_SHOW: f32 = 0.45;
 
 impl Warrior {
     pub fn new(x: f32) -> Self {
@@ -127,6 +131,7 @@ impl Warrior {
             foe: None,
             swing_cd: 0.0,
             swing_t: 0.0,
+            finish_t: 0.0,
             sliding: false,
         }
     }
@@ -164,9 +169,22 @@ impl Warrior {
         self.set(Act::Cheer);
     }
 
+    /// A right answer lets him finish the mob at `foe_x` (#113): he faces it
+    /// and a wide arc of the sword shows for `FINISH_SHOW`.
+    pub fn finish(&mut self, foe_x: f32) {
+        self.dir = if foe_x >= self.x + WIDTH as f32 / 2.0 { 1.0 } else { -1.0 };
+        self.finish_t = FINISH_SHOW;
+    }
+
+    /// The finishing strike's arc is on screen.
+    pub fn finishing(&self) -> bool {
+        self.finish_t > 0.0
+    }
+
     /// `freeze` 0..1 = how frozen the screen is; `near_fire` = sitting range.
     pub fn step(&mut self, dt: f32, freeze: f32, near_fire: bool, min_x: f32, max_x: f32, roll: f32) -> Option<Event> {
         self.t += dt;
+        self.finish_t = (self.finish_t - dt).max(0.0);
         if let Some(b) = &mut self.bubble {
             b.left -= dt;
             if b.left <= 0.0 {
@@ -289,6 +307,24 @@ impl Warrior {
                 }
                 c.set(hand_x - 1, hand_y - 1, hilt);
                 c.set(hand_x + 1, hand_y - 1, hilt);
+            }
+        }
+        if self.finish_t > 0.0 {
+            // Finishing strike (#113): a wide arc from overhead down to the
+            // front, a solid edge with a dithered trail that thins as it fades.
+            let dir = if flip { -1.0 } else { 1.0 };
+            let (cx, cy) = (x as f32 + WIDTH as f32 / 2.0, body_top as f32 + 8.0);
+            let fade = self.finish_t / FINISH_SHOW;
+            for i in 0..=48 {
+                let a = -1.9 + 2.5 * i as f32 / 48.0;
+                for r in [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0] {
+                    let (px, py) = ((cx + dir * a.cos() * r).round() as i32, (cy + a.sin() * r).round() as i32);
+                    if r >= 16.0 {
+                        c.set(px, py, hex(0xffffff));
+                    } else if crate::render::canvas::bayer(px, py) < fade * (r - 10.0) / 6.0 {
+                        c.set(px, py, hex(0x9be8ff));
+                    }
+                }
             }
         }
         if self.act == Act::Build && (time * 8.0) as i32 % 2 == 0 {
@@ -435,6 +471,28 @@ mod tests {
         w.foe = None;
         run(&mut w, 0.2, 0.0, false);
         assert_eq!(w.act, Act::Wander, "sheathes the sword when the fight is over");
+    }
+
+    #[test]
+    fn the_finishing_arc_faces_the_foe_is_one_bit_and_fades_out() {
+        let mut w = Warrior::new(100.0);
+        w.dir = -1.0;
+        w.finish(130.0);
+        assert_eq!(w.dir, 1.0, "turns to the mob");
+        let draw = |w: &Warrior| {
+            let mut c = Canvas::new(160, 60);
+            w.draw(&mut c, 50.0, 0.0);
+            c.bytes().to_vec()
+        };
+        let with_arc = draw(&w);
+        assert!(with_arc.chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
+        fn ahead(px: &[u8]) -> usize {
+            (0..60 * 160).filter(|i| (117..126).contains(&(i % 160)) && px[i * 4 + 3] == 255).count()
+        }
+        assert!(ahead(&with_arc) >= 10, "the arc is drawn in front of him");
+        run(&mut w, FINISH_SHOW + 0.05, 0.0, false);
+        assert!(!w.finishing());
+        assert_eq!(ahead(&draw(&w)), 0, "gone once it fades");
     }
 
     #[test]
