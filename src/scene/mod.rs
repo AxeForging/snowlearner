@@ -526,6 +526,12 @@ impl Scene {
         self.pyro.voice(level, speaking);
     }
 
+    /// The answer is being transcribed: the fire mage's flame holds and
+    /// pulses (#140). Shown only.
+    pub fn set_thinking(&mut self, on: bool) {
+        self.pyro.think(on);
+    }
+
     /// A correct phrase: the fire mage casts. The melt (`pace.melt_fraction`
     /// × `power`) happens when the fireball hits the frost mage.
     pub fn celebrate(&mut self, power: f32, spell: Spell) {
