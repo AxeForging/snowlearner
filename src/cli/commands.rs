@@ -686,7 +686,8 @@ fn snapshot(
         Scenario::Lesson => {
             let n = settings.native;
             let label = format!("{} · {}", deck.language.to_uppercase(), crate::lang::text::topic(n, &phrase.topic));
-            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label });
+            let (to_reward, reward) = crate::app::lesson::next_reward(2);
+            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label, to_reward, reward });
             scene.set_practicing(true);
             scene.mage_say(crate::lang::Lines::MageAskRepeat.get(n)[0], 3.0);
             step(&mut scene, 1.0);

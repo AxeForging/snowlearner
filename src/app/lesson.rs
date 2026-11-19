@@ -10,7 +10,7 @@ use crate::learn::deck::{Answer, Deck, PRE_A1, Phrase};
 use crate::learn::path;
 use crate::learn::picker::{self, Mode, Practice};
 use crate::scene::Scene;
-use crate::scene::hud::{Caption, Meter, Stats, Status, SummaryLine, SummaryPanel};
+use crate::scene::hud::{self, Caption, Meter, Reward, Stats, Status, SummaryLine, SummaryPanel};
 use crate::scene::pyro::Spell;
 use crate::speech::endpoint::ListenPlan;
 use crate::speech::matcher::{self, WordHit};
@@ -24,6 +24,22 @@ pub const MAX_TRIES: u32 = 3;
 pub const SUN_COMBO: u32 = 3;
 /// Right answers in a row that call the comet instead of the sun (#114).
 pub const COMET_COMBO: u32 = 6;
+const _: () = assert!(hud::PIPS == SUN_COMBO, "one pip per answer toward the sun");
+
+/// Right answers still missing after `combo` in a row, and the reward they call (#115).
+pub fn next_reward(combo: u32) -> (u32, Reward) {
+    let next = (combo / SUN_COMBO + 1) * SUN_COMBO;
+    (next - combo, if next % COMET_COMBO == 0 { Reward::Comet } else { Reward::Sun })
+}
+
+/// The frost mage's groan on a right answer grows with the streak (#115).
+fn groan_for(combo: u32) -> Lines {
+    match combo {
+        0 | 1 => Lines::MageGroan,
+        2..=4 => Lines::MageGroanWorried,
+        _ => Lines::MageGroanDesperate,
+    }
+}
 const RESULT_SECONDS: f32 = 3.5;
 const RETRY_PAUSE: f32 = 2.5;
 /// Hotkey auto-repeat / double clicks within this window are ignored.
@@ -315,7 +331,10 @@ impl Lesson {
     }
 
     fn refresh_stats(&self, scene: &mut Scene) {
+        let (to_reward, reward) = next_reward(self.combo);
         scene.hud.stats = Some(Stats {
+            to_reward,
+            reward,
             done: self.done_today,
             goal: self.opts.daily_goal,
             combo: self.combo,
@@ -739,7 +758,7 @@ impl Lesson {
             // Remembering from scratch is worth more than repeating.
             let power = if mode == Mode::Recall && tries == 1 { 1.5 } else { 1.0 };
             scene.celebrate(power, spell_for(said.unwrap_or(Answer::Complete)));
-            let groan = self.line(Lines::MageGroan);
+            let groan = self.line(groan_for(self.combo));
             scene.mage_say(groan, 3.5);
             if self.combo % COMET_COMBO == 0 {
                 scene.comet();
@@ -1591,6 +1610,52 @@ mod tests {
         let mut f = fixture_with(o);
         assert!(f.send(Input::Primary).is_empty());
         assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("menu"));
+    }
+
+    #[test]
+    fn the_pips_count_toward_the_next_reward_and_show_the_comet_before_6_and_12() {
+        let expect = [
+            (0, 3, Reward::Sun),
+            (1, 2, Reward::Sun),
+            (2, 1, Reward::Sun),
+            (3, 3, Reward::Comet),
+            (5, 1, Reward::Comet),
+            (6, 3, Reward::Sun),
+            (8, 1, Reward::Sun),
+            (9, 3, Reward::Comet),
+            (11, 1, Reward::Comet),
+            (12, 3, Reward::Sun),
+        ];
+        for (combo, left, reward) in expect {
+            assert_eq!(next_reward(combo), (left, reward), "combo {combo}");
+        }
+        let mut f = fixture(true);
+        for _ in 0..2 {
+            f.answer(true);
+            f.finish();
+        }
+        let st = f.scene.hud.stats.as_ref().unwrap();
+        assert_eq!((st.combo, st.to_reward, st.reward), (2, 1, Reward::Sun), "the corner follows the lesson");
+    }
+
+    #[test]
+    fn the_frost_mages_groan_grows_with_the_streak() {
+        assert_eq!(groan_for(1), Lines::MageGroan);
+        assert_eq!(groan_for(2), Lines::MageGroanWorried);
+        assert_eq!(groan_for(4), Lines::MageGroanWorried);
+        assert_eq!(groan_for(5), Lines::MageGroanDesperate);
+        assert_eq!(groan_for(9), Lines::MageGroanDesperate);
+        let mut f = fixture(true);
+        let mut heard = Vec::new();
+        for _ in 0..5 {
+            f.answer(true);
+            heard.push(f.scene.mage_bubble().unwrap_or_default().to_string());
+            f.finish();
+        }
+        let n = Native::PtBr;
+        assert!(Lines::MageGroan.get(n).contains(&heard[0].as_str()), "1: {}", heard[0]);
+        assert!(Lines::MageGroanWorried.get(n).contains(&heard[1].as_str()), "2: {}", heard[1]);
+        assert!(Lines::MageGroanDesperate.get(n).contains(&heard[4].as_str()), "5: {}", heard[4]);
     }
 
     #[test]

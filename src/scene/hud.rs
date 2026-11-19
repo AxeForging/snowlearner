@@ -79,12 +79,27 @@ pub struct Meter {
     pub think_total: f32,
 }
 
+/// Pips toward the next reward: one per right answer in a row, so it must
+/// match the lesson's `SUN_COMBO` (checked there at compile time).
+pub const PIPS: u32 = 3;
+
+/// The reward the streak is heading for (#115).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Reward {
+    #[default]
+    Sun,
+    Comet,
+}
+
 /// Progress corner: today's count against the goal, combo, language/topic.
 pub struct Stats {
     pub done: u32,
     pub goal: u32,
     pub combo: u32,
     pub label: String,
+    /// Right answers still missing for the next reward (1..=`PIPS`).
+    pub to_reward: u32,
+    pub reward: Reward,
 }
 
 pub struct SummaryLine {
@@ -219,6 +234,31 @@ fn draw_stats(c: &mut Canvas, st: &Stats) {
     let by = y + font::LINE_H;
     c.rect(x + w - bar_w - 1, by - 1, bar_w + 2, 4, outline);
     c.rect(x + w - bar_w, by, fill, 2, if st.done >= st.goal { hex(0x7dff9b) } else { hex(0xffb03a) });
+    draw_pips(c, x + w - bar_w - 4, by + 1, st);
+}
+
+const SUN_MARK: &[&str] = &["Y.Y.Y", ".YYY.", "YYWYY", ".YYY.", "Y.Y.Y"];
+const COMET_MARK: &[&str] = &["R....", ".O...", "..OY.", "..YWY", "...Y."];
+const MARK_PAL: &[(char, Rgba)] =
+    &[('Y', hex(0xffd64a)), ('W', hex(0xffffff)), ('O', hex(0xff7a2a)), ('R', hex(0xd93a2a))];
+
+/// Pips toward the next reward, right-aligned at `right` and centered on `cy`:
+/// filled ones for the answers already in a row, then the reward's mark (#115).
+fn draw_pips(c: &mut Canvas, right: i32, cy: i32, st: &Stats) {
+    let outline = hex(0x1b1942);
+    let (mark, lit) = match st.reward {
+        Reward::Sun => (SUN_MARK, hex(0xffd64a)),
+        Reward::Comet => (COMET_MARK, hex(0xff7a2a)),
+    };
+    let mx = right - 7;
+    c.rect(mx, cy - 3, 7, 7, outline);
+    c.sprite(mark, MARK_PAL, mx + 1, cy - 2, false);
+    let filled = PIPS.saturating_sub(st.to_reward.min(PIPS));
+    for i in 0..PIPS {
+        let px = mx - 3 - (PIPS - i) as i32 * 6;
+        c.rect(px, cy - 2, 5, 5, outline);
+        c.rect(px + 1, cy - 1, 3, 3, if i < filled { lit } else { hex(0x3a3f7a) });
+    }
 }
 
 fn draw_cheats(c: &mut Canvas, ch: &Cheats) {
@@ -600,8 +640,8 @@ mod tests {
 
     #[test]
     fn stats_corner_shows_goal_progress_and_combo() {
-        let mut hud =
-            Hud { stats: Some(Stats { done: 3, goal: 10, combo: 0, label: "EN".into() }), ..Default::default() };
+        let stats = Stats { done: 3, goal: 10, combo: 0, label: "EN".into(), to_reward: 3, reward: Reward::Sun };
+        let mut hud = Hud { stats: Some(stats), ..Default::default() };
         let mut plain = Canvas::new(200, 60);
         hud.draw(&mut plain, 60, 0.0);
         hud.stats.as_mut().unwrap().combo = 4;
@@ -609,6 +649,30 @@ mod tests {
         hud.draw(&mut combo, 60, 0.0);
         assert!(plain.opaque_in(100, 0, 100, 40) > 0);
         assert!(combo.opaque_in(0, 0, 200, 60) > plain.opaque_in(0, 0, 200, 60), "combo adds 'x4'");
+    }
+
+    #[test]
+    fn the_pips_fill_toward_the_reward_and_its_mark_shows() {
+        let corner = |to_reward: u32, reward: Reward| {
+            let stats = Stats { done: 3, goal: 10, combo: 0, label: "EN".into(), to_reward, reward };
+            let hud = Hud { stats: Some(stats), ..Default::default() };
+            let mut c = Canvas::new(200, 60);
+            hud.draw(&mut c, 60, 0.0);
+            c
+        };
+        let count = |c: &Canvas, rgb: Rgba| {
+            (0..60).flat_map(|y| (0..200).map(move |x| (x, y))).filter(|&(x, y)| c.get(x, y) == Some(rgb)).count()
+        };
+        let (yellow, orange) = (hex(0xffd64a), hex(0xff7a2a));
+        let none = corner(3, Reward::Sun);
+        let two = corner(1, Reward::Sun);
+        assert_eq!(count(&two, yellow) - count(&none, yellow), 2 * 9, "two pips lit");
+        let comet = corner(1, Reward::Comet);
+        assert!(count(&comet, orange) >= 2 * 9 + 2, "lit in the comet's color, with its mark");
+        assert!(count(&none, orange) == 0, "the sun's mark has no comet in it");
+        for c in [&none, &two, &comet] {
+            assert!(c.bytes().chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
+        }
     }
 
     #[test]
@@ -685,7 +749,8 @@ mod tests {
         let cap =
             Caption { alts, heard: Some("sorry you're on mute".into()), footer: "Ctrl+Alt+M".into(), ..caption(None) };
         let draw = |caption: Option<Caption>| {
-            let stats = Some(Stats { done: 4, goal: 10, combo: 2, label: "EN · trabalho".into() });
+            let label = "EN · trabalho".into();
+            let stats = Some(Stats { done: 4, goal: 10, combo: 2, label, to_reward: 1, reward: Reward::Sun });
             let hud = Hud { caption, stats, ..Default::default() };
             let mut c = Canvas::new(320, 180);
             hud.draw(&mut c, 170, 0.0);

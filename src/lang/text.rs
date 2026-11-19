@@ -289,6 +289,10 @@ lines! {
         ["Hahaha! Wrong!", "More snow for you!", "Close... but no!"];
     MageGroan => ["Argh! Não!", "Impossível!", "Grrr... sorte!"],
         ["Argh! No!", "Impossible!", "Grrr... lucky!"];
+    MageGroanWorried => ["Ei... de novo?!", "Para com isso!", "Isso não vai ficar assim!"],
+        ["Hey... again?!", "Stop that!", "This won't stand!"];
+    MageGroanDesperate => ["Não, não, não! Chega!", "Você não erra nunca?!", "Meu gelo! Meu lindo gelo!"],
+        ["No, no, no! Enough!", "Don't you ever miss?!", "My ice! My beautiful ice!"];
     MagePoked => ["Ei! Não me cutuque!", "Mais neve pra você!", "Fale uma frase, se tiver coragem!"],
         ["Hey! Don't poke me!", "More snow for you!", "Say a phrase, if you dare!"];
     MageHeld => [
