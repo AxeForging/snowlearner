@@ -48,6 +48,7 @@ const TAIL: i32 = 44;
 
 /// A fire person, 9×11, facing right: flame head with eyes and a body. Arms
 /// and legs are drawn on top in two poses each.
+#[rustfmt::skip] // kept as a picture
 const PERSON: &[&str] = &[
     "....H....",
     "...HWH...",
