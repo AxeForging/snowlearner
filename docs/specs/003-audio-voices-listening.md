@@ -43,6 +43,11 @@ Status: approved in chat (2026-09-27).
 - `snowlearner audio mics|speakers`, `snowlearner audio test-mic` (live meter, then
   shows what the recognizer heard).
 - Panel "Áudio" tab: microphone, test mic (meter + transcript), speaker.
+- `replay_voice` (off by default, set in `config.toml`, #116): on a right answer the
+  learner hears what they just said, as the fireball flies. The worker keeps only the
+  last answer's spoken part (silence trimmed, at most 3 s) in memory until the next
+  listen, and plays it on `speaker` when the lesson sends `Job::ReplayAnswer`. A miss
+  plays nothing, and nothing is written to disk for it.
 
 ## Voices & engines (`tts_engine`)
 | engine | how | voices listed from |

@@ -170,6 +170,7 @@ pub fn run(settings: Settings, paths: Paths, level: Option<Commitment>) -> Resul
         topics: settings.topics.clone(),
         max_level: settings.max_level.clone(),
         daily_goal: settings.daily_goal,
+        replay_voice: settings.replay_voice,
     };
     let languages = available_languages(&paths, &settings.learning);
     let mut menu = Menu::new(languages, deck.topic_counts(&settings.max_level));

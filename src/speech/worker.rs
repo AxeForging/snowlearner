@@ -50,6 +50,10 @@ pub enum Job {
     StopSpeaking,
     /// Apply new voice/mic settings live (from the panel).
     Configure(Box<VoiceSettings>),
+    /// Play back the right answer heard by listen job `id` (`replay_voice`, #116).
+    ReplayAnswer {
+        id: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -123,6 +127,8 @@ pub struct VoiceSettings {
     pub mic: String,
     /// Where answers are kept for diagnosis (`keep_recordings`); None = not kept.
     pub recordings: Option<PathBuf>,
+    /// Keep the last answer in memory to play it back (`replay_voice`).
+    pub replay: bool,
     /// The Whisper server answers go to; None = whisper.cpp in the app.
     pub remote: Option<super::remote::Remote>,
 }
@@ -141,6 +147,7 @@ impl VoiceSettings {
             speaker: s.speaker.clone(),
             mic: s.mic.clone(),
             recordings: s.keep_recordings.then(|| paths.recordings_dir()),
+            replay: s.replay_voice,
             remote: s.remote_stt(),
         }
     }
@@ -182,6 +189,9 @@ impl Speech {
                 #[cfg(feature = "stt")]
                 let mut recognizer =
                     Resident::<super::stt::Recognizer>::new(super::resident::SPEECH_MODEL_IDLE, Instant::now());
+                // The last answer's spoken part, in memory only, for `replay_voice`.
+                #[cfg(feature = "stt")]
+                let mut last_answer: Option<(u64, Vec<f32>)> = None;
                 loop {
                     // Sleep until the next job, waking only to free an idle speech model.
                     #[cfg(feature = "stt")]
@@ -232,19 +242,24 @@ impl Speech {
                         }
                         #[cfg(feature = "stt")]
                         Job::Listen { id, lang, plan, expect } => {
-                            let ev =
-                                listen(id, &lang, expect.as_ref(), plan, &cfg, &mut recognizer, &stop_worker, &notify);
+                            let mut kit = Kit { recognizer: &mut recognizer, kept: &mut last_answer };
+                            let ev = listen(id, &lang, expect.as_ref(), plan, &cfg, &mut kit, &stop_worker, &notify);
                             recognizer.touch(Instant::now());
                             notify(ev);
                         }
                         #[cfg(feature = "stt")]
                         Job::MicTest { id, lang } => {
                             let plan = ListenPlan { think: 6.0, expected: 3.0 };
-                            let ev = listen(id, &lang, None, plan, &cfg, &mut recognizer, &stop_worker, &notify);
+                            let mut kit = Kit { recognizer: &mut recognizer, kept: &mut last_answer };
+                            let ev = listen(id, &lang, None, plan, &cfg, &mut kit, &stop_worker, &notify);
                             recognizer.touch(Instant::now());
                             notify(ev);
                         }
                         Job::CheckKey { id } => notify(check_key(id, &cfg)),
+                        #[cfg(feature = "stt")]
+                        Job::ReplayAnswer { id } => replay(id, last_answer.as_ref(), &cfg),
+                        #[cfg(not(feature = "stt"))]
+                        Job::ReplayAnswer { .. } => {}
                         #[cfg(not(feature = "stt"))]
                         Job::Listen { id, .. } | Job::MicTest { id, .. } => {
                             let _ = &stop_worker;
@@ -269,6 +284,27 @@ impl Speech {
     }
 }
 
+/// What a listen works with: the resident speech model, and where the last
+/// answer is kept for `replay_voice` (cleared as each listen starts).
+#[cfg(feature = "stt")]
+struct Kit<'a> {
+    recognizer: &'a mut Resident<super::stt::Recognizer>,
+    kept: &'a mut Option<(u64, Vec<f32>)>,
+}
+
+/// Plays back the answer heard by listen `id`, when it is the one kept.
+#[cfg(feature = "stt")]
+fn replay(id: u64, kept: Option<&(u64, Vec<f32>)>, cfg: &VoiceSettings) {
+    let Some((_, samples)) = kept.filter(|(heard, s)| *heard == id && !s.is_empty()) else {
+        return;
+    };
+    let rate = super::resample::WHISPER_RATE;
+    trace::line(format_args!("replaying the answer ({:.1} s)", samples.len() as f32 / rate as f32));
+    if let Err(e) = super::audio::play_samples(samples, rate, &cfg.speaker) {
+        trace::line(format_args!("replaying the answer failed: {e:#}"));
+    }
+}
+
 #[cfg(feature = "stt")]
 /// `expect`: what the lesson expects to hear, for a hinted second pass.
 #[allow(clippy::too_many_arguments)]
@@ -278,12 +314,14 @@ fn listen(
     expect: Option<&super::matcher::Expect>,
     plan: ListenPlan,
     cfg: &VoiceSettings,
-    recognizer: &mut Resident<super::stt::Recognizer>,
+    kit: &mut Kit,
     stop: &AtomicBool,
     notify: &impl Fn(SpeechEvent),
 ) -> SpeechEvent {
     use super::transcriber::Transcriber;
     stop.store(false, Ordering::SeqCst);
+    *kit.kept = None;
+    let recognizer = &mut *kit.recognizer;
     trace::line(format_args!("listen [{lang}] think {:.1} s, expected {:.1} s", plan.think, plan.expected));
     let result = (|| -> anyhow::Result<Option<String>> {
         // Open the mic right away and load the model meanwhile: after an idle
@@ -312,6 +350,9 @@ fn listen(
             return Ok(None);
         }
         notify(SpeechEvent::Thinking { id });
+        if cfg.replay {
+            *kit.kept = Some((id, super::replay::spoken_part(&rec.samples, super::resample::WHISPER_RATE).to_vec()));
+        }
         if let Some(dir) = &cfg.recordings {
             // A failed copy is logged and never stops the lesson.
             match super::recordings::save(dir, chrono::Local::now(), &rec.samples) {
@@ -379,6 +420,15 @@ mod tests {
     use super::*;
     use crate::config::paths::Paths;
     use crate::config::settings::Settings;
+
+    #[test]
+    fn replaying_your_voice_keeps_it_in_memory_and_writes_no_recordings() {
+        let paths = Paths { config_dir: PathBuf::from("home/config"), data_dir: PathBuf::from("home/data") };
+        assert!(!VoiceSettings::from(&Settings::default(), &paths).replay);
+        let replay = VoiceSettings::from(&Settings { replay_voice: true, ..Default::default() }, &paths);
+        assert!(replay.replay);
+        assert_eq!(replay.recordings, None, "with keep_recordings off nothing goes to disk");
+    }
 
     #[test]
     fn answers_stay_on_the_machine_unless_a_server_is_chosen() {
