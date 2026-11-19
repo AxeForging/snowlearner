@@ -624,18 +624,12 @@ impl Scene {
         self.sun_t > 0.0
     }
 
-    /// The bigger combo reward (#114): a comet falls on the deepest snow,
-    /// melts its share on impact and leaves burning rocks. The frost mage is
-    /// stunned as long as with the sun.
+    /// The bigger combo reward (#114): a comet falls on the frost mage (#135),
+    /// melts its share on impact and leaves fire creatures that run around
+    /// melting snow. The frost mage is stunned as long as with the sun.
     pub fn comet(&mut self) {
-        let w = self.w as f32;
-        let to_x = (0..self.w)
-            .step_by(4)
-            .map(|x| x as f32)
-            .filter(|x| (20.0..=w - 20.0).contains(x))
-            .max_by(|a, b| self.snow.height_at(*a).total_cmp(&self.snow.height_at(*b)))
-            .unwrap_or(w / 2.0);
-        self.comet = Some(Comet::new(to_x, w));
+        let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
+        self.comet = Some(Comet::new(mx, self.w as f32));
         self.stun_t = SUN_SECONDS * 2.5;
         self.mage.say(T::MageComet.get(self.native), 3.0);
     }
@@ -659,10 +653,7 @@ impl Scene {
             let (vx, vy, life) = (self.rng.range(-8.0, 8.0), self.rng.range(-40.0, -15.0), self.rng.range(0.8, 1.6));
             self.particles.push(Particle::new(Kind::Steam, px, y, vx, vy, life, hex(0xc9d3e8)));
         }
-        let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
-        if (mx - x).abs() < 40.0 {
-            self.mage.stagger();
-        }
+        self.mage.stagger();
         self.warrior.say(T::WarriorComet.get(self.native), 3.0);
     }
 
@@ -761,7 +752,9 @@ impl Scene {
         if self.sun_t > 0.0 {
             self.snow.melt(SUN_RATE * dt);
         }
+        let mage_x = self.mage.x + mage::WIDTH as f32 / 2.0;
         if let Some(comet) = &mut self.comet {
+            comet.aim(mage_x);
             let landed = comet.step(dt, &mut self.snow, w, &mut self.rng);
             if comet.done() {
                 self.comet = None;
@@ -2625,6 +2618,27 @@ mod tests {
         assert_eq!(s.cubes_in_flight(), 0, "no ice cubes thrown");
         assert!(s.fires.is_empty(), "no warrior lighting fires");
         assert!(!s.pyro.visible(), "no fire mage");
+    }
+
+    #[test]
+    fn the_comet_lands_on_the_frost_mage_not_on_the_deepest_snow() {
+        let mut s = Scene::new(240, 135, 6, Commitment::Steady.pace(), true);
+        let mx = |s: &Scene| s.mage.x + mage::WIDTH as f32 / 2.0;
+        let far = if mx(&s) < 120.0 { 220.0 } else { 20.0 };
+        s.snow.add(far, 60.0, 4.0); // the deepest snow, away from him
+        s.comet();
+        let mut landed_at = None;
+        for _ in 0..60 {
+            s.step(1.0 / 30.0);
+            let c = s.comet.as_ref().unwrap();
+            if !c.falling() && landed_at.is_none() {
+                landed_at = Some((c.target(), mx(&s), s.mage.act));
+            }
+        }
+        let (hit, mage, act) = landed_at.expect("it landed");
+        assert!((hit - mage).abs() <= 3.0, "landed at {hit}, the frost mage is at {mage}");
+        assert!((hit - far).abs() > 40.0, "not on the deepest snow");
+        assert_eq!(act, mage::Act::Stagger, "he takes the hit");
     }
 
     #[test]

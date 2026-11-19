@@ -264,7 +264,7 @@ texts! {
     MageSun => "Aaah! O sol!!", "Aaah! The sun!!";
     WarriorSun => "Que solzão!", "What a sun!";
     MageComet => "Um cometa?! Nããão!", "A comet?! Nooo!";
-    WarriorComet => "Que cometa! Pedras quentinhas!", "What a comet! Warm rocks!";
+    WarriorComet => "Que cometa! Olha os foguinhos correndo!", "What a comet! Look at the little flames run!";
     WarriorHello => "Oi! Aperte o atalho e fale comigo!", "Hi! Press the hotkey and talk to me!";
     WarriorFire => "Brrr... vou acender uma fogueira!", "Brrr... I'll light a fire!";
     WarriorCold => "Ai! Que frio!", "Ow! So cold!";
