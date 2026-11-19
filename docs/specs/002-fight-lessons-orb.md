@@ -40,7 +40,11 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    is heard (an open mic in silence charges nothing, a pause holds it; shown only, #112),
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
-   (big melt, never everything; frost mage stunned). Daily goal + combo in the corner.
+   (big melt, never everything; frost mage stunned). 6 in a row (12, 18…) call a comet
+   instead (#114): it falls on the deepest snow, melts 25% on impact and leaves 4–6
+   burning rocks that melt only where they lie, from a budget of 37% of the snow left,
+   for about 12 s; a rock on bare ground melts nothing. In all it never melts more
+   than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
 6. **More frost mage** — asks the questions and taunts/groans in bubbles; summons
    friends early and often; icicle rain from the top of the screen.
 7. **Warrior vs mobs** — frost slimes/bats come from the edges; the warrior fights with his

@@ -22,6 +22,8 @@ use chrono::{DateTime, Local, NaiveTime};
 pub const MAX_TRIES: u32 = 3;
 /// Correct answers in a row that call the sun.
 pub const SUN_COMBO: u32 = 3;
+/// Right answers in a row that call the comet instead of the sun (#114).
+pub const COMET_COMBO: u32 = 6;
 const RESULT_SECONDS: f32 = 3.5;
 const RETRY_PAUSE: f32 = 2.5;
 /// Hotkey auto-repeat / double clicks within this window are ignored.
@@ -739,7 +741,10 @@ impl Lesson {
             scene.celebrate(power, spell_for(said.unwrap_or(Answer::Complete)));
             let groan = self.line(Lines::MageGroan);
             scene.mage_say(groan, 3.5);
-            if self.combo >= SUN_COMBO && self.combo % SUN_COMBO == 0 {
+            if self.combo % COMET_COMBO == 0 {
+                scene.comet();
+                scene.hud.toast(T::ComboComet.fill(n, &[&self.combo]), 4.0);
+            } else if self.combo % SUN_COMBO == 0 {
                 scene.sun();
                 scene.hud.toast(T::ComboSun.fill(n, &[&self.combo]), 4.0);
             }
@@ -1586,6 +1591,24 @@ mod tests {
         let mut f = fixture_with(o);
         assert!(f.send(Input::Primary).is_empty());
         assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("menu"));
+    }
+
+    #[test]
+    fn six_in_a_row_call_the_comet_and_three_and_nine_the_sun() {
+        let mut f = fixture(true);
+        let mut called = Vec::new();
+        for _ in 0..9 {
+            f.answer(true);
+            f.finish();
+            called.push((f.scene.sun_active(), f.scene.comet_active()));
+            for _ in 0..15 * 30 {
+                f.scene.step(1.0 / 30.0); // the sun sets and the comet's rocks fade before the next answer
+            }
+        }
+        assert_eq!(called[2], (true, false), "3: the sun");
+        assert_eq!(called[5], (false, true), "6: the comet, not the sun");
+        assert_eq!(called[8], (true, false), "9: the sun again");
+        assert!(called.iter().enumerate().all(|(i, c)| [2, 5, 8].contains(&i) || *c == (false, false)));
     }
 
     #[test]

@@ -121,6 +121,30 @@ impl Snow {
         }
     }
 
+    /// A burning rock (the comet's, #114): melts up to `rate` px/s at `x`,
+    /// fading to `radius`, never more than `budget` px of snow in all. Bare
+    /// ground melts nothing. Returns what it melted.
+    pub fn burn(&mut self, x: f32, radius: f32, rate: f32, dt: f32, budget: f32) -> f32 {
+        let (lo, hi) = ((x - radius).floor() as i64, (x + radius).ceil() as i64);
+        let cols = lo.max(0)..=hi.min(self.heights.len() as i64 - 1);
+        let want = |h: f32, i: i64| (rate * (1.0 - ((i as f32 - x).abs() / radius).min(1.0)) * dt).min(h);
+        let wanted: f32 = cols.clone().map(|i| want(self.heights[i as usize], i)).sum();
+        if wanted <= 0.0 || budget <= 0.0 {
+            return 0.0;
+        }
+        let scale = (budget / wanted).min(1.0);
+        for i in cols {
+            let h = &mut self.heights[i as usize];
+            *h -= want(*h, i) * scale;
+        }
+        wanted * scale
+    }
+
+    /// All the snow on screen, in px (the sum of every column's height).
+    pub fn total(&self) -> f32 {
+        self.heights.iter().sum()
+    }
+
     /// A campfire's hollow: melts up to `rate` px/s at `x`, fading to `radius`,
     /// and the water refreezes on the rims just outside it — the pile keeps
     /// its snow (rims at the cap pass it further out).
@@ -173,6 +197,21 @@ impl Snow {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_burn_stays_within_its_budget_and_bare_ground_melts_nothing() {
+        let mut s = Snow::new(100, 40.0);
+        s.add(50.0, 20.0, 100.0);
+        let before = s.total();
+        let mut spent = 0.0;
+        for _ in 0..300 {
+            spent += s.burn(50.0, 6.0, 30.0, 1.0 / 30.0, 25.0 - spent);
+        }
+        assert!((spent - 25.0).abs() < 1e-3, "spent {spent}");
+        assert!((before - s.total() - spent).abs() < 1e-2);
+        let mut bare = Snow::new(100, 40.0);
+        assert_eq!(bare.burn(50.0, 6.0, 30.0, 1.0, 10.0), 0.0);
+    }
+
     use super::*;
 
     #[test]

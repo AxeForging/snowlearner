@@ -4,6 +4,7 @@
 
 pub mod backdrop;
 pub mod blanket;
+pub mod comet;
 pub mod fire;
 pub mod friends;
 pub mod frost;
@@ -28,6 +29,7 @@ use crate::lang::{Lines, Native, T};
 use crate::render::canvas::{CLEAR, Canvas, hex};
 use backdrop::{Backdrop, GROUND_BAND};
 use blanket::Blanket;
+use comet::Comet;
 use fire::Fire;
 use friends::Friend;
 use frost::{Edge, Frost};
@@ -51,6 +53,14 @@ const GRAVITY: f32 = 130.0;
 pub const SUN_SECONDS: f32 = 8.0;
 /// Extra share of snow the sun melts on arrival (never everything).
 pub const SUN_MELT: f32 = 0.35;
+/// Share of the snow left that the sun melts per second while it shines.
+pub const SUN_RATE: f32 = 0.04;
+
+/// Everything one sun melts, as a share of the pile it found (no snowfall):
+/// the comet must never beat it (#114).
+pub fn sun_melt_share() -> f32 {
+    1.0 - (1.0 - SUN_MELT) * (-SUN_RATE * SUN_SECONDS).exp()
+}
 
 /// The fire mage's fireball, carrying how much it will melt on impact.
 struct Fireball {
@@ -160,8 +170,10 @@ pub struct Scene {
     next_icicles: f32,
     /// Seconds of sunshine left.
     sun_t: f32,
-    /// The frost mage can't throw while stunned (after the sun).
+    /// The frost mage can't throw while stunned (after the sun or the comet).
     stun_t: f32,
+    /// The comet reward and its burning rocks (#114).
+    comet: Option<Comet>,
     pokes: u32,
     /// Magic hand position while hand mode is on (Ctrl+Alt / `snowlearner grab`).
     pub hand: Option<(f32, f32)>,
@@ -244,6 +256,7 @@ impl Scene {
             next_icicles: pace.icicles_every * 0.4,
             sun_t: 0.0,
             stun_t: 0.0,
+            comet: None,
             pokes: 0,
             hand: None,
             grabbed: None,
@@ -611,6 +624,48 @@ impl Scene {
         self.sun_t > 0.0
     }
 
+    /// The bigger combo reward (#114): a comet falls on the deepest snow,
+    /// melts its share on impact and leaves burning rocks. The frost mage is
+    /// stunned as long as with the sun.
+    pub fn comet(&mut self) {
+        let w = self.w as f32;
+        let to_x = (0..self.w)
+            .step_by(4)
+            .map(|x| x as f32)
+            .filter(|x| (20.0..=w - 20.0).contains(x))
+            .max_by(|a, b| self.snow.height_at(*a).total_cmp(&self.snow.height_at(*b)))
+            .unwrap_or(w / 2.0);
+        self.comet = Some(Comet::new(to_x, w));
+        self.stun_t = SUN_SECONDS * 2.5;
+        self.mage.say(T::MageComet.get(self.native), 3.0);
+    }
+
+    pub fn comet_active(&self) -> bool {
+        self.comet.is_some()
+    }
+
+    fn comet_landed(&mut self, x: f32) {
+        self.frost.melt(SUN_MELT * 1.5);
+        let y = self.feet_y(x) - 2.0;
+        for i in 0..60 {
+            let a = self.rng.range(std::f32::consts::PI, std::f32::consts::TAU);
+            let sp = self.rng.range(30.0, 110.0);
+            let col = hex([0xffffff, 0xfff4b0, 0xffc13d, 0xff7a2a, 0xd93a2a][i % 5]);
+            let life = self.rng.range(0.5, 1.3);
+            self.particles.push(Particle::new(Kind::Ember, x, y, a.cos() * sp, a.sin() * sp, life, col));
+        }
+        for _ in 0..16 {
+            let px = x + self.rng.range(-24.0, 24.0);
+            let (vx, vy, life) = (self.rng.range(-8.0, 8.0), self.rng.range(-40.0, -15.0), self.rng.range(0.8, 1.6));
+            self.particles.push(Particle::new(Kind::Steam, px, y, vx, vy, life, hex(0xc9d3e8)));
+        }
+        let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
+        if (mx - x).abs() < 40.0 {
+            self.mage.stagger();
+        }
+        self.warrior.say(T::WarriorComet.get(self.native), 3.0);
+    }
+
     /// The learner's own language: the actors' lines and the HUD follow it.
     pub fn set_native(&mut self, native: Native) {
         self.native = native;
@@ -704,7 +759,16 @@ impl Scene {
         self.sun_t = (self.sun_t - dt).max(0.0);
         self.stun_t = (self.stun_t - dt).max(0.0);
         if self.sun_t > 0.0 {
-            self.snow.melt(0.04 * dt);
+            self.snow.melt(SUN_RATE * dt);
+        }
+        if let Some(comet) = &mut self.comet {
+            let landed = comet.step(dt, &mut self.snow, w, &mut self.rng);
+            if comet.done() {
+                self.comet = None;
+            }
+            if let Some(hit) = landed {
+                self.comet_landed(hit.x);
+            }
         }
         if !self.practicing && !self.paused && self.stun_t <= 0.0 {
             self.next_throw -= dt;
@@ -1482,6 +1546,9 @@ impl Scene {
         }
         for p in &self.particles {
             p.draw(c);
+        }
+        if let Some(comet) = &self.comet {
+            comet.draw(c, self.ground_y(), &self.snow, self.time);
         }
         if self.sun_t > 0.0 {
             draw_sun(c, self.time, (self.sun_t / 1.0).min(1.0));
@@ -2583,6 +2650,7 @@ mod tests {
         for (what, cap) in heaps {
             assert_eq!(cap, 0, "{what} allocated on a weather screen");
         }
+        assert!(s.comet.is_none(), "no comet");
         assert!(s.backdrop.is_none(), "an overlay weather screen paints no landscape");
         let hud = &s.hud;
         assert!(hud.caption.is_none() && hud.summary.is_none() && hud.toast.is_none() && hud.stats.is_none());

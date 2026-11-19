@@ -747,6 +747,11 @@ fn snapshot(
             scene.snow.dust(height as f32 * crate::scene::ICE_LINE * 0.8);
             script.push((0.2, Box::new(|s: &mut Scene| s.cast_skill(crate::scene::Skill::Owl))));
         }
+        Scenario::Comet => {
+            scene.snow.dust(height as f32 * crate::scene::ICE_LINE * 0.6);
+            scene.set_practicing(true);
+            script.push((0.3, Box::new(|s: &mut Scene| s.comet())));
+        }
     }
     let mut canvas = Canvas::new(width, height);
     let frame_dt = 1.0 / fps as f32;

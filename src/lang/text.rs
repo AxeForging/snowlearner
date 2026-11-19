@@ -210,6 +210,7 @@ texts! {
     Attempt => "Tentativa {0}/{1}. {2}", "Try {0}/{1}. {2}";
     GiveUp => "Tudo bem, vamos praticar outra depois!", "That's ok, we'll practice another one later!";
     ComboSun => "COMBO x{0}! O SOL APARECEU!", "COMBO x{0}! THE SUN IS OUT!";
+    ComboComet => "COMBO x{0}! UM COMETA!", "COMBO x{0}! A COMET!";
     GoalToast => "META DO DIA: {0} frases! Mandou bem!", "DAILY GOAL: {0} phrases! Well done!";
     GoalWarrior => "Meta do dia batida! Tô quentinho!", "Daily goal done! I'm nice and warm!";
     MageIdle => "Ninguém vai me enfrentar? Hahaha!", "Nobody dares to face me? Hahaha!";
@@ -262,6 +263,8 @@ texts! {
     WarriorWarm => "Que calor bom! Valeu!", "Nice and warm! Thanks!";
     MageSun => "Aaah! O sol!!", "Aaah! The sun!!";
     WarriorSun => "Que solzão!", "What a sun!";
+    MageComet => "Um cometa?! Nããão!", "A comet?! Nooo!";
+    WarriorComet => "Que cometa! Pedras quentinhas!", "What a comet! Warm rocks!";
     WarriorHello => "Oi! Aperte o atalho e fale comigo!", "Hi! Press the hotkey and talk to me!";
     WarriorFire => "Brrr... vou acender uma fogueira!", "Brrr... I'll light a fire!";
     WarriorCold => "Ai! Que frio!", "Ow! So cold!";
