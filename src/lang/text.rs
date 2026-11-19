@@ -268,6 +268,7 @@ texts! {
     WarriorIce => "Ai! Gelado!", "Ow! Freezing!";
     WarriorMobs => "Monstros de gelo! Deixa comigo!", "Ice monsters! Leave them to me!";
     WarriorHit => "Toma!", "Take that!";
+    WarriorFinish => "Esse foi por você!", "That one's for you!";
     WarriorIcicle => "Ai! Pingente!", "Ow! An icicle!";
     MageFriends => "Venham, amigos do gelo!", "Come, friends of the ice!";
     MageIcicles => "Chuva de gelo!", "Ice rain!";

@@ -564,7 +564,36 @@ impl Scene {
             self.mage.stagger();
         }
         self.warrior.warm_burst();
-        self.warrior.say(T::WarriorWarm.get(self.native), 3.0);
+        let line = if self.finishing_strike() { T::WarriorFinish } else { T::WarriorWarm };
+        self.warrior.say(line.get(self.native), 3.0);
+    }
+
+    /// A right answer reached the warrior: he finishes the nearest mob within
+    /// `FINISH_REACH`, whatever hp it had left (#113). The snow is untouched.
+    fn finishing_strike(&mut self) -> bool {
+        if self.lift_warrior.is_some() || self.warrior.act == warrior::Act::Frozen {
+            return false;
+        }
+        let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let Some(m) = self
+            .mobs
+            .iter_mut()
+            .filter(|m| m.fighting() && (m.center() - wc).abs() <= FINISH_REACH)
+            .min_by(|a, b| (a.center() - wc).abs().total_cmp(&(b.center() - wc).abs()))
+        else {
+            return false;
+        };
+        m.hp = 1;
+        m.hit(wc);
+        let mc = m.center();
+        self.warrior.finish(mc);
+        let y = self.feet_y(mc) - 6.0;
+        for i in 0..24 {
+            let (vx, vy) = (self.rng.range(-35.0, 35.0), self.rng.range(-60.0, -15.0));
+            let col = hex([0xffffff, 0x9be8ff, 0xfff4b0, 0xffc13d][i % 4]);
+            self.particles.push(Particle::new(Kind::Ember, mc, y, vx, vy, 0.9, col));
+        }
+        true
     }
 
     /// Combo reward: the sun shines for a while, melting a big chunk (never
@@ -1493,6 +1522,9 @@ const WEATHER_FROST: f32 = 30.0;
 const MOB_ARRIVAL_SPREAD_S: f32 = 4.0;
 /// Share of multi-mob waves whose mobs each pick a side of the screen.
 const MOB_WAVE_SPLIT: f32 = 0.35;
+/// How far from the warrior's center a right answer's finishing strike
+/// reaches (px): the mob he is fighting, even knocked back, not one still coming.
+const FINISH_REACH: f32 = 24.0;
 
 fn ground_at(snow: &Snow, transparent: bool, h: i32, x: f32) -> f32 {
     let g = if transparent { h as f32 } else { (h - GROUND_BAND) as f32 };
@@ -1730,6 +1762,61 @@ mod tests {
         run(&mut s, 4.0);
         assert_eq!(s.icicles_falling(), 0);
         assert!(s.snow.fill() > before);
+    }
+
+    /// A scene with one slime `gap` px from the warrior's center.
+    fn with_a_mob(seed: u64, gap: f32) -> Scene {
+        let mut s = Scene::new(240, 135, seed, Commitment::Steady.pace(), true);
+        let wc = s.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let mut m = Mob::new(mobs::Kind::Slime, 0.0, &mut s.rng);
+        m.x = wc + gap - mobs::Kind::Slime.width() as f32 / 2.0;
+        s.mobs.push(m);
+        s
+    }
+
+    fn right_answer(s: &mut Scene) {
+        let x = s.mage.x + mage::WIDTH as f32 / 2.0;
+        let y = s.feet_y(s.mage.x) - 12.0;
+        s.impact(x, y, s.pace.melt_fraction, Spell::Fireball);
+    }
+
+    #[test]
+    fn a_right_answer_finishes_the_mob_in_reach_and_spares_one_still_coming() {
+        let mut s = with_a_mob(5, 6.0);
+        assert!(s.mobs[0].hp > 1, "a slime takes more than one swing");
+        right_answer(&mut s);
+        assert_eq!(s.mobs_out(), 0, "finished in one strike");
+        assert!(s.warrior.finishing(), "the arc shows");
+        assert_eq!(s.warrior.bubble.as_ref().unwrap().text, T::WarriorFinish.get(s.native));
+
+        let mut far = with_a_mob(5, 60.0);
+        right_answer(&mut far);
+        assert_eq!(far.mobs_out(), 1, "out of reach");
+        assert!(!far.warrior.finishing());
+        assert_eq!(far.warrior.bubble.as_ref().unwrap().text, T::WarriorWarm.get(far.native));
+    }
+
+    #[test]
+    fn with_no_mob_out_a_right_answer_is_unchanged() {
+        let mut s = Scene::new(240, 135, 5, Commitment::Steady.pace(), true);
+        right_answer(&mut s);
+        assert!(!s.warrior.finishing());
+        assert_eq!(s.warrior.act, warrior::Act::Cheer);
+        assert_eq!(s.warrior.bubble.as_ref().unwrap().text, T::WarriorWarm.get(s.native));
+    }
+
+    #[test]
+    fn the_finishing_strike_never_changes_the_melt() {
+        let mut plain = Scene::new(240, 135, 5, Commitment::Steady.pace(), true);
+        let mut fought = with_a_mob(5, 6.0);
+        for s in [&mut plain, &mut fought] {
+            s.snow.add(120.0, 30.0, 200.0);
+            right_answer(s);
+        }
+        assert_eq!(fought.mobs_out(), 0);
+        let heights = |s: &Scene| (0..240).map(|x| s.snow.height_at(x as f32)).collect::<Vec<f32>>();
+        assert_eq!(heights(&plain), heights(&fought));
+        assert_eq!(plain.frost.coverage(), fought.frost.coverage());
     }
 
     #[test]
