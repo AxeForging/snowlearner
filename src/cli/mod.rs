@@ -151,6 +151,8 @@ pub enum Scenario {
     Blackhole,
     /// Deep snow: the frost mage summons the ice owl and it drops snowballs.
     Snowstorm,
+    /// Deep snow and a streak of 6: the comet falls and leaves burning rocks.
+    Comet,
 }
 
 #[derive(Subcommand, Debug)]

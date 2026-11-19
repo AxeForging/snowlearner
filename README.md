@@ -19,7 +19,8 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
   is deep, an **ice owl** flies over dropping snowballs. He asks the questions — and taunts you.
 - 🔥 Start a lesson and your **fire mage** teleports in. Answer out loud; get it right and a
   fireball melts part of the ice. Every phrase comes **short, complete and polished**: the fuller
-  your answer, the bigger the spell and the more it melts. Three in a row call the **sun**.
+  your answer, the bigger the spell and the more it melts. Three in a row call the **sun**,
+  six a **comet** that leaves burning rocks melting the snow.
 - ⚔️ A **warrior** tries to survive: builds *fogueiras*, sword-fights frost slimes and bats,
   gives you tips (false friends, pronunciation traps), slides down steep snow piles — and freezes
   solid if you ignore him.
