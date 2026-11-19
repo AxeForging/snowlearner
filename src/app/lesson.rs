@@ -553,6 +553,7 @@ impl Lesson {
                 if let Some(c) = &mut scene.hud.caption {
                     c.status = Status::Thinking;
                 }
+                scene.set_thinking(true);
             }
             (State::Challenge { phrase, stage: Stage::Listening, tries, .. }, SpeechEvent::Heard { id, text }) => {
                 let (phrase, tries) = (*phrase, *tries);

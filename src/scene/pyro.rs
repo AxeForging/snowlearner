@@ -2,6 +2,9 @@
 //! teleports in, charges a fireball only while your voice is heard (#112), and
 //! casts it at the frost mage when you get the phrase right (or fizzles when you
 //! don't). The charge is only shown: it never changes how much snow melts.
+//! A real flame rises from his staff while you speak, stays lit and pulses
+//! while your answer is being understood, goes out in smoke on a miss and
+//! feeds the fireball on a hit (#140).
 
 use super::mage::{BODY, FEET, HEIGHT, WIDTH};
 use crate::render::canvas::{Canvas, Rgba, bayer, hex};
@@ -31,6 +34,13 @@ const QUIET: f32 = 0.015;
 const VOICE_FULL: f32 = 0.1;
 /// Charge per second at a full voice: about 2 s of speech fills it.
 const CHARGE_RATE: f32 = 0.55;
+/// Flame growth per second while speaking: half a second of a normal voice
+/// already makes it more than half its height.
+const FLAME_RISE: f32 = 1.6;
+/// Flame lost per second once nobody listens (a listen cancelled).
+const FLAME_FALL: f32 = 1.5;
+/// The flame's height above the crystal, empty to full (px).
+const FLAME_H: (f32, f32) = (3.0, 19.0);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Act {
@@ -90,6 +100,11 @@ pub struct Pyro {
     pub charge: f32,
     /// 0..1 how loud the learner is speaking right now (0 when silent).
     voice: f32,
+    /// 0..1 the staff's flame (#140): rises with the voice, holds while the
+    /// answer is understood, out on a miss, spent on the fireball.
+    pub flame: f32,
+    /// The answer is being transcribed: the flame pulses and holds.
+    thinking: bool,
     focused: bool,
     pending_cast: bool,
 }
@@ -103,6 +118,8 @@ impl Default for Pyro {
             t: 0.0,
             charge: 0.0,
             voice: 0.0,
+            flame: 0.0,
+            thinking: false,
             focused: false,
             pending_cast: false,
         }
@@ -145,7 +162,13 @@ impl Pyro {
         self.focused = on;
         if !on {
             self.voice = 0.0;
+            self.thinking = false;
         }
+    }
+
+    /// The answer is being transcribed: the flame stays lit and pulses.
+    pub fn think(&mut self, on: bool) {
+        self.thinking = on && self.focused;
     }
 
     /// The learner's voice right now: `level` is the mic RMS, `speaking` that
@@ -164,6 +187,7 @@ impl Pyro {
     }
 
     pub fn fizzle(&mut self) {
+        self.flame = 0.0;
         if self.act == Act::Ready {
             self.charge = 0.0;
             self.set(Act::Fizzle);
@@ -179,6 +203,11 @@ impl Pyro {
         self.t += dt;
         if self.focused {
             self.charge = (self.charge + dt * CHARGE_RATE * self.voice).min(1.0);
+            if self.voice > 0.0 {
+                self.flame = (self.flame + dt * FLAME_RISE * (0.5 + self.voice)).min(1.0);
+            }
+        } else if self.act != Act::Cast {
+            self.flame = (self.flame - dt * FLAME_FALL).max(0.0);
         }
         match self.act {
             Act::Arrive if self.t > ARRIVE => {
@@ -191,6 +220,7 @@ impl Pyro {
             Act::Cast if self.t > CAST => {
                 let (x, y) = self.staff_top(feet_y);
                 self.charge = 0.0;
+                self.flame = 0.0; // it became the fireball
                 self.set(Act::Ready);
                 Some(Event::Release { x, y })
             }
@@ -213,6 +243,38 @@ impl Pyro {
             Act::Arrive => self.t / ARRIVE,
             Act::Leave => 1.0 - self.t / LEAVE,
             _ => 1.0,
+        }
+    }
+
+    /// The flame above the crystal at (`sx`, `sy`): a flickering teardrop in
+    /// dithered layers, white at the core, with sparks rising off a tall one.
+    fn draw_flame(&self, c: &mut Canvas, sx: f32, sy: f32, time: f32) {
+        let pulse = if self.thinking { (time * 8.0).sin() * 1.5 } else { 0.0 };
+        let h = FLAME_H.0 + (FLAME_H.1 - FLAME_H.0) * self.flame + pulse;
+        let w = 1.5 + self.flame * 3.5;
+        let base = sy + 2.0;
+        let layers = [hex(0xd93a2a), hex(0xff7a2a), hex(0xffc13d), hex(0xfff4b0), hex(0xffffff)];
+        for j in 0..h.max(1.0) as i32 {
+            let up = j as f32 / h.max(1.0);
+            // Widest a third of the way up, a point at the top, swaying more up high.
+            let half = w * (1.0 - up).powf(0.8) * (up * 3.0).clamp(0.45, 1.0);
+            let sway = (time * 11.0 + j as f32 * 0.45).sin() * up * 1.6;
+            let y = (base - j as f32).round() as i32;
+            let r = half.ceil() as i32;
+            for dx in -r..=r {
+                let d = (dx as f32 - sway).abs() / half.max(0.5);
+                if d > 1.0 || (d > 0.7 && bayer(sx as i32 + dx, y) > 0.5) {
+                    continue;
+                }
+                let heat = ((1.0 - d) * 0.7 + (1.0 - up) * 0.5).min(0.999);
+                c.set(sx as i32 + dx, y, layers[(heat * layers.len() as f32) as usize]);
+            }
+        }
+        for k in 0..(self.flame * 5.0) as i32 {
+            let rise = (time * 22.0 + k as f32 * 7.3) % 14.0;
+            let x = sx + ((time * 3.0 + k as f32 * 2.1).sin() * 3.0);
+            let spark = hex(if k % 2 == 0 { 0xfff4b0 } else { 0xffc13d });
+            c.set(x.round() as i32, (base - h - rise).round() as i32, spark);
         }
     }
 
@@ -239,22 +301,17 @@ impl Pyro {
             }
         }
 
-        // Staff with a flame crystal; its glow grows with the charge and
-        // flares with the voice heard right now.
+        // Staff with a flame crystal; its glow and its flame grow with your
+        // voice and flare as the fireball leaves.
         let (sx, sy) = self.staff_top(feet_y);
-        let glow = 0.3 + self.charge * 0.6 + self.voice * 0.3 + if self.act == Act::Cast { 0.4 } else { 0.0 };
-        c.glow(sx, sy, 3.0 + self.charge * 7.0 + self.voice * 2.0, glow * presence, hex(0xff7a2a));
+        let cast = if self.act == Act::Cast { 0.4 } else { 0.0 };
+        let glow = 0.3 + self.flame * 0.5 + self.voice * 0.2 + cast;
+        c.glow(sx, sy - self.flame * 6.0, 3.0 + self.flame * 9.0 + self.voice * 2.0, glow * presence, hex(0xff7a2a));
         if presence > 0.5 {
             for y in (sy as i32 + 3)..(feet_y as i32) {
                 c.set(sx as i32, y, if y % 5 == 0 { hex(0x8b5a2b) } else { hex(0x5a3418) });
             }
-            let flame = [hex(0xfff4b0), hex(0xffc13d), hex(0xff7a2a)];
-            for k in 0..4 {
-                let h = 2 + ((time * 12.0 + k as f32).sin() * 1.5) as i32;
-                for j in 0..h.max(1) {
-                    c.set(sx as i32 + (k % 3) - 1, sy as i32 + 2 - j, flame[(j as usize).min(2)]);
-                }
-            }
+            self.draw_flame(c, sx, sy, time);
         }
 
         // Body, dissolving in and out through the dither pattern.
@@ -271,10 +328,11 @@ impl Pyro {
             }
         }
         if self.act == Act::Fizzle {
-            // Sad puff of smoke above the staff.
-            for i in 0..5 {
-                let y = sy - self.t * 12.0 - i as f32 * 2.0;
-                c.dot(sx + ((time * 6.0 + i as f32).sin() * 2.0), y, hex(0x8f96a8));
+            // The flame went out: a puff of smoke rising off the staff.
+            for i in 0..10 {
+                let y = sy - self.t * 14.0 - i as f32 * 2.0;
+                let spread = 1.0 + i as f32 * 0.4 + self.t * 3.0;
+                c.dot(sx + ((time * 6.0 + i as f32 * 1.7).sin() * spread), y, hex(0x8f96a8));
             }
         }
     }
@@ -369,6 +427,72 @@ mod tests {
         p.voice(0.01, true); // a pause: speech started, nothing heard now
         run(&mut p, 2.0);
         assert_eq!(p.charge, before, "a pause holds the charge");
+    }
+
+    fn ready() -> Pyro {
+        let mut p = Pyro::default();
+        p.arrive(20.0, 200.0);
+        run(&mut p, 1.0);
+        p.focus(true);
+        p
+    }
+
+    #[test]
+    fn the_flame_rises_fast_with_the_voice_and_holds_while_thinking() {
+        let mut p = ready();
+        run(&mut p, 2.0);
+        assert_eq!(p.flame, 0.0, "silence lights nothing");
+        p.voice(0.05, true);
+        run(&mut p, 0.5);
+        assert!(p.flame > 0.5, "half a second of a normal voice: {}", p.flame);
+        p.voice(0.0, true);
+        p.think(true);
+        let lit = p.flame;
+        run(&mut p, 3.0);
+        assert_eq!(p.flame, lit, "holds while the answer is understood");
+    }
+
+    #[test]
+    fn a_miss_puts_the_flame_out_and_a_hit_spends_it_on_the_fireball() {
+        let mut p = ready();
+        p.voice(0.12, true);
+        run(&mut p, 1.0);
+        p.focus(false);
+        p.fizzle();
+        assert_eq!(p.flame, 0.0, "out on a miss");
+        run(&mut p, 1.0);
+        let mut p = ready();
+        p.voice(0.12, true);
+        run(&mut p, 1.0);
+        p.focus(false);
+        p.cast();
+        assert!(p.flame > 0.5, "still burning as he casts");
+        assert_eq!(run(&mut p, 1.0), 1);
+        assert_eq!(p.flame, 0.0, "it became the fireball");
+    }
+
+    #[test]
+    fn a_cancelled_listen_lets_the_flame_die_down() {
+        let mut p = ready();
+        p.voice(0.12, true);
+        run(&mut p, 1.0);
+        p.focus(false);
+        run(&mut p, 1.0);
+        assert_eq!(p.flame, 0.0);
+    }
+
+    #[test]
+    fn the_flame_is_drawn_tall_and_in_one_bit() {
+        let shot = |flame: f32| {
+            let mut p = ready();
+            p.flame = flame;
+            let mut c = Canvas::new(80, 80);
+            p.draw(&mut c, 70.0, 0.3);
+            let lit = (0..80 * 80).filter(|i| c.bytes()[i * 4 + 3] == 255).count();
+            assert!(c.bytes().chunks(4).all(|px| px[3] == 0 || px[3] == 255), "1-bit alpha");
+            lit
+        };
+        assert!(shot(1.0) > shot(0.0) + 40, "a full flame is much bigger");
     }
 
     #[test]

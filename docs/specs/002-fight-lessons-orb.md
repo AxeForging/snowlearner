@@ -38,6 +38,8 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    next tries until the phrase passes or the lesson moves on (#102).
 5. **The fight** — the fire mage appears only during lessons, charges only while your voice
    is heard (an open mic in silence charges nothing, a pause holds it; shown only, #112),
+   with a real flame on the staff that rises fast as you speak, holds and pulses while
+   the answer is understood, goes out in smoke on a miss and becomes the fireball (#140),
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
    (big melt, never everything; frost mage stunned). 6 in a row (12, 18…) call a comet
