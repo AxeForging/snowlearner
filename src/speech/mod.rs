@@ -3,6 +3,7 @@ pub mod endpoint;
 pub mod highpass;
 pub mod matcher;
 pub mod remote;
+pub mod replay;
 pub mod resample;
 pub mod resident;
 pub mod trace;

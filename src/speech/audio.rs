@@ -120,10 +120,15 @@ pub fn spread(mono: &[f32], channels: u16) -> Vec<f32> {
 /// Plays WAV audio on `speaker` and blocks until it finishes.
 pub fn play_wav(bytes: &[u8], speaker: &str) -> Result<()> {
     let (mono, rate) = decode_wav(bytes)?;
+    play_samples(&mono, rate, speaker)
+}
+
+/// Plays mono samples at `rate` Hz on `speaker` and blocks until they finish.
+pub fn play_samples(mono: &[f32], rate: u32, speaker: &str) -> Result<()> {
     let device = output(speaker)?;
     let supported = device.default_output_config().context("speaker has no usable output config")?;
     let (out_rate, channels) = (supported.sample_rate(), supported.channels());
-    let data = spread(&resample(&mono, rate, out_rate), channels);
+    let data = spread(&resample(mono, rate, out_rate), channels);
     let total = data.len();
     let (done_tx, done_rx) = mpsc::channel::<()>();
     let mut pos = 0usize;

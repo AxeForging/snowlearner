@@ -88,6 +88,8 @@ pub struct Options {
     /// Highest CEFR level to practice.
     pub max_level: String,
     pub daily_goal: u32,
+    /// Play back a right answer in the learner's own voice (#116).
+    pub replay_voice: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -552,7 +554,7 @@ impl Lesson {
                     c.status = Status::Thinking;
                 }
             }
-            (State::Challenge { phrase, stage: Stage::Listening, tries, .. }, SpeechEvent::Heard { text, .. }) => {
+            (State::Challenge { phrase, stage: Stage::Listening, tries, .. }, SpeechEvent::Heard { id, text }) => {
                 let (phrase, tries) = (*phrase, *tries);
                 let p = self.phrase(phrase).clone();
                 let slack = if self.beginner() { matcher::BEGINNER_SLACK } else { 0 };
@@ -605,6 +607,10 @@ impl Lesson {
                     c.counted = other.and_then(|(_, s)| c.alts.iter().position(|a| a.ends_with(s)));
                 }
                 self.finish_attempt(phrase, tries, &text, m.score, said, scene);
+                if passed && self.opts.replay_voice {
+                    // The worker plays it; the lesson never touches a device.
+                    jobs.push(Job::ReplayAnswer { id });
+                }
             }
             (State::Challenge { stage: Stage::Listening, .. }, SpeechEvent::NoSpeech { .. }) => {
                 self.silence(scene, jobs)
@@ -987,6 +993,7 @@ mod tests {
             topics: Vec::new(),
             max_level: "B1".into(),
             daily_goal: 2,
+            replay_voice: false,
         }
     }
 
@@ -1610,6 +1617,34 @@ mod tests {
         let mut f = fixture_with(o);
         assert!(f.send(Input::Primary).is_empty());
         assert!(f.scene.hud.toast.as_ref().unwrap().text.contains("menu"));
+    }
+
+    /// Answers one challenge and returns how many replay jobs it asked for.
+    fn replays(f: &mut Fixture, correct: bool) -> usize {
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        let text = if correct { f.current_say() } else { "banana split".into() };
+        let jobs = f.send(Input::Speech(SpeechEvent::Heard { id, text }));
+        f.settle();
+        f.finish();
+        jobs.iter().filter(|j| matches!(j, Job::ReplayAnswer { id: replayed } if *replayed == id)).count()
+    }
+
+    #[test]
+    fn only_a_right_answer_is_replayed_and_only_when_asked() {
+        let mut on = fixture_with(Options { replay_voice: true, ..options(true) });
+        assert_eq!(replays(&mut on, true), 1, "a right answer plays back");
+        assert_eq!(replays(&mut on, false), 0, "a miss never does");
+        let mut off = fixture(true);
+        assert_eq!(replays(&mut off, true), 0, "off by default");
+    }
+
+    #[test]
+    fn the_lesson_only_asks_for_the_replay_and_never_touches_a_device() {
+        let source = include_str!("lesson.rs");
+        for device in [["cp", "al"], ["audio", "::"], ["mic", "::"], ["play_", "samples"]] {
+            assert!(!source.contains(&device.concat()), "lesson.rs uses {}", device.concat());
+        }
     }
 
     #[test]

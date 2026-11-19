@@ -96,6 +96,9 @@ pub struct Settings {
     /// Diagnostics: keep the last answers the speech model heard as WAV files
     /// next to the log (`<data>/recordings`). Your voice, never sent anywhere.
     pub keep_recordings: bool,
+    /// On a right answer, play back what you just said (#116). Kept only in
+    /// memory until the next answer; never written to disk.
+    pub replay_voice: bool,
 }
 
 impl Default for Settings {
@@ -136,6 +139,7 @@ impl Default for Settings {
             max_level: "B2".into(),
             daily_goal: 10,
             keep_recordings: false,
+            replay_voice: false,
         }
     }
 }
@@ -181,6 +185,7 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # answer: all | short | complete | polished\n\
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
     # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
+    # replay_voice: true plays your answer back when you get it right (kept in memory only)\n\
     # ipc_port: local port for `snowlearner say|menu|quit`; change it if another program holds it\n\
     # stt_engine: local (offline) | openai | asr = a Whisper server at stt_url hears your answers\n\
     #   | groq = Groq's cloud hears them, with your API key in stt_key (console.groq.com/keys)\n\n";
@@ -425,6 +430,22 @@ mod tests {
         let written = std::fs::read_to_string(&p).unwrap();
         assert!(written.contains(&format!("ipc_port = {port}")));
         assert!(written.contains("# ipc_port:"), "explained in the header");
+    }
+
+    #[test]
+    fn replaying_your_voice_is_off_until_asked_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        assert!(!Settings::default().replay_voice, "your voice plays aloud only if you ask");
+        Settings::write_default(&p, false).unwrap();
+        let written = std::fs::read_to_string(&p).unwrap();
+        assert!(written.contains("# replay_voice:"), "explained in the header");
+        assert!(written.contains("replay_voice = false"));
+        std::fs::write(&p, "replay_voice = true\n").unwrap();
+        let s = Settings::load(&p).unwrap();
+        assert!(s.replay_voice && !s.keep_recordings, "replaying keeps nothing on disk");
+        s.save(&p).unwrap();
+        assert_eq!(Settings::load(&p).unwrap(), s);
     }
 
     #[test]
