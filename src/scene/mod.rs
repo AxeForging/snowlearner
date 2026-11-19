@@ -677,6 +677,27 @@ impl Scene {
         self.mage.say(text, seconds);
     }
 
+    /// The nudge when the learner has been away (#117). On a deep pile
+    /// (`owl::PILE_LEVEL`) the frost mage rides a snowboard down it and
+    /// taunts in two bubbles, the second naming `study`, the language being
+    /// learned; otherwise his usual taunt. Only a show: no snow moves.
+    pub fn idle_nudge(&mut self, study: &str) {
+        let n = self.native;
+        if self.pile_level() < owl::PILE_LEVEL || self.mage.busy() || self.lift_mage.is_some() {
+            self.mage_say(T::MageIdle.get(n), 4.0);
+            return;
+        }
+        let center = self.mage.x + mage::WIDTH as f32 / 2.0;
+        let (left, right) = (self.snow.height_at(center - BOARD_LOOK), self.snow.height_at(center + BOARD_LOOK));
+        let dir = match left - right {
+            d if d.abs() < 1.0 => self.mage.dir,
+            d => d.signum(), // toward the lower side
+        };
+        self.mage.board(dir);
+        self.mage.say(T::MageSnowboard.get(n), mage::BOARD_S * 0.6);
+        self.mage.say_next(T::MageGoStudy.fill(n, &[&study]), 3.5);
+    }
+
     pub fn mage_bubble(&self) -> Option<&str> {
         self.mage.bubble.as_ref().map(|b| b.text.as_str())
     }
@@ -1035,6 +1056,9 @@ impl Scene {
         }
         let can = self.lift_warrior.is_none() && self.warrior.act == warrior::Act::Wander;
         let slid = self.slide(can, self.warrior.x, warrior::WIDTH, self.warrior.dir, 4.0, dt);
+        if self.warrior.sliding && slid.is_none() && self.rng.chance(TUMBLE_CHANCE) {
+            self.warrior.tumble(); // the ski run ends in a fall now and then
+        }
         if let Some(x) = slid {
             self.warrior.x = x;
             if !self.warrior.sliding && self.warrior.bubble.is_none() && self.mage.bubble.is_none() {
@@ -1623,6 +1647,10 @@ fn draw_sun(c: &mut Canvas, time: f32, fade: f32) {
 /// Once the ground pile's mean height reaches this share of the screen, the
 /// edges start to freeze; before that, snow never sticks to them.
 pub const ICE_LINE: f32 = 0.30;
+/// How far each side of the frost mage the snowboard looks for downhill (px).
+const BOARD_LOOK: f32 = 24.0;
+/// Share of ski runs that end with the warrior tumbling (#117).
+const TUMBLE_CHANCE: f32 = 1.0 / 3.0;
 
 /// Edge-snow coverage at which the glass is fully frosted over.
 const GLASS_FULL_AT: f32 = 0.6;
@@ -2459,6 +2487,53 @@ mod tests {
         let (slid, lines, _) = ride(&mut on_a_peak(19, true, 0.25), true);
         assert!(!slid);
         assert_eq!(lines, 0);
+    }
+
+    #[test]
+    fn the_snowboard_heads_downhill_on_a_deep_pile_and_never_on_a_shallow_one() {
+        for (side, down) in [(1.0, -1.0), (-1.0, 1.0)] {
+            let mut s = snowed(3, 0.8);
+            let center = s.mage.x + mage::WIDTH as f32 / 2.0;
+            s.snow.add(center + side * BOARD_LOOK, 30.0, 6.0);
+            s.idle_nudge("inglês");
+            assert_eq!(s.mage.act, mage::Act::Board);
+            assert_eq!(s.mage.dir, down, "away from the higher side");
+        }
+        let mut s = snowed(3, owl::PILE_LEVEL * 0.8);
+        s.idle_nudge("inglês");
+        assert_ne!(s.mage.act, mage::Act::Board);
+        assert_eq!(s.mage_bubble(), Some(T::MageIdle.get(Native::PtBr)));
+    }
+
+    #[test]
+    fn a_tumble_changes_no_snow() {
+        let mut s = on_a_peak(18, false, 0.8);
+        s.set_practicing(true); // no new snowfall or ice
+        for _ in 0..(6.0 * 30.0) as i32 {
+            s.step(1.0 / 30.0); // the last flakes land
+        }
+        s.warrior.act = warrior::Act::Wander;
+        s.warrior.tumble();
+        let before = s.snow.total();
+        for _ in 0..(warrior::TUMBLE_S * 30.0) as i32 {
+            s.step(1.0 / 30.0);
+            assert_eq!(s.warrior.act, warrior::Act::Tumble);
+        }
+        assert_eq!(s.snow.total(), before);
+    }
+
+    #[test]
+    fn some_ski_runs_end_in_a_tumble() {
+        let tumbles = (0..12)
+            .filter(|seed| {
+                let mut s = on_a_peak(*seed, false, 0.8);
+                (0..90).any(|_| {
+                    s.step(1.0 / 30.0);
+                    s.warrior.act == warrior::Act::Tumble
+                })
+            })
+            .count();
+        assert!((1..12).contains(&tumbles), "now and then, not always: {tumbles}/12");
     }
 
     #[test]

@@ -817,7 +817,7 @@ impl Lesson {
                 if self.idle_for >= self.opts.ask_every {
                     self.idle_for = 0.0;
                     let n = self.opts.native;
-                    scene.mage_say(T::MageIdle.get(n), 4.0);
+                    scene.idle_nudge(&text::language_name(n, &self.deck.language));
                     scene.warrior.say(T::WarriorIdle.fill(n, &[&self.opts.hotkey]), 6.0);
                     scene.hud.toast(T::ToastIdle.fill(n, &[&self.opts.hotkey]), 5.0);
                 }
@@ -2119,6 +2119,48 @@ mod tests {
         f.tick(61.0);
         assert!(f.scene.hud.toast.is_some());
         assert!(f.scene.mage_bubble().is_some());
+    }
+
+    /// The fixture on a fresh screen whose pile is `level` of the way to the ice line.
+    fn piled(level: f32) -> Fixture {
+        let mut f = fixture(true);
+        f.scene = Scene::new(240, 135, 1, Commitment::Relentless.pace(), true);
+        f.scene.snow.dust(135.0 * crate::scene::ICE_LINE * level);
+        f
+    }
+
+    #[test]
+    fn on_a_deep_pile_the_nudge_is_a_snowboard_ride_and_a_two_bubble_taunt() {
+        let mut f = piled(0.8);
+        f.tick(61.0);
+        assert_eq!(f.scene.mage.act, crate::scene::mage::Act::Board);
+        assert_eq!(f.scene.mage_bubble(), Some(T::MageSnowboard.get(Native::PtBr)));
+        for _ in 0..(5.0 * 30.0) as i32 {
+            f.scene.step(1.0 / 30.0);
+            if f.scene.mage_bubble() != Some(T::MageSnowboard.get(Native::PtBr)) {
+                break;
+            }
+        }
+        assert_eq!(f.scene.mage_bubble(), Some("Estuda inglês, hein?"), "the second bubble names the language");
+    }
+
+    #[test]
+    fn on_a_shallow_pile_the_nudge_is_the_usual_taunt() {
+        let mut f = piled(0.2);
+        f.tick(61.0);
+        assert_ne!(f.scene.mage.act, crate::scene::mage::Act::Board);
+        assert_eq!(f.scene.mage_bubble(), Some(T::MageIdle.get(Native::PtBr)));
+    }
+
+    #[test]
+    fn no_snowboard_during_a_lesson() {
+        let mut f = piled(0.8);
+        f.send(Input::Primary);
+        assert!(!f.lesson.is_idle());
+        for _ in 0..(61.0 * 10.0) as i32 {
+            f.send(Input::Tick { dt: 0.1, now: morning() });
+            assert_ne!(f.scene.mage.act, crate::scene::mage::Act::Board);
+        }
     }
 
     #[test]

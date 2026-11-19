@@ -57,8 +57,11 @@ const UPPER: &[&str] = &[
 const LEGS_STAND: &[&str] = &["..PPP..PPP..", "..PPP..PPP..", "..KKK..KKK.."];
 const LEGS_STEP: &[&str] = &["..PPP.PPP...", "...PP..PP...", "...KKK.KKK.."];
 const LEGS_SIT: &[&str] = &["..PPPPPPPK.."];
-/// Crouched on his boots, sliding down a pile.
-const LEGS_SLIDE: &[&str] = &[".PPPP..PPPP.", "KKKKK.KKKKK."];
+/// Crouched on his skis, sliding down a pile (#117): the skis stick out past
+/// his boots and the front tip turns up (drawn with the legs).
+const LEGS_SKI: &[&str] = &[".PPPP..PPPP.", ".KKKK..KKKK.", "RRRRRRRRRRRR"];
+/// Skis stick out this far past the sprite in front (px).
+const SKI_TIP: i32 = 2;
 
 pub const WIDTH: i32 = 12;
 pub const HEIGHT: i32 = 16;
@@ -74,6 +77,8 @@ pub enum Act {
     Cheer,
     /// Sword out, going after a mob.
     Fight,
+    /// Fell at the bottom of a ski run: rolls over, lies there, gets up (#117).
+    Tumble,
 }
 
 pub enum Event {
@@ -114,6 +119,12 @@ pub struct Warrior {
 }
 
 const BUILD_TIME: f32 = 2.5;
+/// A tumble: rolling (s), then lying flat until `TUMBLE_LIE`, then up at `TUMBLE_S`.
+const TUMBLE_ROLL: f32 = 0.6;
+const TUMBLE_LIE: f32 = 1.3;
+pub const TUMBLE_S: f32 = 1.6;
+/// Rolling speed at the start of a tumble (px/s), slowing to a stop.
+const TUMBLE_SPEED: f32 = 22.0;
 /// How long the finishing strike's arc stays on screen (s).
 pub const FINISH_SHOW: f32 = 0.45;
 
@@ -160,6 +171,13 @@ impl Warrior {
     pub fn start_building(&mut self) {
         if matches!(self.act, Act::Wander) {
             self.set(Act::Build);
+        }
+    }
+
+    /// Falls at the end of a ski run, when he was only wandering (#117).
+    pub fn tumble(&mut self) {
+        if self.act == Act::Wander {
+            self.set(Act::Tumble);
         }
     }
 
@@ -251,6 +269,14 @@ impl Warrior {
                 self.set(Act::Wander);
                 None
             }
+            Act::Tumble => {
+                let roll = (1.0 - self.t / TUMBLE_ROLL).max(0.0);
+                self.x = (self.x + self.dir * TUMBLE_SPEED * roll * dt).clamp(min_x, max_x);
+                if self.t > TUMBLE_S {
+                    self.set(Act::Wander);
+                }
+                None
+            }
             Act::Cheer if self.t > 1.6 => {
                 self.set(Act::Wander);
                 None
@@ -277,15 +303,27 @@ impl Warrior {
         let legs = if sitting {
             LEGS_SIT
         } else if self.sliding {
-            LEGS_SLIDE
+            LEGS_SKI
         } else if self.act == Act::Wander && (self.walk_t * 5.0) as i32 % 2 == 1 {
             LEGS_STEP
         } else {
             LEGS_STAND
         };
         let body_top = feet_y.round() as i32 - UPPER.len() as i32 - legs.len() as i32 + hop;
-        c.sprite(UPPER, pal, x, body_top, flip);
-        c.sprite(legs, pal, x, body_top + UPPER.len() as i32, flip);
+        if let Some(turns) = self.tumble_turns() {
+            draw_turned(c, pal, x, feet_y.round() as i32, turns, flip);
+        } else {
+            c.sprite(UPPER, pal, x, body_top, flip);
+            c.sprite(legs, pal, x, body_top + UPPER.len() as i32, flip);
+        }
+        if self.sliding {
+            // The skis run on in front, tip turned up.
+            let ski = hex(0xc8561e);
+            let front = if flip { x - SKI_TIP } else { x + WIDTH };
+            let y = feet_y.round() as i32 - 1;
+            c.rect(front, y, SKI_TIP, 1, ski);
+            c.set(if flip { front - 1 } else { front + SKI_TIP }, y - 1, ski);
+        }
 
         if self.act == Act::Fight {
             // Sword: raised between swings, slashing forward on a strike.
@@ -365,6 +403,41 @@ impl Warrior {
         }
         if let Some(b) = &self.bubble {
             draw_bubble(c, x + WIDTH / 2, body_top - 8, &b.text);
+        }
+    }
+}
+
+impl Warrior {
+    /// While tumbling, how many quarter turns the whole body is drawn at:
+    /// rolling over and over, then flat on his back; None once he is up.
+    fn tumble_turns(&self) -> Option<u8> {
+        match self.act {
+            Act::Tumble if self.t < TUMBLE_ROLL => Some(1 + (self.t / TUMBLE_ROLL * 6.0) as u8 % 4),
+            Act::Tumble if self.t < TUMBLE_LIE => Some(1),
+            _ => None,
+        }
+    }
+}
+
+/// The standing warrior turned `turns` quarter turns forward, resting on the
+/// ground at `feet_y`, centered where he stands at `x`.
+fn draw_turned(c: &mut Canvas, pal: &[(char, Rgba)], x: i32, feet_y: i32, turns: u8, flip: bool) {
+    let rows: Vec<&str> = UPPER.iter().chain(LEGS_STAND).copied().collect();
+    let (h, w) = (rows.len() as i32, WIDTH);
+    let (tw, th) = if turns % 2 == 1 { (h, w) } else { (w, h) };
+    let (left, top) = (x + w / 2 - tw / 2, feet_y - th);
+    for (r, line) in rows.iter().enumerate() {
+        for (col, ch) in line.chars().enumerate() {
+            let Some(&(_, color)) = pal.iter().find(|(k, _)| *k == ch) else { continue };
+            let (r, col) = (r as i32, if flip { w - 1 - col as i32 } else { col as i32 });
+            let (tx, ty) = match turns % 4 {
+                0 => (col, r),
+                1 => (h - 1 - r, col),
+                2 => (w - 1 - col, h - 1 - r),
+                _ => (r, w - 1 - col),
+            };
+            let tx = if flip { tw - 1 - tx } else { tx };
+            c.set(left + tx, top + ty, color);
         }
     }
 }
@@ -529,5 +602,39 @@ mod tests {
             .collect();
         assert_eq!(sliding[0], sliding[1], "no steps while sliding");
         assert!(!walking.contains(&sliding[0]), "a pose of its own");
+    }
+
+    #[test]
+    fn a_tumble_rolls_lies_down_and_gets_up_in_one_bit() {
+        let mut w = Warrior::new(50.0);
+        w.tumble();
+        assert_eq!(w.act, Act::Tumble);
+        let mut poses = Vec::new();
+        for _ in 0..(TUMBLE_S * 30.0) as i32 + 2 {
+            let mut c = Canvas::new(80, 40);
+            w.draw(&mut c, 34.0, 0.0);
+            assert!(c.bytes().chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
+            let px = c.bytes().to_vec();
+            if !poses.contains(&px) {
+                poses.push(px);
+            }
+            w.step(1.0 / 30.0, 0.0, false, 0.0, 200.0, 0.5);
+        }
+        assert!(poses.len() >= 4, "rolls through several poses: {}", poses.len());
+        assert_eq!(w.act, Act::Wander, "back on his feet");
+        w.set(Act::Fight);
+        w.tumble();
+        assert_eq!(w.act, Act::Fight, "only a wandering warrior falls");
+    }
+
+    #[test]
+    fn on_skis_the_tip_runs_past_his_boots() {
+        let mut w = Warrior::new(20.0);
+        w.dir = 1.0;
+        w.sliding = true;
+        let mut c = Canvas::new(60, 40);
+        w.draw(&mut c, 30.0, 0.0);
+        assert!(c.bytes().chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
+        assert!(c.opaque_in(20 + WIDTH, 28, SKI_TIP + 1, 2) >= 2, "the ski sticks out in front");
     }
 }

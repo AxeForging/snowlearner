@@ -58,6 +58,8 @@ pub enum Act {
     Watch,
     /// Hit by your correct answer.
     Stagger,
+    /// Riding a snowboard down a deep pile, taunting the learner who left (#117).
+    Board,
 }
 
 pub enum Event {
@@ -82,6 +84,8 @@ pub struct Mage {
     pub bubble: Option<super::warrior::Bubble>,
     /// Sliding down a steep pile (set by the scene): no steps, no bob.
     pub sliding: bool,
+    /// What he says once the current bubble ends (the taunt's second bubble).
+    next_line: Option<super::warrior::Bubble>,
 }
 
 const CHARGE: f32 = 0.7;
@@ -89,6 +93,12 @@ const THROW: f32 = 0.16;
 const RECOVER: f32 = 0.3;
 const SUMMON: f32 = 1.4;
 const STAGGER: f32 = 1.0;
+/// How long a snowboard ride lasts (s).
+pub const BOARD_S: f32 = 3.5;
+/// Snowboard speed (px/s), well past his walk.
+const BOARD_SPEED: f32 = 34.0;
+/// The board is this much longer than his boots on each side (px).
+const BOARD_OVERHANG: i32 = 2;
 
 fn lerp2(a: (f32, f32), b: (f32, f32), t: f32) -> (f32, f32) {
     let t = t.clamp(0.0, 1.0);
@@ -110,6 +120,7 @@ impl Mage {
             watching: false,
             bubble: None,
             sliding: false,
+            next_line: None,
         }
     }
 
@@ -150,6 +161,12 @@ impl Mage {
 
     pub fn say(&mut self, text: impl Into<String>, seconds: f32) {
         self.bubble = Some(super::warrior::Bubble { text: text.into(), left: seconds });
+        self.next_line = None;
+    }
+
+    /// Says `text` for `seconds` right after the current bubble ends.
+    pub fn say_next(&mut self, text: impl Into<String>, seconds: f32) {
+        self.next_line = Some(super::warrior::Bubble { text: text.into(), left: seconds });
     }
 
     /// Only ages the speech bubble (while held by the magic hand).
@@ -157,8 +174,16 @@ impl Mage {
         if let Some(b) = &mut self.bubble {
             b.left -= dt;
             if b.left <= 0.0 {
-                self.bubble = None;
+                self.bubble = self.next_line.take();
             }
+        }
+    }
+
+    /// Rides a snowboard toward `dir` (±1) for `BOARD_S`, when not busy (#117).
+    pub fn board(&mut self, dir: f32) {
+        if !self.busy() {
+            self.dir = if dir < 0.0 { -1.0 } else { 1.0 };
+            self.set(Act::Board);
         }
     }
 
@@ -169,12 +194,7 @@ impl Mage {
     /// Advances animation and walking. `min_x..max_x` is the patrol range.
     pub fn step(&mut self, dt: f32, speed: f32, min_x: f32, max_x: f32, blink_roll: f32) -> Option<Event> {
         self.t += dt;
-        if let Some(b) = &mut self.bubble {
-            b.left -= dt;
-            if b.left <= 0.0 {
-                self.bubble = None;
-            }
-        }
+        self.tick_bubble(dt);
         self.next_blink -= dt;
         self.blink -= dt;
         if self.next_blink < 0.0 {
@@ -210,6 +230,13 @@ impl Mage {
             Act::Summon if self.t > SUMMON => {
                 self.set(Act::Walk);
                 Some(Event::Summoned)
+            }
+            Act::Board => {
+                self.x = (self.x + self.dir * BOARD_SPEED * dt).clamp(min_x, max_x);
+                if self.t > BOARD_S {
+                    self.set(self.rest());
+                }
+                None
             }
             Act::Stagger => {
                 // Knocked back, away from where he faces.
@@ -249,7 +276,11 @@ impl Mage {
     }
 
     fn origin(&self, feet_y: f32) -> (f32, f32) {
-        let bob = if self.act == Act::Walk && !self.sliding && (self.walk_t * 6.0).sin() < 0.0 { 1.0 } else { 0.0 };
+        let bob = match self.act {
+            Act::Walk if !self.sliding && (self.walk_t * 6.0).sin() < 0.0 => 1.0,
+            Act::Board => -2.0, // standing on the board
+            _ => 0.0,
+        };
         (self.x.round(), (feet_y - HEIGHT as f32 + bob).round())
     }
 
@@ -297,7 +328,7 @@ impl Mage {
         let stagger_x = if self.act == Act::Stagger { ((time * 40.0).sin() * 1.5).round() } else { 0.0 };
         let bx = (ox + stagger_x) as i32;
         c.sprite(BODY, PAL, bx, oy as i32, flip);
-        let feet = if self.sliding {
+        let feet = if self.sliding || self.act == Act::Board {
             FEET_SLIDE
         } else if self.act == Act::Walk {
             FEET[1 + ((self.walk_t * 6.0) as usize % 2)]
@@ -305,6 +336,9 @@ impl Mage {
             FEET[0]
         };
         c.sprite(&[feet], PAL, bx, oy as i32 + 21, flip);
+        if self.act == Act::Board {
+            draw_board(c, bx, oy as i32 + 22, flip);
+        }
         if self.blink > 0.0 || self.act == Act::Stagger {
             let ex = self.world(ox, 10.0) + stagger_x;
             c.set(ex as i32, oy as i32 + 8, if self.act == Act::Stagger { hex(0x141028) } else { hex(0xf4c49a) });
@@ -339,6 +373,20 @@ impl Mage {
             }
         }
     }
+}
+
+/// The snowboard under his boots: a red deck with a white stripe, both tips
+/// turned up, two rows tall from `top`.
+fn draw_board(c: &mut Canvas, x: i32, top: i32, flip: bool) {
+    let (from, to) = (x + 2 - BOARD_OVERHANG, x + WIDTH - 1 + BOARD_OVERHANG);
+    let tip = if flip { from } else { to };
+    let tail = if flip { to } else { from };
+    c.rect(from, top, to - from + 1, 1, hex(0xd8403a));
+    c.rect(from + 1, top + 1, to - from - 1, 1, hex(0x8a2420));
+    c.rect(from + 3, top, to - from - 5, 1, hex(0xffffff));
+    c.set(tip, top - 1, hex(0xd8403a));
+    c.set(tip, top - 2, hex(0xd8403a));
+    c.set(tail, top - 1, hex(0xd8403a));
 }
 
 const PORTRAIT: i32 = 32;
@@ -461,5 +509,44 @@ mod tests {
             .collect();
         assert_eq!(sliding[0], sliding[1], "no steps while sliding");
         assert!(!walking.contains(&sliding[0]), "a pose of its own");
+    }
+
+    #[test]
+    fn a_snowboard_ride_runs_downhill_then_he_walks_again_and_says_both_lines() {
+        let mut m = Mage::new(100.0);
+        m.board(-1.0);
+        m.say("one", 1.0);
+        m.say_next("two", 1.0);
+        let x0 = m.x;
+        let mut heard = vec![];
+        for _ in 0..(BOARD_S * 30.0) as i32 + 2 {
+            m.step(1.0 / 30.0, 10.0, 0.0, 200.0, 0.5);
+            if let Some(b) = &m.bubble
+                && heard.last() != Some(&b.text)
+            {
+                heard.push(b.text.clone());
+            }
+        }
+        assert!(x0 - m.x > 60.0, "fast and to the left: {}", x0 - m.x);
+        assert_eq!(m.act, Act::Walk);
+        assert_eq!(heard, ["one", "two"]);
+        m.board(1.0);
+        m.start_throw(false);
+        assert_eq!(m.act, Act::Board, "busy riding: no throw");
+    }
+
+    #[test]
+    fn the_snowboard_is_drawn_in_one_bit_under_his_boots() {
+        let draw = |m: &Mage| {
+            let mut c = Canvas::new(40, 40);
+            m.draw(&mut c, 32.0, 0.0);
+            c
+        };
+        let mut m = Mage::new(10.0);
+        m.board(1.0);
+        let c = draw(&m);
+        assert!(c.bytes().chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
+        assert!(c.opaque_in(8, 30, 24, 2) >= 16, "a deck under the boots, wider than him");
+        assert_eq!(c.opaque_in(0, 32, 40, 8), 0, "on the snow, not in it");
     }
 }
