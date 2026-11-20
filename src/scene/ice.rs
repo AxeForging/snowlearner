@@ -101,6 +101,8 @@ pub enum Kind {
     Spark,
     /// Fire ember; floats up.
     Ember,
+    /// A burning chunk the comet throws (#172); bounces like a shard.
+    Debris,
 }
 
 pub struct Particle {
@@ -122,7 +124,7 @@ impl Particle {
     #[allow(clippy::too_many_arguments)]
     pub fn new(kind: Kind, x: f32, y: f32, vx: f32, vy: f32, life: f32, color: Rgba) -> Self {
         let g = match kind {
-            Kind::Shard => 220.0,
+            Kind::Shard | Kind::Debris => 220.0,
             Kind::Steam => 0.0,
             Kind::Spark => 0.0,
             Kind::Ember => -12.0,
@@ -147,7 +149,7 @@ impl Particle {
         if self.kind == Kind::Steam {
             self.vx *= 0.97;
         }
-        if self.kind == Kind::Shard {
+        if matches!(self.kind, Kind::Shard | Kind::Debris) {
             let f = floor(self.x) - 1.0;
             if self.y >= f {
                 self.y = f;
@@ -167,11 +169,18 @@ impl Particle {
     pub fn draw(&self, c: &mut Canvas) {
         let a = self.life / self.max;
         let (xi, yi) = (self.x.round() as i32, self.y.round() as i32);
-        let threshold = if self.kind == Kind::Shard && !self.rest { 0.0 } else { bayer(xi, yi) * 0.9 };
+        let flying = matches!(self.kind, Kind::Shard | Kind::Debris) && !self.rest;
+        let threshold = if flying { 0.0 } else { bayer(xi, yi) * 0.9 };
         if a < threshold {
             return;
         }
         c.set(xi, yi, self.color);
+        if self.kind == Kind::Debris {
+            // A 2×2 chunk: a hot core over a darker, cooling side.
+            c.set(xi + 1, yi, self.color);
+            c.set(xi, yi + 1, hex(0xd93a2a));
+            c.set(xi + 1, yi + 1, hex(0xd93a2a));
+        }
         if self.big {
             c.set(xi + 1, yi, if self.color == hex(0xffffff) { hex(0xc8f4ff) } else { hex(0x4ea2d8) });
         }

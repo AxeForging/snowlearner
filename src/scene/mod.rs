@@ -713,6 +713,15 @@ impl Scene {
             let life = self.rng.range(0.5, 1.3);
             self.particles.push(Particle::new(Kind::Ember, x, y, a.cos() * sp, a.sin() * sp, life, col));
         }
+        // Burning debris thrown to both sides, a little ahead of the comet (#172).
+        let travel = self.comet.as_ref().map_or(0.0, Comet::travel);
+        let w = self.w as f32;
+        for i in 0..self.rng.range(24.0, 31.0) as usize {
+            let vx = self.rng.range(-0.45, 0.45) * w + 0.15 * w * travel;
+            let (vy, life) = (self.rng.range(-130.0, -60.0), self.rng.range(1.5, 2.5));
+            let col = hex([0xfff4b0, 0xffc13d, 0xff7a2a][i % 3]);
+            self.particles.push(Particle::new(Kind::Debris, x, y - 1.0, vx, vy, life, col));
+        }
         for _ in 0..16 {
             let px = x + self.rng.range(-24.0, 24.0);
             let (vx, vy, life) = (self.rng.range(-8.0, 8.0), self.rng.range(-40.0, -15.0), self.rng.range(0.8, 1.6));
@@ -3204,6 +3213,35 @@ mod tests {
         assert!((hit - mage).abs() <= 3.0, "landed at {hit}, the frost mage is at {mage}");
         assert!((hit - far).abs() > 40.0, "not on the deepest snow");
         assert_eq!(act, mage::Act::Stagger, "he takes the hit");
+    }
+
+    #[test]
+    fn the_comet_throws_burning_debris_to_both_sides_that_bounces_and_goes() {
+        let mut s = Scene::new(480, 270, 6, Commitment::Steady.pace(), true);
+        s.snow.add(240.0, 40.0, 480.0);
+        s.comet();
+        let debris = |s: &Scene| s.particles.iter().filter(|p| p.kind == Kind::Debris).count();
+        let mut hit = None;
+        for _ in 0..60 {
+            s.step(1.0 / 30.0);
+            if hit.is_none() && debris(&s) > 0 {
+                hit = Some(s.comet.as_ref().unwrap().target());
+            }
+        }
+        let x = hit.expect("the comet landed and threw debris");
+        let (mut left, mut right, mut bounced) = (0, 0, false);
+        for _ in 0..15 {
+            s.step(1.0 / 30.0);
+            for p in s.particles.iter().filter(|p| p.kind == Kind::Debris) {
+                left += usize::from(p.x < x - 30.0);
+                right += usize::from(p.x > x + 30.0);
+                bounced |= p.rest || p.vy < 0.0 && p.y > s.feet_y(p.x) - 6.0;
+            }
+        }
+        assert!(left > 0 && right > 0, "debris to both sides of {x}: {left} left, {right} right");
+        assert!(bounced, "some debris bounced off the pile");
+        run(&mut s, 3.0);
+        assert_eq!(debris(&s), 0, "the debris is gone within a few seconds");
     }
 
     #[test]
