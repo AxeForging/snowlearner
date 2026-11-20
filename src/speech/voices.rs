@@ -4,6 +4,7 @@
 //!   `POST {url}/audio/speech` returning WAV, played on the chosen speaker,
 //! - `command`: your own command (Piper, a script…), run without a shell.
 
+use super::loudness::Reference;
 use super::tts::{Speed, Tts, command_no_window, locale};
 use crate::lang::text::kokoro_language;
 use crate::lang::{Native, T};
@@ -358,6 +359,8 @@ pub struct Voice {
     pub engine: Box<dyn SpeechEngine>,
     /// Output device for audio the app plays itself ("" = default).
     pub speaker: String,
+    /// The level of what it last said (#162), for whatever plays next to it.
+    pub level: Reference,
 }
 
 impl Voice {
@@ -368,7 +371,7 @@ impl Voice {
             TtsEngine::Http => Box::new(Http { url: url.to_string(), model: model.to_string() }),
             TtsEngine::Command => Box::new(CommandEngine { args: split_template(command) }),
         };
-        Voice { engine, speaker: speaker.to_string() }
+        Voice { engine, speaker: speaker.to_string(), level: Reference::new() }
     }
 
     pub fn describe(&self) -> String {
@@ -386,14 +389,29 @@ impl Voice {
     /// Speaks and blocks until done.
     pub fn speak(&self, text: &str, lang: &str, voice: &str, speed: Speed) -> Result<()> {
         match self.engine.speak(text, lang, voice, speed)? {
-            Audio::Played => Ok(()),
+            Audio::Played => {
+                self.level.heard(None);
+                Ok(())
+            }
             Audio::Wav(wav) => self.play(&wav),
         }
     }
 
+    /// Decodes a WAV the engine handed over and keeps its level as the
+    /// reference (a WAV with no speech in it leaves the reference alone).
+    #[cfg(feature = "audio")]
+    fn hear(&self, wav: &[u8]) -> Result<(Vec<f32>, u32)> {
+        let (mono, rate) = super::audio::decode_wav(wav)?;
+        if let Some(l) = super::loudness::level(&mono, rate) {
+            self.level.heard(Some(l));
+        }
+        Ok((mono, rate))
+    }
+
     #[cfg(feature = "audio")]
     fn play(&self, wav: &[u8]) -> Result<()> {
-        super::audio::play_wav(wav, &self.speaker)
+        let (mono, rate) = self.hear(wav)?;
+        super::audio::play_samples(&mono, rate, &self.speaker)
     }
 
     #[cfg(not(feature = "audio"))]
@@ -465,10 +483,44 @@ mod tests {
 
     #[test]
     fn custom_engines_plug_in_through_the_trait() {
-        let v = Voice { engine: Box::new(Fake), speaker: String::new() };
+        let v = Voice { engine: Box::new(Fake), speaker: String::new(), level: Reference::new() };
         assert_eq!(v.describe(), "fake");
         assert_eq!(v.voices("es").unwrap(), vec!["es-voice"]);
         v.speak("hola", "es", "", Speed::Normal).unwrap();
+    }
+
+    #[test]
+    fn the_os_voice_speaking_puts_the_reference_back_on_its_level() {
+        let v = Voice { engine: Box::new(Fake), speaker: String::new(), level: Reference::new() };
+        v.level.heard(Some(-12.0));
+        v.speak("hola", "es", "", Speed::Normal).unwrap();
+        assert_eq!(v.level.get(), crate::speech::loudness::SYSTEM_VOICE);
+    }
+
+    #[cfg(feature = "audio")]
+    #[test]
+    fn a_voice_the_app_plays_becomes_the_reference() {
+        let wav = |amp: f32| {
+            let mut buf = std::io::Cursor::new(Vec::new());
+            let spec = hound::WavSpec {
+                channels: 1,
+                sample_rate: 24_000,
+                bits_per_sample: 16,
+                sample_format: hound::SampleFormat::Int,
+            };
+            let mut w = hound::WavWriter::new(&mut buf, spec).unwrap();
+            for i in 0..24_000 {
+                let s = amp * (std::f32::consts::TAU * 997.0 * i as f32 / 24_000.0).sin();
+                w.write_sample((s * i16::MAX as f32) as i16).unwrap();
+            }
+            w.finalize().unwrap();
+            buf.into_inner()
+        };
+        let v = Voice { engine: Box::new(Fake), speaker: String::new(), level: Reference::new() };
+        v.hear(&wav(0.5)).unwrap();
+        assert!((v.level.get() + 9.03).abs() < 0.3, "a -6 dBFS 1 kHz tone reads about -9 LUFS: {}", v.level.get());
+        v.hear(&wav(0.0)).unwrap();
+        assert!((v.level.get() + 9.03).abs() < 0.3, "a silent WAV leaves the reference alone");
     }
 
     #[test]

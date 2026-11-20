@@ -48,6 +48,13 @@ Status: approved in chat (2026-09-27).
   last answer's spoken part (silence trimmed, at most 3 s) in memory until the next
   listen, and plays it on `speaker` when the lesson sends `Job::ReplayAnswer`. A miss
   plays nothing, and nothing is written to disk for it.
+- The replay plays as loud as the lesson voice (#162, `speech/loudness.rs`): each WAV the
+  voice engine hands over is measured as ITU-R BS.1770 does (K-weighting, gated 400 ms
+  blocks) and kept as the reference; the OS voices, which speak by themselves, use a fixed
+  level (Windows SAPI measured at -20.2 LUFS; Linux and macOS use the same value,
+  unmeasured). The answer gets one gain to that level, at most +24 dB so a near-silent
+  clip stays quiet, then a limiter at -1 dBFS. Only the played copy changes: what the
+  recognizer and `keep_recordings` got is untouched.
 
 ## Voices & engines (`tts_engine`)
 | engine | how | voices listed from |

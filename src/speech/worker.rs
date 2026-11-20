@@ -186,6 +186,8 @@ impl Speech {
             .spawn(move || {
                 let mut cfg = cfg;
                 let mut voice = voice;
+                // The lesson voice's level, kept across voice changes (#162).
+                let reference = voice.level.clone();
                 #[cfg(feature = "stt")]
                 let mut recognizer =
                     Resident::<super::stt::Recognizer>::new(super::resident::SPEECH_MODEL_IDLE, Instant::now());
@@ -217,6 +219,7 @@ impl Speech {
                         Job::Configure(new) => {
                             cfg = *new;
                             voice = cfg.voice();
+                            voice.level = reference.clone();
                         }
                         Job::StopListening | Job::StopSpeaking => {}
                         Job::Speak { id, parts } => {
@@ -257,7 +260,7 @@ impl Speech {
                         }
                         Job::CheckKey { id } => notify(check_key(id, &cfg)),
                         #[cfg(feature = "stt")]
-                        Job::ReplayAnswer { id } => replay(id, last_answer.as_ref(), &cfg),
+                        Job::ReplayAnswer { id } => replay(id, last_answer.as_ref(), &cfg, &reference),
                         #[cfg(not(feature = "stt"))]
                         Job::ReplayAnswer { .. } => {}
                         #[cfg(not(feature = "stt"))]
@@ -292,15 +295,20 @@ struct Kit<'a> {
     kept: &'a mut Option<(u64, Vec<f32>)>,
 }
 
-/// Plays back the answer heard by listen `id`, when it is the one kept.
+/// Plays back the answer heard by listen `id`, when it is the one kept, at the
+/// lesson voice's level (#162).
 #[cfg(feature = "stt")]
-fn replay(id: u64, kept: Option<&(u64, Vec<f32>)>, cfg: &VoiceSettings) {
+fn replay(id: u64, kept: Option<&(u64, Vec<f32>)>, cfg: &VoiceSettings, reference: &super::loudness::Reference) {
     let Some((_, samples)) = kept.filter(|(heard, s)| *heard == id && !s.is_empty()) else {
         return;
     };
     let rate = super::resample::WHISPER_RATE;
-    trace::line(format_args!("replaying the answer ({:.1} s)", samples.len() as f32 / rate as f32));
-    if let Err(e) = super::audio::play_samples(samples, rate, &cfg.speaker) {
+    let target = reference.get();
+    let gain = super::loudness::gain_db(samples, rate, target);
+    let played = super::loudness::match_level(samples, rate, target);
+    let secs = samples.len() as f32 / rate as f32;
+    trace::line(format_args!("replaying the answer ({secs:.1} s, {gain:+.1} dB to {target:.1} LUFS)"));
+    if let Err(e) = super::audio::play_samples(&played, rate, &cfg.speaker) {
         trace::line(format_args!("replaying the answer failed: {e:#}"));
     }
 }

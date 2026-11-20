@@ -67,6 +67,16 @@ mod tests {
     }
 
     #[test]
+    fn replaying_at_the_lesson_level_leaves_the_kept_answer_as_heard() {
+        // What recognition and `keep_recordings` got is the kept copy: only what is played is raised.
+        let kept = spoken_part(&answer(0.5, 0.8), RATE).to_vec();
+        let before = kept.clone();
+        let played = crate::speech::loudness::match_level(&kept, RATE, -14.0);
+        assert_eq!(kept, before);
+        assert_ne!(played, kept, "the replay itself is raised");
+    }
+
+    #[test]
     fn a_quiet_room_replays_nothing() {
         assert!(spoken_part(&answer(2.0, 0.0), RATE).is_empty());
         assert!(spoken_part(&[], RATE).is_empty());
