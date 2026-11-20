@@ -117,6 +117,21 @@ pub fn spread(mono: &[f32], channels: u16) -> Vec<f32> {
     mono.iter().flat_map(|&s| std::iter::repeat_n(s, ch)).collect()
 }
 
+/// Plays mono samples on their own thread and stream (#163), so a sound effect
+/// overlaps the voice instead of waiting behind it. A speaker that cannot open
+/// a second stream skips the sound; that is logged, never an error.
+pub fn play_detached(mono: Vec<f32>, rate: u32, speaker: String, what: &'static str) {
+    let spawned = std::thread::Builder::new().name("effect".into()).spawn(move || {
+        super::trace::line(format_args!("playing the {what} ({:.1} s)", mono.len() as f32 / rate as f32));
+        if let Err(e) = play_samples(&mono, rate, &speaker) {
+            super::trace::line(format_args!("the {what} did not play: {e:#}"));
+        }
+    });
+    if let Err(e) = spawned {
+        super::trace::line(format_args!("the {what} did not play: {e}"));
+    }
+}
+
 /// Plays mono samples at `rate` Hz on `speaker` and blocks until they finish.
 pub fn play_samples(mono: &[f32], rate: u32, speaker: &str) -> Result<()> {
     let device = output(speaker)?;

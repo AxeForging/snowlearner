@@ -17,6 +17,7 @@ use crate::render::canvas::Canvas;
 use crate::render::screen::Screen;
 use crate::scene::Scene;
 use crate::scene::hud::Cheats;
+use crate::scene::sound::Sound;
 use crate::speech::tts::Speed;
 use crate::speech::voices::sample_text;
 use crate::speech::worker::{Job, Speech, SpeechEvent, Utterance, VoiceSettings};
@@ -932,12 +933,34 @@ impl App {
         }
     }
 
+    /// A sound the scene asked for (#163): at the lesson voice's level, on its
+    /// own stream so it overlaps the replay instead of waiting behind it.
+    fn play_sound(&self, sound: Sound) {
+        #[cfg(feature = "audio")]
+        {
+            use crate::speech::{audio, effects};
+            let samples = effects::at_level(sound, self.speech.level.get());
+            audio::play_detached(samples, effects::RATE, self.settings.speaker.clone(), sound.name());
+        }
+        #[cfg(not(feature = "audio"))]
+        let _ = sound;
+    }
+
     fn frame(&mut self) {
         let now = Instant::now();
         let dt = (now - self.last).as_secs_f32().min(0.1);
         self.last = now;
-        if let Some(scene) = &mut self.scene {
-            scene.step(dt);
+        let sounds = match &mut self.scene {
+            Some(scene) => {
+                scene.step(dt);
+                scene.take_sounds()
+            }
+            None => Vec::new(),
+        };
+        if self.settings.sound_effects {
+            for sound in sounds {
+                self.play_sound(sound);
+            }
         }
         self.input(Input::Tick { dt, now: chrono::Local::now() });
         // The overlay stacks above the panel on X11: leave its spot clear.

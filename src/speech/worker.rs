@@ -168,6 +168,8 @@ pub struct Speech {
     pub tts: String,
     pub tts_ok: bool,
     pub can_listen: bool,
+    /// The lesson voice's level (#162), for sound effects played next to it (#163).
+    pub level: super::loudness::Reference,
 }
 
 impl Speech {
@@ -175,6 +177,7 @@ impl Speech {
     pub fn start(cfg: VoiceSettings, notify: impl Fn(SpeechEvent) + Send + 'static) -> Speech {
         let voice = cfg.voice();
         let (tts, tts_ok) = (voice.describe(), voice.available());
+        let level = voice.level.clone();
         let can_listen = cfg!(feature = "stt") && (cfg.remote.is_some() || cfg.model.exists());
         let (tx, rx) = mpsc::channel::<(u64, Job)>();
         let stop = Arc::new(AtomicBool::new(false));
@@ -272,7 +275,7 @@ impl Speech {
                 }
             })
             .expect("spawning speech thread");
-        Speech { tx, stop, hush, sent: AtomicU64::new(0), tts, tts_ok, can_listen }
+        Speech { tx, stop, hush, sent: AtomicU64::new(0), tts, tts_ok, can_listen, level }
     }
 
     pub fn send(&self, job: Job) {

@@ -99,6 +99,8 @@ pub struct Settings {
     /// On a right answer, play back what you just said (#116). Kept only in
     /// memory until the next answer; never written to disk.
     pub replay_voice: bool,
+    /// The spell hitting the frost mage is heard (#163), at the lesson voice's level.
+    pub sound_effects: bool,
 }
 
 impl Default for Settings {
@@ -140,6 +142,7 @@ impl Default for Settings {
             daily_goal: 10,
             keep_recordings: false,
             replay_voice: false,
+            sound_effects: true,
         }
     }
 }
@@ -186,6 +189,7 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
     # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
     # replay_voice: true plays your answer back when you get it right (kept in memory only)\n\
+    # sound_effects: false silences the hit of the spell on the frost mage (on by default)\n\
     # ipc_port: local port for `snowlearner say|menu|quit`; change it if another program holds it\n\
     # stt_engine: local (offline) | openai | asr = a Whisper server at stt_url hears your answers\n\
     #   | groq = Groq's cloud hears them, with your API key in stt_key (console.groq.com/keys)\n\n";
@@ -430,6 +434,24 @@ mod tests {
         let written = std::fs::read_to_string(&p).unwrap();
         assert!(written.contains(&format!("ipc_port = {port}")));
         assert!(written.contains("# ipc_port:"), "explained in the header");
+    }
+
+    #[test]
+    fn sound_effects_are_on_until_turned_off_and_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        assert!(Settings::default().sound_effects, "the hit is heard unless you turn it off");
+        Settings::write_default(&p, false).unwrap();
+        let written = std::fs::read_to_string(&p).unwrap();
+        assert!(written.contains("# sound_effects:"), "explained in the header");
+        assert!(written.contains("sound_effects = true"));
+        std::fs::write(&p, "replay_voice = true\n").unwrap();
+        assert!(Settings::load(&p).unwrap().sound_effects, "an older config without it keeps them on");
+        std::fs::write(&p, "sound_effects = false\n").unwrap();
+        let s = Settings::load(&p).unwrap();
+        assert!(!s.sound_effects);
+        s.save(&p).unwrap();
+        assert_eq!(Settings::load(&p).unwrap(), s);
     }
 
     #[test]

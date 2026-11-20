@@ -1,4 +1,5 @@
 pub mod bench;
+pub mod effects;
 pub mod endpoint;
 pub mod highpass;
 pub mod loudness;
