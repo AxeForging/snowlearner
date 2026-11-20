@@ -32,7 +32,7 @@ use arrow::Arrow;
 use backdrop::{Backdrop, GROUND_BAND};
 use blanket::Blanket;
 use comet::Comet;
-use fire::Fire;
+use fire::{Fire, Flash};
 use friends::Friend;
 use frost::{Edge, Frost};
 use glass::Glass;
@@ -145,6 +145,10 @@ pub struct Scene {
     /// Reused frames for the black-hole warp (world, warped): no allocation per frame.
     warp_frames: RefCell<(Canvas, Canvas)>,
     pub fires: Vec<Fire>,
+    /// Flashes where fireballs landed, sized by the spell's tier (#119).
+    flashes: Vec<Flash>,
+    /// Phrases that became known while the app ran (#119).
+    learned: u32,
     pub hud: Hud,
     /// The learner's own language: what the actors say.
     native: Native,
@@ -238,6 +242,8 @@ impl Scene {
             blanket: RefCell::default(),
             warp_frames: RefCell::new((Canvas::new(1, 1), Canvas::new(1, 1))),
             fires: Vec::new(),
+            flashes: Vec::new(),
+            learned: 0,
             hud: Hud::default(),
             native: Native::default(),
             tips: Vec::new(),
@@ -576,6 +582,7 @@ impl Scene {
         }
         self.frost.melt(melt);
         self.snow.thaw(x, 24.0, 40.0, 0.25);
+        self.flashes.push(Flash::new(x, y, spell.flash_radius()));
         for i in 0..20 * spell.radius() as usize {
             let a = self.rng.range(0.0, std::f32::consts::TAU);
             let sp = self.rng.range(20.0, 90.0);
@@ -694,6 +701,19 @@ impl Scene {
 
     pub fn mage_say(&mut self, text: impl Into<String>, seconds: f32) {
         self.mage.say(text, seconds);
+    }
+
+    /// A phrase just became known (#119): the fire mage flares and the warrior
+    /// cheers. Only a show: nothing melts.
+    pub fn learned(&mut self) {
+        self.pyro.flare();
+        self.warrior.cheer();
+        self.learned += 1;
+    }
+
+    /// Phrases that became known while the app ran.
+    pub fn learned_count(&self) -> u32 {
+        self.learned
     }
 
     /// The nudge when the learner has been away (#117). On a deep pile
@@ -1131,6 +1151,10 @@ impl Scene {
             p.step(dt, |x| ground - snow.height_at(x));
         }
         self.particles.retain(Particle::alive);
+        for f in &mut self.flashes {
+            f.step(dt);
+        }
+        self.flashes.retain(Flash::alive);
         self.particles.truncate(4000);
 
         // The sky holds its snow while you practice, like the mage his cubes.
@@ -1645,6 +1669,9 @@ impl Scene {
         for p in &self.particles {
             p.draw(c);
         }
+        for f in &self.flashes {
+            f.draw(c);
+        }
         if let Some(comet) = &self.comet {
             comet.draw(c, self.ground_y(), &self.snow, self.time);
         }
@@ -1842,6 +1869,41 @@ mod tests {
         };
         let (spark, fireball, blaze) = (melted(Spell::Spark), melted(Spell::Fireball), melted(Spell::Blaze));
         assert!(spark > 0.0 && spark < fireball && fireball < blaze, "{spark} {fireball} {blaze}");
+    }
+
+    #[test]
+    fn the_impact_flash_melts_nothing_and_each_tier_melts_what_it_did() {
+        assert_eq!([Spell::Spark, Spell::Fireball, Spell::Blaze].map(Spell::melt), [0.6, 1.0, 1.5]);
+        for spell in [Spell::Spark, Spell::Fireball, Spell::Blaze] {
+            let mut s = Scene::new(240, 135, 2, Commitment::Steady.pace(), true);
+            s.snow.add(120.0, 30.0, 200.0);
+            let heights = |s: &Scene| (0..240).map(|x| s.snow.height_at(x as f32)).collect::<Vec<f32>>();
+            let before = heights(&s);
+            s.impact(120.0, 80.0, 0.2, spell);
+            assert_eq!(s.flashes.len(), 1);
+            assert_eq!(s.flashes[0].radius, spell.flash_radius());
+            let melted = heights(&s);
+            assert!(melted.iter().zip(&before).all(|(a, b)| a <= b));
+            while s.flashes.iter().any(Flash::alive) {
+                for f in &mut s.flashes {
+                    f.step(1.0 / 30.0);
+                }
+            }
+            assert_eq!(heights(&s), melted, "{spell:?}: the flash itself melts nothing");
+        }
+    }
+
+    #[test]
+    fn learning_a_phrase_flares_the_fire_mage_and_the_warrior_cheers() {
+        let mut s = Scene::new(240, 135, 2, Commitment::Steady.pace(), true);
+        s.set_practicing(true);
+        run(&mut s, 1.0);
+        let warmth = s.warrior.warmth;
+        s.learned();
+        assert!(s.pyro.flaring());
+        assert_eq!(s.warrior.act, warrior::Act::Cheer);
+        assert_eq!(s.warrior.warmth, warmth, "no warmth for free");
+        assert_eq!(s.learned_count(), 1);
     }
 
     #[test]

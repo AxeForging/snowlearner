@@ -685,6 +685,7 @@ impl Lesson {
         if stats.get(&p.say).is_none_or(|s| s.successes_total != picker::RECALL_AFTER) {
             return; // not the moment it became known
         }
+        scene.learned();
         let opened: Vec<usize> = path::unlocked(&self.deck.phrases, &self.selection(), &stats)
             .into_iter()
             .filter(|i| !open_before.contains(i))
@@ -1296,6 +1297,19 @@ mod tests {
             }
         }
         news.expect("a word became known within 12 answers")
+    }
+
+    #[test]
+    fn the_learned_moment_comes_once_exactly_when_the_phrase_becomes_known() {
+        let src = "language='en'\nnative='pt-BR'\ntitle='t'\n\
+             [[phrase]]\nsay='Hello.'\nmeaning='m'\nsituation='s'\ntopic='t'\nlevel='A1'\n";
+        let mut f = fixture_deck(src);
+        for pass in 1..=picker::RECALL_AFTER + 3 {
+            f.answer(true);
+            f.finish();
+            let expected = u32::from(pass >= picker::RECALL_AFTER);
+            assert_eq!(f.scene.learned_count(), expected, "after pass {pass}");
+        }
     }
 
     #[test]

@@ -48,6 +48,10 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    run across it melting, then dash to the next patch (now and then a hop), from a
    budget of 37% of the snow left, for about 12 s; on bare ground they melt nothing. In all it never melts more
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
+   Where a fireball lands, a brief local dithered flash sized by the spell's tier
+   (6/10/16 px, never the whole screen, melts nothing). When a phrase becomes known the
+   fire mage flares (full flame and a ring of sparks) and the warrior cheers, once per
+   phrase (#119).
 6. **More frost mage** — asks the questions and taunts/groans in bubbles; summons
    friends early and often; icicle rain from the top of the screen. When you have been
    away (the idle nudge) and the pile is deep (`owl::PILE_LEVEL`), he rides a snowboard
