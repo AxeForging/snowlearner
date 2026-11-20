@@ -48,6 +48,10 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    run across it melting, then dash to the next patch (now and then a hop), from a
    budget of 37% of the snow left, for about 12 s; on bare ground they melt nothing. In all it never melts more
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
+   New snow sticks less the deeper the pile (#170): at the ice line a cube, icicle or
+   flake leaves only 35% of what it would on bare ground (`DEEP_PILE_SLOWDOWN`), so at
+   Steady (one cube every 6 s) a clear screen takes about 48 min to freeze at the edges
+   and one right answer there keeps it clear for about 11 min (it was 26 and 3.3).
    Where a fireball lands, a brief local dithered flash sized by the spell's tier
    (6/10/16 px, never the whole screen, melts nothing). When a phrase becomes known the
    fire mage flares (full flame and a ring of sparks) and the warrior cheers, once per
