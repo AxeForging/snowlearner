@@ -338,19 +338,10 @@ impl Warrior {
         let frozen = self.act == Act::Frozen;
         let pal = if frozen { ICE } else { PAL };
         let shiver = if !frozen && self.warmth < 0.3 && ((time * 30.0) as i32 % 2 == 0) { 1 } else { 0 };
-        let hop = if self.act == Act::Cheer { -(((time * 10.0).sin().abs()) * 3.0).round() as i32 } else { 0 };
+        let hop = self.hop(time);
         let x = self.x.round() as i32 + shiver;
-        let sitting = matches!(self.act, Act::Build | Act::Warm);
-        let legs = if sitting {
-            LEGS_SIT
-        } else if self.sliding {
-            LEGS_SKI
-        } else if self.act == Act::Wander && (self.walk_t * 5.0) as i32 % 2 == 1 {
-            LEGS_STEP
-        } else {
-            LEGS_STAND
-        };
-        let body_top = feet_y.round() as i32 - UPPER.len() as i32 - legs.len() as i32 + hop;
+        let legs = self.legs();
+        let body_top = self.body_top(feet_y, time);
         if let Some(turns) = self.tumble_turns() {
             draw_turned(c, pal, x, feet_y.round() as i32, turns, flip);
         } else {
@@ -445,9 +436,37 @@ impl Warrior {
             c.rect(x - 1, body_top - 5, w + 2, 3, hex(0x1b1942));
             c.rect(x, body_top - 4, fill, 1, col);
         }
+    }
+
+    /// His speech bubble, over his head when he stands at `x` with his feet
+    /// at `feet_y`. Drawn by the scene after everything else (#156), so no
+    /// flame, spark or flash covers what he says.
+    pub fn draw_speech(&self, c: &mut Canvas, x: f32, feet_y: f32, time: f32) {
         if let Some(b) = &self.bubble {
-            draw_bubble(c, x + WIDTH / 2, body_top - 8, &b.text);
+            draw_bubble(c, x.round() as i32 + WIDTH / 2, self.body_top(feet_y, time) - 8, &b.text);
         }
+    }
+
+    /// Up a little while he cheers (px, negative is up).
+    fn hop(&self, time: f32) -> i32 {
+        if self.act == Act::Cheer { -(((time * 10.0).sin().abs()) * 3.0).round() as i32 } else { 0 }
+    }
+
+    fn legs(&self) -> &'static [&'static str] {
+        if matches!(self.act, Act::Build | Act::Warm) {
+            LEGS_SIT
+        } else if self.sliding {
+            LEGS_SKI
+        } else if self.act == Act::Wander && (self.walk_t * 5.0) as i32 % 2 == 1 {
+            LEGS_STEP
+        } else {
+            LEGS_STAND
+        }
+    }
+
+    /// Top row of his body with his feet at `feet_y`.
+    fn body_top(&self, feet_y: f32, time: f32) -> i32 {
+        feet_y.round() as i32 - UPPER.len() as i32 - self.legs().len() as i32 + self.hop(time)
     }
 }
 
