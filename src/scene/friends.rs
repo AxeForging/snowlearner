@@ -135,12 +135,7 @@ impl Friend {
             return;
         }
         let x = self.x.round() as i32;
-        let hop = if self.kind == Kind::Penguin && self.t > RISE && self.t < RISE + WAVE {
-            -(((time * 12.0).sin().abs()) * 2.0).round() as i32
-        } else {
-            0
-        };
-        let top = feet_y.round() as i32 - shown + hop;
+        let top = self.top(feet_y, time);
         // Only the emerged rows are drawn, so it rises out of the snow.
         let rows = &self.kind.sprite()[..shown as usize];
         c.sprite(rows, PAL, x, top, false);
@@ -155,9 +150,26 @@ impl Friend {
                 c.set(x + 11 + i, arm_y - i + if i >= 2 { -wave } else { 0 }, hex(0x6b3f1d));
             }
         }
-        if self.t > RISE + WAVE * 0.4 && self.t < RISE + WAVE + BURST {
-            crate::scene::warrior::draw_bubble(c, x + self.kind.width() / 2, top - 2, self.kind.shout());
+    }
+
+    /// Its shout, over its head; drawn by the scene after everything else
+    /// (#156) so nothing covers it.
+    pub fn draw_speech(&self, c: &mut Canvas, feet_y: f32, time: f32) {
+        if self.emerged() > 0.0 && self.t > RISE + WAVE * 0.4 && self.t < RISE + WAVE + BURST {
+            let x = self.x.round() as i32 + self.kind.width() / 2;
+            crate::scene::warrior::draw_bubble(c, x, self.top(feet_y, time) - 2, self.kind.shout());
         }
+    }
+
+    /// Top row drawn, with only the emerged rows showing and the penguin's hop.
+    fn top(&self, feet_y: f32, time: f32) -> i32 {
+        let shown = (self.kind.height() as f32 * self.emerged()).round() as i32;
+        let hop = if self.kind == Kind::Penguin && self.t > RISE && self.t < RISE + WAVE {
+            -(((time * 12.0).sin().abs()) * 2.0).round() as i32
+        } else {
+            0
+        };
+        feet_y.round() as i32 - shown + hop
     }
 }
 

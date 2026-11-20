@@ -1682,9 +1682,20 @@ impl Scene {
         for f in near_flakes {
             c.dot(f.x, f.y, if f.speed > 13.0 { hex(0xffffff) } else { hex(0xc9d0f2) });
         }
+        self.draw_speech(c, (self.warrior.x + wdx, wfeet), (mx, mfeet));
+    }
+
+    /// Everyone's speech, last in the world (#156): nothing drawn after it,
+    /// so a flame, a spark, a flash or the comet never covers a line. `warrior`
+    /// is where he is drawn (x, feet), `mage` the frost mage's center and feet.
+    fn draw_speech(&self, c: &mut Canvas, warrior: (f32, f32), mage: (f32, f32)) {
+        for f in &self.friends {
+            f.draw_speech(c, self.feet_y(f.x + f.kind.width() as f32 / 2.0), self.time);
+        }
+        self.warrior.draw_speech(c, warrior.0, warrior.1, self.time);
         if let Some(b) = &self.mage.bubble {
-            let top = mfeet as i32 - mage::HEIGHT - 8;
-            warrior::draw_bubble(c, mx as i32, top, &b.text);
+            let top = mage.1 as i32 - mage::HEIGHT - 8;
+            warrior::draw_bubble(c, mage.0 as i32, top, &b.text);
         }
     }
 }
@@ -1869,6 +1880,70 @@ mod tests {
         };
         let (spark, fireball, blaze) = (melted(Spell::Spark), melted(Spell::Fireball), melted(Spell::Blaze));
         assert!(spark > 0.0 && spark < fireball && fireball < blaze, "{spark} {fireball} {blaze}");
+    }
+
+    /// Pixels of `full` where `alone` (one bubble on a clear canvas) drew, and how many.
+    fn under(full: &Canvas, alone: &Canvas) -> (Vec<u8>, usize) {
+        let drawn = full.bytes().chunks(4).zip(alone.bytes().chunks(4)).filter(|(_, b)| b[3] == 255);
+        let px: Vec<u8> = drawn.flat_map(|(p, _)| p.to_vec()).collect();
+        let n = px.len() / 4;
+        (px, n)
+    }
+
+    #[test]
+    fn the_warrior_s_line_is_never_covered_by_the_fire_mage_s_flame() {
+        let line = "Vai lá, você consegue!";
+        let shot = |with_pyro: bool| {
+            let mut s = Scene::new(240, 135, 4, Commitment::Steady.pace(), true);
+            s.warrior.x = 120.0;
+            s.warrior.say(line, 9.0);
+            if with_pyro {
+                let feet = s.feet_y(130.0);
+                s.pyro.arrive(124.0, 200.0);
+                for _ in 0..30 {
+                    s.pyro.step(1.0 / 30.0, feet);
+                }
+                s.pyro.flame = 1.0;
+                s.pyro.flare();
+            }
+            let mut c = Canvas::new(240, 135);
+            s.draw(&mut c);
+            (s, c)
+        };
+        let (s, with) = shot(true);
+        let (_, without) = shot(false);
+        let mut alone = Canvas::new(240, 135);
+        s.warrior.draw_speech(&mut alone, s.warrior.x, s.feet_y(s.warrior.x + 6.0), s.time);
+        let mut flame = Canvas::new(240, 135);
+        s.pyro.draw(&mut flame, s.feet_y(124.0 + mage::WIDTH as f32 / 2.0), s.time);
+        let (_, crossing) = under(&flame, &alone);
+        assert!(crossing > 10, "the flame does reach into the bubble: {crossing} px");
+        assert_eq!(under(&with, &alone), under(&without, &alone), "the line reads the same");
+    }
+
+    #[test]
+    fn a_friend_s_shout_is_never_covered_by_a_flash() {
+        let shot = |flash: bool| {
+            let mut s = Scene::new(240, 135, 4, Commitment::Steady.pace(), true);
+            let mut f = Friend::new(friends::Kind::Snowman, 60.0);
+            f.t = 1.5; // risen, waving, shouting
+            s.friends.push(f);
+            if flash {
+                let feet = s.feet_y(65.0);
+                s.flashes.push(Flash::new(65.0, feet - 22.0, 16.0));
+            }
+            let mut c = Canvas::new(240, 135);
+            s.draw(&mut c);
+            (s, c)
+        };
+        let (s, with) = shot(true);
+        let (_, without) = shot(false);
+        let mut alone = Canvas::new(240, 135);
+        let f = &s.friends[0];
+        f.draw_speech(&mut alone, s.feet_y(f.x + f.kind.width() as f32 / 2.0), s.time);
+        let (_, n) = under(&with, &alone);
+        assert!(n > 50, "the shout is drawn: {n} px");
+        assert_eq!(under(&with, &alone), under(&without, &alone));
     }
 
     #[test]
