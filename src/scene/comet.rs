@@ -21,8 +21,12 @@ pub const MAX_EMBERS: usize = 6;
 
 /// Seconds from the top of the screen to the pile.
 const FALL_S: f32 = 1.2;
-/// How far from the impact the creatures land (px).
-const SCATTER: f32 = 28.0;
+/// The pull on a thrown creature (px/s², as the scene's cubes).
+const THROW_GRAVITY: f32 = 130.0;
+/// A throw lasts this long, plus `THROW_PER_WIDTH` for a throw across the
+/// whole screen (s): farther throws fly longer and higher.
+const THROW_S: f32 = 0.6;
+const THROW_PER_WIDTH: f32 = 0.8;
 /// A creature melts up to this far around itself (px).
 const EMBER_RADIUS: f32 = 6.0;
 /// A creature on deep snow spends its share in about this long (s).
@@ -83,6 +87,28 @@ pub struct Ember {
     budget: f32,
     rate: f32,
     life: f32,
+    /// Thrown by the impact and still in the air (#172).
+    flight: Option<Flight>,
+}
+
+/// A creature's arc from the impact to where it lands.
+struct Flight {
+    from: f32,
+    to: f32,
+    t: f32,
+    dur: f32,
+}
+
+impl Flight {
+    /// Height above the snow under it (px): a parabola under `THROW_GRAVITY`
+    /// that starts and ends on the snow.
+    fn height(&self) -> f32 {
+        0.5 * THROW_GRAVITY * self.t * (self.dur - self.t)
+    }
+
+    fn x(&self) -> f32 {
+        self.from + (self.to - self.from) * (self.t / self.dur).min(1.0)
+    }
 }
 
 impl Ember {
@@ -92,9 +118,17 @@ impl Ember {
         ((self.run_t * 8.0) as i32 % 2 == 0, (self.run_t * 10.0) as i32 % 2 == 0)
     }
 
-    /// Height off the snow while hopping (px).
+    /// Height off the snow while thrown or hopping (px).
     fn lift(&self) -> f32 {
+        if let Some(f) = &self.flight {
+            return f.height();
+        }
         self.hop.map_or(0.0, |t| (std::f32::consts::PI * t / HOP_S).sin() * HOP_H)
+    }
+
+    /// Still flying from the impact.
+    pub fn flying(&self) -> bool {
+        self.flight.is_some()
     }
 }
 
@@ -151,6 +185,11 @@ impl Comet {
         self.to_x
     }
 
+    /// The way it travels across the screen: -1 = leftward, 1 = rightward.
+    pub fn travel(&self) -> f32 {
+        if self.to_x >= self.from_x { 1.0 } else { -1.0 }
+    }
+
     /// Landed and every rock has faded.
     pub fn done(&self) -> bool {
         self.landed && self.embers.is_empty()
@@ -172,27 +211,44 @@ impl Comet {
             }
             self.landed = true;
             snow.melt(COMET_MELT);
-            let n = 4 + (rng.f32() * 3.0) as usize;
+            let n = (4 + (rng.f32() * 3.0) as usize).min(MAX_EMBERS);
             let share = EMBER_BUDGET * snow.total() / n as f32;
-            for _ in 0..n.min(MAX_EMBERS) {
-                let x = (self.to_x + rng.range(-SCATTER, SCATTER)).clamp(2.0, width - 3.0);
+            // Thrown across the screen (#172): one per slot of its width, so the
+            // left, the middle and the right all get some, a little ahead of
+            // where the comet was going.
+            let (lo, hi) = (2.0, width - 3.0);
+            let slot = (hi - lo) / n as f32;
+            for k in 0..n {
+                let centre = lo + slot * (k as f32 + 0.5) + self.travel() * slot / 6.0;
+                let to = (centre + rng.range(-slot / 3.0, slot / 3.0)).clamp(lo, hi);
+                let dur = THROW_S + THROW_PER_WIDTH * (to - self.to_x).abs() / width;
+                let flight = Some(Flight { from: self.to_x, to, t: 0.0, dur });
                 let rate = share / (EMBER_SPEND_S * EMBER_RADIUS);
                 let speed = rng.range(EMBER_SPEED.0, EMBER_SPEED.1);
-                let target = pick_target(x, snow, width, rng);
-                let dir = if target >= x { 1.0 } else { -1.0 };
+                let dir = if to >= self.to_x { 1.0 } else { -1.0 };
                 let retarget_in = rng.range(EMBER_RETARGET.0, EMBER_RETARGET.1);
                 let hop_in = rng.range(0.3, HOP_EVERY.1);
                 let (life, run_t) = (EMBER_LIFE * rng.range(0.9, 1.0), rng.range(0.0, 1.0));
-                let budget = share;
-                let e = Ember { x, dir, speed, target, retarget_in, hop: None, hop_in, run_t, budget, rate, life };
+                let (x, target, budget) = (self.to_x, to, share);
+                let hop = None;
+                let e = Ember { x, dir, speed, target, retarget_in, hop, hop_in, run_t, budget, rate, life, flight };
                 self.embers.push(e);
             }
             return Some(Impact { x: self.to_x });
         }
         let (lo, hi) = (2.0, width - 3.0);
         for e in &mut self.embers {
-            e.life -= dt;
             e.run_t += dt;
+            if let Some(f) = &mut e.flight {
+                // In the air: it melts nothing and its life has not started.
+                f.t += dt;
+                e.x = f.x();
+                if f.t >= f.dur {
+                    e.flight = None;
+                }
+                continue;
+            }
+            e.life -= dt;
             e.retarget_in -= dt;
             if (e.target - e.x).abs() < 1.5 || e.retarget_in <= 0.0 {
                 // Reached it: run across what is left here, or dash to the next patch.
@@ -334,8 +390,50 @@ mod tests {
         assert!(run(&mut c, &mut snow, 0.3).is_some());
         assert!(!c.falling());
         assert!((4..=MAX_EMBERS).contains(&c.embers.len()));
-        assert!(c.embers.iter().all(|e| (e.x - 100.0).abs() <= SCATTER));
+        assert!(c.embers.iter().all(|e| e.flying() && (e.x - 100.0).abs() < 10.0), "thrown from the impact");
         assert!(snow.total() <= before * (1.0 - COMET_MELT) + 1e-2);
+    }
+
+    #[test]
+    fn they_are_thrown_across_the_screen_and_land_in_every_third() {
+        let w = 480.0;
+        for (seed, at) in [(1, 60.0), (2, 240.0), (3, 420.0)] {
+            let mut snow = Snow::new(w as i32, 60.0);
+            snow.add(w / 2.0, 20.0, w);
+            let mut c = Comet::new(at, w);
+            let mut rng = Rng::new(seed);
+            let dt = 1.0 / 30.0;
+            while c.falling() {
+                c.step(dt, &mut snow, w, &mut rng);
+            }
+            let after_impact = snow.total();
+            let mut landed: Vec<Option<(f32, f32)>> = vec![None; c.embers.len()];
+            let mut t = 0.0;
+            while landed.iter().any(Option::is_none) && t < 3.0 {
+                if c.embers.iter().all(Ember::flying) {
+                    assert_eq!(snow.total(), after_impact, "nothing melts while they fly");
+                }
+                c.step(dt, &mut snow, w, &mut rng);
+                t += dt;
+                for (l, e) in landed.iter_mut().zip(&c.embers) {
+                    if l.is_none() && !e.flying() {
+                        *l = Some((e.x, t));
+                    }
+                }
+            }
+            let landed: Vec<(f32, f32)> = landed.into_iter().map(|l| l.expect("every one lands")).collect();
+            for third in 0..3 {
+                let (a, b) = (w * third as f32 / 3.0, w * (third + 1) as f32 / 3.0);
+                assert!(
+                    landed.iter().any(|(x, _)| (a..b).contains(x)),
+                    "comet at {at}: none in [{a}, {b}): {landed:?}"
+                );
+            }
+            for (x, t) in &landed {
+                let arc = THROW_S + THROW_PER_WIDTH * (x - at).abs() / w;
+                assert!(*t >= arc - dt, "landed at {x} after {t} s, before its {arc} s arc");
+            }
+        }
     }
 
     #[test]
@@ -355,7 +453,8 @@ mod tests {
     fn after_the_last_rock_fades_the_snow_never_drops_again() {
         let mut snow = pile();
         let mut c = Comet::new(100.0, 200.0);
-        run(&mut c, &mut snow, FALL_S + EMBER_LIFE + 0.5);
+        // Its life starts when it lands (#172): after the fall and the longest throw.
+        run(&mut c, &mut snow, FALL_S + THROW_S + THROW_PER_WIDTH + EMBER_LIFE + 0.5);
         assert!(c.done());
         let after = snow.total();
         run(&mut c, &mut snow, 10.0);
@@ -366,7 +465,8 @@ mod tests {
     fn on_bare_ground_they_run_edge_to_edge_and_melt_nothing() {
         let mut snow = Snow::new(200, 60.0);
         let mut c = Comet::new(100.0, 200.0);
-        run(&mut c, &mut snow, 1.3);
+        run(&mut c, &mut snow, FALL_S + THROW_S + THROW_PER_WIDTH + 0.1);
+        assert!(!c.embers.iter().any(Ember::flying), "all landed");
         let start: Vec<f32> = c.embers.iter().map(|e| e.x).collect();
         run(&mut c, &mut snow, 1.5);
         assert_eq!(snow.total(), 0.0);

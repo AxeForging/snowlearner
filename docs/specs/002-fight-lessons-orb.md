@@ -45,7 +45,9 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    (big melt, never everything; frost mage stunned; no snow falls under it, and the flakes
    still in the air melt into steam within 1.5 s, adding nothing to the pile, #171). 6 in a row (12, 18…) call a comet
    instead (#114): it falls on the frost mage (#135), melts 25% on impact and leaves
-   4–6 little fire people (#139) that dash to the deepest, nearest snow arms flailing,
+   4–6 little fire people (#139), thrown in arcs across the screen, one per slot of its width so
+   the left, middle and right each get some (#172), with 24–30 burning chunks that bounce and
+   fade; once landed they dash to the deepest, nearest snow arms flailing,
    run across it melting, then dash to the next patch (now and then a hop), from a
    budget of 37% of the snow left, for about 12 s; on bare ground they melt nothing. In all it never melts more
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
