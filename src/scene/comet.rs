@@ -424,7 +424,10 @@ mod tests {
             let landed: Vec<(f32, f32)> = landed.into_iter().map(|l| l.expect("every one lands")).collect();
             for third in 0..3 {
                 let (a, b) = (w * third as f32 / 3.0, w * (third + 1) as f32 / 3.0);
-                assert!(landed.iter().any(|(x, _)| (a..b).contains(x)), "comet at {at}: none in [{a}, {b}): {landed:?}");
+                assert!(
+                    landed.iter().any(|(x, _)| (a..b).contains(x)),
+                    "comet at {at}: none in [{a}, {b}): {landed:?}"
+                );
             }
             for (x, t) in &landed {
                 let arc = THROW_S + THROW_PER_WIDTH * (x - at).abs() / w;
