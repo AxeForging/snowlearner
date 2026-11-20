@@ -117,12 +117,6 @@ pub fn spread(mono: &[f32], channels: u16) -> Vec<f32> {
     mono.iter().flat_map(|&s| std::iter::repeat_n(s, ch)).collect()
 }
 
-/// Plays WAV audio on `speaker` and blocks until it finishes.
-pub fn play_wav(bytes: &[u8], speaker: &str) -> Result<()> {
-    let (mono, rate) = decode_wav(bytes)?;
-    play_samples(&mono, rate, speaker)
-}
-
 /// Plays mono samples at `rate` Hz on `speaker` and blocks until they finish.
 pub fn play_samples(mono: &[f32], rate: u32, speaker: &str) -> Result<()> {
     let device = output(speaker)?;

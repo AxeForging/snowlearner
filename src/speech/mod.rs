@@ -1,6 +1,7 @@
 pub mod bench;
 pub mod endpoint;
 pub mod highpass;
+pub mod loudness;
 pub mod matcher;
 pub mod remote;
 pub mod replay;
