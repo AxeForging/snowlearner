@@ -89,6 +89,11 @@ pub enum Event {
     Strike {
         x: f32,
     },
+    /// The arrow leaves the bow at `x`, `y` px above his feet (#118).
+    Shoot {
+        x: f32,
+        y: f32,
+    },
 }
 
 #[derive(Clone)]
@@ -114,6 +119,8 @@ pub struct Warrior {
     swing_t: f32,
     /// Time left on the finishing strike's arc (#113).
     finish_t: f32,
+    /// Time left with the bow out (#118); the arrow leaves at `LOOSE_AT`.
+    bow_t: f32,
     /// Sliding down a steep pile (set by the scene): crouched, no steps.
     pub sliding: bool,
 }
@@ -127,6 +134,12 @@ pub const TUMBLE_S: f32 = 1.6;
 const TUMBLE_SPEED: f32 = 22.0;
 /// How long the finishing strike's arc stays on screen (s).
 pub const FINISH_SHOW: f32 = 0.45;
+/// How long the bow is out on a right answer (s), and the time left on it
+/// when the arrow leaves: a short draw, then the bow lingers after the shot.
+pub const BOW_SHOW: f32 = 0.6;
+const LOOSE_AT: f32 = 0.4;
+/// The bow hand, in px above his feet.
+const BOW_HAND: f32 = 7.0;
 
 impl Warrior {
     pub fn new(x: f32) -> Self {
@@ -143,6 +156,7 @@ impl Warrior {
             swing_cd: 0.0,
             swing_t: 0.0,
             finish_t: 0.0,
+            bow_t: 0.0,
             sliding: false,
         }
     }
@@ -194,6 +208,18 @@ impl Warrior {
         self.finish_t = FINISH_SHOW;
     }
 
+    /// A right answer lets him shoot the bat at `bat_x` (#118): he faces it
+    /// and draws the bow; `Event::Shoot` follows when the arrow leaves.
+    pub fn shoot(&mut self, bat_x: f32) {
+        self.dir = if bat_x >= self.x + WIDTH as f32 / 2.0 { 1.0 } else { -1.0 };
+        self.bow_t = BOW_SHOW;
+    }
+
+    /// The bow is out.
+    pub fn aiming(&self) -> bool {
+        self.bow_t > 0.0
+    }
+
     /// The finishing strike's arc is on screen.
     pub fn finishing(&self) -> bool {
         self.finish_t > 0.0
@@ -203,6 +229,13 @@ impl Warrior {
     pub fn step(&mut self, dt: f32, freeze: f32, near_fire: bool, min_x: f32, max_x: f32, roll: f32) -> Option<Event> {
         self.t += dt;
         self.finish_t = (self.finish_t - dt).max(0.0);
+        let drawn = self.bow_t;
+        self.bow_t = (self.bow_t - dt).max(0.0);
+        if drawn > LOOSE_AT && self.bow_t <= LOOSE_AT {
+            self.tick_bubble(dt);
+            let x = self.x + WIDTH as f32 / 2.0 + self.dir * (WIDTH as f32 / 2.0 + 2.0);
+            return Some(Event::Shoot { x, y: BOW_HAND });
+        }
         if let Some(b) = &mut self.bubble {
             b.left -= dt;
             if b.left <= 0.0 {
@@ -247,6 +280,7 @@ impl Warrior {
                     None
                 }
             }
+            Act::Wander if self.bow_t > 0.0 => None, // stands still to shoot
             Act::Wander => {
                 if near_fire && self.warmth < 0.95 {
                     self.set(Act::Warm);
@@ -365,6 +399,9 @@ impl Warrior {
                 }
             }
         }
+        if self.bow_t > 0.0 {
+            self.draw_bow(c, x, feet_y.round() as i32 + hop, flip);
+        }
         if self.act == Act::Build && (time * 8.0) as i32 % 2 == 0 {
             let sx = if flip { x - 3 } else { x + WIDTH + 2 };
             c.set(sx, feet_y as i32 - 3, hex(0xffd64a));
@@ -408,6 +445,34 @@ impl Warrior {
 }
 
 impl Warrior {
+    /// The bow held out in front: a curved stave and its string, with the
+    /// arrow nocked until it leaves.
+    fn draw_bow(&self, c: &mut Canvas, x: i32, feet_y: i32, flip: bool) {
+        let dir = if flip { -1 } else { 1 };
+        let hand = if flip { x - 2 } else { x + WIDTH + 1 };
+        let y = feet_y - BOW_HAND as i32;
+        let (wood, string) = (hex(0x8b5a2b), hex(0xdfe6f0));
+        for j in -4..=4_i32 {
+            let bend = match j.abs() {
+                0 | 1 => 1,
+                2 | 3 => 0,
+                _ => -1,
+            };
+            c.set(hand + dir * bend, y + j, wood);
+        }
+        let pull = if self.bow_t > LOOSE_AT { 2 } else { 0 };
+        for j in -3..=3_i32 {
+            let back = pull * (3 - j.abs()) / 3;
+            c.set(hand - dir * (1 + back), y + j, string);
+        }
+        if self.bow_t > LOOSE_AT {
+            for k in 0..5 {
+                let color = if k == 4 { hex(0xffffff) } else { wood };
+                c.set(hand - dir * (1 + pull) + dir * k, y, color);
+            }
+        }
+    }
+
     /// While tumbling, how many quarter turns the whole body is drawn at:
     /// rolling over and over, then flat on his back; None once he is up.
     fn tumble_turns(&self) -> Option<u8> {
@@ -515,7 +580,7 @@ mod tests {
             .iter()
             .filter_map(|e| match e {
                 Event::FireLit { x } => Some(*x),
-                Event::Strike { .. } => None,
+                Event::Strike { .. } | Event::Shoot { .. } => None,
             })
             .collect();
         assert_eq!(lit.len(), 1);
@@ -636,5 +701,25 @@ mod tests {
         w.draw(&mut c, 30.0, 0.0);
         assert!(c.bytes().chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
         assert!(c.opaque_in(20 + WIDTH, 28, SKI_TIP + 1, 2) >= 2, "the ski sticks out in front");
+    }
+
+    #[test]
+    fn the_bow_comes_out_looses_one_arrow_and_is_drawn_in_one_bit() {
+        let mut w = Warrior::new(50.0);
+        w.shoot(10.0);
+        assert!(w.aiming() && w.dir < 0.0, "faces the bat");
+        let mut c = Canvas::new(80, 40);
+        w.draw(&mut c, 34.0, 0.0);
+        assert!(c.bytes().chunks(4).all(|p| p[3] == 0 || p[3] == 255), "1-bit alpha");
+        assert!(c.opaque_in(44, 20, 6, 14) >= 9, "the bow in front of him");
+        let shots: Vec<(f32, f32)> = (0..30)
+            .filter_map(|_| match w.step(1.0 / 30.0, 0.0, false, 0.0, 200.0, 0.5) {
+                Some(Event::Shoot { x, y }) => Some((x, y)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(shots.len(), 1, "one arrow");
+        assert!(shots[0].0 < 50.0, "from the bow, in front: {:?}", shots[0]);
+        assert!(!w.aiming(), "the bow goes away");
     }
 }

@@ -55,7 +55,9 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    hein?" (#117). The warrior slides on skis and one ski run in three ends in a tumble.
    All of it is a show: no snow moves.
 7. **Warrior vs mobs** — frost slimes/bats come from the edges; the warrior fights with his
-   sword (bites chill him, wins warm him).
+   sword (bites chill him, wins warm him). A right answer finishes the mob in sword reach
+   (#113); with none in reach and a bat the nearest mob, he draws a bow and an arrow
+   flies an arc to the bat and brings it down (#118). No snow moves.
 8. **Control** — magic orb (overlay: its own draggable window; window mode: in-scene):
    click = practice, Ctrl+click = panel, right-click = pause. Panel window edits settings
    live and saves them. Pause = black hole: the frame trembles, then is warped into the

@@ -2,6 +2,7 @@
 //! `draw(canvas)` renders it. No window, audio or clock inside, so it runs the
 //! same in the app, in `snowlearner snapshot` and in tests.
 
+pub mod arrow;
 pub mod backdrop;
 pub mod blanket;
 pub mod comet;
@@ -27,6 +28,7 @@ use std::cell::RefCell;
 use crate::config::level::Pace;
 use crate::lang::{Lines, Native, T};
 use crate::render::canvas::{CLEAR, Canvas, hex};
+use arrow::Arrow;
 use backdrop::{Backdrop, GROUND_BAND};
 use blanket::Blanket;
 use comet::Comet;
@@ -161,6 +163,8 @@ pub struct Scene {
     last_spell: Option<Spell>,
     icicles: Vec<Icicle>,
     mobs: Vec<Mob>,
+    /// The warrior's arrows in flight, each after a bat (#118).
+    arrows: Vec<Arrow>,
     next_mobs: f32,
     /// The frost mage's ice owl, one at most, and its snowballs (capped).
     owl: Option<owl::Owl>,
@@ -248,6 +252,7 @@ impl Scene {
             last_spell: None,
             icicles: Vec::new(),
             mobs: Vec::new(),
+            arrows: Vec::new(),
             next_mobs: 40.0_f32.min(pace.mobs_every),
             owl: None,
             snowballs: Vec::with_capacity(owl::MAX_SNOWBALLS),
@@ -588,12 +593,26 @@ impl Scene {
     }
 
     /// A right answer reached the warrior: he finishes the nearest mob within
-    /// `FINISH_REACH`, whatever hp it had left (#113). The snow is untouched.
+    /// `FINISH_REACH`, whatever hp it had left (#113); with none in reach and
+    /// a bat the nearest mob, he shoots it (#118). The snow is untouched.
     fn finishing_strike(&mut self) -> bool {
         if self.lift_warrior.is_some() || self.warrior.act == warrior::Act::Frozen {
             return false;
         }
         let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let nearest = self
+            .mobs
+            .iter()
+            .filter(|m| m.fighting())
+            .min_by(|a, b| (a.center() - wc).abs().total_cmp(&(b.center() - wc).abs()));
+        if let Some(m) = nearest
+            && m.kind == mobs::Kind::Bat
+            && (m.center() - wc).abs() > FINISH_REACH
+            && (0.0..=self.w as f32).contains(&m.center())
+        {
+            self.warrior.shoot(m.center());
+            return true;
+        }
         let Some(m) = self
             .mobs
             .iter_mut()
@@ -1052,6 +1071,7 @@ impl Scene {
         match warrior_event {
             Some(warrior::Event::FireLit { x }) => self.fires.push(Fire::new(x.clamp(6.0, w - 6.0))),
             Some(warrior::Event::Strike { x }) => self.strike(x),
+            Some(warrior::Event::Shoot { x, y }) => self.loose(x, y),
             None => {}
         }
         let can = self.lift_warrior.is_none() && self.warrior.act == warrior::Act::Wander;
@@ -1075,6 +1095,7 @@ impl Scene {
             }
         }
         mobs::separate(&mut self.mobs, dt);
+        self.fly_arrows(dt);
         self.mobs.retain(Mob::present);
         if bites > 0 && !frozen {
             self.warrior.warmth = (self.warrior.warmth - 0.06 * bites as f32).max(0.01);
@@ -1307,6 +1328,57 @@ impl Scene {
             self.mobs.push(mob);
         }
         self.warrior.say(T::WarriorMobs.get(self.native), 2.5);
+    }
+
+    /// Where a bat is, in the air over its column.
+    fn bat_point(&self, m: &Mob) -> (f32, f32) {
+        (m.center(), self.feet_y(m.center()) - m.height + 2.0)
+    }
+
+    /// The nearest bat still fighting to `x`, within `within` px.
+    fn bat_near(&self, x: f32, within: f32) -> Option<usize> {
+        self.mobs
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| m.fighting() && m.kind == mobs::Kind::Bat && (m.center() - x).abs() <= within)
+            .min_by(|(_, a), (_, b)| (a.center() - x).abs().total_cmp(&(b.center() - x).abs()))
+            .map(|(i, _)| i)
+    }
+
+    /// The arrow leaves the bow at `x`, `up` px above his feet, after the
+    /// nearest bat (#118). No bat left: nothing to shoot.
+    fn loose(&mut self, x: f32, up: f32) {
+        let Some(i) = self.bat_near(x, self.w as f32) else {
+            return;
+        };
+        let to = self.bat_point(&self.mobs[i]);
+        self.arrows.push(Arrow::new((x, self.feet_y(x) - up), to));
+    }
+
+    /// Arrows follow their bat; one that lands kills it in a burst of sparks.
+    fn fly_arrows(&mut self, dt: f32) {
+        for k in 0..self.arrows.len() {
+            if let Some(i) = self.bat_near(self.arrows[k].to.0, ARROW_FOLLOW) {
+                let to = self.bat_point(&self.mobs[i]);
+                self.arrows[k].aim(to);
+            }
+            if !self.arrows[k].step(dt) {
+                continue;
+            }
+            let (x, y) = self.arrows[k].to;
+            let Some(i) = self.bat_near(x, ARROW_HIT) else {
+                continue;
+            };
+            let wc = self.warrior.x + warrior::WIDTH as f32 / 2.0;
+            self.mobs[i].hp = 1;
+            self.mobs[i].hit(wc);
+            for j in 0..18 {
+                let (vx, vy) = (self.rng.range(-35.0, 35.0), self.rng.range(-50.0, 10.0));
+                let col = hex([0xffffff, 0x9be8ff, 0xfff4b0, 0xffc13d][j % 4]);
+                self.particles.push(Particle::new(Kind::Ember, x, y, vx, vy, 0.7, col));
+            }
+        }
+        self.arrows.retain(|a| !a.done());
     }
 
     fn strike(&mut self, x: f32) {
@@ -1543,6 +1615,9 @@ impl Scene {
         for m in &self.mobs {
             m.draw(c, self.feet_y(m.center()), self.time);
         }
+        for a in &self.arrows {
+            a.draw(c);
+        }
         let mx = self.mage.x + mage::WIDTH as f32 / 2.0;
         let mfeet = self.lift_mage.map(|l| l.y).unwrap_or_else(|| self.feet_y(mx));
         let mdx = dangle(&self.lift_mage, self.time);
@@ -1615,6 +1690,10 @@ const MOB_WAVE_SPLIT: f32 = 0.35;
 /// How far from the warrior's center a right answer's finishing strike
 /// reaches (px): the mob he is fighting, even knocked back, not one still coming.
 const FINISH_REACH: f32 = 24.0;
+/// An arrow keeps following a bat that moved this far from where it aimed (px).
+const ARROW_FOLLOW: f32 = 24.0;
+/// An arrow that lands this close to a bat kills it (px).
+const ARROW_HIT: f32 = 8.0;
 
 fn ground_at(snow: &Snow, transparent: bool, h: i32, x: f32) -> f32 {
     let g = if transparent { h as f32 } else { (h - GROUND_BAND) as f32 };
@@ -1868,6 +1947,15 @@ mod tests {
         s
     }
 
+    fn with_a_bat(seed: u64, gap: f32) -> Scene {
+        let mut s = Scene::new(240, 135, seed, Commitment::Steady.pace(), true);
+        let wc = s.warrior.x + warrior::WIDTH as f32 / 2.0;
+        let mut m = Mob::new(mobs::Kind::Bat, 0.0, &mut s.rng);
+        m.x = wc + gap - mobs::Kind::Bat.width() as f32 / 2.0;
+        s.mobs.push(m);
+        s
+    }
+
     fn right_answer(s: &mut Scene) {
         let x = s.mage.x + mage::WIDTH as f32 / 2.0;
         let y = s.feet_y(s.mage.x) - 12.0;
@@ -1888,6 +1976,63 @@ mod tests {
         assert_eq!(far.mobs_out(), 1, "out of reach");
         assert!(!far.warrior.finishing());
         assert_eq!(far.warrior.bubble.as_ref().unwrap().text, T::WarriorWarm.get(far.native));
+    }
+
+    #[test]
+    fn a_right_answer_shoots_one_arrow_at_a_bat_out_of_reach_and_it_falls() {
+        let mut s = with_a_bat(5, -70.0);
+        right_answer(&mut s);
+        assert!(s.warrior.aiming(), "the bow is out");
+        assert!(!s.warrior.finishing(), "no sword");
+        assert!(s.warrior.dir < 0.0, "faces the bat");
+        assert_eq!(s.warrior.bubble.as_ref().unwrap().text, T::WarriorFinish.get(s.native));
+        let mut shot = 0;
+        for _ in 0..(1.5 * 30.0) as i32 {
+            let flying = s.arrows.len();
+            s.step(1.0 / 30.0);
+            shot += s.arrows.len().saturating_sub(flying);
+            if s.mobs_out() == 0 {
+                break;
+            }
+        }
+        assert_eq!(shot, 1, "one arrow");
+        assert_eq!(s.mobs_out(), 0, "the bat falls when it lands");
+    }
+
+    #[test]
+    fn the_arrow_never_touches_the_snow() {
+        let mut s = with_a_bat(5, -70.0);
+        s.snow.add(120.0, 30.0, 200.0);
+        let heights = |s: &Scene| (0..240).map(|x| s.snow.height_at(x as f32)).collect::<Vec<f32>>();
+        right_answer(&mut s);
+        let before = heights(&s); // after the fireball's own melt
+        let dt = 1.0 / 30.0;
+        for _ in 0..(1.5 * 30.0) as i32 {
+            if let Some(warrior::Event::Shoot { x, y }) = s.warrior.step(dt, 0.0, false, 4.0, 220.0, 0.5) {
+                s.loose(x, y);
+            }
+            s.fly_arrows(dt);
+        }
+        assert_eq!(s.mobs_out(), 0, "shot down");
+        assert_eq!(heights(&s), before);
+    }
+
+    #[test]
+    fn a_slime_out_of_reach_gets_no_arrow_and_one_in_reach_still_gets_the_sword() {
+        for (gap, sword) in [(60.0, false), (6.0, true)] {
+            let mut s = with_a_mob(5, gap);
+            right_answer(&mut s);
+            assert!(!s.warrior.aiming(), "no bow for a slime");
+            assert_eq!(s.warrior.finishing(), sword);
+        }
+        let mut s = with_a_bat(5, 10.0);
+        right_answer(&mut s);
+        assert!(s.warrior.finishing() && !s.warrior.aiming(), "a bat in reach gets the sword");
+        assert_eq!(s.mobs_out(), 0);
+        let mut s = with_a_bat(5, 0.0);
+        s.mobs[0].x = s.w as f32 + 20.0;
+        right_answer(&mut s);
+        assert!(!s.warrior.aiming(), "a bat still off screen is not shot");
     }
 
     #[test]
