@@ -55,6 +55,13 @@ Status: approved in chat (2026-09-27).
   unmeasured). The answer gets one gain to that level, at most +24 dB so a near-silent
   clip stays quiet, then a limiter at -1 dBFS. Only the played copy changes: what the
   recognizer and `keep_recordings` got is untouched.
+- Sound effects (`sound_effects`, on by default, #163): when the fire mage's spell hits
+  the frost mage the scene queues a `scene::Sound` (by spell tier, or the comet) and the
+  app plays it. `speech/effects.rs` synthesizes it in code (a falling thump, a crackle of
+  fire, a rumble for the heaviest; spark < fireball < blaze < comet, 0.35 to 1.8 s), at
+  the lesson voice's reference level, on its own output stream so it overlaps the replay
+  instead of waiting in the speech worker's queue. Nothing is queued while the mic is
+  open; a speaker that cannot open a second stream skips the sound and logs it.
 
 ## Voices & engines (`tts_engine`)
 | engine | how | voices listed from |

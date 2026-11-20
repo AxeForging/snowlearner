@@ -20,6 +20,7 @@ pub mod pyro;
 pub mod rng;
 pub mod slide;
 pub mod snow;
+pub mod sound;
 pub mod vortex;
 pub mod warrior;
 
@@ -43,6 +44,7 @@ use mobs::Mob;
 use pyro::{Pyro, Spell};
 use rng::Rng;
 use snow::Snow;
+use sound::Sound;
 use warrior::Warrior;
 
 /// Radius of the in-scene orb (window mode), art pixels.
@@ -182,6 +184,10 @@ pub struct Scene {
     stun_t: f32,
     /// The comet reward and its burning rocks (#114).
     comet: Option<Comet>,
+    /// Sounds queued for the app to play (#163).
+    sounds: Vec<Sound>,
+    /// The mic is open: no sound is queued.
+    listening: bool,
     pokes: u32,
     /// Magic hand position while hand mode is on (Ctrl+Alt / `snowlearner grab`).
     pub hand: Option<(f32, f32)>,
@@ -268,6 +274,8 @@ impl Scene {
             sun_t: 0.0,
             stun_t: 0.0,
             comet: None,
+            sounds: Vec::new(),
+            listening: false,
             pokes: 0,
             hand: None,
             grabbed: None,
@@ -529,6 +537,19 @@ impl Scene {
     /// The mic is open for an answer: the fire mage gets ready.
     pub fn set_listening(&mut self, on: bool) {
         self.pyro.focus(on);
+        self.listening = on;
+    }
+
+    /// The sounds asked for since the last call (#163). None is queued while
+    /// the mic is open, so an effect never reaches the recognizer.
+    pub fn take_sounds(&mut self) -> Vec<Sound> {
+        std::mem::take(&mut self.sounds)
+    }
+
+    fn sound(&mut self, s: Sound) {
+        if !self.listening {
+            self.sounds.push(s);
+        }
     }
 
     /// The learner's voice during an answer (`level` = mic RMS): the fire mage
@@ -547,6 +568,7 @@ impl Scene {
     /// × `power`) happens when the fireball hits the frost mage.
     pub fn celebrate(&mut self, power: f32, spell: Spell) {
         self.pyro.focus(false);
+        self.listening = false;
         self.last_spell = Some(spell);
         let melt = self.pace.melt_fraction * power * spell.melt();
         if self.pyro.visible() {
@@ -566,11 +588,13 @@ impl Scene {
     /// A wrong answer: the fireball fizzles and the frost mage fires back.
     pub fn miss(&mut self) {
         self.pyro.focus(false);
+        self.listening = false;
         self.pyro.fizzle();
         self.mage.start_throw(false);
     }
 
     fn impact(&mut self, x: f32, y: f32, melt: f32, spell: Spell) {
+        self.sound(Sound::Impact(spell));
         let gy = self.ground_y();
         for (px, hgt) in self.snow.melt(melt) {
             let py = gy - hgt;
@@ -671,6 +695,7 @@ impl Scene {
     }
 
     fn comet_landed(&mut self, x: f32) {
+        self.sound(Sound::Comet);
         self.frost.melt(SUN_MELT * 1.5);
         let y = self.feet_y(x) - 2.0;
         for i in 0..60 {
@@ -2981,6 +3006,53 @@ mod tests {
         assert_eq!(s.cubes_in_flight(), 0, "no ice cubes thrown");
         assert!(s.fires.is_empty(), "no warrior lighting fires");
         assert!(!s.pyro.visible(), "no fire mage");
+    }
+
+    #[test]
+    fn each_spell_and_the_comet_ask_for_one_sound_when_they_land() {
+        for spell in [Spell::Spark, Spell::Fireball, Spell::Blaze] {
+            let mut s = Scene::new(240, 135, 2, Commitment::Steady.pace(), true);
+            s.set_practicing(true);
+            run(&mut s, 1.0);
+            assert!(s.take_sounds().is_empty());
+            assert!(s.pyro.visible());
+            s.celebrate(1.0, spell);
+            let (mut heard, mut flew) = (Vec::new(), false);
+            for _ in 0..90 {
+                s.step(1.0 / 30.0);
+                flew |= !s.fireballs.is_empty();
+                let now = s.take_sounds();
+                if !now.is_empty() {
+                    assert!(flew && s.fireballs.is_empty(), "{spell:?}: the sound comes with the hit, not before");
+                }
+                heard.extend(now);
+            }
+            assert_eq!(heard, vec![Sound::Impact(spell)]);
+        }
+        let mut s = Scene::new(240, 135, 6, Commitment::Steady.pace(), true);
+        s.comet();
+        let mut heard = Vec::new();
+        for _ in 0..60 {
+            s.step(1.0 / 30.0);
+            let falling = s.comet.as_ref().is_some_and(|c| c.falling());
+            let now = s.take_sounds();
+            assert!(now.is_empty() || !falling, "no sound while it falls");
+            heard.extend(now);
+        }
+        assert_eq!(heard, vec![Sound::Comet]);
+    }
+
+    #[test]
+    fn no_sound_is_asked_for_while_the_mic_is_open() {
+        let mut s = Scene::new(240, 135, 6, Commitment::Steady.pace(), true);
+        s.set_listening(true);
+        s.comet();
+        run(&mut s, 2.0);
+        assert!(s.take_sounds().is_empty(), "the comet landed while listening: silent");
+        s.set_listening(false);
+        s.celebrate(1.0, Spell::Fireball);
+        run(&mut s, 3.0);
+        assert_eq!(s.take_sounds(), vec![Sound::Impact(Spell::Fireball)]);
     }
 
     #[test]
