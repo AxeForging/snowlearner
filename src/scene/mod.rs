@@ -33,7 +33,6 @@ use arrow::Arrow;
 use backdrop::{Backdrop, GROUND_BAND};
 use blanket::Blanket;
 use comet::Comet;
-use sound::Sound;
 use fire::{Fire, Flash};
 use friends::Friend;
 use frost::{Edge, Frost};
@@ -45,6 +44,7 @@ use mobs::Mob;
 use pyro::{Pyro, Spell};
 use rng::Rng;
 use snow::Snow;
+use sound::Sound;
 use warrior::Warrior;
 
 /// Radius of the in-scene orb (window mode), art pixels.
