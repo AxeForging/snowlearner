@@ -48,7 +48,8 @@ impl Commitment {
                 mobs_every: 200.0,
             },
             Commitment::Steady => Pace {
-                throw_every: 5.0,
+                // 5.0 refilled the screen too fast for a learner (#170).
+                throw_every: 6.0,
                 snow_per_cube: 4.0,
                 summon_every: 120.0,
                 ask_every: 1200.0,

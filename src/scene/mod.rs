@@ -353,6 +353,12 @@ impl Scene {
         (self.snow.mean() / (self.h as f32 * ICE_LINE)).min(1.0)
     }
 
+    /// How much of new snow stays on the pile: all of it on bare ground,
+    /// `1 - DEEP_PILE_SLOWDOWN` at the ice line (#170).
+    fn landing_share(&self) -> f32 {
+        1.0 - DEEP_PILE_SLOWDOWN * self.pile_level()
+    }
+
     /// Whether the ground pile reached the ice line, where the edges freeze;
     /// once frozen over, only a real melt (practicing) below 90% of the line
     /// thaws them, not a campfire nibbling at it.
@@ -1244,6 +1250,7 @@ impl Scene {
         let (transparent, time, h) = (self.transparent, self.time, self.h);
         let gust = wind(time);
         let walls_hold = self.edges_freeze();
+        let keep = self.landing_share();
         let (snow, frost) = (&mut self.snow, &mut self.frost);
         // A new flake starts in the open sky, between whatever the walls hold.
         let spawn_x = |f: &Flake, frost: &Frost| {
@@ -1288,7 +1295,9 @@ impl Scene {
                     true
                 }
                 None if f.y >= ground_at(snow, transparent, h, f.x) => {
-                    settled += usize::from(stays && snow.add_grain(f.x));
+                    // A deep pile keeps only `keep` of the flakes (#170): the rest melt in.
+                    let sticks = rng::hash01((f.x * 7.0) as i32, (time * 60.0) as i32) < keep;
+                    settled += usize::from(stays && sticks && snow.add_grain(f.x));
                     true
                 }
                 None => false,
@@ -1333,7 +1342,7 @@ impl Scene {
 
     fn shatter(&mut self, x: f32, y: f32) {
         let x = x.clamp(0.0, self.w as f32 - 1.0);
-        self.snow.add(x, self.scaled(self.pace.snow_per_cube), self.scaled(CUBE_SPREAD));
+        self.snow.add(x, self.scaled(self.pace.snow_per_cube) * self.landing_share(), self.scaled(CUBE_SPREAD));
         for i in 0..11 {
             let (vx, vy, life) = (self.rng.range(-70.0, 70.0), self.rng.range(-90.0, -20.0), self.rng.range(0.6, 1.4));
             let p = Particle::new(Kind::Shard, x, y - 2.0, vx, vy, life, hex(ICE_COLORS[i % 4]));
@@ -1489,7 +1498,7 @@ impl Scene {
     /// An icicle hit: less snow than a cube, but many of them.
     fn shatter_small(&mut self, x: f32, y: f32) {
         let x = x.clamp(0.0, self.w as f32 - 1.0);
-        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 0.5), self.scaled(4.0));
+        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 0.5) * self.landing_share(), self.scaled(4.0));
         for i in 0..5 {
             let (vx, vy, life) = (self.rng.range(-40.0, 40.0), self.rng.range(-60.0, -15.0), self.rng.range(0.4, 0.9));
             self.particles.push(Particle::new(Kind::Shard, x, y - 1.0, vx, vy, life, hex(ICE_COLORS[i % 4])));
@@ -1521,7 +1530,7 @@ impl Scene {
             self.frost.burst(near, pos(near), strength, h * 0.15);
             self.frost.burst(other, at, strength * 0.7, h * 0.15);
         }
-        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 1.5), self.scaled(8.0));
+        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 1.5) * self.landing_share(), self.scaled(8.0));
         for i in 0..30 {
             let a = self.rng.range(-3.0, -0.14); // upward fan
             let sp = self.rng.range(60.0, 140.0);
@@ -1789,6 +1798,11 @@ fn draw_sun(c: &mut Canvas, time: f32, fade: f32) {
 /// Once the ground pile's mean height reaches this share of the screen, the
 /// edges start to freeze; before that, snow never sticks to them.
 pub const ICE_LINE: f32 = 0.30;
+/// Share of new snow a pile at the ice line no longer keeps (#170): snow
+/// settles and compacts as it deepens, so the closer the pile is to the line,
+/// the less of each cube, icicle and flake stays. Without it one right answer
+/// at the line was undone in 3.3 min at Steady; with it, 9 to 10.5 min.
+pub const DEEP_PILE_SLOWDOWN: f32 = 0.65;
 /// How far each side of the frost mage the snowboard looks for downhill (px).
 const BOARD_LOOK: f32 = 24.0;
 /// Share of ski runs that end with the warrior tumbling (#117).
@@ -3053,6 +3067,41 @@ mod tests {
         s.celebrate(1.0, Spell::Fireball);
         run(&mut s, 3.0);
         assert_eq!(s.take_sounds(), vec![Sound::Impact(Spell::Fireball)]);
+    }
+
+    /// Idle on the learner's screen (480×270), at `pace`: minutes from a clear
+    /// screen until the edges freeze, then minutes for them to freeze again
+    /// after one right answer melts its share at the line.
+    fn refill_minutes(pace: Pace, seed: u64) -> (f32, f32) {
+        let mut s = Scene::new(480, 270, seed, pace, true);
+        let dt = 0.1;
+        let mut t = 0.0;
+        while !s.edges_freeze() && t < 7200.0 {
+            s.step(dt);
+            t += dt;
+        }
+        let x = s.mage.x + mage::WIDTH as f32 / 2.0;
+        let y = s.feet_y(x) - 12.0;
+        s.impact(x, y, s.pace.melt_fraction, Spell::Fireball);
+        assert!(!s.edges_freeze(), "one answer thaws the edges");
+        let mut back = 0.0;
+        while !s.edges_freeze() && back < 3600.0 {
+            s.step(dt);
+            back += dt;
+        }
+        (t / 60.0, back / 60.0)
+    }
+
+    #[test]
+    fn at_steady_the_screen_fills_in_a_long_sitting_and_one_answer_buys_minutes() {
+        // #170: it took 26 min to freeze and one answer was undone in 3.3 min.
+        let (steady_line, steady_back) = refill_minutes(Commitment::Steady.pace(), 7);
+        assert!(steady_line >= 40.0, "a clear screen froze in {steady_line:.1} min");
+        assert!(steady_back >= 8.0, "one right answer was undone in {steady_back:.1} min");
+        let (chill_line, chill_back) = refill_minutes(Commitment::Chill.pace(), 7);
+        let (harsh_line, harsh_back) = refill_minutes(Commitment::Relentless.pace(), 7);
+        assert!(chill_line > steady_line && steady_line > harsh_line, "{chill_line} {steady_line} {harsh_line}");
+        assert!(chill_back > steady_back && steady_back > harsh_back, "{chill_back} {steady_back} {harsh_back}");
     }
 
     #[test]
