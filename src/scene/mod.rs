@@ -57,6 +57,8 @@ const GRAVITY: f32 = 130.0;
 pub const SUN_SECONDS: f32 = 8.0;
 /// Extra share of snow the sun melts on arrival (never everything).
 pub const SUN_MELT: f32 = 0.35;
+/// Every flake in the air when the sun comes out melts within this (s, #171).
+pub const SUN_FLAKE_S: f32 = 1.5;
 /// Share of the snow left that the sun melts per second while it shines.
 pub const SUN_RATE: f32 = 0.04;
 
@@ -1188,8 +1190,13 @@ impl Scene {
         self.flashes.retain(Flash::alive);
         self.particles.truncate(4000);
 
-        // The sky holds its snow while you practice, like the mage his cubes.
-        let target = if self.practicing || self.paused { 0 } else { snowfall(self.flakes.len(), self.freeze_level()) };
+        // The sky holds its snow while you practice, like the mage his cubes,
+        // and under the sun, which melts what is still in the air (#171).
+        let held = self.practicing || self.paused || self.sun_t > 0.0;
+        let target = if held { 0 } else { snowfall(self.flakes.len(), self.freeze_level()) };
+        if self.sun_t > 0.0 {
+            self.melt_flakes_in_the_sun();
+        }
         self.fall_flakes(dt, target);
     }
 
@@ -1238,6 +1245,21 @@ impl Scene {
         self.fall_flakes(dt, snowfall(self.flakes.len(), target));
     }
 
+    /// Under the sun each flake still in the air melts into a puff of steam,
+    /// each at its own moment within `SUN_FLAKE_S` of the sun coming out.
+    fn melt_flakes_in_the_sun(&mut self) {
+        let shone = SUN_SECONDS - self.sun_t;
+        for (i, f) in self.flakes.iter_mut().enumerate() {
+            if !f.falling || rng::hash01(i as i32, 171) * SUN_FLAKE_S > shone {
+                continue;
+            }
+            let (vx, vy, life) = (self.rng.range(-4.0, 4.0), self.rng.range(-12.0, -5.0), self.rng.range(0.4, 0.8));
+            self.particles.push(Particle::new(Kind::Steam, f.x, f.y, vx, vy, life, hex(0xc9d3e8)));
+            f.falling = false;
+            f.y = -1.0;
+        }
+    }
+
     /// Moves the snowfall with `target` flakes of the pool in the air. New
     /// ones enter at the top; surplus ones stop only once they land, so the
     /// snowfall thickens and thins without flakes popping in or out mid-air.
@@ -1251,6 +1273,8 @@ impl Scene {
         let gust = wind(time);
         let walls_hold = self.edges_freeze();
         let keep = self.landing_share();
+        // Under the sun nothing that lands stays (#171).
+        let sunny = self.sun_t > 0.0;
         let (snow, frost) = (&mut self.snow, &mut self.frost);
         // A new flake starts in the open sky, between whatever the walls hold.
         let spawn_x = |f: &Flake, frost: &Frost| {
@@ -1291,13 +1315,13 @@ impl Scene {
             };
             let landed = match wall {
                 Some(edge) => {
-                    settled += usize::from(stays && frost.add_grain(edge, f.y));
+                    settled += usize::from(stays && !sunny && frost.add_grain(edge, f.y));
                     true
                 }
                 None if f.y >= ground_at(snow, transparent, h, f.x) => {
                     // A deep pile keeps only `keep` of the flakes (#170): the rest melt in.
                     let sticks = rng::hash01((f.x * 7.0) as i32, (time * 60.0) as i32) < keep;
-                    settled += usize::from(stays && sticks && snow.add_grain(f.x));
+                    settled += usize::from(stays && sticks && !sunny && snow.add_grain(f.x));
                     true
                 }
                 None => false,
@@ -2444,6 +2468,63 @@ mod tests {
         assert!(level > 0.55, "a full pile alone is ~0.6 of the freeze level, got {level}");
         assert!(on_curve(&s), "{} falling at level {level}", falling(&s));
         assert!(falling(&s) > snowfall(s.flakes.len(), 0.0) * 5, "far thicker than on a clear screen");
+    }
+
+    /// A screen in heavy snowfall, many flakes in the air (no lesson on).
+    fn snowing() -> Scene {
+        let mut s = Scene::new(480, 270, 3, Commitment::Chill.pace(), true);
+        s.snow.dust(4000.0);
+        run(&mut s, 60.0);
+        assert!(falling(&s) > 50, "{} flakes falling", falling(&s));
+        s
+    }
+
+    #[test]
+    fn under_the_sun_the_falling_snow_melts_and_the_pile_does_not_grow() {
+        let mut s = snowing();
+        s.sun();
+        let mut total = s.snow.total();
+        for frame in 0..(SUN_SECONDS * 30.0) as usize {
+            s.step(1.0 / 30.0);
+            assert!(s.snow.total() <= total + 1e-3, "the pile grew under the sun at frame {frame}");
+            total = s.snow.total();
+            if frame as f32 >= 2.0 * 30.0 {
+                assert_eq!(falling(&s), 0, "a flake still falls {:.1} s into the sun", frame as f32 / 30.0);
+            }
+        }
+    }
+
+    #[test]
+    fn a_flake_melted_by_the_sun_leaves_steam_where_it_was() {
+        let mut s = snowing();
+        s.sun();
+        let mut melted = 0;
+        for _ in 0..60 {
+            let before: Vec<(f32, f32, bool)> = s.flakes.iter().map(|f| (f.x, f.y, f.falling)).collect();
+            let ground = s.ground_y();
+            s.step(1.0 / 30.0);
+            for (f, &(x, y, was)) in s.flakes.iter().zip(&before) {
+                // High in the air it can only have melted, not landed.
+                if was && !f.falling && y < ground - s.h as f32 * 0.5 {
+                    melted += 1;
+                    let near = |p: &&Particle| (p.x - x).abs() < 2.0 && (p.y - y).abs() < 2.0;
+                    let steam = s.particles.iter().filter(near).any(|p| p.kind == Kind::Steam);
+                    assert!(steam, "no steam where the flake at ({x}, {y}) melted");
+                }
+            }
+        }
+        assert!(melted > 10, "{melted} flakes melted high in the air");
+    }
+
+    #[test]
+    fn after_the_sun_the_snowfall_comes_back_on_its_curve() {
+        let mut s = snowing();
+        s.sun();
+        run(&mut s, SUN_SECONDS + 0.5);
+        assert!(!s.sun_active());
+        run(&mut s, 120.0);
+        assert!(on_curve(&s), "{} falling at level {}", falling(&s), s.freeze_level());
+        assert!(s.flakes.iter().filter(|f| f.falling).all(|f| f.y < s.h as f32), "every flake is on screen");
     }
 
     #[test]

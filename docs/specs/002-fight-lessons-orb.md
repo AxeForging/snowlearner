@@ -42,7 +42,8 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    the answer is understood, goes out in smoke on a miss and becomes the fireball (#140),
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
-   (big melt, never everything; frost mage stunned). 6 in a row (12, 18…) call a comet
+   (big melt, never everything; frost mage stunned; no snow falls under it, and the flakes
+   still in the air melt into steam within 1.5 s, adding nothing to the pile, #171). 6 in a row (12, 18…) call a comet
    instead (#114): it falls on the frost mage (#135), melts 25% on impact and leaves
    4–6 little fire people (#139) that dash to the deepest, nearest snow arms flailing,
    run across it melting, then dash to the next patch (now and then a hop), from a
