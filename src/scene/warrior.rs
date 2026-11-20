@@ -195,6 +195,13 @@ impl Warrior {
         }
     }
 
+    /// Cheers for a phrase you just learned (#119): a hop, no warmth for free.
+    pub fn cheer(&mut self) {
+        if self.act != Act::Frozen {
+            self.set(Act::Cheer);
+        }
+    }
+
     /// Your correct answer reached him.
     pub fn warm_burst(&mut self) {
         self.warmth = 1.0;

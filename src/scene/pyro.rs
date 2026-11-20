@@ -41,6 +41,10 @@ const FLAME_RISE: f32 = 1.6;
 const FLAME_FALL: f32 = 1.5;
 /// The flame's height above the crystal, empty to full (px).
 const FLAME_H: (f32, f32) = (3.0, 19.0);
+/// How long he flares when a phrase becomes known (#119), in s.
+pub const FLARE_S: f32 = 1.5;
+/// Sparks in the ring that opens around the staff while he flares.
+const FLARE_SPARKS: i32 = 12;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Act {
@@ -75,6 +79,16 @@ impl Spell {
         }
     }
 
+    /// Radius of the flash where it lands (px, #119): the fuller the answer,
+    /// the harder it lands. Only light: it melts nothing.
+    pub fn flash_radius(self) -> f32 {
+        match self {
+            Spell::Spark => 6.0,
+            Spell::Fireball => 10.0,
+            Spell::Blaze => 16.0,
+        }
+    }
+
     /// Half-size of the fireball in art pixels; also scales the impact embers.
     pub fn radius(self) -> i32 {
         match self {
@@ -105,6 +119,8 @@ pub struct Pyro {
     pub flame: f32,
     /// The answer is being transcribed: the flame pulses and holds.
     thinking: bool,
+    /// Time left flaring for a phrase just learned (#119).
+    flare_t: f32,
     focused: bool,
     pending_cast: bool,
 }
@@ -120,6 +136,7 @@ impl Default for Pyro {
             voice: 0.0,
             flame: 0.0,
             thinking: false,
+            flare_t: 0.0,
             focused: false,
             pending_cast: false,
         }
@@ -199,8 +216,19 @@ impl Pyro {
         (x, feet_y - HEIGHT as f32 - 6.0)
     }
 
+    /// A phrase just became known (#119): the staff's flame shoots up to full
+    /// and a ring of sparks opens around it, for `FLARE_S`. Only a show.
+    pub fn flare(&mut self) {
+        self.flare_t = FLARE_S;
+    }
+
+    pub fn flaring(&self) -> bool {
+        self.flare_t > 0.0
+    }
+
     pub fn step(&mut self, dt: f32, feet_y: f32) -> Option<Event> {
         self.t += dt;
+        self.flare_t = (self.flare_t - dt).max(0.0);
         if self.focused {
             self.charge = (self.charge + dt * CHARGE_RATE * self.voice).min(1.0);
             if self.voice > 0.0 {
@@ -249,9 +277,10 @@ impl Pyro {
     /// The flame above the crystal at (`sx`, `sy`): a flickering teardrop in
     /// dithered layers, white at the core, with sparks rising off a tall one.
     fn draw_flame(&self, c: &mut Canvas, sx: f32, sy: f32, time: f32) {
+        let flame = self.shown_flame();
         let pulse = if self.thinking { (time * 8.0).sin() * 1.5 } else { 0.0 };
-        let h = FLAME_H.0 + (FLAME_H.1 - FLAME_H.0) * self.flame + pulse;
-        let w = 1.5 + self.flame * 3.5;
+        let h = FLAME_H.0 + (FLAME_H.1 - FLAME_H.0) * flame + pulse;
+        let w = 1.5 + flame * 3.5;
         let base = sy + 2.0;
         let layers = [hex(0xd93a2a), hex(0xff7a2a), hex(0xffc13d), hex(0xfff4b0), hex(0xffffff)];
         for j in 0..h.max(1.0) as i32 {
@@ -270,11 +299,29 @@ impl Pyro {
                 c.set(sx as i32 + dx, y, layers[(heat * layers.len() as f32) as usize]);
             }
         }
-        for k in 0..(self.flame * 5.0) as i32 {
+        for k in 0..(flame * 5.0) as i32 {
             let rise = (time * 22.0 + k as f32 * 7.3) % 14.0;
             let x = sx + ((time * 3.0 + k as f32 * 2.1).sin() * 3.0);
             let spark = hex(if k % 2 == 0 { 0xfff4b0 } else { 0xffc13d });
             c.set(x.round() as i32, (base - h - rise).round() as i32, spark);
+        }
+    }
+
+    /// The flame as drawn: a flare holds it at full, then lets it down.
+    fn shown_flame(&self) -> f32 {
+        self.flame.max((self.flare_t / FLARE_S * 2.0).min(1.0))
+    }
+
+    /// The flare's ring of sparks around the staff top, opening as it fades.
+    fn draw_flare(&self, c: &mut Canvas, sx: f32, sy: f32, time: f32) {
+        let k = self.flare_t / FLARE_S;
+        let r = 5.0 + (1.0 - k) * 16.0;
+        for i in 0..FLARE_SPARKS {
+            let a = i as f32 / FLARE_SPARKS as f32 * std::f32::consts::TAU + time * 1.5;
+            let (x, y) = ((sx + a.cos() * r).round() as i32, (sy - 6.0 + a.sin() * r * 0.8).round() as i32);
+            if bayer(x, y) < k + 0.2 {
+                c.set(x, y, hex(if i % 2 == 0 { 0xfff4b0 } else { 0xffc13d }));
+            }
         }
     }
 
@@ -305,13 +352,17 @@ impl Pyro {
         // voice and flare as the fireball leaves.
         let (sx, sy) = self.staff_top(feet_y);
         let cast = if self.act == Act::Cast { 0.4 } else { 0.0 };
-        let glow = 0.3 + self.flame * 0.5 + self.voice * 0.2 + cast;
-        c.glow(sx, sy - self.flame * 6.0, 3.0 + self.flame * 9.0 + self.voice * 2.0, glow * presence, hex(0xff7a2a));
+        let flame = self.shown_flame();
+        let glow = 0.3 + flame * 0.5 + self.voice * 0.2 + cast;
+        c.glow(sx, sy - flame * 6.0, 3.0 + flame * 9.0 + self.voice * 2.0, glow * presence, hex(0xff7a2a));
         if presence > 0.5 {
             for y in (sy as i32 + 3)..(feet_y as i32) {
                 c.set(sx as i32, y, if y % 5 == 0 { hex(0x8b5a2b) } else { hex(0x5a3418) });
             }
             self.draw_flame(c, sx, sy, time);
+            if self.flare_t > 0.0 {
+                self.draw_flare(c, sx, sy, time);
+            }
         }
 
         // Body, dissolving in and out through the dither pattern.
@@ -508,5 +559,41 @@ mod tests {
         p.focus(false);
         run(&mut p, 1.0);
         assert_eq!(p.charge, 0.0, "closing the mic forgets the voice");
+    }
+
+    #[test]
+    fn a_flare_shows_a_full_flame_and_a_ring_and_outlasts_the_cast() {
+        let mut p = Pyro::default();
+        p.arrive(40.0, 100.0);
+        for _ in 0..30 {
+            p.step(1.0 / 30.0, 60.0);
+        }
+        let draw = |p: &Pyro| {
+            let mut c = Canvas::new(100, 80);
+            p.draw(&mut c, 60.0, 0.0);
+            assert!(c.bytes().chunks(4).all(|px| px[3] == 0 || px[3] == 255), "1-bit alpha");
+            c.bytes().chunks(4).filter(|px| px[3] == 255).count()
+        };
+        let calm = draw(&p);
+        p.flare();
+        p.cast();
+        let mut flared = 0;
+        for _ in 0..(CAST * 30.0) as i32 + 2 {
+            p.step(1.0 / 30.0, 60.0);
+            flared = flared.max(draw(&p));
+        }
+        assert_eq!(p.flame, 0.0, "the voice's flame went into the fireball");
+        assert!(p.flaring(), "the flare is still on");
+        assert!(flared > calm + 20, "a taller flame and a ring: {calm} -> {flared}");
+        for _ in 0..(FLARE_S * 30.0) as i32 {
+            p.step(1.0 / 30.0, 60.0);
+        }
+        assert!(!p.flaring());
+    }
+
+    #[test]
+    fn the_flash_grows_with_the_tier() {
+        assert!(Spell::Spark.flash_radius() < Spell::Fireball.flash_radius());
+        assert!(Spell::Fireball.flash_radius() < Spell::Blaze.flash_radius());
     }
 }
