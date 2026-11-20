@@ -20,7 +20,8 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
 - 🔥 Start a lesson and your **fire mage** teleports in. Answer out loud; get it right and a
   fireball melts part of the ice. Every phrase comes **short, complete and polished**: the fuller
   your answer, the bigger the spell and the more it melts. Three in a row call the **sun**,
-  six a **comet** that leaves burning rocks melting the snow.
+  six a **comet** that lands on the frost mage and leaves little **fire people** dashing to
+  the snow, arms flailing, melting it as they run.
 - ⚔️ A **warrior** tries to survive: builds *fogueiras*, sword-fights frost slimes and bats,
   gives you tips (false friends, pronunciation traps), slides down steep snow piles — and freezes
   solid if you ignore him.
@@ -49,9 +50,13 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
 - 🖥️ Every monitor gets its own snow; the mage and the lesson stay on the main one.
 - 🌙 At the end of the day it shows and **reads back** everything you practiced.
 
-| A lesson (window mode) | Icicle rain, summons, mobs | Deep snow: ice owl, sliding | Pause = black hole |
-|---|---|---|---|
-| ![lesson](docs/img/lesson.webp) | ![fight](docs/img/fight.webp) | ![ice owl](docs/img/snowstorm.webp) | ![black hole](docs/img/blackhole.webp) |
+| A lesson (window mode) | Icicle rain, summons, mobs | Deep snow: ice owl, sliding |
+|---|---|---|
+| ![lesson](docs/img/lesson.webp) | ![fight](docs/img/fight.webp) | ![ice owl](docs/img/snowstorm.webp) |
+
+| Six in a row: the comet and its fire people | Pause = black hole |
+|---|---|
+| ![comet](docs/img/comet.webp) | ![black hole](docs/img/blackhole.webp) |
 
 No cloud, no LLM required: recognition is whisper.cpp running offline. A Whisper server you run,
 or Groq's cloud with your own key, can do it instead (`stt_engine`, below); only then does your
