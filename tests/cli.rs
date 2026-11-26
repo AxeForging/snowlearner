@@ -227,6 +227,29 @@ fn snapshot_rejects_absurd_sizes() {
     assert!(!out.exists());
 }
 
+/// A config from before 0.1.43 holds the old default `pixel_scale = 4`; the
+/// first start after the update makes it automatic and writes that down (#204).
+#[test]
+fn the_first_start_after_an_update_writes_the_automatic_scale_into_an_old_config() {
+    let home = Home::new();
+    home.config("learning = \"es\"\ncommitment = \"committed\"\npixel_scale = 4\nmatch_threshold = 0.6\n");
+    let o = home.run(&["doctor"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let path = home.dir.path().join("config/config.toml");
+    let written = std::fs::read_to_string(&path).unwrap();
+    for line in [
+        "config_version = 1",
+        "pixel_scale = 0",
+        "learning = \"es\"",
+        "commitment = \"committed\"",
+        "match_threshold = 0.6",
+    ] {
+        assert!(written.contains(line), "missing {line:?}:\n{written}");
+    }
+    assert!(home.run(&["doctor"]).status.success());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), written, "written once");
+}
+
 #[test]
 fn doctor_reports_every_subsystem() {
     let o = Home::new().run(&["doctor"]);

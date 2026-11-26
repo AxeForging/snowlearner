@@ -83,7 +83,10 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    the whole width and the fill times above hold.
    The characters' size is `pixel_scale` (#181): 0, the default for new installs, picks
    it from the monitor's height (2 on 1080p, 3 on 1440p, 4 on 4K), so the characters fit
-   inside the taskbar, as the learner chose; a set value wins. Any scene taller than
+   inside the taskbar, as the learner chose; a set value wins. A config from before
+   0.1.43 holds the old default 4 with no `config_version`: the first start after the
+   update makes it 0 and writes `config_version = 1`, once (#204), so a 4 set after that
+   stays. Any scene taller than
    480x270 keeps those fill times (`view_scale` = rows / 270): the flakes and the wind
    move as fast on screen, the pile settles `view_scale`² times as often, and a sky pool
    holds `1 + Pace::thrown_ratio · (1 - 1/view_scale²)` times more flakes, because the
