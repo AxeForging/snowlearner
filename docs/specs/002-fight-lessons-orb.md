@@ -81,6 +81,14 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    screen: a flake blown off one side comes back in on the other at the same height,
    unless that wall has snow to slide down or hold it, so the flakes stay spread over
    the whole width and the fill times above hold.
+   The characters' size is `pixel_scale` (#181): 0, the default for new installs, picks
+   it from the monitor's height (2 on 1080p, 3 on 1440p, 4 on 4K), so the characters fit
+   inside the taskbar, as the learner chose; a set value wins. Any scene taller than
+   480x270 keeps those fill times (`view_scale` = rows / 270): the flakes and the wind
+   move as fast on screen, the pile settles `view_scale`² times as often, and a sky pool
+   holds `1 + Pace::thrown_ratio · (1 - 1/view_scale²)` times more flakes, because the
+   cubes, icicles and snowballs keep their size (`thrown_ratio` 0.8 / 0.7 / 0.7 / 1.05,
+   measured at 480x270). At 960x540 Steady freezes in about 2 h and Committed in 36-43 min.
    Where a fireball lands, a brief local dithered flash sized by the spell's tier
    (6/10/16 px, never the whole screen, melts nothing). When a phrase becomes known the
    fire mage flares (full flame and a ring of sparks) and the warrior cheers, once per

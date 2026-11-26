@@ -111,8 +111,23 @@ struct Flake {
     falling: bool,
 }
 
+impl Flake {
+    fn new(rng: &mut Rng, w: i32, h: i32, falling: bool) -> Self {
+        Flake {
+            x: rng.range(0.0, w as f32),
+            y: rng.range(0.0, h as f32 - 1.0),
+            speed: rng.range(5.0, 16.0),
+            phase: rng.range(0.0, 7.0),
+            falling,
+        }
+    }
+}
+
 /// Screen pixels per flake in the pool (#180: 500 before).
 const PIXELS_PER_FLAKE: i32 = 300;
+/// The scene height the snow's pace was tuned on: the learner's 1920x1080 at
+/// `pixel_scale` 4 (#187).
+const VIEW_HEIGHT: f32 = 270.0;
 /// Never fewer flakes than this in the air (small windows).
 const SNOWFALL_FLOOR: usize = 6;
 /// Spread of the snow a weather-only screen adds per step (`Snow::add`).
@@ -127,6 +142,27 @@ const SMALL_HEAP_SPREAD: f32 = 2.0;
 /// screen already is, like real snow (#180).
 fn snowfall(pool: usize, share: f32) -> usize {
     ((pool as f32 * share.clamp(0.0, 1.0)).round() as usize).max(SNOWFALL_FLOOR).min(pool)
+}
+
+/// How much finer a scene `h` rows tall is than `VIEW_HEIGHT` (#181): 2 at
+/// `pixel_scale` 2 on 1080p. Never below 1, so small windows look as before.
+fn view_scale(h: i32) -> f32 {
+    (h as f32 / VIEW_HEIGHT).max(1.0)
+}
+
+/// `Snow::settle` passes per step on a scene `h` rows tall: 2 at 480x270.
+fn settles(h: i32) -> i32 {
+    let v = view_scale(h);
+    (2.0 * v * v).round() as i32
+}
+
+/// Flakes for a `w`x`h` scene at `pace`: one per `PIXELS_PER_FLAKE`, plus, on
+/// a finer scene, enough to lay what the thrown things no longer cover, so
+/// the screen fills in the same time at any `pixel_scale` (#181).
+fn sky_pool(w: i32, h: i32, pace: &Pace) -> usize {
+    let v = view_scale(h);
+    let base = (w * h / PIXELS_PER_FLAKE).max(12) as f32;
+    (base * (1.0 + pace.thrown_ratio * (1.0 - 1.0 / (v * v)))).round() as usize
 }
 
 pub struct Scene {
@@ -163,6 +199,8 @@ pub struct Scene {
     particles: Vec<Particle>,
     friends: Vec<Friend>,
     flakes: Vec<Flake>,
+    /// Flakes this scene's sky holds at its fullest (`sky_pool`, #181).
+    pool: usize,
     backdrop: Option<Backdrop>,
     /// The fire mage, present only during lessons.
     pub pyro: Pyro,
@@ -232,17 +270,9 @@ impl Scene {
     pub fn new(w: i32, h: i32, seed: u64, pace: Pace, transparent: bool) -> Self {
         let mut rng = Rng::new(seed);
         let (w, h) = (w.max(80), h.max(60));
-        let pool = (w * h / PIXELS_PER_FLAKE).max(12) as usize;
+        let pool = sky_pool(w, h, &pace);
         let light = snowfall(pool, pace.snowfall);
-        let flakes: Vec<Flake> = (0..pool)
-            .map(|i| Flake {
-                x: rng.range(0.0, w as f32),
-                y: rng.range(0.0, h as f32 - 1.0),
-                speed: rng.range(5.0, 16.0),
-                phase: rng.range(0.0, 7.0),
-                falling: i < light,
-            })
-            .collect();
+        let flakes: Vec<Flake> = (0..pool).map(|i| Flake::new(&mut rng, w, h, i < light)).collect();
         let mut s = Scene {
             w,
             h,
@@ -267,6 +297,7 @@ impl Scene {
             particles: Vec::new(),
             friends: Vec::new(),
             flakes,
+            pool,
             backdrop: None,
             pyro: Pyro::default(),
             fireballs: Vec::new(),
@@ -347,10 +378,22 @@ impl Scene {
         }
         self.mage.x = self.mage.x.min(w as f32 - mage::WIDTH as f32);
         self.warrior.x = self.warrior.x.min(w as f32 - warrior::WIDTH as f32);
+        self.fit_pool();
     }
 
     pub fn set_pace(&mut self, pace: Pace) {
         self.pace = pace;
+        self.fit_pool();
+    }
+
+    /// Sizes the sky for this scene and pace (#181). Flakes past the pool
+    /// stay in the vec, idle once they land, so none pops out mid-air.
+    fn fit_pool(&mut self) {
+        self.pool = sky_pool(self.w, self.h, &self.pace);
+        while self.flakes.len() < self.pool {
+            let f = Flake::new(&mut self.rng, self.w, self.h, false);
+            self.flakes.push(f);
+        }
     }
 
     pub fn ground_y(&self) -> f32 {
@@ -1209,8 +1252,11 @@ impl Scene {
         if self.edges_freeze() {
             self.frost.creep(dt, 0.02 + self.pile_level() * 0.25);
         }
-        self.snow.settle();
-        self.snow.settle();
+        // A finer scene has more columns to spread a drift over: settling
+        // view² times as often keeps its piles the shape they are at 480x270 (#181).
+        for _ in 0..settles(self.h) {
+            self.snow.settle();
+        }
         self.frost.settle();
 
         let ground = self.ground_y();
@@ -1228,7 +1274,7 @@ impl Scene {
         // The sky holds its snow while you practice, like the mage his cubes,
         // and under the sun, which melts what is still in the air (#171).
         let held = self.practicing || self.paused || self.sun_t > 0.0;
-        let target = if held { 0 } else { snowfall(self.flakes.len(), self.pace.snowfall) };
+        let target = if held { 0 } else { snowfall(self.pool, self.pace.snowfall) };
         if self.sun_t > 0.0 {
             self.melt_flakes_in_the_sun();
         }
@@ -1286,9 +1332,11 @@ impl Scene {
         } else if cover > edges_want {
             self.frost.melt((1.0 - edges_want / cover) * k);
         }
-        self.snow.settle();
+        for _ in 0..settles(self.h) / 2 {
+            self.snow.settle();
+        }
         self.frost.settle();
-        let target = if sunny { 0 } else { snowfall(self.flakes.len(), self.pace.snowfall) };
+        let target = if sunny { 0 } else { snowfall(self.pool, self.pace.snowfall) };
         self.fall_flakes(dt, target);
         // The steam of the flakes the sun melted.
         let (ground, snow) = (self.ground_y(), &self.snow);
@@ -1324,6 +1372,8 @@ impl Scene {
         let w = self.w as f32;
         let (transparent, time, h) = (self.transparent, self.time, self.h);
         let gust = wind(time, self.pace.wind, self.pace.gust);
+        // As fast on screen at any `pixel_scale` (#181).
+        let view = view_scale(h);
         let walls_hold = self.edges_freeze();
         let keep = self.landing_share();
         // Under the sun nothing that lands stays (#171).
@@ -1344,8 +1394,8 @@ impl Scene {
                 f.y = -1.0;
                 f.x = spawn_x(f, frost);
             }
-            f.y += f.speed * dt;
-            f.x += ((time * 1.3 + f.phase).sin() * 3.0 + gust) * dt;
+            f.y += f.speed * view * dt;
+            f.x += ((time * 1.3 + f.phase).sin() * 3.0 + gust) * view * dt;
             // The snowfield goes on past the screen (#183): blown off one side,
             // a flake comes back in on the other at the same height, unless
             // the wall it crossed has snow to slide down or hold it.
@@ -3276,7 +3326,12 @@ mod tests {
     /// screen until the edges freeze, then minutes for them to freeze again
     /// after one right answer melts its share at the line.
     fn refill_minutes(pace: Pace, seed: u64) -> (f32, f32) {
-        let mut s = Scene::new(480, 270, seed, pace, true);
+        refill_minutes_on(480, 270, pace, seed)
+    }
+
+    /// `refill_minutes` on a `w`x`h` scene (#181).
+    fn refill_minutes_on(w: i32, h: i32, pace: Pace, seed: u64) -> (f32, f32) {
+        let mut s = Scene::new(w, h, seed, pace, true);
         let dt = 0.1;
         let mut t = 0.0;
         while !s.edges_freeze() && t < 6.0 * 3600.0 {
@@ -3309,6 +3364,59 @@ mod tests {
         for pair in times.windows(2) {
             assert!(pair[0].0 > pair[1].0 && pair[0].1 > pair[1].1, "{times:?}");
         }
+    }
+
+    #[test]
+    fn at_pixel_scale_2_the_screen_fills_in_the_same_time() {
+        // #181: 960x540 froze Steady in 287 min and Committed in 105 (123 and 38 at 480x270).
+        // The wind's drifts against a wall still differ a little, mostly in the refill.
+        let near = |a: f32, b: f32, by: f32| (a / b - 1.0).abs() <= by;
+        for (c, window) in [(Commitment::Steady, 105.0..=180.0), (Commitment::Committed, 35.0..=45.0)] {
+            let (small, fine) = (refill_minutes(c.pace(), 7), refill_minutes_on(960, 540, c.pace(), 7));
+            let close = near(fine.0, small.0, 0.15) && near(fine.1, small.1, 0.3);
+            assert!(window.contains(&fine.0) && close, "{c:?}: {fine:?} at 960x540, {small:?} at 480x270");
+        }
+    }
+
+    #[test]
+    fn the_thrown_ratio_is_what_the_scene_measures() {
+        // #181: the flakes a finer scene adds rest on this measure.
+        for c in [Commitment::Chill, Commitment::Steady, Commitment::Committed, Commitment::Relentless] {
+            let mut s = Scene::new(480, 270, 7, c.pace(), true);
+            for _ in 0..18_000 {
+                s.step(0.1);
+            }
+            let (sky, thrown) = s.laid;
+            let ratio = thrown / sky;
+            let want = c.pace().thrown_ratio;
+            assert!((ratio / want - 1.0).abs() <= 0.15, "{c:?}: measured {ratio:.2}, pace says {want}");
+        }
+    }
+
+    #[test]
+    fn a_flake_falls_as_fast_on_screen_at_any_pixel_scale() {
+        let seen = |w: i32, h: i32| {
+            let mut s = Scene::new(w, h, 3, Commitment::Steady.pace(), true);
+            let f = &mut s.flakes[0];
+            (f.y, f.falling) = (0.0, true);
+            s.fall_flakes(1.0, 1);
+            s.flakes[0].y / h as f32
+        };
+        let (coarse, fine) = (seen(480, 270), seen(960, 540));
+        assert!(coarse > 0.0 && (fine - coarse).abs() < 1e-4, "{coarse} vs {fine} of the screen in 1 s");
+    }
+
+    #[test]
+    fn a_finer_scene_holds_more_flakes_to_make_up_for_the_thrown_things() {
+        let pace = Commitment::Steady.pace();
+        assert_eq!(sky_pool(480, 270, &pace), 432, "as before at 480x270");
+        let fine = sky_pool(960, 540, &pace) as f32 / (4.0 * 432.0);
+        assert!((fine - (1.0 + pace.thrown_ratio * 0.75)).abs() < 0.01, "{fine}");
+        let mut s = Scene::new(480, 270, 1, Commitment::Chill.pace(), true);
+        s.set_pace(Commitment::Relentless.pace());
+        s.resize(960, 540);
+        assert_eq!(s.pool, sky_pool(960, 540, &s.pace));
+        assert!(s.flakes.len() >= s.pool);
     }
 
     #[test]
