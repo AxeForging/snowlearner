@@ -45,6 +45,11 @@ Status: approved in chat (2026-09-27).
   answers (#205); ALSA alone listed its plugins and missed USB and Bluetooth mics.
   The microphone list leaves out the server's monitors (`<sink>.monitor`, the
   speakers' loopback). `audio mics|speakers` and `doctor` name the system in use.
+- On PulseAudio the streams ask for fixed buffers, 20 ms per microphone block and
+  40 ms per speaker block (#209): the server's default of about 2 s cut the end of
+  every line and fed the endpointer 2 s blocks. A speaker stays open for the latency
+  its stream reports plus 120 ms after the last sample; a host that refuses a fixed
+  buffer gets its default, and the trace says so, as it says how the mic's blocks arrived.
 - `snowlearner audio mics|speakers`, `snowlearner audio test-mic` (live meter, then
   shows what the recognizer heard).
 - Panel "Áudio" tab: microphone, test mic (meter + transcript), speaker.
