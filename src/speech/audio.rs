@@ -24,9 +24,29 @@ pub fn useful(names: impl IntoIterator<Item = String>) -> Vec<String> {
     out
 }
 
+/// A sound server's loopback of an output ("Monitor of …"): it records what the
+/// speakers play, not a voice. PulseAudio and pipewire-pulse name it
+/// `<sink>.monitor`; the name is the same in every language, the description is not.
+pub fn is_monitor(id: &str) -> bool {
+    id.ends_with(".monitor")
+}
+
+fn monitor(d: &cpal::Device) -> bool {
+    d.id().is_ok_and(|id| is_monitor(id.id()))
+}
+
+/// Which audio system the lists come from: "ALSA" or "PulseAudio" on Linux
+/// (#205), "WASAPI" on Windows, "CoreAudio" on macOS.
+pub fn host_name() -> &'static str {
+    cpal::default_host().id().name()
+}
+
 pub fn input_names() -> Vec<String> {
     useful(
-        cpal::default_host().input_devices().map(|it| it.map(|d| name_of(&d)).collect::<Vec<_>>()).unwrap_or_default(),
+        cpal::default_host()
+            .input_devices()
+            .map(|it| it.filter(|d| !monitor(d)).map(|d| name_of(&d)).collect::<Vec<_>>())
+            .unwrap_or_default(),
     )
 }
 
@@ -280,6 +300,22 @@ mod tests {
             useful(names.map(String::from)),
             vec!["PipeWire Sound Server", "HD-Audio Generic, ALC245 Analog", "acp-pdm-mach, "]
         );
+    }
+
+    #[test]
+    fn a_sound_servers_monitor_is_not_a_microphone() {
+        assert!(is_monitor("alsa_output.pci-0000_00_1f.3.analog-stereo.monitor"));
+        assert!(is_monitor("RDPSink.monitor"));
+        assert!(!is_monitor("alsa_input.usb-Blue_Microphones_Yeti-00.analog-stereo"));
+        assert!(!is_monitor("bluez_input.00:1B:66:AA:BB:CC"));
+        assert!(!is_monitor("monitor"), "ALSA has no such suffix");
+    }
+
+    #[test]
+    fn a_microphone_that_is_gone_falls_back_to_the_default() {
+        let default = cpal::default_host().default_input_device().map(|d| name_of(&d));
+        let picked = input("a microphone unplugged long ago").ok().map(|d| name_of(&d));
+        assert_eq!(picked, default, "same as the system default, never an error of its own");
     }
 
     #[test]

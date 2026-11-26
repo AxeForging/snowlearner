@@ -40,6 +40,11 @@ Status: approved in chat (2026-09-27).
 
 ## Audio devices
 - `mic` / `speaker` settings (empty = system default), chosen by name.
+- On Linux the devices come from the sound server (PulseAudio, or PipeWire through
+  pipewire-pulse) by the names the desktop shows, and from ALSA only when no server
+  answers (#205); ALSA alone listed its plugins and missed USB and Bluetooth mics.
+  The microphone list leaves out the server's monitors (`<sink>.monitor`, the
+  speakers' loopback). `audio mics|speakers` and `doctor` name the system in use.
 - `snowlearner audio mics|speakers`, `snowlearner audio test-mic` (live meter, then
   shows what the recognizer heard).
 - Panel "Áudio" tab: microphone, test mic (meter + transcript), speaker.

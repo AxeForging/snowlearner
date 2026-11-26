@@ -237,6 +237,21 @@ fn doctor_reports_every_subsystem() {
     }
 }
 
+/// On Linux the lists come from the sound server when one answers, else ALSA
+/// (#205); a report has to say which.
+#[cfg(feature = "audio")]
+#[test]
+fn the_device_lists_name_the_audio_system_they_come_from() {
+    let hosts = ["ALSA", "PulseAudio", "WASAPI", "CoreAudio"];
+    for (action, what) in [("mics", "microphones from "), ("speakers", "speakers from ")] {
+        let o = Home::new().run(&["audio", action]);
+        assert!(o.status.success(), "{}", stderr(&o));
+        let out = stdout(&o);
+        let head = out.lines().next().unwrap_or_default();
+        assert!(head.starts_with(what) && hosts.iter().any(|h| head.contains(h)), "{head:?}");
+    }
+}
+
 #[test]
 fn doctor_names_the_speech_server_and_whether_it_answers() {
     let home = Home::new();
