@@ -197,7 +197,7 @@ same directory, then `rename`. Schema 1:
 - **Cheapest correct alternative.** A calibrated curve plus a one-shot catch-up.
   - `scene/catchup.rs` holds a per-`Commitment` table of the **mean** `freeze_level`
     against game seconds. The table is measured from the real `Scene` (8 seeds, `dt = 0.1`,
-    reference size `PACE_HEIGHT`, no lesson) and checked in.
+    reference size 480x270, no lesson) and checked in.
   - `advance(level, secs, commitment) -> f32` finds `level` on the curve, moves `secs`
     along it, and interpolates linearly. It is monotone, never decreases, and clamps to 1.
   - `secs_until(level, target, commitment)` gives the wake deadlines in R5.

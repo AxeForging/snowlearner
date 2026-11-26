@@ -12,6 +12,8 @@ pub const PILE_LEVEL: f32 = 0.6;
 pub const EVERY: f32 = 50.0;
 /// Snowballs in the air at once, at most.
 pub const MAX_SNOWBALLS: usize = 3;
+/// An owl's snowball as drawn; it leaves just this on the pile (#180).
+pub const SNOWBALL: &[&str] = &[".L.", "LWC", ".D."];
 
 const SPEED: f32 = 38.0;
 const THROW_EVERY: f32 = 0.9;
@@ -93,7 +95,7 @@ impl Snowball {
 
     pub fn draw(&self, c: &mut Canvas) {
         let (x, y) = (self.x.round() as i32, self.y.round() as i32);
-        c.sprite(&[".L.", "LWC", ".D."], ICE_PAL, x - 1, y - 1, false);
+        c.sprite(SNOWBALL, ICE_PAL, x - 1, y - 1, false);
     }
 }
 

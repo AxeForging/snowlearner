@@ -71,6 +71,12 @@ impl Snow {
         }
     }
 
+    /// Lays `pixels` of snow around `x` as a heap of `spread`: what landed
+    /// there and nothing more (#180).
+    pub fn deposit(&mut self, x: f32, pixels: f32, spread: f32) {
+        self.add(x, pixels / (spread.max(1.0) * std::f32::consts::PI.sqrt()), spread);
+    }
+
     /// One settled snowflake: exactly one pixel on the column it landed on.
     /// False when it missed the pile, the column is already at the cap or the
     /// pile is frozen.
