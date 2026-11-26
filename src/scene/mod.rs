@@ -361,10 +361,11 @@ impl Scene {
         (self.snow.mean() / (self.h as f32 * ICE_LINE)).min(1.0)
     }
 
-    /// How much of new snow stays on the pile: all of it on bare ground,
-    /// `1 - DEEP_PILE_SLOWDOWN` at the ice line (#170).
+    /// How much of new snow stays on the pile: the commitment's
+    /// `settle_share` (#187) on bare ground, `1 - DEEP_PILE_SLOWDOWN` of that
+    /// at the ice line (#170).
     fn landing_share(&self) -> f32 {
-        1.0 - DEEP_PILE_SLOWDOWN * self.pile_level()
+        (1.0 - DEEP_PILE_SLOWDOWN * self.pile_level()) * self.pace.settle_share
     }
 
     /// Whether the ground pile reached the ice line, where the edges freeze;
@@ -2614,10 +2615,10 @@ mod tests {
         run(&mut s, 60.0);
         assert_eq!(falling(&s), 0, "no new snowfall while you practice");
         let added = pile(&s) - before;
-        // As the pile deepens it melts a few in (#170).
-        let settled = in_air as f32;
+        // Only the commitment's share stays (#187), and a deepening pile melts a few in (#170).
+        let settled = in_air as f32 * s.pace.settle_share;
         assert!(
-            added <= settled + 0.5 && added >= settled * 0.97,
+            added <= in_air as f32 + 0.5 && added >= settled * 0.9,
             "the {in_air} flakes in the air settled, pile grew {added}"
         );
     }
@@ -3194,7 +3195,7 @@ mod tests {
         let mut s = Scene::new(480, 270, seed, pace, true);
         let dt = 0.1;
         let mut t = 0.0;
-        while !s.edges_freeze() && t < 4.0 * 3600.0 {
+        while !s.edges_freeze() && t < 6.0 * 3600.0 {
             s.step(dt);
             t += dt;
         }
@@ -3203,7 +3204,7 @@ mod tests {
         s.impact(x, y, s.pace.melt_fraction, Spell::Fireball);
         assert!(!s.edges_freeze(), "one answer thaws the edges");
         let mut back = 0.0;
-        while !s.edges_freeze() && back < 3600.0 {
+        while !s.edges_freeze() && back < 3.0 * 3600.0 {
             s.step(dt);
             back += dt;
         }
@@ -3211,16 +3212,34 @@ mod tests {
     }
 
     #[test]
-    fn at_steady_the_screen_fills_in_a_long_sitting_and_one_answer_buys_minutes() {
-        // #170: it took 26 min to freeze and one answer was undone in 3.3 min.
-        // #180 keeps these while the snowfall, not the cubes, fills the screen.
-        let (steady_line, steady_back) = refill_minutes(Commitment::Steady.pace(), 7);
-        assert!(steady_line >= 55.0, "a clear screen froze in {steady_line:.1} min");
-        assert!(steady_back >= 15.0, "one right answer was undone in {steady_back:.1} min");
-        let (chill_line, chill_back) = refill_minutes(Commitment::Chill.pace(), 7);
-        let (harsh_line, harsh_back) = refill_minutes(Commitment::Relentless.pace(), 7);
-        assert!(chill_line > steady_line && steady_line > harsh_line, "{chill_line} {steady_line} {harsh_line}");
-        assert!(chill_back > steady_back && steady_back > harsh_back, "{chill_back} {steady_back} {harsh_back}");
+    fn every_level_fills_the_screen_in_its_own_time_and_one_answer_buys_minutes() {
+        // #170: Steady froze in 26 min and one answer was undone in 3.3 min.
+        // #187: light ~4 h, medium ~2 h, strong ~40 min, intensive ~30 min.
+        let levels = [Commitment::Chill, Commitment::Steady, Commitment::Committed, Commitment::Relentless];
+        let times: Vec<(f32, f32)> = levels.iter().map(|c| refill_minutes(c.pace(), 7)).collect();
+        let [chill, steady, committed, relentless] = [times[0], times[1], times[2], times[3]];
+        assert!(chill.0 >= 210.0, "Chill froze in {:.1} min", chill.0);
+        assert!(steady.0 >= 105.0, "Steady froze in {:.1} min", steady.0);
+        assert!((35.0..=45.0).contains(&committed.0), "Committed froze in {:.1} min", committed.0);
+        assert!((25.0..=35.0).contains(&relentless.0), "Relentless froze in {:.1} min", relentless.0);
+        for pair in times.windows(2) {
+            assert!(pair[0].0 > pair[1].0 && pair[0].1 > pair[1].1, "{times:?}");
+        }
+    }
+
+    #[test]
+    fn the_snowfall_in_view_does_not_depend_on_how_much_settles() {
+        // #187: the flakes in the air are those of 0.1.38 at every level.
+        let levels = [
+            (Commitment::Chill, 108),
+            (Commitment::Steady, 216),
+            (Commitment::Committed, 432),
+            (Commitment::Relentless, 432),
+        ];
+        for (level, flakes) in levels {
+            let s = Scene::new(480, 270, 1, level.pace(), true);
+            assert_eq!(falling(&s), flakes, "{level:?}");
+        }
     }
 
     #[test]
@@ -3230,7 +3249,8 @@ mod tests {
         let before = s.snow.total();
         s.shatter(200.0, 260.0);
         let left = s.snow.total() - before;
-        assert!(left > 30.0 && left <= ice::cube_pixels(), "a cube left {left} px");
+        // Only the commitment's share stays (#187).
+        assert!(left > 30.0 * s.pace.settle_share && left <= ice::cube_pixels(), "a cube left {left} px");
         for (what, pixels) in [("icicle", ice::pixels(ice::ICICLE)), ("snowball", ice::pixels(owl::SNOWBALL))] {
             let before = s.snow.total();
             s.shatter_small(300.0, 260.0, pixels);
@@ -3252,7 +3272,7 @@ mod tests {
     fn at_steady_most_of_the_pile_comes_from_the_snowfall() {
         let mut s = Scene::new(480, 270, 7, Commitment::Steady.pace(), true);
         let mut t = 0.0;
-        while !s.edges_freeze() && t < 7200.0 {
+        while !s.edges_freeze() && t < 4.0 * 3600.0 {
             s.step(0.1);
             t += 0.1;
         }

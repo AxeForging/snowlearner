@@ -22,6 +22,10 @@ pub struct Pace {
     /// visibility (over 1 km, 0.5-1 km, under 0.5 km), and the flakes in view
     /// grow as the visibility drops: 1 : 2 : 4.
     pub snowfall: f32,
+    /// Share of what lands (flakes, cubes, icicles, snowballs) that stays on
+    /// the pile: a flake stands for less snow, so the screen fills slowly while
+    /// the snowfall looks the same (#187).
+    pub settle_share: f32,
     /// How hard the frost sprayed onto the edges bites (a cube itself leaves
     /// only its own pixels on the pile, #180).
     pub snow_per_cube: f32,
@@ -47,6 +51,7 @@ impl Commitment {
                 // 9.0 before #180, when the cubes were the snowfall.
                 throw_every: 30.0,
                 snowfall: 0.25,
+                settle_share: 0.5,
                 snow_per_cube: 3.0,
                 summon_every: 240.0,
                 ask_every: 1800.0,
@@ -60,6 +65,7 @@ impl Commitment {
                 // until the snowfall carried the fill (#180).
                 throw_every: 15.0,
                 snowfall: 0.5,
+                settle_share: 0.5,
                 snow_per_cube: 4.0,
                 summon_every: 120.0,
                 ask_every: 1200.0,
@@ -71,6 +77,7 @@ impl Commitment {
             Commitment::Committed => Pace {
                 throw_every: 6.0,
                 snowfall: 1.0,
+                settle_share: 0.8,
                 snow_per_cube: 5.0,
                 summon_every: 75.0,
                 ask_every: 720.0,
@@ -83,6 +90,7 @@ impl Commitment {
                 // A blizzard: heavy snow, its wind comes with #183.
                 throw_every: 3.0,
                 snowfall: 1.0,
+                settle_share: 0.8,
                 snow_per_cube: 6.0,
                 summon_every: 45.0,
                 ask_every: 360.0,
@@ -119,6 +127,7 @@ mod tests {
             let (easy, hard) = (pair[0].pace(), pair[1].pace());
             assert!(hard.throw_every < easy.throw_every, "{:?}", pair);
             assert!(hard.snowfall >= easy.snowfall, "{:?}", pair);
+            assert!(hard.settle_share >= easy.settle_share, "{:?}", pair);
             assert!(hard.snow_per_cube > easy.snow_per_cube, "{:?}", pair);
             assert!(hard.summon_every < easy.summon_every, "{:?}", pair);
             assert!(hard.ask_every < easy.ask_every, "{:?}", pair);
@@ -135,6 +144,7 @@ mod tests {
             assert!(p.melt_fraction > 0.05 && p.melt_fraction <= 0.3, "one answer must never clear the screen");
             assert!(p.throw_every > 0.5);
             assert!(p.snowfall > 0.0 && p.snowfall <= 1.0, "a share of the flake pool");
+            assert!(p.settle_share > 0.0 && p.settle_share <= 1.0, "a share of what lands");
         }
     }
 
