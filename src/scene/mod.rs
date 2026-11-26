@@ -1323,7 +1323,7 @@ impl Scene {
     fn fall_flakes(&mut self, dt: f32, target: usize) -> usize {
         let w = self.w as f32;
         let (transparent, time, h) = (self.transparent, self.time, self.h);
-        let gust = wind(time);
+        let gust = wind(time, self.pace.wind, self.pace.gust);
         let walls_hold = self.edges_freeze();
         let keep = self.landing_share();
         // Under the sun nothing that lands stays (#171).
@@ -1346,6 +1346,17 @@ impl Scene {
             }
             f.y += f.speed * dt;
             f.x += ((time * 1.3 + f.phase).sin() * 3.0 + gust) * dt;
+            // The snowfield goes on past the screen (#183): blown off one side,
+            // a flake comes back in on the other at the same height, unless
+            // the wall it crossed has snow to slide down or hold it.
+            let open_side = if f.x < 0.0 {
+                frost.depth_at(Edge::Left, f.y) < 1.0
+            } else {
+                f.x >= w && frost.depth_at(Edge::Right, f.y) < 1.0
+            };
+            if open_side {
+                f.x = f.x.rem_euclid(w);
+            }
             let stays = lands_on_pile(f, transparent);
             let wall = if f.x <= frost.depth_at(Edge::Left, f.y) {
                 Some(Edge::Left)
@@ -1827,14 +1838,19 @@ impl Scene {
     }
 }
 
-/// Wind across the screen: turns from one side to the other every half
-/// period, so each side wall gets its turn of snow.
-const WIND_PERIOD_S: f32 = 60.0;
-/// Strongest gust, px/s (positive blows right).
-const WIND_PX_S: f32 = 3.0;
+/// The wind holds one side for minutes and turns over in a few seconds, so
+/// each side wall gets its turn of snow and no side is favored (#183).
+const WIND_TURN_S: f32 = 600.0;
+/// Periods of the two gusts that make the wind swing over seconds.
+const GUST_PERIODS_S: (f32, f32) = (7.3, 3.1);
 
-fn wind(time: f32) -> f32 {
-    WIND_PX_S * (std::f32::consts::TAU * time / WIND_PERIOD_S).sin()
+/// The wind at `time`, px/s (positive blows right): `mean` while it holds a
+/// side, swinging by up to `gust` in gusts, through a short lull as it turns.
+fn wind(time: f32, mean: f32, gust: f32) -> f32 {
+    let tau = std::f32::consts::TAU;
+    let side = (4.0 * (tau * time / WIND_TURN_S).sin()).tanh();
+    let gusts = 0.6 * (tau * time / GUST_PERIODS_S.0).sin() + 0.4 * (tau * time / GUST_PERIODS_S.1 + 1.0).sin();
+    side * (mean + gust * gusts)
 }
 
 /// Flakes drawn in front of the land (all of them over the desktop) land on
@@ -2702,13 +2718,37 @@ mod tests {
     }
 
     #[test]
-    fn the_wind_turns_from_one_side_to_the_other() {
-        let samples: Vec<f32> = (0..600).map(|i| wind(i as f32 * WIND_PERIOD_S / 600.0)).collect();
-        assert!(samples.iter().any(|&v| v > WIND_PX_S * 0.9), "blows right");
-        assert!(samples.iter().any(|&v| v < -WIND_PX_S * 0.9), "blows left");
-        assert!(samples.iter().all(|v| v.abs() <= WIND_PX_S + 1e-3));
+    fn the_wind_holds_a_side_for_minutes_then_turns_and_gusts_around_its_mean() {
+        let pace = Commitment::Steady.pace();
+        let at = |t: f32| wind(t, pace.wind, pace.gust);
+        let samples: Vec<f32> = (0..6000).map(|i| at(i as f32 * WIND_TURN_S / 6000.0)).collect();
+        assert!(samples.iter().any(|&v| v > pace.wind), "gusts past the mean, blowing right");
+        assert!(samples.iter().any(|&v| v < -pace.wind), "and blowing left");
+        assert!(samples.iter().all(|v| v.abs() <= pace.wind + pace.gust + 1e-3));
         let mean = samples.iter().sum::<f32>() / samples.len() as f32;
-        assert!(mean.abs() < 0.1, "no side is favored over a cycle: {mean}");
+        assert!(mean.abs() < pace.wind * 0.05, "no side is favored over a cycle: {mean}");
+        let quarter = WIND_TURN_S / 4.0;
+        assert!((0..120).all(|s| at(quarter - 60.0 + s as f32) > 0.0), "it holds its side for minutes");
+        let seconds: Vec<f32> = (0..50).map(|i| at(quarter + i as f32 * 0.1)).collect();
+        let (lo, hi) = seconds.iter().fold((f32::MAX, f32::MIN), |(lo, hi), &v| (lo.min(v), hi.max(v)));
+        assert!(hi - lo >= pace.gust * 0.5, "gusts swing it within 5 s: {lo}..{hi}");
+    }
+
+    #[test]
+    fn a_strong_wind_keeps_the_flakes_spread_over_the_whole_width() {
+        // #183: a blizzard carries the flakes across, yet no side of the screen is left empty.
+        let mut s = Scene::new(480, 270, 7, Commitment::Relentless.pace(), true);
+        s.time = WIND_TURN_S / 4.0; // blowing hard to the right
+        let mut thirds = [0usize; 3];
+        for _ in 0..(60 * 30) {
+            s.fall_flakes(1.0 / 30.0, s.flakes.len());
+            s.time += 1.0 / 30.0;
+            for f in s.flakes.iter().filter(|f| f.falling) {
+                thirds[((f.x / 160.0) as usize).min(2)] += 1;
+            }
+        }
+        let (lo, hi) = (*thirds.iter().min().unwrap(), *thirds.iter().max().unwrap());
+        assert!(lo * 10 >= hi * 8, "flakes per third: {thirds:?}");
     }
 
     /// Fills the ground pile up to the 30% line, where the edges start to freeze.
@@ -2745,26 +2785,26 @@ mod tests {
     }
 
     #[test]
-    fn a_flake_that_hits_a_wall_before_the_line_slides_down_it_onto_the_pile() {
-        let mut s = Scene::new(480, 270, 9, Commitment::Chill.pace(), true);
+    fn before_the_line_a_flake_blown_off_one_side_comes_back_on_the_other_and_nothing_sticks_to_the_walls() {
+        // #183: blown off one side, a flake comes back in on the other.
+        let mut s = Scene::new(480, 270, 9, Commitment::Relentless.pace(), true);
         let all = s.flakes.len();
         let before = pile(&s);
         let mut landed = 0;
-        for _ in 0..(WIND_PERIOD_S as i32 * 2 * 30) {
+        for _ in 0..(120 * 30) {
             landed += s.fall_flakes(1.0 / 30.0, all);
             s.time += 1.0 / 30.0;
         }
         assert_eq!(walls(&s), 0.0, "nothing sticks to the walls yet");
-        assert!((pile(&s) - before - landed as f32).abs() < 0.5, "every flake ended on the pile");
-        let at_walls = |x: f32| s.snow.height_at(x);
-        assert!(at_walls(0.0) > 0.0 && at_walls(s.w as f32 - 1.0) > 0.0, "the ones that slid down a wall too");
+        assert!((pile(&s) - before - landed as f32).abs() < 0.5, "what settled is on the pile");
+        assert!(landed > 0);
     }
 
     #[test]
     fn past_the_line_the_snow_climbs_both_walls_from_the_pile() {
         let mut s = Scene::new(480, 270, 9, Commitment::Chill.pace(), true);
         bury_to_the_line(&mut s);
-        run(&mut s, WIND_PERIOD_S * 4.0);
+        run(&mut s, WIND_TURN_S); // the wind has blown from both sides
         let line = s.feet_y(0.0) as i32;
         for e in [Edge::Left, Edge::Right] {
             let at = |y: i32| s.frost.depth_at(e, y as f32);
