@@ -24,7 +24,9 @@ arboard = { version = "3.7", default-features = false }
 bytemuck = { version = "1", features = ["derive"], optional = true }
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
-cpal = { version = "0.18", optional = true }
+# `pulseaudio`: on Linux, list and open the sound server's devices (PulseAudio, or PipeWire
+# through pipewire-pulse) by the names the desktop shows; ALSA when no server answers (#205).
+cpal = { version = "0.18", optional = true, features = ["pulseaudio"] }
 hound = { version = "3", optional = true }
 directories = "6"
 global-hotkey = "0.8"

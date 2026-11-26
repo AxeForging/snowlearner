@@ -262,13 +262,13 @@ fn audio(settings: &Settings, paths: &Paths, action: AudioAction) -> Result<()> 
     let mark = |name: &str, chosen: &str| if name == chosen { "*" } else { " " };
     match action {
         AudioAction::Mics => {
-            println!("microphones (* = configured; empty config = system default):");
+            println!("microphones from {} (* = configured; empty config = system default):", audio::host_name());
             for m in audio::input_names() {
                 println!(" {} {m}", mark(&m, &settings.mic));
             }
         }
         AudioAction::Speakers => {
-            println!("speakers (* = configured; empty config = system default):");
+            println!("speakers from {} (* = configured; empty config = system default):", audio::host_name());
             for m in audio::output_names() {
                 println!(" {} {m}", mark(&m, &settings.speaker));
             }
@@ -570,7 +570,12 @@ fn doctor(settings: &Settings, paths: &Paths) -> Result<()> {
     {
         let mic =
             if settings.mic.is_empty() { crate::speech::mic::default_input_name() } else { Some(settings.mic.clone()) };
-        println!("{}microphone    {}", ok(mic.is_some()), mic.unwrap_or_else(|| "none found".into()));
+        println!(
+            "{}microphone    {} ({})",
+            ok(mic.is_some()),
+            mic.unwrap_or_else(|| "none found".into()),
+            crate::speech::audio::host_name()
+        );
     }
     match Deck::load(&settings.learning, settings.native, &paths.decks_dir()) {
         Ok(d) => println!(
