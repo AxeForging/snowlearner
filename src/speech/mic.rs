@@ -38,36 +38,42 @@ pub fn record(
     let name = device.description().map(|d| d.name().to_string()).unwrap_or_else(|_| "?".into());
     trace::line(format_args!("mic {name:?}: {rate} Hz, {channels} ch, {:?}", supported.sample_format()));
     let (tx, rx) = mpsc::channel::<Vec<f32>>();
-    let err_fn = |e| eprintln!("microphone stream error: {e}");
-
-    let stream = match supported.sample_format() {
-        cpal::SampleFormat::F32 => device.build_input_stream(
-            config,
-            move |data: &[f32], _: &_| {
-                let _ = tx.send(data.to_vec());
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::I16 => device.build_input_stream(
-            config,
-            move |data: &[i16], _: &_| {
-                let _ = tx.send(data.iter().map(|s| *s as f32 / i16::MAX as f32).collect());
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::U16 => device.build_input_stream(
-            config,
-            move |data: &[u16], _: &_| {
-                let _ = tx.send(data.iter().map(|s| (*s as f32 - 32768.0) / 32768.0).collect());
-            },
-            err_fn,
-            None,
-        ),
-        other => bail!("unsupported microphone sample format {other:?}"),
+    let format = supported.sample_format();
+    if !matches!(format, cpal::SampleFormat::F32 | cpal::SampleFormat::I16 | cpal::SampleFormat::U16) {
+        bail!("unsupported microphone sample format {format:?}");
     }
-    .map_err(|e| anyhow!("opening microphone: {e}"))?;
+    let open = |config: cpal::StreamConfig| {
+        let tx = tx.clone();
+        let err_fn = |e| eprintln!("microphone stream error: {e}");
+        match format {
+            cpal::SampleFormat::F32 => device.build_input_stream(
+                config,
+                move |data: &[f32], _: &_| {
+                    let _ = tx.send(data.to_vec());
+                },
+                err_fn,
+                None,
+            ),
+            cpal::SampleFormat::I16 => device.build_input_stream(
+                config,
+                move |data: &[i16], _: &_| {
+                    let _ = tx.send(data.iter().map(|s| *s as f32 / i16::MAX as f32).collect());
+                },
+                err_fn,
+                None,
+            ),
+            _ => device.build_input_stream(
+                config,
+                move |data: &[u16], _: &_| {
+                    let _ = tx.send(data.iter().map(|s| (*s as f32 - 32768.0) / 32768.0).collect());
+                },
+                err_fn,
+                None,
+            ),
+        }
+    };
+    let stream = audio::open_stream(config, true, open).map_err(|e| anyhow!("opening microphone: {e}"))?;
+    drop(tx); // the stream holds its own sender
     stream.play().map_err(|e| anyhow!("starting microphone: {e}"))?;
 
     let mut endpoint = Endpointer::new(rate, plan);
@@ -76,6 +82,7 @@ pub fn record(
     let deadline = Instant::now() + Duration::from_secs_f32(plan.max_total() + 1.0);
     let mut last_level = Instant::now();
     let mut peak = 0f32;
+    let (mut chunks, mut last_chunk, mut widest) = (0u32, Instant::now(), Duration::ZERO);
     let heard = loop {
         if stop.swap(false, Ordering::SeqCst)
             && let Status::Done { speech } = endpoint.finish()
@@ -87,6 +94,11 @@ pub fn record(
             Err(mpsc::RecvTimeoutError::Timeout) if Instant::now() < deadline => continue,
             Err(_) => break endpoint.started(),
         };
+        chunks += 1;
+        if chunks > 1 {
+            widest = widest.max(last_chunk.elapsed());
+        }
+        last_chunk = Instant::now();
         let mut m = to_mono(&chunk, channels);
         highpass.process(&mut m); // before measuring: some mics sit far from zero
         let status = endpoint.feed(&m);
@@ -104,11 +116,16 @@ pub fn record(
         }
     };
     drop(stream);
+    let heard_s = mono.len() as f32 / rate as f32;
     trace::line(format_args!(
-        "mic closed after {:.1} s: peak level {peak:.4}, speech gate {:.4}, speech {}",
-        mono.len() as f32 / rate as f32,
+        "mic closed after {heard_s:.1} s: peak level {peak:.4}, speech gate {:.4}, speech {}",
         endpoint.threshold(),
         if heard { "yes" } else { "no" }
+    ));
+    trace::line(format_args!(
+        "mic delivered {chunks} blocks of {:.0} ms on average, {:.0} ms apart at most",
+        heard_s * 1000.0 / chunks.max(1) as f32,
+        widest.as_secs_f32() * 1000.0
     ));
     on_level(0.0, false);
     Ok(Recording { samples: resample(&mono, rate, WHISPER_RATE), heard_speech: heard })

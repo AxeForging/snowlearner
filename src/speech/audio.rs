@@ -4,7 +4,8 @@
 use super::resample::{resample, to_mono};
 use anyhow::{Context, Result, anyhow, bail};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::sync::mpsc;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, mpsc};
 use std::time::Duration;
 
 fn name_of(d: &cpal::Device) -> String {
@@ -152,53 +153,114 @@ pub fn play_detached(mono: Vec<f32>, rate: u32, speaker: String, what: &'static 
     }
 }
 
+/// What a callback carries on PulseAudio (#209), in ms: left to itself the
+/// server buffers about 2 s, which cut the end of every line and handed the
+/// endpointer the microphone in 2 s blocks. Other hosts keep their defaults.
+const MIC_CALLBACK_MS: u32 = 20;
+const SPEAKER_CALLBACK_MS: u32 = 40;
+/// Kept after the last sample has played, for the device's own buffer.
+const DRAIN_MARGIN: Duration = Duration::from_millis(120);
+
+/// The buffer a stream asks `host` for at `rate` Hz: fixed on PulseAudio,
+/// the host's default everywhere else (ALSA, WASAPI, CoreAudio).
+pub fn buffer_size(host: &str, rate: u32, input: bool) -> cpal::BufferSize {
+    if host != "PulseAudio" {
+        return cpal::BufferSize::Default;
+    }
+    let ms = if input { MIC_CALLBACK_MS } else { SPEAKER_CALLBACK_MS };
+    cpal::BufferSize::Fixed((rate as u64 * ms as u64 / 1000).max(1) as u32)
+}
+
+/// How long to keep a speaker open once the last sample is written: what the
+/// device still holds (`latency`, as the stream reports it) plus a margin.
+pub fn drain_wait(latency: Duration) -> Duration {
+    latency + DRAIN_MARGIN
+}
+
+/// Opens a stream with the buffer `buffer_size` picks; a host that refuses it
+/// gets its default instead, and the trace says so.
+pub fn open_stream<E: std::fmt::Display>(
+    mut config: cpal::StreamConfig,
+    input: bool,
+    open: impl Fn(cpal::StreamConfig) -> Result<cpal::Stream, E>,
+) -> Result<cpal::Stream, E> {
+    config.buffer_size = buffer_size(host_name(), config.sample_rate, input);
+    if config.buffer_size == cpal::BufferSize::Default {
+        return open(config);
+    }
+    open(config).or_else(|e| {
+        super::trace::line(format_args!("{:?} refused ({e}); opening with the default buffer", config.buffer_size));
+        open(cpal::StreamConfig { buffer_size: cpal::BufferSize::Default, ..config })
+    })
+}
+
+/// Copies the next samples into `out`, converted for the device; true once
+/// everything has been written. `latency`: the stream's latency in µs, kept
+/// at its largest so the speaker stays open until the last sample plays.
+fn fill<T: Copy>(
+    out: &mut [T],
+    data: &[f32],
+    pos: &AtomicUsize,
+    latency: &AtomicU64,
+    info: &cpal::OutputCallbackInfo,
+    convert: fn(f32) -> T,
+) -> bool {
+    let ts = info.timestamp();
+    latency.fetch_max(ts.playback.duration_since(ts.callback).as_micros() as u64, Ordering::Relaxed);
+    let mut p = pos.load(Ordering::Relaxed);
+    for o in out.iter_mut() {
+        *o = convert(data.get(p).copied().unwrap_or(0.0));
+        p += 1;
+    }
+    pos.store(p, Ordering::Relaxed);
+    p >= data.len()
+}
+
 /// Plays mono samples at `rate` Hz on `speaker` and blocks until they finish.
 pub fn play_samples(mono: &[f32], rate: u32, speaker: &str) -> Result<()> {
     let device = output(speaker)?;
     let supported = device.default_output_config().context("speaker has no usable output config")?;
     let (out_rate, channels) = (supported.sample_rate(), supported.channels());
-    let data = spread(&resample(mono, rate, out_rate), channels);
+    let data = Arc::new(spread(&resample(mono, rate, out_rate), channels));
     let total = data.len();
     let (done_tx, done_rx) = mpsc::channel::<()>();
-    let mut pos = 0usize;
-    let config = supported.config();
-    let err_fn = |e| eprintln!("speaker stream error: {e}");
-    let stream = match supported.sample_format() {
-        cpal::SampleFormat::F32 => device.build_output_stream(
-            config,
-            move |out: &mut [f32], _: &_| {
-                for o in out.iter_mut() {
-                    *o = data.get(pos).copied().unwrap_or(0.0);
-                    pos += 1;
-                }
-                if pos >= total {
-                    let _ = done_tx.send(());
-                }
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::I16 => device.build_output_stream(
-            config,
-            move |out: &mut [i16], _: &_| {
-                for o in out.iter_mut() {
-                    *o = (data.get(pos).copied().unwrap_or(0.0).clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
-                    pos += 1;
-                }
-                if pos >= total {
-                    let _ = done_tx.send(());
-                }
-            },
-            err_fn,
-            None,
-        ),
-        other => bail!("unsupported speaker sample format {other:?}"),
+    let (pos, latency) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicU64::new(0)));
+    let format = supported.sample_format();
+    if !matches!(format, cpal::SampleFormat::F32 | cpal::SampleFormat::I16) {
+        bail!("unsupported speaker sample format {format:?}");
     }
-    .map_err(|e| anyhow!("opening speaker: {e}"))?;
+    let open = |config: cpal::StreamConfig| {
+        let (data, pos, latency, done) = (data.clone(), pos.clone(), latency.clone(), done_tx.clone());
+        let err_fn = |e| eprintln!("speaker stream error: {e}");
+        if format == cpal::SampleFormat::F32 {
+            device.build_output_stream(
+                config,
+                move |out: &mut [f32], info: &_| {
+                    if fill(out, &data, &pos, &latency, info, |s| s) {
+                        let _ = done.send(());
+                    }
+                },
+                err_fn,
+                None,
+            )
+        } else {
+            device.build_output_stream(
+                config,
+                move |out: &mut [i16], info: &_| {
+                    if fill(out, &data, &pos, &latency, info, |s| (s.clamp(-1.0, 1.0) * i16::MAX as f32) as i16) {
+                        let _ = done.send(());
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+    };
+    let stream = open_stream(supported.config(), false, open).map_err(|e| anyhow!("opening speaker: {e}"))?;
     stream.play().map_err(|e| anyhow!("starting speaker: {e}"))?;
     let secs = total as f32 / (out_rate as f32 * channels.max(1) as f32);
     let _ = done_rx.recv_timeout(Duration::from_secs_f32(secs + 2.0));
-    std::thread::sleep(Duration::from_millis(120)); // let the device drain its buffer
+    std::thread::sleep(drain_wait(Duration::from_micros(latency.load(Ordering::Relaxed))));
     Ok(())
 }
 
@@ -316,6 +378,23 @@ mod tests {
         let default = cpal::default_host().default_input_device().map(|d| name_of(&d));
         let picked = input("a microphone unplugged long ago").ok().map(|d| name_of(&d));
         assert_eq!(picked, default, "same as the system default, never an error of its own");
+    }
+
+    #[test]
+    fn the_sound_server_gets_small_fixed_buffers_and_other_hosts_their_own() {
+        use cpal::BufferSize::{Default, Fixed};
+        assert_eq!(buffer_size("PulseAudio", 48_000, true), Fixed(960), "20 ms of microphone");
+        assert_eq!(buffer_size("PulseAudio", 44_100, false), Fixed(1764), "40 ms of speaker");
+        for host in ["ALSA", "WASAPI", "CoreAudio"] {
+            assert_eq!(buffer_size(host, 48_000, true), Default, "{host}");
+            assert_eq!(buffer_size(host, 48_000, false), Default, "{host}");
+        }
+    }
+
+    #[test]
+    fn the_speaker_stays_open_until_what_it_holds_has_played() {
+        assert!(drain_wait(Duration::from_secs(2)) >= Duration::from_secs(2), "2 s queued, 2 s waited");
+        assert_eq!(drain_wait(Duration::ZERO), Duration::from_millis(120), "the old margin when none is reported");
     }
 
     #[test]
