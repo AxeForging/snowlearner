@@ -548,6 +548,7 @@ impl App {
     fn draw_weather(&mut self, i: usize) {
         let level = self.scene.as_ref().map(Scene::freeze_level).unwrap_or(0.0);
         let paused = self.scene.as_ref().is_some_and(Scene::paused);
+        let suns = self.scene.as_ref().map_or(0, Scene::suns);
         // The black hole in screen pixels: this screen's snow is pulled toward it.
         let main_scale = self.main.as_ref().map_or(1.0, |m| m.scale as f32);
         let (hx, hy) = self.scene.as_ref().map_or((0.0, 0.0), |s| s.hole);
@@ -558,6 +559,7 @@ impl App {
         let dt = (now - wx.last).as_secs_f32().min(0.2);
         wx.last = now;
         wx.scene.set_freeze_target(level);
+        wx.scene.follow_suns(suns);
         let at = wx.surface.window.outer_position().map(|p| (p.x, p.y)).unwrap_or_default();
         let s = wx.surface.scale as f32;
         wx.scene.hole = ((hole.0 - at.0 as f32) / s, (hole.1 - at.1 as f32) / s);

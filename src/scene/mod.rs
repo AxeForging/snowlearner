@@ -183,6 +183,10 @@ pub struct Scene {
     next_icicles: f32,
     /// Seconds of sunshine left.
     sun_t: f32,
+    /// Suns so far: the weather-only screens shine with each new one (#188).
+    suns: u32,
+    /// On a weather-only screen, the primary's suns it has already shone with.
+    suns_seen: Option<u32>,
     /// The frost mage can't throw while stunned (after the sun or the comet).
     stun_t: f32,
     /// The comet reward and its burning rocks (#114).
@@ -278,6 +282,8 @@ impl Scene {
             skill: Skill::Friend,
             next_icicles: pace.icicles_every * 0.4,
             sun_t: 0.0,
+            suns: 0,
+            suns_seen: None,
             stun_t: 0.0,
             comet: None,
             sounds: Vec::new(),
@@ -678,12 +684,30 @@ impl Scene {
     /// Combo reward: the sun shines for a while, melting a big chunk (never
     /// all of it) and stunning the frost mage.
     pub fn sun(&mut self) {
+        self.suns += 1;
         self.sun_t = SUN_SECONDS;
         self.stun_t = SUN_SECONDS * 2.5;
         self.snow.melt(SUN_MELT);
         self.frost.melt(SUN_MELT * 1.5);
-        self.mage.say(T::MageSun.get(self.native), 3.0);
-        self.warrior.say(T::WarriorSun.get(self.native), 3.0);
+        if self.weather.is_none() {
+            self.mage.say(T::MageSun.get(self.native), 3.0);
+            self.warrior.say(T::WarriorSun.get(self.native), 3.0);
+        }
+    }
+
+    /// How many suns this screen has had.
+    pub fn suns(&self) -> u32 {
+        self.suns
+    }
+
+    /// A weather-only screen shines with each new sun of the primary (#188),
+    /// given its count every frame. The first count only sets where it
+    /// starts, so a monitor plugged in later gets no sun that is already over.
+    pub fn follow_suns(&mut self, primary: u32) {
+        if self.suns_seen.is_some_and(|seen| primary > seen) {
+            self.sun();
+        }
+        self.suns_seen = Some(primary);
     }
 
     pub fn sun_active(&self) -> bool {
@@ -1233,12 +1257,19 @@ impl Scene {
         if self.vortex != vortex::Phase::Open {
             return;
         }
+        // Under the primary's sun (#188): melting, no snow falls or piles up.
+        self.sun_t = (self.sun_t - dt).max(0.0);
+        let sunny = self.sun_t > 0.0;
+        if sunny {
+            self.snow.melt(SUN_RATE * dt);
+            self.melt_flakes_in_the_sun();
+        }
         let k = (WEATHER_FOLLOW * dt).min(1.0);
         let (w, h) = (self.w as f32, self.h as f32);
         // A little past the line, so a pile meant to be at it gets there.
         let (pile_want, edges_want) = ((target / 0.6).min(1.02), ((target - 0.6) / 0.8).max(0.0));
         let pile = self.pile_level();
-        if pile < pile_want {
+        if pile < pile_want && !sunny {
             let x = self.rng.range(0.0, w);
             let total = (pile_want - pile) * k * w * h * ICE_LINE;
             self.snow.add(x, total / (CUBE_SPREAD * 1.77), CUBE_SPREAD);
@@ -1247,7 +1278,7 @@ impl Scene {
         }
         self.update_ice_line();
         let cover = self.frost.coverage();
-        if self.frozen_over && cover < edges_want {
+        if self.frozen_over && cover < edges_want && !sunny {
             let edge = *self.rng.pick(&[Edge::Top, Edge::Left, Edge::Right]);
             let at = if edge == Edge::Top { self.rng.range(0.0, w) } else { self.rng.range(0.0, h) };
             let strength = self.frost_strength() * (edges_want - cover) / edges_want * WEATHER_FROST * dt;
@@ -1257,7 +1288,14 @@ impl Scene {
         }
         self.snow.settle();
         self.frost.settle();
-        self.fall_flakes(dt, snowfall(self.flakes.len(), self.pace.snowfall));
+        let target = if sunny { 0 } else { snowfall(self.flakes.len(), self.pace.snowfall) };
+        self.fall_flakes(dt, target);
+        // The steam of the flakes the sun melted.
+        let (ground, snow) = (self.ground_y(), &self.snow);
+        for p in &mut self.particles {
+            p.step(dt, |x| ground - snow.height_at(x));
+        }
+        self.particles.retain(Particle::alive);
     }
 
     /// Under the sun each flake still in the air melts into a puff of steam,
@@ -1685,6 +1723,12 @@ impl Scene {
         self.blanket.borrow_mut().draw(c, &self.snow, &self.frost, self.ground_y() as i32, self.time, self.transparent);
         for f in self.flakes.iter().filter(|f| f.falling) {
             c.dot(f.x, f.y, if f.speed > 13.0 { hex(0xffffff) } else { hex(0xc9d0f2) });
+        }
+        for p in &self.particles {
+            p.draw(c);
+        }
+        if self.sun_t > 0.0 {
+            draw_sun(c, self.time, (self.sun_t / 1.0).min(1.0));
         }
     }
 
@@ -3423,6 +3467,69 @@ mod tests {
         s.set_freeze_target(1.0);
         run(&mut s, 30.0);
         assert!(on_curve(&s), "as hard when buried (#180): {} falling", falling(&s));
+    }
+
+    /// A weather-only screen, a little buried, following a primary at `level`.
+    fn weather_screen(level: f32) -> Scene {
+        let mut s = Scene::weather(320, 180, 16, Commitment::Steady.pace(), true);
+        s.set_freeze_target(level);
+        s.follow_suns(0);
+        run(&mut s, 60.0);
+        s
+    }
+
+    #[test]
+    fn a_weather_screen_shines_with_the_primary_s_sun_and_melts_its_share() {
+        let mut s = weather_screen(0.4);
+        let before = s.snow.total();
+        assert!(before > 0.0 && falling(&s) > 0);
+        s.follow_suns(1);
+        assert!(s.sun_active(), "the primary's sun shines here too (#188)");
+        let left = s.snow.total() / before;
+        assert!((left - (1.0 - SUN_MELT)).abs() < 0.01, "melted {:.2}, not SUN_MELT", 1.0 - left);
+        let at_sun = s.snow.total();
+        run(&mut s, SUN_SECONDS - 0.5);
+        assert!(s.sun_active());
+        assert_eq!(falling(&s), 0, "no snow falls under the sun");
+        assert!(s.snow.total() <= at_sun, "nothing piles up under the sun");
+        run(&mut s, 1.0);
+        assert!(!s.sun_active(), "it shines for SUN_SECONDS");
+        s.follow_suns(1);
+        run(&mut s, 1.0);
+        assert!(!s.sun_active(), "the same sun shines once");
+    }
+
+    #[test]
+    fn a_weather_screen_s_flakes_melt_into_steam_under_the_sun() {
+        let mut s = weather_screen(0.4);
+        let in_air = falling(&s);
+        s.follow_suns(1);
+        run(&mut s, SUN_FLAKE_S + 0.2);
+        assert_eq!(falling(&s), 0, "all {in_air} flakes melted");
+        assert!(s.particles.iter().any(|p| p.kind == Kind::Steam), "steam where they melted");
+    }
+
+    #[test]
+    fn after_the_sun_a_weather_screen_follows_the_primary_again() {
+        let mut s = weather_screen(0.4);
+        s.follow_suns(1);
+        run(&mut s, SUN_SECONDS + 0.5);
+        let after = s.freeze_level();
+        run(&mut s, 120.0);
+        assert!(s.freeze_level() > after + 0.05, "the pile climbs back toward the primary's level");
+        assert!(on_curve(&s), "the snowfall is back: {} falling", falling(&s));
+    }
+
+    #[test]
+    fn a_screen_plugged_in_after_a_sun_gets_no_late_sun() {
+        let mut s = Scene::weather(320, 180, 16, Commitment::Steady.pace(), true);
+        s.follow_suns(3);
+        assert!(!s.sun_active());
+        s.follow_suns(4);
+        assert!(s.sun_active());
+        let mut primary = Scene::new(320, 180, 16, Commitment::Steady.pace(), true);
+        primary.sun();
+        assert_eq!(primary.suns(), 1);
     }
 
     #[test]

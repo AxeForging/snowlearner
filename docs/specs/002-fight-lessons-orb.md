@@ -43,7 +43,9 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    and a correct answer casts a fireball that melts only `melt_fraction` (12–25% by
    level). A miss fizzles and the frost mage fires back. 3 in a row call the sun
    (big melt, never everything; frost mage stunned; no snow falls under it, and the flakes
-   still in the air melt into steam within 1.5 s, adding nothing to the pile, #171). 6 in a row (12, 18…) call a comet
+   still in the air melt into steam within 1.5 s, adding nothing to the pile, #171;
+   on every other monitor too, with the same melt, the same steam and its own sun at
+   the top, #188). 6 in a row (12, 18…) call a comet
    instead (#114): it falls on the frost mage (#135), melts 25% on impact and leaves
    4–6 little fire people (#139), thrown in arcs across the screen, one per slot of its width so
    the left, middle and right each get some (#172), with 24–30 burning chunks that bounce and
