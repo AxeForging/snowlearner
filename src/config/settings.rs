@@ -27,6 +27,10 @@ pub enum WindowMode {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Settings {
+    /// Layout of this file (#204). Missing = 0, a file written before the key
+    /// existed; `load` migrates it to `CONFIG_VERSION` once and writes it back.
+    #[serde(default)]
+    pub config_version: u32,
     /// Language you are learning (deck name): "en", "es", or a custom deck.
     pub learning: String,
     /// Your own language: every text, cue and meaning, and the voice that
@@ -107,6 +111,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            config_version: CONFIG_VERSION,
             learning: "en".into(),
             native: Native::PtBr,
             commitment: Commitment::Steady,
@@ -181,7 +186,14 @@ pub const MODELS: &[&str] = &["tiny", "base", "small"];
 /// Windows dynamic range (49152–65535). The old 47821 sat inside the first two.
 pub const DEFAULT_IPC_PORT: u16 = 31821;
 
+/// The layout `save` writes (#204). 1: `pixel_scale = 0` is the default
+/// (by the screen); a file without the key still holds the old default 4.
+pub const CONFIG_VERSION: u32 = 1;
+/// What every config written before 0.1.43 holds unless someone changed it.
+const OLD_DEFAULT_SCALE: u32 = 4;
+
 const HEADER: &str = "# snowlearner config (also editable live: `snowlearner menu`)\n\
+    # config_version: written by snowlearner, leave it as it is\n\
     # learning: deck to practice (\"en\", \"es\", \"pt-BR\" or a custom decks/<name>.toml)\n\
     # native: your own language, \"pt-BR\" or \"en\" (never the one you learn)\n\
     # commitment: chill | steady | committed | relentless\n\
@@ -221,7 +233,30 @@ impl Settings {
         s.max_level = s.max_level.trim().to_uppercase(); // "pre-a1", "b1" …
         s.topics = normalize_topics(&s.topics);
         s.validate().with_context(|| format!("invalid config {}", path.display()))?;
+        if s.migrate() {
+            // Once, and only when a value changed (a hand-written file is left
+            // as it is otherwise): from now on the file says what it is.
+            if let Err(e) = s.save(path) {
+                eprintln!("config: migrated in memory, but writing {} failed: {e:#}", path.display());
+            }
+        }
         Ok(s)
+    }
+
+    /// Brings a file written before `config_version` existed up to date; true
+    /// when a value changed, so the file has to be written. The old default
+    /// `pixel_scale = 4` becomes 0 (by the screen, #181), since nothing tells
+    /// it apart from a 4 chosen on purpose.
+    pub fn migrate(&mut self) -> bool {
+        if self.config_version >= CONFIG_VERSION {
+            return false;
+        }
+        self.config_version = CONFIG_VERSION;
+        if self.pixel_scale == OLD_DEFAULT_SCALE {
+            self.pixel_scale = 0;
+            return true;
+        }
+        false
     }
 
     pub fn validate(&self) -> Result<()> {
@@ -339,6 +374,61 @@ mod tests {
         assert_eq!(picked, vec![1, 2, 3, 4]);
         let mine = Settings { pixel_scale: 4, ..Settings::default() };
         assert_eq!(mine.scale_for(1080), 4, "a scale in the config wins");
+    }
+
+    #[test]
+    fn an_old_config_with_the_old_default_scale_gets_the_automatic_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        std::fs::write(&p, "learning = 'es'\npixel_scale = 4\n").unwrap();
+        let s = Settings::load(&p).unwrap();
+        assert_eq!((s.pixel_scale, s.config_version), (0, CONFIG_VERSION));
+        assert_eq!(s.learning, "es", "nothing else moves");
+    }
+
+    #[test]
+    fn an_old_config_keeps_any_other_scale() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        for scale in [0, 1, 2, 3, 12] {
+            std::fs::write(&p, format!("pixel_scale = {scale}\n")).unwrap();
+            let s = Settings::load(&p).unwrap();
+            assert_eq!((s.pixel_scale, s.config_version), (scale, CONFIG_VERSION), "pixel_scale = {scale}");
+            assert_eq!(std::fs::read_to_string(&p).unwrap(), format!("pixel_scale = {scale}\n"), "nothing to write");
+        }
+    }
+
+    #[test]
+    fn a_4_chosen_after_the_migration_stays() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        std::fs::write(&p, format!("config_version = {CONFIG_VERSION}\npixel_scale = 4\n")).unwrap();
+        assert_eq!(Settings::load(&p).unwrap().pixel_scale, 4);
+    }
+
+    #[test]
+    fn the_migration_is_written_once_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        std::fs::write(&p, "pixel_scale = 4\ncommitment = 'committed'\n").unwrap();
+        let s = Settings::load(&p).unwrap();
+        let written = std::fs::read_to_string(&p).unwrap();
+        assert!(written.contains(&format!("config_version = {CONFIG_VERSION}")), "{written}");
+        assert!(written.contains("pixel_scale = 0") && written.contains("commitment = \"committed\""), "{written}");
+        assert!(written.contains("# config_version:"), "explained in the header");
+        assert_eq!(Settings::load(&p).unwrap(), s, "migrated once, round-trips after");
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), written, "a migrated file is not written again");
+    }
+
+    #[test]
+    fn a_fresh_config_is_already_at_the_current_version_with_the_automatic_scale() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("config.toml");
+        Settings::write_default(&p, false).unwrap();
+        let written = std::fs::read_to_string(&p).unwrap();
+        assert!(written.contains(&format!("config_version = {CONFIG_VERSION}")) && written.contains("pixel_scale = 0"));
+        assert_eq!(Settings::load(&p).unwrap(), Settings::default());
+        assert_eq!(Settings::default().config_version, CONFIG_VERSION);
     }
 
     #[test]
