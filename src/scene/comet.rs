@@ -238,7 +238,21 @@ impl Comet {
                 let (x, target, budget) = (self.to_x, to, share);
                 let hop = None;
                 let digging = false;
-                let e = Ember { x, dir, speed, target, retarget_in, hop, hop_in, run_t, budget, rate, life, digging, flight };
+                let e = Ember {
+                    x,
+                    dir,
+                    speed,
+                    target,
+                    retarget_in,
+                    hop,
+                    hop_in,
+                    run_t,
+                    budget,
+                    rate,
+                    life,
+                    digging,
+                    flight,
+                };
                 self.embers.push(e);
             }
             return Some(Impact { x: self.to_x });
