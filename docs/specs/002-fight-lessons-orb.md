@@ -71,7 +71,14 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    32 / 8 / 5.5 min, and the flakes lay 55-60% of the pile (44% at Relentless). Real snow piles up under 1 cm an hour (light) to
    10 cm in 12 h (heavy), about 0.1 px an hour at the scene's ~10 px per metre, so each
    flake stands for far more snow: the fill is time-compressed, the look is not. The
-   wind is #183.
+   wind follows the commitment (#183, `Pace::wind` ± `Pace::gust`, at ~10 px per metre):
+   a light breeze at Chill (10 ± 5 px/s, ~1 m/s), a breeze at Steady (20 ± 12, ~2 m/s),
+   a fresh wind at Committed (50 ± 25, ~5 m/s) and a blizzard at Relentless (160 ± 50,
+   the NWS's 35 mph). It holds a side for about five minutes and turns over in a few
+   seconds (`WIND_TURN_S` 600), with gusts over 3-7 s. The snowfield goes on past the
+   screen: a flake blown off one side comes back in on the other at the same height,
+   unless that wall has snow to slide down or hold it, so the flakes stay spread over
+   the whole width and the fill times above hold.
    Where a fireball lands, a brief local dithered flash sized by the spell's tier
    (6/10/16 px, never the whole screen, melts nothing). When a phrase becomes known the
    fire mage flares (full flame and a ring of sparks) and the warrior cheers, once per

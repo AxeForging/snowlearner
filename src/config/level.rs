@@ -26,6 +26,11 @@ pub struct Pace {
     /// the pile: a flake stands for less snow, so the screen fills slowly while
     /// the snowfall looks the same (#187).
     pub settle_share: f32,
+    /// Mean wind while it blows, px/s (the scene is ~10 px per metre: the
+    /// warrior, 16 px, is a 1.7 m adult), from a breeze to a blizzard (#183).
+    pub wind: f32,
+    /// How far the gusts swing around that mean, px/s.
+    pub gust: f32,
     /// How hard the frost sprayed onto the edges bites (a cube itself leaves
     /// only its own pixels on the pile, #180).
     pub snow_per_cube: f32,
@@ -52,6 +57,9 @@ impl Commitment {
                 throw_every: 30.0,
                 snowfall: 0.25,
                 settle_share: 0.5,
+                // A light breeze, ~1 m/s.
+                wind: 10.0,
+                gust: 5.0,
                 snow_per_cube: 3.0,
                 summon_every: 240.0,
                 ask_every: 1800.0,
@@ -66,6 +74,9 @@ impl Commitment {
                 throw_every: 15.0,
                 snowfall: 0.5,
                 settle_share: 0.5,
+                // A gentle breeze, ~2 m/s.
+                wind: 20.0,
+                gust: 12.0,
                 snow_per_cube: 4.0,
                 summon_every: 120.0,
                 ask_every: 1200.0,
@@ -78,6 +89,9 @@ impl Commitment {
                 throw_every: 6.0,
                 snowfall: 1.0,
                 settle_share: 0.8,
+                // A fresh wind, ~5 m/s.
+                wind: 50.0,
+                gust: 25.0,
                 snow_per_cube: 5.0,
                 summon_every: 75.0,
                 ask_every: 720.0,
@@ -91,6 +105,9 @@ impl Commitment {
                 throw_every: 3.0,
                 snowfall: 1.0,
                 settle_share: 0.8,
+                // A blizzard: 35 mph (15.6 m/s) or more (NWS).
+                wind: 160.0,
+                gust: 50.0,
                 snow_per_cube: 6.0,
                 summon_every: 45.0,
                 ask_every: 360.0,
@@ -128,6 +145,7 @@ mod tests {
             assert!(hard.throw_every < easy.throw_every, "{:?}", pair);
             assert!(hard.snowfall >= easy.snowfall, "{:?}", pair);
             assert!(hard.settle_share >= easy.settle_share, "{:?}", pair);
+            assert!(hard.wind > easy.wind && hard.gust > easy.gust, "{:?}", pair);
             assert!(hard.snow_per_cube > easy.snow_per_cube, "{:?}", pair);
             assert!(hard.summon_every < easy.summon_every, "{:?}", pair);
             assert!(hard.ask_every < easy.ask_every, "{:?}", pair);
