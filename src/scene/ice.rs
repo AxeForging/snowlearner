@@ -10,6 +10,16 @@ const CUBE_B: &[&str] = &["..LD..", ".LWCD.", "LWCCCD", "LCCCCD", ".DCCd.", "..D
 const CUBE_C: &[&str] = &["DLLLLL", "DCCWWL", "DCCCWL", "DCCCCL", "DDCCCL", "dDDDDD"];
 pub const CUBE_FRAMES: [&[&str]; 4] = [CUBE_A, CUBE_B, CUBE_C, CUBE_B];
 
+/// Opaque pixels in a sprite: what it leaves on the pile when it lands (#180).
+pub fn pixels(rows: &[&str]) -> f32 {
+    rows.iter().map(|r| r.chars().filter(|&c| c != '.').count()).sum::<usize>() as f32
+}
+
+/// The most snow a shattered cube may leave: its biggest frame.
+pub fn cube_pixels() -> f32 {
+    CUBE_FRAMES.iter().map(|f| pixels(f)).fold(0.0, f32::max)
+}
+
 pub struct Cube {
     pub x: f32,
     pub y: f32,
@@ -55,7 +65,7 @@ impl Cube {
     }
 }
 
-const ICICLE: &[&str] = &["WLCD", "WLCD", ".LCD", ".LC.", ".LC.", "..C.", "..C.", "..L."];
+pub const ICICLE: &[&str] = &["WLCD", "WLCD", ".LCD", ".LC.", ".LC.", "..C.", "..C.", "..L."];
 
 /// An icicle from the frost mage's icicle rain: hangs and shakes at the top
 /// of the screen for `delay` seconds, then drops.

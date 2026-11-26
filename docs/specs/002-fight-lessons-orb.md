@@ -53,8 +53,21 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
    New snow sticks less the deeper the pile (#170): at the ice line a cube, icicle or
    flake leaves only 35% of what it would on bare ground (`DEEP_PILE_SLOWDOWN`), so at
-   Steady (one cube every 6 s) a clear screen takes about 48 min to freeze at the edges
-   and one right answer there keeps it clear for about 11 min (it was 26 and 3.3).
+   Steady (one cube every 6 s) a clear screen took about 48 min to freeze at the edges
+   and one right answer there kept it clear for about 11 min (it was 26 and 3.3).
+   The pile grows only from snow you see land (#180): a cube leaves its own 36 px, an
+   icicle 18, an owl's snowball 5, and a friend's spray leaves none on the ground (its
+   frost on the edges stays). It snows like real snow, as hard as the commitment says
+   and however buried the screen already is (`Pace::snowfall`, a share of a pool of one
+   flake per 300 px): light at Chill, moderate at Steady, heavy at Committed and
+   Relentless, in the ratio of real visibility classes (over 1 km, 0.5-1 km, under
+   0.5 km: 1 : 2 : 4). The mage throws a cube every 30 / 15 / 6 / 3 s. At Steady on
+   480x270 a clear screen now takes about an hour to freeze at the edges, one right
+   answer keeps it clear for 16-18 min, and the flakes lay 59% of the pile; Chill about
+   two hours, Relentless about 24 min. Real snow piles up under 1 cm an hour (light) to
+   10 cm in 12 h (heavy), about 0.1 px an hour at the scene's ~10 px per metre, so each
+   flake stands for far more snow: the fill is time-compressed, the look is not. The
+   wind is #183.
    Where a fireball lands, a brief local dithered flash sized by the spell's tier
    (6/10/16 px, never the whole screen, melts nothing). When a phrase becomes known the
    fire mage flares (full flame and a ring of sparks) and the warrior cheers, once per

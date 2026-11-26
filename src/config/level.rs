@@ -17,7 +17,13 @@ pub enum Commitment {
 pub struct Pace {
     /// Pause between ice throws.
     pub throw_every: f32,
-    /// Snow pixels (column-height units) each shattered cube adds.
+    /// How hard it snows: the share of the flake pool in the air, the same
+    /// all the time (#180). Real snow is light, moderate or heavy by
+    /// visibility (over 1 km, 0.5-1 km, under 0.5 km), and the flakes in view
+    /// grow as the visibility drops: 1 : 2 : 4.
+    pub snowfall: f32,
+    /// How hard the frost sprayed onto the edges bites (a cube itself leaves
+    /// only its own pixels on the pile, #180).
     pub snow_per_cube: f32,
     /// Time between friend summons (snowman, penguin).
     pub summon_every: f32,
@@ -38,7 +44,9 @@ impl Commitment {
     pub fn pace(self) -> Pace {
         match self {
             Commitment::Chill => Pace {
-                throw_every: 9.0,
+                // 9.0 before #180, when the cubes were the snowfall.
+                throw_every: 30.0,
+                snowfall: 0.25,
                 snow_per_cube: 3.0,
                 summon_every: 240.0,
                 ask_every: 1800.0,
@@ -48,8 +56,10 @@ impl Commitment {
                 mobs_every: 200.0,
             },
             Commitment::Steady => Pace {
-                // 5.0 refilled the screen too fast for a learner (#170).
-                throw_every: 6.0,
+                // 5.0 refilled the screen too fast for a learner (#170); 6.0
+                // until the snowfall carried the fill (#180).
+                throw_every: 15.0,
+                snowfall: 0.5,
                 snow_per_cube: 4.0,
                 summon_every: 120.0,
                 ask_every: 1200.0,
@@ -59,7 +69,8 @@ impl Commitment {
                 mobs_every: 110.0,
             },
             Commitment::Committed => Pace {
-                throw_every: 3.0,
+                throw_every: 6.0,
+                snowfall: 1.0,
                 snow_per_cube: 5.0,
                 summon_every: 75.0,
                 ask_every: 720.0,
@@ -69,7 +80,9 @@ impl Commitment {
                 mobs_every: 70.0,
             },
             Commitment::Relentless => Pace {
-                throw_every: 1.6,
+                // A blizzard: heavy snow, its wind comes with #183.
+                throw_every: 3.0,
+                snowfall: 1.0,
                 snow_per_cube: 6.0,
                 summon_every: 45.0,
                 ask_every: 360.0,
@@ -105,6 +118,7 @@ mod tests {
         for pair in ORDER.windows(2) {
             let (easy, hard) = (pair[0].pace(), pair[1].pace());
             assert!(hard.throw_every < easy.throw_every, "{:?}", pair);
+            assert!(hard.snowfall >= easy.snowfall, "{:?}", pair);
             assert!(hard.snow_per_cube > easy.snow_per_cube, "{:?}", pair);
             assert!(hard.summon_every < easy.summon_every, "{:?}", pair);
             assert!(hard.ask_every < easy.ask_every, "{:?}", pair);
@@ -120,6 +134,7 @@ mod tests {
             let p = level.pace();
             assert!(p.melt_fraction > 0.05 && p.melt_fraction <= 0.3, "one answer must never clear the screen");
             assert!(p.throw_every > 0.5);
+            assert!(p.snowfall > 0.0 && p.snowfall <= 1.0, "a share of the flake pool");
         }
     }
 

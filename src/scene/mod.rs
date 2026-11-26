@@ -107,25 +107,26 @@ struct Flake {
     y: f32,
     speed: f32,
     phase: f32,
-    /// In the air; the rest of the pool waits until the screen freezes more.
+    /// In the air; the rest of the pool waits for a heavier snowfall.
     falling: bool,
 }
 
-/// Share of the flake pool falling on a clear screen: a few flakes, just
-/// enough to show it has started to snow.
-const SNOWFALL_MIN: f32 = 0.02;
-/// Never fewer flakes than this on a clear screen (small windows).
+/// Screen pixels per flake in the pool (#180: 500 before).
+const PIXELS_PER_FLAKE: i32 = 300;
+/// Never fewer flakes than this in the air (small windows).
 const SNOWFALL_FLOOR: usize = 6;
-/// Spread of the heap a shattered cube leaves (`Snow::add`).
+/// Spread of the snow a weather-only screen adds per step (`Snow::add`).
 const CUBE_SPREAD: f32 = 9.0;
+/// Spread of the little heap a cube leaves where it shatters.
+const HEAP_SPREAD: f32 = 3.0;
+/// Spread of the heap an icicle or a snowball leaves.
+const SMALL_HEAP_SPREAD: f32 = 2.0;
 
-/// Flakes falling out of a pool of `pool` at freeze `level` (0 clear, 1
-/// buried): a few on a clear screen, growing slowly at first (quadratic)
-/// and reaching the whole pool once buried.
-fn snowfall(pool: usize, level: f32) -> usize {
-    let l = level.clamp(0.0, 1.0);
-    let share = SNOWFALL_MIN + (1.0 - SNOWFALL_MIN) * l * l;
-    ((pool as f32 * share).round() as usize).max(SNOWFALL_FLOOR).min(pool)
+/// Flakes in the air out of a pool of `pool` when `share` of it falls
+/// (`Pace::snowfall`): as hard as the commitment says, however buried the
+/// screen already is, like real snow (#180).
+fn snowfall(pool: usize, share: f32) -> usize {
+    ((pool as f32 * share.clamp(0.0, 1.0)).round() as usize).max(SNOWFALL_FLOOR).min(pool)
 }
 
 pub struct Scene {
@@ -213,6 +214,9 @@ pub struct Scene {
     practicing: bool,
     throws: u32,
     next_throw: f32,
+    /// Pixels laid on the pile by the snowfall and by what was thrown (#180).
+    #[cfg(test)]
+    laid: (f32, f32),
     next_summon: f32,
     next_tip: f32,
     /// Weather-only screen (the other monitors in overlay mode): the freeze
@@ -224,8 +228,8 @@ impl Scene {
     pub fn new(w: i32, h: i32, seed: u64, pace: Pace, transparent: bool) -> Self {
         let mut rng = Rng::new(seed);
         let (w, h) = (w.max(80), h.max(60));
-        let pool = (w * h / 500).max(12) as usize;
-        let light = snowfall(pool, 0.0);
+        let pool = (w * h / PIXELS_PER_FLAKE).max(12) as usize;
+        let light = snowfall(pool, pace.snowfall);
         let flakes: Vec<Flake> = (0..pool)
             .map(|i| Flake {
                 x: rng.range(0.0, w as f32),
@@ -292,6 +296,8 @@ impl Scene {
             practicing: false,
             throws: 0,
             next_throw: 1.5,
+            #[cfg(test)]
+            laid: (0.0, 0.0),
             next_summon: 25.0_f32.min(pace.summon_every),
             next_tip: 12.0,
             weather: None,
@@ -366,11 +372,6 @@ impl Scene {
     /// thaws them, not a campfire nibbling at it.
     fn edges_freeze(&self) -> bool {
         self.pile_level() >= 1.0 || (self.frozen_over && self.pile_level() >= 0.9)
-    }
-
-    /// Pace amounts (pixels) on this screen, see `PACE_HEIGHT`.
-    fn scaled(&self, px: f32) -> f32 {
-        px * self.h as f32 / PACE_HEIGHT
     }
 
     /// 0 = clear, 1 = buried: drives the warrior's chill and corner frost.
@@ -1030,7 +1031,7 @@ impl Scene {
             let (x, y) = (b.x, b.y);
             if y >= self.feet_y(x) - 1.0 || !(-4.0..w + 4.0).contains(&x) {
                 self.snowballs.swap_remove(i);
-                self.shatter_small(x, y);
+                self.shatter_small(x, y, ice::pixels(owl::SNOWBALL));
             } else {
                 i += 1;
             }
@@ -1048,7 +1049,7 @@ impl Scene {
         for i in fallen.into_iter().rev() {
             let ic = self.icicles.remove(i);
             let (x, y) = ic.tip();
-            self.shatter_small(x, y);
+            self.shatter_small(x, y, ice::pixels(ice::ICICLE));
         }
 
         // Cubes in flight.
@@ -1202,11 +1203,15 @@ impl Scene {
         // The sky holds its snow while you practice, like the mage his cubes,
         // and under the sun, which melts what is still in the air (#171).
         let held = self.practicing || self.paused || self.sun_t > 0.0;
-        let target = if held { 0 } else { snowfall(self.flakes.len(), self.freeze_level()) };
+        let target = if held { 0 } else { snowfall(self.flakes.len(), self.pace.snowfall) };
         if self.sun_t > 0.0 {
             self.melt_flakes_in_the_sun();
         }
-        self.fall_flakes(dt, target);
+        let _settled = self.fall_flakes(dt, target);
+        #[cfg(test)]
+        {
+            self.laid.0 += _settled as f32;
+        }
     }
 
     /// At the ice line the pile stops rising and the screen freezes instead.
@@ -1251,7 +1256,7 @@ impl Scene {
         }
         self.snow.settle();
         self.frost.settle();
-        self.fall_flakes(dt, snowfall(self.flakes.len(), target));
+        self.fall_flakes(dt, snowfall(self.flakes.len(), self.pace.snowfall));
     }
 
     /// Under the sun each flake still in the air melts into a puff of steam,
@@ -1375,7 +1380,7 @@ impl Scene {
 
     fn shatter(&mut self, x: f32, y: f32) {
         let x = x.clamp(0.0, self.w as f32 - 1.0);
-        self.snow.add(x, self.scaled(self.pace.snow_per_cube) * self.landing_share(), self.scaled(CUBE_SPREAD));
+        self.lay(x, ice::cube_pixels(), HEAP_SPREAD);
         for i in 0..11 {
             let (vx, vy, life) = (self.rng.range(-70.0, 70.0), self.rng.range(-90.0, -20.0), self.rng.range(0.6, 1.4));
             let p = Particle::new(Kind::Shard, x, y - 2.0, vx, vy, life, hex(ICE_COLORS[i % 4]));
@@ -1528,10 +1533,20 @@ impl Scene {
         self.friends.len()
     }
 
-    /// An icicle hit: less snow than a cube, but many of them.
-    fn shatter_small(&mut self, x: f32, y: f32) {
+    /// What landed at `x` leaves its own `pixels`, less what a deep pile melts.
+    fn lay(&mut self, x: f32, pixels: f32, spread: f32) {
+        let _before = self.snow.total();
+        self.snow.deposit(x, pixels * self.landing_share(), spread);
+        #[cfg(test)]
+        {
+            self.laid.1 += self.snow.total() - _before;
+        }
+    }
+
+    /// An icicle or a snowball hit, leaving its own `pixels` of snow.
+    fn shatter_small(&mut self, x: f32, y: f32, pixels: f32) {
         let x = x.clamp(0.0, self.w as f32 - 1.0);
-        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 0.5) * self.landing_share(), self.scaled(4.0));
+        self.lay(x, pixels, SMALL_HEAP_SPREAD);
         for i in 0..5 {
             let (vx, vy, life) = (self.rng.range(-40.0, 40.0), self.rng.range(-60.0, -15.0), self.rng.range(0.4, 0.9));
             self.particles.push(Particle::new(Kind::Shard, x, y - 1.0, vx, vy, life, hex(ICE_COLORS[i % 4])));
@@ -1551,7 +1566,8 @@ impl Scene {
         }
     }
 
-    /// A friend sprays frost onto the nearest edge and one other edge.
+    /// A friend sprays frost onto the nearest edge and one other edge; the
+    /// sparks leave no snow on the pile (#180).
     fn frost_burst(&mut self, x: f32, y: f32) {
         let (w, h) = (self.w as f32, self.h as f32);
         let strength = self.frost_strength();
@@ -1563,7 +1579,6 @@ impl Scene {
             self.frost.burst(near, pos(near), strength, h * 0.15);
             self.frost.burst(other, at, strength * 0.7, h * 0.15);
         }
-        self.snow.add(x, self.scaled(self.pace.snow_per_cube * 1.5) * self.landing_share(), self.scaled(8.0));
         for i in 0..30 {
             let a = self.rng.range(-3.0, -0.14); // upward fan
             let sp = self.rng.range(60.0, 140.0);
@@ -1843,10 +1858,6 @@ const TUMBLE_CHANCE: f32 = 1.0 / 3.0;
 
 /// Edge-snow coverage at which the glass is fully frosted over.
 const GLASS_FULL_AT: f32 = 0.6;
-
-/// Pace amounts are pixels on a 270-px-tall scene (1080p at the default pixel
-/// scale); scaled by this, the pile rises the same share of any screen.
-const PACE_HEIGHT: f32 = 270.0;
 
 fn clear_disc(c: &mut Canvas, (cx, cy): (f32, f32), r: f32) {
     for y in (cy - r).floor() as i32..=(cy + r).ceil() as i32 {
@@ -2374,7 +2385,7 @@ mod tests {
         s.set_practicing(true);
         run(&mut s, 30.0);
         assert_eq!(s.cubes_in_flight(), 0);
-        assert!(s.snow.fill() < 1e-3, "no cubes should have landed, fill {}", s.snow.fill());
+        assert_eq!(s.laid.1, 0.0, "no cubes should have landed");
     }
 
     #[test]
@@ -2431,32 +2442,40 @@ mod tests {
     /// Falling count matches the curve, give or take the few surplus flakes
     /// still finishing their fall after the level dipped.
     fn on_curve(s: &Scene) -> bool {
-        let target = snowfall(s.flakes.len(), s.freeze_level());
+        let target = snowfall(s.flakes.len(), s.pace.snowfall);
         falling(s).abs_diff(target) <= s.flakes.len() / 50
     }
 
     #[test]
-    fn snowfall_starts_with_a_few_flakes_and_grows_slowly_then_to_the_whole_pool() {
-        assert_eq!(snowfall(1000, 0.0), 20, "2% on a clear screen");
-        assert_eq!(snowfall(100, 0.0), 6, "but never fewer than a handful");
-        assert_eq!(snowfall(1000, 0.25), 81, "still light a quarter of the way");
-        assert_eq!(snowfall(1000, 0.5), 265);
+    fn the_snowfall_is_the_commitment_s_share_of_the_pool() {
+        assert_eq!(snowfall(1000, 0.25), 250);
+        assert_eq!(snowfall(1000, 0.5), 500);
         assert_eq!(snowfall(1000, 1.0), 1000);
         assert_eq!(snowfall(1000, 7.0), 1000, "clamped");
-        assert_eq!(snowfall(1000, -1.0), 20, "clamped");
+        assert_eq!(snowfall(1000, 0.0), 6, "never fewer than a handful");
         assert_eq!(snowfall(4, 0.0), 4, "a tiny pool falls whole");
-        let mut last = 0;
-        for i in 0..=100 {
-            let n = snowfall(777, i as f32 / 100.0);
-            assert!(n >= last, "monotonic at {i}");
-            last = n;
-        }
+    }
+
+    #[test]
+    fn it_snows_as_hard_as_the_commitment_says_however_buried_the_screen() {
+        // #180: real snow does not fall harder because the ground is white.
+        let mut s = Scene::new(480, 270, 2, Commitment::Steady.pace(), true);
+        run(&mut s, 30.0);
+        let clear = falling(&s);
+        s.snow.dust(1000.0); // a full pile
+        run(&mut s, 60.0);
+        assert!(s.freeze_level() > 0.55);
+        assert_eq!(falling(&s), clear, "as hard on a buried screen");
+        let chill = Scene::new(480, 270, 2, Commitment::Chill.pace(), true);
+        let blizzard = Scene::new(480, 270, 2, Commitment::Relentless.pace(), true);
+        let (light, heavy) = (falling(&chill), falling(&blizzard));
+        assert!(light * 4 <= heavy, "light vs heavy: {light} vs {heavy}");
     }
 
     #[test]
     fn a_clear_screen_starts_with_a_light_snowfall_already_in_the_air() {
         let s = Scene::new(480, 270, 1, Commitment::Chill.pace(), true);
-        assert_eq!(falling(&s), snowfall(s.flakes.len(), 0.0));
+        assert_eq!(falling(&s), snowfall(s.flakes.len(), s.pace.snowfall));
         let high = s.flakes.iter().filter(|f| f.falling && f.y > s.h as f32 * 0.5).count();
         assert!(high > 0, "spread over the screen, not all waiting at the top");
     }
@@ -2476,7 +2495,6 @@ mod tests {
         let level = s.freeze_level();
         assert!(level > 0.55, "a full pile alone is ~0.6 of the freeze level, got {level}");
         assert!(on_curve(&s), "{} falling at level {level}", falling(&s));
-        assert!(falling(&s) > snowfall(s.flakes.len(), 0.0) * 5, "far thicker than on a clear screen");
     }
 
     /// A screen in heavy snowfall, many flakes in the air (no lesson on).
@@ -2596,7 +2614,12 @@ mod tests {
         run(&mut s, 60.0);
         assert_eq!(falling(&s), 0, "no new snowfall while you practice");
         let added = pile(&s) - before;
-        assert!((added - in_air as f32).abs() < 0.5, "the {in_air} flakes in the air settled, pile grew {added}");
+        // As the pile deepens it melts a few in (#170).
+        let settled = in_air as f32;
+        assert!(
+            added <= settled + 0.5 && added >= settled * 0.97,
+            "the {in_air} flakes in the air settled, pile grew {added}"
+        );
     }
 
     /// Waves over many seeds: where each mob starts, relative to its side.
@@ -2747,14 +2770,15 @@ mod tests {
     }
 
     #[test]
-    fn an_ice_cube_buries_the_same_share_of_the_screen_at_any_pixel_scale() {
-        let share = |w: i32, h: i32| {
+    fn an_ice_cube_leaves_its_own_pixels_at_any_pixel_scale() {
+        // #180: a cube is drawn the same size at any scale, so it leaves the same snow.
+        let left = |w: i32, h: i32| {
             let mut s = Scene::new(w, h, 3, Commitment::Steady.pace(), true);
             s.shatter(w as f32 / 2.0, h as f32 / 2.0);
-            (0..w).map(|x| s.snow.height_at(x as f32)).sum::<f32>() / (w * h) as f32
+            s.snow.total()
         };
-        let (small, big) = (share(480, 270), share(960, 540));
-        assert!((big / small - 1.0).abs() < 0.05, "480x270 {small:.5} vs 960x540 {big:.5}");
+        let (small, big) = (left(480, 270), left(960, 540));
+        assert!((big - small).abs() < 0.01 && small <= ice::cube_pixels(), "480x270 {small} vs 960x540 {big}");
     }
 
     /// Buries every edge and the ground as deep as they go.
@@ -2866,6 +2890,10 @@ mod tests {
         let mut s = Scene::new(240, 135, seed, Commitment::Steady.pace(), true);
         let at = if mage { s.mage.x + mage::WIDTH as f32 / 2.0 } else { s.warrior.x + warrior::WIDTH as f32 / 2.0 };
         s.snow = slide::peak(240, s.snow.cap(), at, slope, 28.0);
+        // A clear sky: new flakes start at the top, too far to land on the peak during a ride.
+        for f in &mut s.flakes {
+            f.falling = false;
+        }
         s
     }
 
@@ -3166,7 +3194,7 @@ mod tests {
         let mut s = Scene::new(480, 270, seed, pace, true);
         let dt = 0.1;
         let mut t = 0.0;
-        while !s.edges_freeze() && t < 7200.0 {
+        while !s.edges_freeze() && t < 4.0 * 3600.0 {
             s.step(dt);
             t += dt;
         }
@@ -3185,13 +3213,51 @@ mod tests {
     #[test]
     fn at_steady_the_screen_fills_in_a_long_sitting_and_one_answer_buys_minutes() {
         // #170: it took 26 min to freeze and one answer was undone in 3.3 min.
+        // #180 keeps these while the snowfall, not the cubes, fills the screen.
         let (steady_line, steady_back) = refill_minutes(Commitment::Steady.pace(), 7);
-        assert!(steady_line >= 40.0, "a clear screen froze in {steady_line:.1} min");
-        assert!(steady_back >= 8.0, "one right answer was undone in {steady_back:.1} min");
+        assert!(steady_line >= 55.0, "a clear screen froze in {steady_line:.1} min");
+        assert!(steady_back >= 15.0, "one right answer was undone in {steady_back:.1} min");
         let (chill_line, chill_back) = refill_minutes(Commitment::Chill.pace(), 7);
         let (harsh_line, harsh_back) = refill_minutes(Commitment::Relentless.pace(), 7);
         assert!(chill_line > steady_line && steady_line > harsh_line, "{chill_line} {steady_line} {harsh_line}");
         assert!(chill_back > steady_back && steady_back > harsh_back, "{chill_back} {steady_back} {harsh_back}");
+    }
+
+    #[test]
+    fn a_cube_an_icicle_or_a_snowball_leaves_no_more_snow_than_itself() {
+        assert_eq!(ice::cube_pixels(), 36.0, "the cube is drawn 6x6");
+        let mut s = Scene::new(480, 270, 1, Commitment::Steady.pace(), true);
+        let before = s.snow.total();
+        s.shatter(200.0, 260.0);
+        let left = s.snow.total() - before;
+        assert!(left > 30.0 && left <= ice::cube_pixels(), "a cube left {left} px");
+        for (what, pixels) in [("icicle", ice::pixels(ice::ICICLE)), ("snowball", ice::pixels(owl::SNOWBALL))] {
+            let before = s.snow.total();
+            s.shatter_small(300.0, 260.0, pixels);
+            let left = s.snow.total() - before;
+            assert!(left > 0.0 && left <= pixels, "an {what} of {pixels} px left {left} px");
+        }
+    }
+
+    #[test]
+    fn an_ice_friend_s_spray_leaves_the_pile_untouched() {
+        let mut s = Scene::new(480, 270, 1, Commitment::Steady.pace(), true);
+        s.snow.add(240.0, 10.0, 480.0);
+        let before = s.snow.total();
+        s.frost_burst(200.0, 200.0);
+        assert_eq!(s.snow.total(), before);
+    }
+
+    #[test]
+    fn at_steady_most_of_the_pile_comes_from_the_snowfall() {
+        let mut s = Scene::new(480, 270, 7, Commitment::Steady.pace(), true);
+        let mut t = 0.0;
+        while !s.edges_freeze() && t < 7200.0 {
+            s.step(0.1);
+            t += 0.1;
+        }
+        let (sky, thrown) = s.laid;
+        assert!(sky >= thrown, "the snowfall laid {sky} px, the throws {thrown} px");
     }
 
     #[test]
@@ -3329,14 +3395,14 @@ mod tests {
     }
 
     #[test]
-    fn a_weather_screen_snows_as_hard_as_the_primary_level_says() {
+    fn a_weather_screen_snows_as_hard_as_the_commitment_says() {
         let mut s = Scene::weather(320, 180, 16, Commitment::Steady.pace(), true);
         s.set_freeze_target(0.0);
         run(&mut s, 10.0);
-        let light = falling(&s);
+        assert!(on_curve(&s), "{} falling", falling(&s));
         s.set_freeze_target(1.0);
         run(&mut s, 30.0);
-        assert!(falling(&s) > light * 5, "heavy snowfall when buried: {} vs {light}", falling(&s));
+        assert!(on_curve(&s), "as hard when buried (#180): {} falling", falling(&s));
     }
 
     #[test]
