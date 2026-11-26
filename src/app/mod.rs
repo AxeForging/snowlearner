@@ -406,7 +406,7 @@ impl App {
     fn fit(&mut self, width: u32, height: u32) {
         let Some(main) = &mut self.main else { return };
         main.scale = if self.resolved.overlay {
-            self.settings.pixel_scale
+            self.settings.scale_for(height)
         } else {
             (width / WINDOW_VIRTUAL.0).min(height / WINDOW_VIRTUAL.1).max(1)
         };
@@ -451,9 +451,9 @@ impl App {
     }
 
     fn open_orb(&mut self, el: &ActiveEventLoop) {
-        let scale = self.settings.pixel_scale.max(2);
-        let side = ORB_ART as u32 * scale;
         let m = self.screen;
+        let scale = self.settings.scale_for(m.h).max(2);
+        let side = ORB_ART as u32 * scale;
         let pos = if self.settings.orb_x >= 0 && self.settings.orb_y >= 0 {
             PhysicalPosition::new(self.settings.orb_x, self.settings.orb_y)
         } else {
@@ -494,8 +494,8 @@ impl App {
     /// One click-through weather window per extra monitor. Skipped where the
     /// desktop can't show through: an opaque window would black out a screen.
     fn open_weather(&mut self, el: &ActiveEventLoop, rects: &[Rect], seed: u64) {
-        let scale = self.settings.pixel_scale.max(1);
         for (i, &rect) in rects.iter().enumerate() {
+            let scale = self.settings.scale_for(rect.h);
             let Ok(window) = el.create_window(Self::overlay_attributes(rect)).map(Arc::new) else {
                 eprintln!("could not open the snow on the monitor at {},{}", rect.x, rect.y);
                 continue;

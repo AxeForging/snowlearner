@@ -34,7 +34,8 @@ pub struct Settings {
     pub native: Native,
     pub commitment: Commitment,
     pub mode: WindowMode,
-    /// Screen pixels per art pixel.
+    /// Screen pixels per art pixel; 0 picks it from the monitor's height
+    /// (`Settings::scale_for`, #181).
     pub pixel_scale: u32,
     pub hotkey_challenge: String,
     pub hotkey_summary: String,
@@ -110,7 +111,7 @@ impl Default for Settings {
             native: Native::PtBr,
             commitment: Commitment::Steady,
             mode: WindowMode::Auto,
-            pixel_scale: 4,
+            pixel_scale: 0,
             hotkey_challenge: "Ctrl+Alt+M".into(),
             hotkey_summary: "Ctrl+Alt+J".into(),
             hotkey_menu: "Ctrl+Alt+K".into(),
@@ -185,6 +186,7 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # native: your own language, \"pt-BR\" or \"en\" (never the one you learn)\n\
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
+    # pixel_scale: size of the characters, 1..12 screen pixels per art pixel; 0 = by the screen\n\
     # answer: all | short | complete | polished\n\
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
     # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
@@ -194,7 +196,21 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # stt_engine: local (offline) | openai | asr = a Whisper server at stt_url hears your answers\n\
     #   | groq = Groq's cloud hears them, with your API key in stt_key (console.groq.com/keys)\n\n";
 
+/// Screen rows the automatic `pixel_scale` aims the scene at: the learner's
+/// 1080p at 2 put the characters inside the taskbar (#181).
+const AUTO_SCALE_ROWS: f32 = 540.0;
+
 impl Settings {
+    /// Screen pixels per art pixel on a screen `screen_h` pixels tall:
+    /// `pixel_scale` when set, else what keeps the characters at the size the
+    /// learner chose on 1080p (2 there, 3 on 1440p, 4 on 4K).
+    pub fn scale_for(&self, screen_h: u32) -> u32 {
+        if self.pixel_scale > 0 {
+            return self.pixel_scale;
+        }
+        (screen_h as f32 / AUTO_SCALE_ROWS).round().max(1.0) as u32
+    }
+
     /// Missing file → defaults. Invalid file → error naming the problem.
     pub fn load(path: &Path) -> Result<Settings> {
         if !path.exists() {
@@ -218,8 +234,8 @@ impl Settings {
         if !(self.match_threshold > 0.0 && self.match_threshold <= 1.0) {
             bail!("`match_threshold` must be in (0, 1], got {}", self.match_threshold);
         }
-        if !(1..=12).contains(&self.pixel_scale) {
-            bail!("`pixel_scale` must be 1..=12, got {}", self.pixel_scale);
+        if self.pixel_scale > 12 {
+            bail!("`pixel_scale` must be 0 (by the screen) or 1..=12, got {}", self.pixel_scale);
         }
         if !(2.0..=30.0).contains(&self.listen_seconds) {
             bail!("`listen_seconds` must be 2..=30, got {}", self.listen_seconds);
@@ -317,13 +333,22 @@ mod tests {
     }
 
     #[test]
+    fn the_default_scale_keeps_the_characters_the_size_chosen_on_1080p() {
+        let auto = Settings::default();
+        let picked: Vec<u32> = [768, 1080, 1440, 2160].iter().map(|&h| auto.scale_for(h)).collect();
+        assert_eq!(picked, vec![1, 2, 3, 4]);
+        let mine = Settings { pixel_scale: 4, ..Settings::default() };
+        assert_eq!(mine.scale_for(1080), 4, "a scale in the config wins");
+    }
+
+    #[test]
     fn invalid_values_are_rejected_with_the_key_name() {
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("c.toml");
         for (src, key) in [
             ("match_threshold = 1.5", "match_threshold"),
             ("match_threshold = 0.0", "match_threshold"),
-            ("pixel_scale = 0", "pixel_scale"),
+            ("pixel_scale = 13", "pixel_scale"),
             ("summary_time = '25:99'", "summary_time"),
             ("model = 'huge'", "model"),
             ("listen_seconds = 1.0", "listen_seconds"),
