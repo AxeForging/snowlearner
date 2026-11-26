@@ -50,7 +50,9 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    4–6 little fire people (#139), thrown in arcs across the screen, one per slot of its width so
    the left, middle and right each get some (#172), with 24–30 burning chunks that bounce and
    fade; once landed they dash to the deepest, nearest snow arms flailing,
-   run across it melting, then dash to the next patch (now and then a hop), from a
+   then walk across it slowly digging a trench (at about a third of their dash, 9 px wide,
+   #182: one pass takes a real layer, ~19 px of a pile at the ice line, not a film), then
+   dash to the next patch (now and then a hop), from a
    budget of 37% of the snow left, for about 12 s; on bare ground they melt nothing. In all it never melts more
    than the sun; the frost mage is stunned as long. Daily goal + combo in the corner.
    New snow sticks less the deeper the pile (#170): at the ice line a cube, icicle or
