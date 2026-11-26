@@ -237,7 +237,13 @@ fn the_first_start_after_an_update_writes_the_automatic_scale_into_an_old_config
     assert!(o.status.success(), "{}", stderr(&o));
     let path = home.dir.path().join("config/config.toml");
     let written = std::fs::read_to_string(&path).unwrap();
-    for line in ["config_version = 1", "pixel_scale = 0", "learning = \"es\"", "commitment = \"committed\"", "match_threshold = 0.6"] {
+    for line in [
+        "config_version = 1",
+        "pixel_scale = 0",
+        "learning = \"es\"",
+        "commitment = \"committed\"",
+        "match_threshold = 0.6",
+    ] {
         assert!(written.contains(line), "missing {line:?}:\n{written}");
     }
     assert!(home.run(&["doctor"]).status.success());
