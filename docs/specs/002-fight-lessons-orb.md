@@ -61,10 +61,12 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    and however buried the screen already is (`Pace::snowfall`, a share of a pool of one
    flake per 300 px): light at Chill, moderate at Steady, heavy at Committed and
    Relentless, in the ratio of real visibility classes (over 1 km, 0.5-1 km, under
-   0.5 km: 1 : 2 : 4). The mage throws a cube every 30 / 15 / 6 / 3 s. At Steady on
-   480x270 a clear screen now takes about an hour to freeze at the edges, one right
-   answer keeps it clear for 16-18 min, and the flakes lay 59% of the pile; Chill about
-   two hours, Relentless about 24 min. Real snow piles up under 1 cm an hour (light) to
+   0.5 km: 1 : 2 : 4). The mage throws a cube every 30 / 15 / 6 / 3 s. Only the
+   commitment's `Pace::settle_share` of whatever lands stays (#187: 0.5 / 0.5 / 0.8 /
+   0.8; a flake stands for less snow, the snowfall looks the same), so on 480x270 a
+   clear screen freezes at the edges in about 4 h at Chill, 2 h at Steady, 39 min at
+   Committed and 29 min at Relentless, one right answer keeps it clear for about 75 /
+   32 / 8 / 5.5 min, and the flakes lay 55-60% of the pile (44% at Relentless). Real snow piles up under 1 cm an hour (light) to
    10 cm in 12 h (heavy), about 0.1 px an hour at the scene's ~10 px per metre, so each
    flake stands for far more snow: the fill is time-compressed, the look is not. The
    wind is #183.
