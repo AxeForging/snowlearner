@@ -27,12 +27,16 @@ const THROW_GRAVITY: f32 = 130.0;
 /// whole screen (s): farther throws fly longer and higher.
 const THROW_S: f32 = 0.6;
 const THROW_PER_WIDTH: f32 = 0.8;
-/// A creature melts up to this far around itself (px).
-const EMBER_RADIUS: f32 = 6.0;
+/// A creature melts up to this far around itself (px): a trench, not a hole (#182).
+const EMBER_RADIUS: f32 = 9.0;
 /// A creature on deep snow spends its share in about this long (s).
 const EMBER_SPEND_S: f32 = 8.0;
 /// A fire person's running speed range (px/s): a dash, not a stroll.
 const EMBER_SPEED: (f32, f32) = (32.0, 46.0);
+/// Its pace while it digs across a patch, as a share of its dash: slow enough
+/// that one pass takes off a real layer (#182: ~19 px of a pile at the line,
+/// was ~7 px at full speed).
+const EMBER_DIG_PACE: f32 = 0.35;
 /// At most this long on one patch before dashing to another (s).
 const EMBER_RETARGET: (f32, f32) = (2.0, 3.0);
 /// How far it runs across a patch it reached (px).
@@ -87,6 +91,8 @@ pub struct Ember {
     budget: f32,
     rate: f32,
     life: f32,
+    /// Digging across a patch (slowly) rather than dashing to the next one.
+    digging: bool,
     /// Thrown by the impact and still in the air (#172).
     flight: Option<Flight>,
 }
@@ -231,7 +237,8 @@ impl Comet {
                 let (life, run_t) = (EMBER_LIFE * rng.range(0.9, 1.0), rng.range(0.0, 1.0));
                 let (x, target, budget) = (self.to_x, to, share);
                 let hop = None;
-                let e = Ember { x, dir, speed, target, retarget_in, hop, hop_in, run_t, budget, rate, life, flight };
+                let digging = false;
+                let e = Ember { x, dir, speed, target, retarget_in, hop, hop_in, run_t, budget, rate, life, digging, flight };
                 self.embers.push(e);
             }
             return Some(Impact { x: self.to_x });
@@ -252,7 +259,8 @@ impl Comet {
             e.retarget_in -= dt;
             if (e.target - e.x).abs() < 1.5 || e.retarget_in <= 0.0 {
                 // Reached it: run across what is left here, or dash to the next patch.
-                e.target = if snow.height_at(e.x) >= SNOW_WORTH && e.retarget_in > 0.0 {
+                e.digging = snow.height_at(e.x) >= SNOW_WORTH && e.retarget_in > 0.0;
+                e.target = if e.digging {
                     let side = if rng.chance(0.5) { 1.0 } else { -1.0 };
                     (e.x + side * rng.range(EMBER_ACROSS.0, EMBER_ACROSS.1)).clamp(lo, hi)
                 } else {
@@ -263,7 +271,8 @@ impl Comet {
             let gap = e.target - e.x;
             if gap.abs() > 0.5 {
                 e.dir = gap.signum();
-                e.x = (e.x + e.dir * (e.speed * dt).min(gap.abs())).clamp(lo, hi);
+                let speed = if e.digging { e.speed * EMBER_DIG_PACE } else { e.speed };
+                e.x = (e.x + e.dir * (speed * dt).min(gap.abs())).clamp(lo, hi);
             }
             e.hop_in -= dt;
             e.hop = match e.hop {
@@ -434,6 +443,33 @@ mod tests {
                 assert!(*t >= arc - dt, "landed at {x} after {t} s, before its {arc} s arc");
             }
         }
+    }
+
+    #[test]
+    fn one_pass_over_deep_snow_digs_a_trench_not_a_film() {
+        // #182: a pile at the ice line on 480x270 (81 px), one creature digging alone.
+        let mut snow = Snow::new(480, 200.0);
+        snow.add(240.0, 81.0, 5000.0);
+        let mut c = Comet::new(240.0, 480.0);
+        let mut rng = Rng::new(7);
+        let mut step = |c: &mut Comet, snow: &mut Snow| c.step(1.0 / 30.0, snow, 480.0, &mut rng);
+        while c.embers.is_empty() || c.embers.iter().any(Ember::flying) {
+            step(&mut c, &mut snow);
+        }
+        for e in c.embers.iter_mut().skip(1) {
+            e.budget = 0.0;
+        }
+        while !c.embers[0].digging {
+            step(&mut c, &mut snow);
+        }
+        let (from, to) = (c.embers[0].x, c.embers[0].target);
+        let mid = (from + to) / 2.0;
+        let before = snow.height_at(mid);
+        while c.embers[0].target == to {
+            step(&mut c, &mut snow);
+        }
+        let dug = before - snow.height_at(mid);
+        assert!(dug >= 12.0, "one pass from {from:.0} to {to:.0} dug {dug:.1} px of {before:.0}");
     }
 
     #[test]
