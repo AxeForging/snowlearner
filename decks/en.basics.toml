@@ -314,7 +314,7 @@ tip = "'Later' soa como 'lêiter' (nos EUA, quase 'lêirer')."
 
 [[phrase]]
 topic = "compras"
-level = "A1"
+level = "PRE-A1"
 situation = "O caixa pergunta se vai ser no cartão ou em dinheiro, e você tem dinheiro."
 say = "Cash."
 polished = "I'll pay in cash."
@@ -410,7 +410,7 @@ tip = "'Delicious' soa como 'delíshâs': o 'ci' vira 'sh', e a força cai no 'l
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
+level = "PRE-A1"
 situation = "Você entra no táxi e o motorista pergunta pra onde vai."
 say = "Airport."
 polished = "To the airport, please."
@@ -783,7 +783,7 @@ accept = ["This one", "That one, please"]
 
 [[phrase]]
 topic = "compras"
-level = "A2"
+level = "PRE-A1"
 situation = "Você entrega o dinheiro para o caixa."
 say = "Here you go."
 polished = "Here you go, thanks."

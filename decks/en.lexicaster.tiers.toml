@@ -288,7 +288,7 @@ level = "A2"
 
 [[tier]]
 say = "I have a reservation."
-polished = "Hello, I have a reservation under my name."
+polished = "Hello, I have a reservation for tonight."
 level = "A2"
 
 [[tier]]
