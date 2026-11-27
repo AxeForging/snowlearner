@@ -15,6 +15,8 @@ topic = "primeiros contatos"
 level = "A2"
 situation = "Um vizinho pergunta há quanto tempo você está na cidade."
 say = "I moved here last year."
+family = "first-home"
+ask = "How long have you lived here?"
 short = "Last year."
 polished = "I moved here last year for work."
 meaning = "Me mudei pra cá no ano passado."
@@ -32,8 +34,10 @@ accept = ["Do you live nearby?", "Do you live near here?"]
 [[phrase]]
 topic = "primeiros contatos"
 level = "A2"
-situation = "Você se despede de alguém que conheceu hoje num jantar."
+situation = "Num jantar, a pessoa que você conheceu hoje diz que já precisa ir embora. Você se despede."
 say = "It was nice meeting you."
+family = "first-goodbye"
+ask = "Well, I have to go now."
 short = "Nice meeting you."
 polished = "It was really nice meeting you today."
 meaning = "Foi um prazer te conhecer."
@@ -62,8 +66,10 @@ tip = "Pra algo que começou no passado e continua: 'have lived', não 'live'."
 [[phrase]]
 topic = "primeiros contatos"
 level = "B1"
-situation = "Perguntam como está sendo a vida na cidade nova."
+situation = "Um vizinho pergunta o que você está achando de morar na cidade nova. Ainda tem muita coisa diferente pra você."
 say = "I'm still getting used to it."
+family = "first-home"
+ask = "So, how do you like living here?"
 short = "Still getting used to it."
 polished = "Honestly, I'm still getting used to it."
 meaning = "Ainda estou me acostumando."
@@ -72,8 +78,10 @@ tip = "'Get used to' = se acostumar com."
 [[phrase]]
 topic = "primeiros contatos"
 level = "B1"
-situation = "No último dia do curso, você se despede de um colega."
+situation = "No fim de um evento, alguém que você conheceu hoje diz que adorou conversar com você. Você quer manter contato."
 say = "We should keep in touch."
+family = "first-goodbye"
+ask = "It was great talking to you."
 short = "Let's keep in touch."
 polished = "We should definitely keep in touch."
 meaning = "A gente devia manter contato."
@@ -119,3 +127,63 @@ polished = "I really love it here, though I have to say the winters take some ge
 meaning = "Adoro morar aqui, embora o inverno exija um tempo de adaptação."
 accept = ["I love it here, but the winters take some getting used to."]
 tip = "'Used to' se fala 'iús-tu': o 'd' some e o 's' não vira 'z'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "O vizinho pergunta se você está gostando do bairro. Você está."
+say = "Yes, it's really nice."
+family = "first-home"
+ask = "Do you like the neighborhood?"
+polished = "Yes, it's really nice and quiet."
+meaning = "Estou, é muito bom."
+accept = ["Yes, it's very nice", "Yes, I really like it", "Yes, I like it a lot"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Numa festa, você conheceu alguém há pouco, mas precisa ir embora. A pessoa pergunta se você já vai."
+say = "Sorry, I have to go."
+family = "first-goodbye"
+ask = "Are you leaving already?"
+polished = "Sorry, I really have to go now."
+meaning = "Desculpa, tenho que ir."
+accept = ["Sorry, I need to go", "Yes, I have to go"]
+tip = "'Have to' (ter que) soa 'háf tu', com 'f'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A1"
+situation = "Na festa, o convidado pergunta como você conhece o Sam, o dono da casa. Vocês trabalham juntos."
+say = "We work together."
+family = "first-meet"
+ask = "How do you know Sam?"
+polished = "Oh, we work together. How about you?"
+meaning = "A gente trabalha junto."
+accept = ["We work together, actually"]
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "A2"
+situation = "O convidado pergunta quando você e o Sam se conheceram. Foi no trabalho, há alguns anos."
+say = "We met at work a few years ago."
+family = "first-meet"
+ask = "When did you two meet?"
+short = "We met at work."
+polished = "We actually met at work a few years ago."
+meaning = "A gente se conheceu no trabalho há alguns anos."
+accept = ["We met at work a couple of years ago", "We met at work some years ago"]
+tip = "'Há alguns anos' vai no fim e com 'ago': 'a few years ago', não 'there are a few years'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "B1"
+situation = "Numa festa onde você quase não conhece ninguém, um convidado pergunta o que te trouxe até ali. Um amigo te chamou e você quer conhecer gente nova."
+say = "A friend invited me, I thought it'd be a good way to meet people."
+family = "first-meet"
+ask = "So, what brings you here tonight?"
+short = "A friend invited me."
+polished = "Well, a friend invited me, and I thought it'd be a nice way to meet new people."
+meaning = "Um amigo me convidou, achei que seria um bom jeito de conhecer gente."
+accept = ["A friend invited me, I thought it would be a good way to meet people", "My friend invited me, I thought it'd be a good way to meet people"]
+tip = "'Conhecer gente' é 'meet people'; 'know people' é já conhecer. 'It'd' é 'it would' contraído."

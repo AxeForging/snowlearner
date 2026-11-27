@@ -3,12 +3,14 @@
 [[phrase]]
 topic = "viagem"
 level = "A2"
-situation = "Você chegou no hotel."
+situation = "Você chega na recepção do hotel e o recepcionista pergunta se você vai fazer o check-in."
 say = "I have a reservation under my name"
+family = "travel-hotel"
+ask = "Hi, are you checking in?"
 short = "I have a reservation"
 polished = "Hi, I have a reservation under my name"
 meaning = "Tenho uma reserva no meu nome"
-accept = ["I have a reservation"]
+accept = ["I have a reservation", "Yes, I have a reservation under my name"]
 
 [[phrase]]
 topic = "viagem"
@@ -51,8 +53,10 @@ meaning = "Como eu chego na estação de trem?"
 [[phrase]]
 topic = "viagem"
 level = "A2"
-situation = "No check-in do voo."
+situation = "No check-in do voo, a atendente pergunta se você tem preferência de assento. Você quer ver a paisagem."
 say = "Could I get a window seat, please?"
+family = "travel-seat"
+ask = "Do you have a seat preference?"
 short = "Window seat, please"
 polished = "If possible, could I get a window seat, please?"
 meaning = "Poderia me dar um assento na janela, por favor?"
@@ -71,8 +75,10 @@ tip = "'Downtown' é o centro da cidade nos EUA."
 [[phrase]]
 topic = "viagem"
 level = "A2"
-situation = "Na imigração, perguntam o motivo da viagem."
+situation = "Na imigração, o agente pergunta o motivo da viagem. Você veio de férias."
 say = "I'm here on vacation"
+family = "travel-immigration"
+ask = "What's the reason for your trip?"
 short = "On vacation"
 polished = "I'm just here on vacation for a week"
 meaning = "Estou aqui de férias"
@@ -169,3 +175,118 @@ polished = "I'm sorry, but according to your website, breakfast was supposed to 
 meaning = "Segundo o site de vocês, o café da manhã era pra estar incluso."
 accept = ["The website said breakfast was included in the rate.", "It said online that breakfast was included."]
 tip = "'Supposed to' (era pra) se fala 'supôus-tu': o 'd' some na fala."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Na imigração, o agente pergunta quanto tempo você vai ficar no país. São duas semanas."
+say = "For two weeks."
+family = "travel-immigration"
+ask = "How long are you staying?"
+polished = "I'm staying for two weeks."
+meaning = "Por duas semanas."
+accept = ["Two weeks", "Just two weeks"]
+tip = "'Weeks' soa 'uíks', com o 'i' longo."
+
+[[phrase]]
+topic = "viagem"
+level = "B1"
+situation = "Na imigração, o agente pergunta se você já tem a passagem de volta. Você tem, pra domingo que vem."
+say = "Yes, I'm flying back next Sunday, I can show you the ticket."
+family = "travel-immigration"
+ask = "Do you have a return ticket?"
+short = "Yes, for next Sunday."
+polished = "Yes, I'm flying back next Sunday. I can show you the ticket if you'd like."
+meaning = "Tenho, volto domingo que vem, posso te mostrar a passagem."
+accept = ["Yes, I fly back next Sunday, I can show you the ticket", "Yes, I'm going back next Sunday, I can show you my ticket"]
+tip = "Passagem de volta é 'return ticket'. 'Next Sunday' já é 'domingo que vem', sem 'on' antes."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No check-in, você está com um amigo e a atendente pergunta se vocês viajam juntos. Vocês querem sentar lado a lado."
+say = "Can we sit together?"
+family = "travel-seat"
+ask = "Are you two traveling together?"
+short = "Together, please."
+polished = "Could we sit together, please?"
+meaning = "Podemos sentar juntos?"
+accept = ["Could we sit together?", "Can we sit next to each other?"]
+tip = "'Together' soa 'tuguéder', com o 'th' com a língua entre os dentes."
+
+[[phrase]]
+topic = "viagem"
+level = "B1"
+situation = "No check-in de um voo de dez horas, a atendente pergunta se tudo bem ir no assento do meio. Você quer o corredor pra poder levantar."
+say = "I'd rather not, is there any chance of an aisle seat?"
+family = "travel-seat"
+ask = "Is a middle seat okay with you?"
+short = "An aisle seat, if possible."
+polished = "To be honest, I'd rather not. Is there any chance of an aisle seat?"
+meaning = "Prefiro não, será que tem um assento no corredor?"
+accept = ["I'd rather not, do you have an aisle seat?", "I'd prefer not to, is there an aisle seat available?"]
+tip = "'I'd rather not' é o jeito educado de dizer não. 'Is there any chance...?' é 'será que tem como...?'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "No check-in do hotel, o recepcionista pede seu passaporte. Você entrega."
+say = "Sure, here it is."
+family = "travel-hotel"
+ask = "Can I see your passport, please?"
+polished = "Sure, here's my passport."
+meaning = "Claro, aqui está."
+accept = ["Here it is", "Sure, here you are"]
+tip = "Em 'here it is' as palavras se ligam: soa 'rí-ri-tiz'."
+
+[[phrase]]
+topic = "viagem"
+level = "B1"
+situation = "Na recepção do hotel, o recepcionista diz que não encontra a sua reserva. Você reservou pela internet na semana passada."
+say = "I booked it online last week, I have the confirmation here."
+family = "travel-hotel"
+ask = "I'm sorry, I can't find your reservation."
+short = "I booked it online."
+polished = "That's strange, I booked it online last week. I have the confirmation email right here."
+meaning = "Reservei pela internet semana passada, a confirmação está aqui."
+accept = ["I booked it online last week, here's the confirmation", "I made the reservation online last week, I have the confirmation here"]
+tip = "Reservar é 'book'. O '-ed' de 'booked' soa 't': 'búkt', não 'búkedi'."
+
+[[phrase]]
+topic = "viagem"
+level = "A1"
+situation = "Você entra no táxi e o motorista pergunta pra onde vai. Você mostra o endereço no celular."
+say = "Can you take me to this address?"
+family = "travel-taxi"
+ask = "Where to?"
+short = "This address, please."
+polished = "Could you take me to this address, please?"
+meaning = "Pode me levar pra este endereço?"
+accept = ["Could you take me to this address?", "To this address, please"]
+tip = "'Address' (endereço) soa 'â-drés', com a força no fim."
+
+[[phrase]]
+topic = "viagem"
+level = "A2"
+situation = "O táxi está chegando e o motorista pergunta onde deve parar. Você quer descer na próxima esquina."
+say = "Could you stop at the next corner, please?"
+family = "travel-taxi"
+ask = "Where should I stop?"
+short = "The next corner, please."
+polished = "Could you just stop at the next corner, please?"
+meaning = "Pode parar na próxima esquina, por favor?"
+accept = ["Can you stop at the next corner, please?", "Could you stop at the next corner?"]
+tip = "Esquina é 'corner'. 'Next' soa 'nékst', sem 'i' no fim: não 'nékisti'."
+
+[[phrase]]
+topic = "viagem"
+level = "B1"
+situation = "No táxi, o motorista diz que o trânsito está pesado e pergunta se pega a rodovia. Você só quer chegar logo."
+say = "Whatever's faster, I'm in a bit of a hurry."
+family = "travel-taxi"
+ask = "There's a lot of traffic. Should I take the highway?"
+short = "Whatever's faster."
+polished = "Whatever's faster, please. I'm in a bit of a hurry."
+meaning = "O que for mais rápido, estou com um pouco de pressa."
+accept = ["Whichever is faster, I'm in a hurry", "Whatever's quicker, I'm in a bit of a hurry", "Whatever is faster, I'm in a hurry"]
+tip = "'Estou com pressa' é 'I'm in a hurry', não 'I have hurry'."

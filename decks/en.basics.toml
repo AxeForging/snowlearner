@@ -27,10 +27,12 @@ accept = ["Goodbye", "Bye-bye"]
 tip = "'Bye' soa como 'bái'."
 
 [[phrase]]
-topic = "primeiros contatos"
+topic = "viagem"
 level = "PRE-A1"
-situation = "O recepcionista pergunta se você tem reserva, e você tem."
+situation = "Na recepção do hotel, o recepcionista pergunta se você tem reserva, e você tem."
 say = "Yes."
+family = "travel-hotel"
+ask = "Do you have a reservation?"
 polished = "Yes, I have a reservation."
 meaning = "Sim."
 accept = ["Yeah", "Yep"]
@@ -322,9 +324,11 @@ tip = "'Cash' soa como 'késh', com o 'a' bem aberto."
 
 [[phrase]]
 topic = "compras"
-level = "A1"
-situation = "O caixa pergunta como você vai pagar, e é no cartão."
+level = "PRE-A1"
+situation = "No caixa, a atendente pergunta se vai ser em dinheiro ou no cartão. Você vai pagar no cartão."
 say = "Card."
+family = "shopping-pay"
+ask = "Cash or card?"
 polished = "By card, please."
 meaning = "Cartão."
 accept = ["By card", "Credit card", "Debit card"]
@@ -416,9 +420,11 @@ tip = "'Airport' soa como 'érport'."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
-situation = "Perguntam se você vai pro aeroporto ou pro centro, e você vai pro centro."
+level = "PRE-A1"
+situation = "Você entra no táxi na porta do hotel e o motorista pergunta se vai pro aeroporto ou pro centro. Você vai pro centro."
 say = "Downtown."
+family = "travel-taxi"
+ask = "Airport or downtown?"
 polished = "Downtown, please."
 meaning = "Centro."
 accept = ["Downtown, please", "City center"]
@@ -464,13 +470,98 @@ tip = "'Chicken' soa como 'tchíken'. Não confunda com 'kitchen' (cozinha)."
 
 [[phrase]]
 topic = "viagem"
-level = "A1"
-situation = "No check-in, perguntam se você prefere janela ou corredor, e você quer o corredor."
+level = "PRE-A1"
+situation = "No check-in, a atendente pergunta se você prefere janela ou corredor. Você quer o corredor."
 say = "Aisle."
+family = "travel-seat"
+ask = "Window or aisle?"
 polished = "An aisle seat, please."
 meaning = "Corredor."
 accept = ["Aisle, please", "An aisle seat"]
 tip = "'Aisle' soa como 'áil'. O 's' é mudo!"
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Numa loja de roupas, o vendedor pergunta se pode ajudar. Você não precisa de nada."
+say = "No, thanks."
+family = "shopping-help"
+ask = "Can I help you?"
+polished = "No, thanks, I'm okay."
+meaning = "Não, obrigado."
+accept = ["No, thank you", "No thanks"]
+tip = "Na loja, 'No, thanks' é o normal; só 'No' soa seco."
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "No caixa do mercado, a moça pergunta se você precisa de sacola. Você está com as mãos cheias."
+say = "Yes, please."
+family = "shopping-bag"
+ask = "Need a bag?"
+polished = "Yes, one bag, please."
+meaning = "Sim, por favor."
+accept = ["Yes, one, please", "Yeah, please"]
+
+[[phrase]]
+topic = "compras"
+level = "PRE-A1"
+situation = "Você sai do provador e o vendedor pergunta se a calça serviu. Ficou ótima."
+say = "Perfect!"
+family = "shopping-fit"
+ask = "Does it fit?"
+polished = "Perfect, thank you!"
+meaning = "Perfeita!"
+accept = ["It's perfect", "Perfect, thanks"]
+tip = "'Perfect' soa 'pérfect', com força no começo e o 't' final curtinho: não 'perféctchi'."
+
+[[phrase]]
+topic = "viagem"
+level = "PRE-A1"
+situation = "Na imigração, o agente pergunta se a viagem é a trabalho ou a passeio. Você está de férias."
+say = "Pleasure."
+family = "travel-immigration"
+ask = "Business or pleasure?"
+polished = "Pleasure, I'm on vacation."
+meaning = "A passeio."
+accept = ["For pleasure", "Vacation", "Tourism"]
+tip = "'Pleasure' soa 'pléjer': o 's' tem som de 'j'. Aqui quer dizer 'a passeio', não 'prazer'."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "No corredor do prédio, um vizinho pergunta se você é novo ali. Você acabou de se mudar."
+say = "Yes, I am."
+family = "first-home"
+ask = "Are you new here?"
+polished = "Yes, I just moved in."
+meaning = "Sou, sim."
+accept = ["Yeah, I am", "Yes, I'm new"]
+tip = "A resposta curta repete o verbo da pergunta: 'Are you...?' → 'Yes, I am.' Só 'Yes, I'm.' está errado."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Na saída de uma festa, a pessoa que você conheceu hoje diz que foi um prazer te conhecer."
+say = "You too!"
+family = "first-goodbye"
+ask = "Nice meeting you!"
+polished = "You too! Take care."
+meaning = "Pra mim também!"
+accept = ["You too, bye", "Same here"]
+tip = "Responda 'You too!' (iú tú). Não diga 'Me too': isso é 'eu também' e soa como se você tivesse gostado de conhecer a si mesmo."
+
+[[phrase]]
+topic = "primeiros contatos"
+level = "PRE-A1"
+situation = "Numa festa, um convidado se apresenta e pergunta como você está. Você está bem."
+say = "Good, thanks."
+family = "first-meet"
+ask = "How are you?"
+polished = "Good, thanks. And you?"
+meaning = "Bem, obrigado."
+accept = ["Fine, thanks", "I'm good, thanks", "Good, thank you"]
+tip = "Na conversa, 'Good, thanks' é o mais comum; o 'I'm fine, thank you, and you?' da escola soa de livro."
 
 # ---------------------------------------------------------------- short chunks
 
@@ -624,8 +715,10 @@ accept = ["Another one, please", "One more"]
 [[phrase]]
 topic = "compras"
 level = "A1"
-situation = "O caixa vai colocar suas duas coisinhas numa sacola, mas você não precisa."
+situation = "O caixa pergunta se você quer uma sacola pras suas duas coisinhas. Você não precisa."
 say = "No bag, thanks."
+family = "shopping-bag"
+ask = "Would you like a bag?"
 polished = "I don't need a bag, thanks."
 meaning = "Sem sacola, obrigado."
 accept = ["No bag, thank you", "I don't need a bag"]
