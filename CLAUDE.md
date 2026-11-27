@@ -1,6 +1,6 @@
 # snowlearner — working notes
 
-Pixel-art desktop language-practice app (Rust). Specs: `docs/specs/` (001 MVP, 002 fight/lessons/orb, 003 audio/voices/listening).
+Pixel-art desktop language-practice app (Rust). Specs: `docs/specs/` (001 MVP, 002 fight/lessons/orb, 003 audio/voices/listening, 007 question and answer).
 
 ## Layout — one domain per directory, one concept per file
 
@@ -31,7 +31,8 @@ src/
                      remote.rs (`stt_engine`: a Whisper server, openai or asr shape);
                      audio.rs with `audio`; mic.rs + stt.rs (whisper.cpp) with `stt`
   learn/             deck.rs, cue.rs ({{target}} segments), picker.rs, path.rs (words → chunks →
-                     phrases, unlock window), progress.rs (known/learning/next per stage & topic)
+                     phrases, unlock window), progress.rs (known/learning/next per stage & topic),
+                     schedule.rs (question boxes: spaced reinforcement for `exercise = "questions"`)
   control/           hotkeys.rs, ipc.rs (localhost commands + single instance), gnome.rs (shortcuts),
                      console.rs (Windows: frees the console, logs to snowlearner.log),
                      launcher.rs (Linux app-menu entry),
