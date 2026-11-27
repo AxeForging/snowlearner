@@ -37,6 +37,9 @@ Then open **Snowlearner** from your app menu (or run `snowlearner`). More in [In
   back until you get them. Answers are checked by **how they sound** (Spanish *poyo* is *pollo*,
   accents never matter), and a slip of a letter or two doesn't count against you; a longer
   answer counts only when the word the lesson teaches is in it.
+- ❓ **Questions** (`exercise = "questions"`): someone asks you in the language ("Anything to
+  drink?") and you answer aloud. Each question sits in a box: a clean answer moves it up and it
+  comes back days later, a miss moves it down and it comes back first, like flashcards.
 - 📈 **Progress** (`Ctrl+Alt+P`): what you already know, what you're learning now and what
   comes next, per stage and per topic.
 - 🎙️ It listens like a patient teacher: thinking time before you start, room to hesitate
@@ -214,6 +217,7 @@ learning = "en"          # "en", "es" or "pt-BR" built in, or your own decks/<na
 native = "pt-BR"         # your own language: "pt-BR" or "en" (never the one you learn)
 commitment = "steady"    # chill | steady | committed | relentless
 practice = "auto"        # auto | repeat | recall
+exercise = "phrases"     # phrases | questions (asked in the language, spaced like flashcards)
 topics = []              # [] = all, or e.g. ["trabalho", "viagem"] (old `topic = "x"` still works)
 max_level = "B2"         # PRE-A1 | A1..C2
 daily_goal = 10

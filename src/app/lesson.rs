@@ -6,9 +6,10 @@
 use crate::lang::text;
 use crate::lang::{Lines, Native, T};
 use crate::learn::cue::Segment;
-use crate::learn::deck::{Answer, Deck, PRE_A1, Phrase};
+use crate::learn::deck::{Answer, Deck, LEVELS, PRE_A1, Phrase};
 use crate::learn::path;
-use crate::learn::picker::{self, Mode, Practice};
+use crate::learn::picker::{self, Exercise, Mode, Practice};
+use crate::learn::schedule::{self, CONQUERED, Card};
 use crate::scene::Scene;
 use crate::scene::hud::{self, Caption, Meter, Reward, Stats, Status, SummaryLine, SummaryPanel};
 use crate::scene::pyro::Spell;
@@ -16,7 +17,7 @@ use crate::speech::endpoint::ListenPlan;
 use crate::speech::matcher::{self, WordHit};
 use crate::speech::tts::Speed;
 use crate::speech::worker::{Job, SpeechEvent, Utterance};
-use crate::store::history::{Attempt, History};
+use crate::store::history::{Answered, Attempt, History};
 use chrono::{DateTime, Local, NaiveTime};
 
 pub const MAX_TRIES: u32 = 3;
@@ -81,6 +82,8 @@ pub struct Options {
     /// Seconds idle before the warrior nudges you (from the commitment level).
     pub ask_every: f32,
     pub practice: Practice,
+    /// Phrases to say, or questions to answer with spaced reinforcement (#220).
+    pub exercise: Exercise,
     /// Which answer tier is asked (and shown); every tier always counts.
     pub answer: Answer,
     /// Only practice these topics (empty = all).
@@ -111,8 +114,20 @@ enum Stage {
 
 enum State {
     Idle,
-    Challenge { phrase: usize, mode: Mode, stage: Stage, tries: u32, job: u64 },
-    Summary { job: u64, lines: usize, close_at: Option<f32> },
+    /// `card` is where a question stood when asked (the question exercise).
+    Challenge {
+        phrase: usize,
+        mode: Mode,
+        stage: Stage,
+        tries: u32,
+        job: u64,
+        card: Option<Card>,
+    },
+    Summary {
+        job: u64,
+        lines: usize,
+        close_at: Option<f32>,
+    },
 }
 
 pub struct Lesson {
@@ -132,6 +147,10 @@ pub struct Lesson {
     last_primary: f32,
     /// Silences in a row on this question: the first one listens again on its own.
     silences: u32,
+    /// The question asked last, so it is not asked twice in a row.
+    last_ask: Option<String>,
+    /// "Today: N to review, M new" was shown since the options last changed.
+    outlook_shown: bool,
 }
 
 impl Lesson {
@@ -157,6 +176,8 @@ impl Lesson {
             paused: false,
             last_primary: f32::NEG_INFINITY,
             silences: 0,
+            last_ask: None,
+            outlook_shown: false,
         }
     }
 
@@ -197,6 +218,8 @@ impl Lesson {
         self.opts.topics.retain(|t| known.contains(t)); // another deck's (or a typo'd) topics mean nothing here
         self.deck = deck;
         self.last_phrase = None;
+        self.last_ask = None;
+        self.outlook_shown = false;
         self.combo = 0;
         scene.tips = self.tips();
         self.refresh_stats(scene);
@@ -224,7 +247,9 @@ impl Lesson {
     }
 
     pub fn set_options(&mut self, f: impl FnOnce(&mut Options), scene: &mut Scene) {
+        let exercise = self.opts.exercise;
         f(&mut self.opts);
+        self.outlook_shown &= self.opts.exercise == exercise;
         self.goal_celebrated = self.done_today >= self.opts.daily_goal;
         scene.tips = self.tips();
         self.refresh_stats(scene);
@@ -329,7 +354,12 @@ impl Lesson {
             Mode::Repeat => T::TagRepeat,
             Mode::Recall => T::TagRecall,
         };
-        format!("{} · {} · {}", path::Stage::of(p).singular(n), text::topic(n, &p.topic), mode.get(n))
+        let kind = if self.opts.exercise == Exercise::Questions && p.ask.is_some() {
+            T::TagQuestion.get(n)
+        } else {
+            path::Stage::of(p).singular(n)
+        };
+        format!("{} · {} · {}", kind, text::topic(n, &p.topic), mode.get(n))
     }
 
     fn refresh_stats(&self, scene: &mut Scene) {
@@ -436,6 +466,9 @@ impl Lesson {
     }
 
     fn start_challenge(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
+        if self.opts.exercise == Exercise::Questions {
+            return self.start_question(scene, jobs);
+        }
         let today = Local::now().date_naive();
         let stats = self.history.stats(&self.deck.language, today).unwrap_or_default();
         let roll = self.roll();
@@ -451,7 +484,7 @@ impl Lesson {
         let mode = picker::mode_for(practice, stats.get(&p.say).copied().unwrap_or_default());
         self.last_phrase = Some(p.say.clone());
         let job = self.job_id();
-        self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job };
+        self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job, card: None };
         self.silences = 0;
         self.idle_for = 0.0;
         scene.set_practicing(true);
@@ -475,6 +508,123 @@ impl Lesson {
             listen: None,
         });
         jobs.push(Job::Speak { id: job, parts: self.parts(&cue) });
+    }
+
+    /// Phrases with a question, within the filters, in path order (#220).
+    pub fn questions(&self) -> Vec<usize> {
+        let with_ask: Vec<usize> =
+            self.selection().into_iter().filter(|&i| self.deck.phrases[i].ask.is_some()).collect();
+        path::ordered(&self.deck.phrases, &with_ask)
+    }
+
+    /// Every question's box, rebuilt from the history.
+    fn cards(&self) -> std::collections::HashMap<String, Card> {
+        let log = self.history.question_log(&self.deck.language).unwrap_or_default();
+        schedule::cards(&log, self.opts.answer, MAX_TRIES)
+    }
+
+    /// Up to A1 the question is also written; from A2 it is only heard
+    /// until the learner has answered.
+    fn question_written(&self) -> bool {
+        let rank = |l: &str| LEVELS.iter().position(|x| *x == l);
+        rank(&self.opts.max_level) <= rank("A1")
+    }
+
+    /// The question's caption: the question (or "listen" from A2), then in
+    /// repeat the answer to say.
+    fn question_caption(&self, p: &Phrase, mode: Mode) -> Vec<Segment> {
+        let ask = p.ask.clone().unwrap_or_default();
+        let lang = text::language_name(self.opts.native, &self.deck.language);
+        let mut out = vec![if self.question_written() {
+            Segment::Target(ask)
+        } else {
+            Segment::Native(T::ListenQuestion.fill(self.opts.native, &[&lang]))
+        }];
+        if mode == Mode::Repeat {
+            out.push(Segment::Target(self.shown(p)));
+        }
+        out
+    }
+
+    /// After a miss: the situation, the question and the answer.
+    fn question_reveal(&self, p: &Phrase) -> Vec<Segment> {
+        let mut out: Vec<Segment> = p.situation.iter().map(|s| Segment::Native(s.clone())).collect();
+        out.push(Segment::Target(p.ask.clone().unwrap_or_default()));
+        out.push(Segment::Target(self.shown(p)));
+        out
+    }
+
+    /// After a right answer: the question written, then the answer.
+    fn question_caption_written(&self, p: &Phrase) -> Vec<Segment> {
+        vec![Segment::Target(p.ask.clone().unwrap_or_default()), Segment::Target(self.shown(p))]
+    }
+
+    /// The question exercise: the schedule picks, only the language is spoken.
+    fn start_question(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
+        let today = Local::now().date_naive();
+        let questions = self.questions();
+        let cards = self.cards();
+        let picked = schedule::pick(&self.deck.phrases, &questions, &cards, today, self.last_ask.as_deref());
+        let Some(i) = picked else {
+            scene.hud.toast(T::NoQuestions.get(self.opts.native), 4.0);
+            return;
+        };
+        if !self.outlook_shown {
+            self.outlook_shown = true;
+            let (due, new) = schedule::outlook(&self.deck.phrases, &questions, &cards, today);
+            scene.hud.toast(T::QuestionsToday.fill(self.opts.native, &[&due, &new]), 4.0);
+        }
+        let p = self.phrase(i).clone();
+        let card = p.ask.as_ref().and_then(|a| cards.get(a)).copied().unwrap_or_default();
+        let mode = schedule::mode_for(self.opts.practice, card, self.beginner());
+        self.last_phrase = Some(p.say.clone());
+        self.last_ask = p.ask.clone();
+        let job = self.job_id();
+        self.state = State::Challenge { phrase: i, mode, stage: Stage::Speaking, tries: 0, job, card: Some(card) };
+        self.silences = 0;
+        self.idle_for = 0.0;
+        scene.set_practicing(true);
+        let ask = self.line(if mode == Mode::Recall { Lines::MageAskRecall } else { Lines::MageAskRepeat });
+        scene.mage_say(ask, 3.0);
+        scene.hud.summary = None;
+        let mut spoken = vec![Segment::Target(p.ask.clone().unwrap_or_default())];
+        if mode == Mode::Repeat {
+            spoken.push(Segment::Target(self.shown(&p)));
+        }
+        scene.hud.caption = Some(Caption {
+            segments: self.question_caption(&p, mode),
+            say: self.shown(&p),
+            active: None,
+            alts: if mode == Mode::Repeat { p.alternatives(self.opts.answer, self.opts.native) } else { Vec::new() },
+            counted: None,
+            meaning: if mode == Mode::Repeat { p.meaning.clone() } else { String::new() },
+            status: Status::Speaking,
+            feedback: None,
+            heard: None,
+            tip: None,
+            footer: String::new(),
+            tag: self.tag(&p, mode),
+            listen: None,
+        });
+        jobs.push(Job::Speak { id: job, parts: self.parts(&spoken) });
+    }
+
+    /// The footer line for a question once it is over: its box move and when
+    /// it comes back; a conquest is celebrated with a toast (no melt).
+    fn question_news(&self, p: &Phrase, before: Card, scene: &mut Scene) -> String {
+        let Some(ask) = &p.ask else { return String::new() };
+        let today = Local::now().date_naive();
+        let after = self.cards().get(ask).copied().unwrap_or_default();
+        let n = self.opts.native;
+        let back = match after.returns_in(today) {
+            0 => T::ReturnsToday.get(n).to_string(),
+            1 => T::ReturnsTomorrow.get(n).to_string(),
+            d => T::ReturnsInDays.fill(n, &[&d]),
+        };
+        if after.box_index == CONQUERED && before.box_index < CONQUERED {
+            scene.hud.toast(T::Conquered.fill(n, &[ask]), 5.0);
+        }
+        T::QuestionBox.fill(n, &[&before.box_index, &after.box_index, &back])
     }
 
     fn after_cue(&mut self, scene: &mut Scene, jobs: &mut Vec<Job>) {
@@ -717,7 +867,8 @@ impl Lesson {
     ) {
         let passed = said.is_some();
         let p = self.phrase(phrase).clone();
-        let State::Challenge { mode, .. } = self.state else { return };
+        let State::Challenge { mode, card, .. } = self.state else { return };
+        let question = card.filter(|_| p.ask.is_some());
         scene.set_listening(false);
         let today = Local::now().date_naive();
         let open_before = self
@@ -725,7 +876,15 @@ impl Lesson {
             .stats(&self.deck.language, today)
             .map(|s| path::unlocked(&self.deck.phrases, &self.selection(), &s))
             .unwrap_or_default();
-        let _ = self.history.record(&Attempt {
+        let exercise = if question.is_some() { Exercise::Questions } else { Exercise::Phrases };
+        let how = Answered {
+            exercise,
+            ask: question.and(p.ask.clone()),
+            tier: said,
+            try_number: tries + 1,
+            mode: Some(mode),
+        };
+        let attempt = Attempt {
             at: Local::now(),
             language: self.deck.language.clone(),
             say: p.say.clone(),
@@ -733,19 +892,26 @@ impl Lesson {
             heard: heard.to_string(),
             score,
             success: passed,
-        });
+        };
+        let _ = self.history.record_answer(&attempt, &how);
         let tries = tries + 1;
         let n = self.opts.native;
+        let over = passed || tries >= MAX_TRIES;
+        let news = question.filter(|_| over).map(|before| self.question_news(&p, before, scene));
+        let with_news = |line: String| match &news {
+            Some(box_line) => format!("{box_line} · {line}"),
+            None => line,
+        };
         let (stage, footer) = if passed {
             // With options on screen, tell which one counted (it picks the spell).
             let counted = said.filter(|_| p.tiers().len() > 1).map(|t| T::AnswerCounted.fill(n, &[&t.label(n)]));
-            let next = format!("{}{}", counted.unwrap_or_default(), T::FooterNext.fill(n, &[&self.opts.hotkey]));
-            (Stage::Result { until: self.clock + RESULT_SECONDS }, next)
+            let next = with_news(T::FooterNext.fill(n, &[&self.opts.hotkey]));
+            (Stage::Result { until: self.clock + RESULT_SECONDS }, format!("{}{next}", counted.unwrap_or_default()))
         } else if tries < MAX_TRIES {
             let hint = if mode == Mode::Recall { T::RetryRecall } else { T::RetryRepeat }.get(n);
             (Stage::RetryPause { until: self.clock + RETRY_PAUSE }, T::Attempt.fill(n, &[&tries, &MAX_TRIES, &hint]))
         } else {
-            (Stage::Result { until: self.clock + RESULT_SECONDS }, T::GiveUp.get(n).into())
+            (Stage::Result { until: self.clock + RESULT_SECONDS }, with_news(T::GiveUp.get(n).into()))
         };
         if let State::Challenge { stage: s, tries: t, .. } = &mut self.state {
             *s = stage;
@@ -775,7 +941,9 @@ impl Lesson {
                 scene.sun();
                 scene.hud.toast(T::ComboSun.fill(n, &[&self.combo]), 4.0);
             }
-            self.path_news(&p, &open_before, scene);
+            if question.is_none() {
+                self.path_news(&p, &open_before, scene);
+            }
             if self.done_today >= self.opts.daily_goal && !self.goal_celebrated {
                 self.goal_celebrated = true;
                 scene.hud.toast(T::GoalToast.fill(n, &[&self.opts.daily_goal]), 5.0);
@@ -795,7 +963,14 @@ impl Lesson {
             c.listen = None;
             c.status = if passed { Status::Passed } else { Status::Failed };
             c.footer = footer;
-            if !passed && mode == Mode::Recall {
+            if question.is_some() && (over || mode == Mode::Recall) {
+                // Once answered (or missed from memory) the question shows written.
+                c.segments = if passed { self.question_caption_written(&p) } else { self.question_reveal(&p) };
+                if !passed {
+                    c.alts = p.alternatives(self.opts.answer, self.opts.native);
+                    c.meaning = p.meaning.clone();
+                }
+            } else if !passed && mode == Mode::Recall {
                 // Reveal the answer so the retry becomes a repeat.
                 c.segments = p.cue_for(self.opts.answer);
                 c.alts = p.alternatives(self.opts.answer, self.opts.native);
@@ -844,7 +1019,11 @@ impl Lesson {
     fn replay(&mut self, phrase: usize, tries: u32, scene: &mut Scene, jobs: &mut Vec<Job>) {
         let p = self.phrase(phrase).clone();
         let job = self.job_id();
-        self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job };
+        let card = match self.state {
+            State::Challenge { card, .. } => card,
+            _ => None,
+        };
+        self.state = State::Challenge { phrase, mode: Mode::Repeat, stage: Stage::Speaking, tries, job, card };
         self.silences = 0; // asked again: the next silence gets its own second chance
         let tag = self.tag(&p, Mode::Repeat);
         let shown = self.shown(&p);
@@ -854,7 +1033,8 @@ impl Lesson {
             c.heard = None;
             c.footer = String::new();
             c.tag = tag;
-            c.segments = p.cue_for(self.opts.answer);
+            c.segments =
+                if card.is_some() && p.ask.is_some() { self.question_reveal(&p) } else { p.cue_for(self.opts.answer) };
             c.alts = p.alternatives(self.opts.answer, self.opts.native);
             c.meaning = p.meaning.clone();
             c.active = c.segments.iter().position(|s| matches!(s, Segment::Target(t) if *t == shown));
@@ -991,6 +1171,7 @@ mod tests {
             summary_at: NaiveTime::from_hms_opt(21, 0, 0).unwrap(),
             ask_every: 60.0,
             practice: Practice::Repeat,
+            exercise: Exercise::Phrases,
             answer: Answer::All,
             topics: Vec::new(),
             max_level: "B1".into(),
@@ -2348,5 +2529,188 @@ mod tests {
         for i in open {
             assert!(curated.contains(&deck.phrases[i].say), "{:?} has no English translation", deck.phrases[i].say);
         }
+    }
+
+    const QUESTION_DECK: &str = "language='en'\nnative='pt-BR'\ntitle='t'\nlanguage_name='inglês'\n\
+         [[phrase]]\nsay=\"I'm hungry\"\nmeaning='Estou com fome'\nsituation='No almoço.'\ntopic='restaurante'\nlevel='A1'\n\
+         [[phrase]]\nsay='I live in Brazil.'\nask='Where are you based?'\nmeaning='Moro no Brasil.'\n\
+         situation='O entrevistador pergunta onde você mora.'\ntopic='entrevista'\nlevel='A1'\n\
+         [[phrase]]\nsay='Water.'\nask='Anything to drink?'\nmeaning='Água.'\n\
+         situation='O garçom pergunta o que você quer beber.'\ntopic='restaurante'\nlevel='PRE-A1'";
+
+    /// The question exercise on `QUESTION_DECK`, up to `max_level`.
+    fn question_fixture(max_level: &str, practice: Practice) -> Fixture {
+        let mut f = fixture_deck(QUESTION_DECK);
+        let level = max_level.to_string();
+        f.lesson.set_options(
+            |o| {
+                o.exercise = Exercise::Questions;
+                o.max_level = level;
+                o.practice = practice;
+            },
+            &mut f.scene,
+        );
+        f
+    }
+
+    /// Records a clean answer to `ask` `days_ago`, as an earlier session would.
+    fn answered_before(f: &Fixture, say: &str, ask: &str, days_ago: i64, mode: Mode) {
+        let attempt = Attempt {
+            at: Local::now() - chrono::Duration::days(days_ago),
+            language: "en".into(),
+            say: say.into(),
+            meaning: String::new(),
+            heard: say.into(),
+            score: 1.0,
+            success: true,
+        };
+        let how = Answered {
+            exercise: Exercise::Questions,
+            ask: Some(ask.into()),
+            tier: Some(Answer::Complete),
+            try_number: 1,
+            mode: Some(mode),
+        };
+        f.lesson.history.record_answer(&attempt, &how).unwrap();
+    }
+
+    fn footer(f: &Fixture) -> String {
+        f.scene.hud.caption.as_ref().unwrap().footer.clone()
+    }
+
+    #[test]
+    fn the_question_exercise_asks_only_questions_in_the_target_language_in_path_order() {
+        let mut f = question_fixture("B1", Practice::Auto);
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert_eq!(f.current_say(), "Water.", "the single word comes first on the path");
+        assert_eq!(parts[0].text, "Anything to drink?", "the question is spoken first");
+        assert!(parts.iter().all(|u| u.lang == "en"), "nothing is spoken in Portuguese: {parts:?}");
+        let tag = f.scene.hud.caption.as_ref().unwrap().tag.clone();
+        assert!(tag.starts_with("pergunta"), "{tag}");
+        f.lesson.set_options(|o| o.topics = vec!["entrevista".into()], &mut f.scene);
+        f.send(Input::Dismiss);
+        f.send(Input::Primary);
+        assert_eq!(f.current_say(), "I live in Brazil.", "the topic filter holds");
+        f.lesson.set_options(|o| o.topics = vec!["restaurante".into()], &mut f.scene);
+        for _ in 0..4 {
+            f.send(Input::Dismiss);
+            f.send(Input::Primary);
+            assert_eq!(f.current_say(), "Water.", "a phrase without a question is never asked here");
+        }
+    }
+
+    #[test]
+    fn the_phrase_exercise_is_unchanged_and_keeps_out_of_the_question_log() {
+        let mut f = fixture_deck(QUESTION_DECK);
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(parts.iter().any(|u| u.lang == "pt-BR"), "phrases keep their Portuguese cue");
+        f.send(Input::Dismiss);
+        f.answer(true);
+        assert!(f.lesson.history.question_log("en").unwrap().is_empty());
+        assert!(!footer(&f).contains("caixa"), "{}", footer(&f));
+    }
+
+    #[test]
+    fn a_question_answered_says_its_box_move_and_when_it_comes_back() {
+        let mut f = question_fixture("PRE-A1", Practice::Auto);
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        assert!(f.scene.hud.toast.as_ref().unwrap().text.starts_with("Hoje: 0 para revisar, 1 novas"));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Water.".into() }));
+        assert!(footer(&f).starts_with("caixa 0 → 1 · volta hoje · "), "{}", footer(&f));
+        let log = f.lesson.history.question_log("en").unwrap();
+        assert_eq!(log.len(), 1);
+        assert_eq!(log[0].ask, "Anything to drink?");
+    }
+
+    #[test]
+    fn a_missed_question_says_it_comes_back_and_shows_the_answer() {
+        let mut f = question_fixture("PRE-A1", Practice::Auto);
+        let (mut id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        for _ in 0..MAX_TRIES {
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "banana split".into() }));
+            if let Some((next, _)) = f.tick(RETRY_PAUSE + 0.2).iter().find_map(|j| match j {
+                Job::Speak { id, parts } => Some((*id, parts.clone())),
+                _ => None,
+            }) {
+                id = next;
+            }
+        }
+        assert!(footer(&f).contains("caixa 0 → 1 · volta hoje"), "{}", footer(&f));
+        let segs = &f.scene.hud.caption.as_ref().unwrap().segments;
+        assert!(segs.iter().any(|s| s.text() == "Anything to drink?") && segs.iter().any(|s| s.text() == "Water."));
+        assert!(f.lesson.cards()["Anything to drink?"].last_failed);
+    }
+
+    #[test]
+    fn at_pre_a1_a_question_in_box_2_is_recalled_not_repeated() {
+        let mut f = question_fixture("PRE-A1", Practice::Auto);
+        answered_before(&f, "Water.", "Anything to drink?", 2, Mode::Repeat);
+        answered_before(&f, "Water.", "Anything to drink?", 2, Mode::Repeat);
+        assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, 2);
+        let (_, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert_eq!(parts.len(), 1, "only the question: the answer is not played first");
+        let cap = f.scene.hud.caption.as_ref().unwrap();
+        assert!(cap.tag.ends_with("de memória"), "{}", cap.tag);
+        assert!(cap.segments.iter().all(|s| s.text() != "Water."), "the answer is hidden");
+        let mut fresh = question_fixture("PRE-A1", Practice::Auto);
+        let (_, parts) = Fixture::speak_job(&fresh.send(Input::Primary));
+        assert_eq!(parts.len(), 2, "a new question: the beginner hears the answer first");
+    }
+
+    #[test]
+    fn from_a2_the_question_is_heard_but_written_only_once_answered() {
+        let mut f = question_fixture("B1", Practice::Recall);
+        let (id, parts) = Fixture::speak_job(&f.send(Input::Primary));
+        assert_eq!(parts[0].text, "Anything to drink?");
+        let first = f.scene.hud.caption.as_ref().unwrap().segments[0].clone();
+        assert!(!first.is_target(), "only heard: {first:?}");
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Water.".into() }));
+        assert_eq!(f.scene.hud.caption.as_ref().unwrap().segments[0], Segment::Target("Anything to drink?".into()));
+        let mut a1 = question_fixture("A1", Practice::Recall);
+        a1.send(Input::Primary);
+        assert!(a1.scene.hud.caption.as_ref().unwrap().segments[0].is_target(), "up to A1 it is written");
+    }
+
+    #[test]
+    fn conquering_a_question_melts_no_more_than_any_right_answer() {
+        let melt = |question: bool| {
+            let mut f = if question { question_fixture("A1", Practice::Recall) } else { fixture_deck(QUESTION_DECK) };
+            if question {
+                for days in [40, 40, 39, 36] {
+                    answered_before(&f, "Water.", "Anything to drink?", days, Mode::Recall);
+                }
+                assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, 4);
+            } else {
+                let level = "A1".to_string();
+                f.lesson.set_options(|o| (o.max_level, o.practice) = (level, Practice::Recall), &mut f.scene);
+            }
+            f.scene.fires.clear();
+            let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            let before = f.scene.snow.fill();
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "Water.".into() }));
+            f.settle();
+            if question {
+                assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, CONQUERED);
+                assert!(f.scene.hud.toast.as_ref().unwrap().text.starts_with("Conquistada!"));
+            }
+            (before - f.scene.snow.fill(), f.lesson.combo())
+        };
+        let (conquest, combo) = melt(true);
+        let (answer, plain_combo) = melt(false);
+        assert!((conquest - answer).abs() < 1e-6, "the conquest melts {conquest}, any answer {answer}");
+        assert_eq!(combo, plain_combo, "and it counts once toward the sun");
+    }
+
+    #[test]
+    fn with_no_question_in_the_filters_the_learner_is_told_so() {
+        let mut f = question_fixture("B1", Practice::Auto);
+        f.lesson.set_options(|o| o.topics = vec!["trabalho".into()], &mut f.scene);
+        assert!(f.send(Input::Primary).is_empty());
+        assert!(f.lesson.is_idle());
+        assert_eq!(f.scene.hud.toast.as_ref().unwrap().text, T::NoQuestions.get(Native::PtBr));
     }
 }

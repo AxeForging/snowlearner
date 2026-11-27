@@ -418,6 +418,39 @@ fn progress_counts_a_word_as_known_after_two_successes() {
     assert!(!out.contains("Aprendendo agora:\n  Water."), "known words leave the learning list: {out}");
 }
 
+/// `exercise = "questions"` is a valid config (#220), and a history written
+/// before the question columns existed still opens and still counts.
+#[test]
+fn the_question_exercise_is_accepted_and_a_history_from_before_still_counts() {
+    let home = Home::new();
+    home.config(&format!("exercise = \"questions\"\nipc_port = {}\n", free_port()));
+    std::fs::create_dir_all(home.dir.path().join("data")).unwrap();
+    {
+        let c = rusqlite::Connection::open(home.dir.path().join("data/history.sqlite3")).unwrap();
+        c.execute_batch(
+            "CREATE TABLE attempts (id INTEGER PRIMARY KEY, at TEXT NOT NULL, day TEXT NOT NULL,
+                 language TEXT NOT NULL, say TEXT NOT NULL, meaning TEXT NOT NULL, heard TEXT NOT NULL,
+                 score REAL NOT NULL, success INTEGER NOT NULL);",
+        )
+        .unwrap();
+        let now = Local::now();
+        for _ in 0..2 {
+            c.execute(
+                "INSERT INTO attempts (at, day, language, say, meaning, heard, score, success)
+                 VALUES (?1, ?2, 'en', 'Water.', 'Água.', 'water', 1.0, 1)",
+                rusqlite::params![now.to_rfc3339(), now.date_naive().to_string()],
+            )
+            .unwrap();
+        }
+    }
+    let o = home.run(&["doctor"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let out = stdout(&home.run(&["progress", "--print"]));
+    assert!(out.contains("Progresso em inglês: 1 de "), "the old answers still count: {out}");
+    let h = home.history();
+    assert!(h.question_log("en").unwrap().is_empty(), "and stay phrase answers");
+}
+
 #[test]
 fn progress_opens_the_panel_of_a_running_instance() {
     let home = Home::new();

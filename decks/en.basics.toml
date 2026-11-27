@@ -80,6 +80,8 @@ topic = "restaurante"
 level = "PRE-A1"
 situation = "No restaurante, o garçom pergunta o que você quer beber."
 say = "Water."
+family = "restaurant-drink"
+ask = "Anything to drink?"
 polished = "Water, please."
 meaning = "Água."
 accept = ["Water, please"]
@@ -368,6 +370,41 @@ accept = ["Large, please"]
 tip = "'Large' soa como 'lárdj'. Não é 'larga'!"
 
 [[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+family = "restaurant-table"
+ask = "Inside or outside?"
+situation = "Na porta de um restaurante com mesas na calçada, a hostess pergunta se você quer sentar dentro ou fora. O dia está lindo."
+say = "Outside."
+polished = "Outside, please."
+meaning = "Lá fora."
+tip = "'Outside' soa como 'áut-sáid', sem 'i' no final: não diga 'autsáidi'. Dentro é 'inside'."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+family = "restaurant-order"
+ask = "Fries or salad?"
+situation = "Na lanchonete, você pede um hambúrguer e o garçom pergunta se o acompanhamento é batata frita ou salada."
+say = "Fries."
+polished = "Fries, please."
+meaning = "Batata frita."
+accept = ["French fries"]
+tip = "'Fries' soa como 'fráiz', com o 's' final vibrando como 'z'. No Reino Unido são 'chips', que não é a batata chips daqui."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+family = "restaurant-meal-end"
+ask = "Is everything okay?"
+situation = "No meio do jantar, o garçom passa pela mesa e pergunta se está tudo bem. A comida está ótima."
+say = "Delicious!"
+polished = "Delicious, thank you!"
+meaning = "Delicioso!"
+accept = ["It's delicious", "Very good"]
+tip = "'Delicious' soa como 'delíshâs': o 'ci' vira 'sh', e a força cai no 'li'."
+
+[[phrase]]
 topic = "viagem"
 level = "A1"
 situation = "Você entra no táxi e o motorista pergunta pra onde vai."
@@ -489,8 +526,10 @@ tip = "'Excuse me' soa como 'ekskiúz mi'."
 [[phrase]]
 topic = "restaurante"
 level = "A1"
-situation = "Vocês terminaram de jantar e querem pagar."
+situation = "Vocês terminaram de jantar e o garçom pergunta se querem mais alguma coisa, mas vocês só querem pagar."
 say = "The check, please."
+family = "restaurant-meal-end"
+ask = "Can I get you anything else?"
 polished = "Could we have the check, please?"
 meaning = "A conta, por favor."
 accept = ["Check, please", "The bill, please", "Bill, please"]
@@ -529,6 +568,8 @@ topic = "restaurante"
 level = "A1"
 situation = "O garçom oferece suco, refrigerante e vinho, mas você só quer água."
 say = "Just water, please."
+family = "restaurant-drink"
+ask = "Would you like juice, soda, or wine?"
 polished = "Just water for me, please."
 meaning = "Só água, por favor."
 accept = ["Just water", "Only water, please"]

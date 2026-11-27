@@ -96,6 +96,9 @@ texts! {
     PracticeAuto => "automático", "automatic";
     PracticeRepeat => "repetir", "repeat";
     PracticeRecall => "de memória", "from memory";
+    ItemExercise => "Exercício", "Exercise";
+    ExercisePhrases => "frases", "phrases";
+    ExerciseQuestions => "perguntas", "questions";
     GoalPhrases => "{0} frases", "{0} phrases";
     ModeAuto => "auto*", "auto*";
     ModeWindow => "janela*", "window*";
@@ -186,6 +189,16 @@ texts! {
     TipPrefix => "Dica: {0}", "Tip: {0}";
     TagRepeat => "repita", "repeat";
     TagRecall => "de memória", "from memory";
+    TagQuestion => "pergunta", "question";
+    NoQuestions => "Nenhuma pergunta com esse tema/nível. Mude no menu.",
+        "No question with this topic/level. Change it in the panel.";
+    ListenQuestion => "Ouça a pergunta e responda em {0}", "Listen to the question and answer in {0}";
+    QuestionBox => "caixa {0} → {1} · {2}", "box {0} → {1} · {2}";
+    ReturnsToday => "volta hoje", "back today";
+    ReturnsTomorrow => "volta amanhã", "back tomorrow";
+    ReturnsInDays => "volta em {0} dias", "back in {0} days";
+    Conquered => "Conquistada! {0}", "Conquered! {0}";
+    QuestionsToday => "Hoje: {0} para revisar, {1} novas", "Today: {0} to review, {1} new";
     AllTopics => "todos os temas", "all topics";
     PausedToast => "Em pausa: botão direito no orbe (ou P) para voltar", "Paused: right-click the orb (or P) to come back";
     Analyzing => "Ok, analisando...", "Ok, checking...";

@@ -10,7 +10,7 @@ use crate::config::settings::{Settings, WindowMode};
 use crate::lang::text::{language_name, topic, topics_label};
 use crate::lang::{Native, T};
 use crate::learn::deck::{Answer, LEVELS, PRE_A1};
-use crate::learn::picker::Practice;
+use crate::learn::picker::{Exercise, Practice};
 use crate::learn::progress::{Progress, Tally};
 use crate::render::canvas::{Canvas, Rgba, hex};
 use crate::render::font;
@@ -37,6 +37,8 @@ pub enum Item {
     Topic,
     Level,
     Practice,
+    /// Say phrases, or answer questions asked in the language (#220).
+    Exercise,
     /// Which answer tier to practice (short, complete, polished, or all).
     Answer,
     Goal,
@@ -86,6 +88,7 @@ pub const GAME: &[Item] = &[
     Item::Topic,
     Item::Level,
     Item::Practice,
+    Item::Exercise,
     Item::Answer,
     Item::Goal,
     Item::Mode,
@@ -439,6 +442,7 @@ impl Menu {
             }
             Item::Level => each(s, LEVELS, |c, l| c.max_level = l.to_string()),
             Item::Practice => each(s, [Practice::Auto, Practice::Repeat, Practice::Recall], |c, p| c.practice = p),
+            Item::Exercise => each(s, [Exercise::Phrases, Exercise::Questions], |c, e| c.exercise = e),
             Item::Answer => each(s, Answer::CHOICES, |c, a| c.answer = a),
             Item::Goal => each(s, GOALS.iter().copied(), |c, g| c.daily_goal = g),
             Item::Mode => each(s, [WindowMode::Auto, WindowMode::Window, WindowMode::Overlay], |c, m| c.mode = m),
@@ -752,6 +756,12 @@ impl Menu {
             }
             .get(n)
             .into(),
+            Item::Exercise => match s.exercise {
+                Exercise::Phrases => T::ExercisePhrases,
+                Exercise::Questions => T::ExerciseQuestions,
+            }
+            .get(n)
+            .into(),
             Item::Answer => s.answer.label(n).into(),
             Item::Goal => T::GoalPhrases.fill(n, &[&s.daily_goal]),
             Item::Mode => match s.mode {
@@ -809,6 +819,7 @@ impl Menu {
             Item::Topic => T::ItemTopic,
             Item::Level => T::ItemLevel,
             Item::Practice => T::ItemPractice,
+            Item::Exercise => T::ItemExercise,
             Item::Answer => T::ItemAnswer,
             Item::Goal => T::ItemGoal,
             Item::Mode => T::ItemMode,
@@ -1700,6 +1711,7 @@ mod tests {
         Item::Topic,
         Item::Level,
         Item::Practice,
+        Item::Exercise,
         Item::Answer,
         Item::Goal,
         Item::Mode,
