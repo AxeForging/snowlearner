@@ -66,6 +66,24 @@ situation = "At the hotel breakfast, they ask what you'd like to drink."
 tip = "The 'j' is a strong throaty 'h', like in 'loch': HOO-goh. In Spain they say 'zumo'."
 
 [[phrase]]
+say = "Afuera."
+meaning = "Outside."
+situation = "At the door of a restaurant with sidewalk tables, they ask if you want to sit inside or outside. It's a beautiful day."
+tip = "Say ah-FWEH-rah. Inside is 'adentro'; in Spain people say 'fuera' and 'dentro'."
+
+[[phrase]]
+say = "Ensalada."
+meaning = "Salad."
+situation = "At a burger place, you order a burger and they ask if you want fries or salad on the side. You want salad."
+tip = "Stress the 'la': en-sah-LAH-dah. The 'd' is soft, close to the 'th' in 'this'."
+
+[[phrase]]
+say = "¡Delicioso!"
+meaning = "Delicious!"
+situation = "Halfway through dinner, the waiter stops by and asks if everything is okay. The food is great."
+tip = "In Latin America 'ci' sounds like 'see': deh-lee-SYOH-soh."
+
+[[phrase]]
 say = "Leche."
 meaning = "Milk."
 situation = "At the market, the clerk asks what's still missing from your list."

@@ -76,6 +76,8 @@ topic = "restaurante"
 level = "PRE-A1"
 situation = "No bar, o atendente pergunta o que você vai tomar."
 say = "Cerveza."
+family = "restaurant-drink"
+ask = "¿Algo para tomar?"
 polished = "Una cerveza, por favor."
 meaning = "Cerveja."
 accept = ["Una cerveza", "Cerveza, por favor"]
@@ -100,6 +102,42 @@ polished = "Un jugo de naranja, por favor."
 meaning = "Suco."
 accept = ["Zumo", "Un jugo"]
 tip = "O 'j' é um 'r' forte de garganta: 'rrúgo'. Na Espanha se diz 'zumo'."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "Na porta de um restaurante com mesas na calçada, perguntam se você quer sentar dentro ou fora. O dia está lindo."
+say = "Afuera."
+family = "restaurant-table"
+ask = "¿Adentro o afuera?"
+polished = "Afuera, por favor."
+meaning = "Lá fora."
+accept = ["Afuera, por favor", "Fuera"]
+tip = "Soa como 'afuéra', não 'afora'. Dentro é 'adentro'. Na Espanha se diz mais 'fuera' e 'dentro'."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "Na lanchonete, você pede um hambúrguer e perguntam se o acompanhamento é batata frita ou salada. Você quer salada."
+say = "Ensalada."
+family = "restaurant-order"
+ask = "¿Papas fritas o ensalada?"
+polished = "Ensalada, por favor."
+meaning = "Salada."
+accept = ["Una ensalada", "Ensalada, por favor"]
+tip = "Falso amigo: 'salada' em espanhol quer dizer salgada. A salada é 'ensalada'."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "No meio do jantar, o garçom passa pela mesa e pergunta se está tudo bem. A comida está ótima."
+say = "¡Delicioso!"
+family = "restaurant-meal-end"
+ask = "¿Todo bien?"
+polished = "¡Delicioso, muchas gracias!"
+meaning = "Delicioso!"
+accept = ["Muy rico", "Delicioso"]
+tip = "Em espanhol o 's' entre vogais nunca soa como 'z': 'delisióso', não 'delisiôzo'."
 
 [[phrase]]
 topic = "comida e compras"
@@ -518,6 +556,8 @@ topic = "restaurante"
 level = "A1"
 situation = "O garçom pergunta se você quer água com gás ou sem gás."
 say = "Agua sin gas."
+family = "restaurant-drink"
+ask = "¿Con gas o sin gas?"
 polished = "Agua sin gas, por favor."
 meaning = "Água sem gás."
 accept = ["Sin gas", "Agua natural"]

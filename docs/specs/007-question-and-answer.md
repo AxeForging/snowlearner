@@ -87,8 +87,16 @@ spacing in time (`learn/path.rs`, `001` left spaced repetition out).
     offers, like `Fries.`), and `Yes.` (a hotel reservation) moved from `primeiros contatos`
     to `viagem`. `primeiros contatos` gets its first curated A1 items.
 
+11. **Spanish and Portuguese** (#227, written and reviewed by `language-teacher`): `restaurante`
+    in both, four families each (`restaurant-drink`, `restaurant-table`, `restaurant-order`,
+    `restaurant-meal-end`), PRE-A1 → B1. Spanish is Latin American, as the deck already was
+    ("jugo", "manejar"), with **usted** both ways ("¿Qué va a pedir?"); its 8 new phrases and
+    the 4 whose situation changed have their `decks/i18n/es.en` entries, and a test now fails
+    when a Spanish question has no English translation (it used to be dropped silently).
+    Portuguese is everyday Brazilian ("a gente", "pra"), written for English speakers.
+
 ## Not in this change
-More topics (`trabalho`, `tecnologia` and the rest), es and pt questions,
+More topics (`trabalho`, `tecnologia` and the rest; other topics in Spanish and Portuguese), es and pt questions,
 "conquered X/Y" in PROGRESSO and the streak (006 R13), personal answers from settings.
 
 ## Sources and judgment
@@ -104,7 +112,8 @@ Schedule (box moves, intervals, extra practice, pick order, daily and slot limit
 the level-up condition: share, every topic, fewer than six, current level only, B1 top; a
 family's next rung first, still within the slot and daily limits, and in the English deck),
 history (columns kept, migration of an old file), deck (`{?}`, unique asks, families, three
-families in each of the five question topics, interview cues), lesson (only questions, only
+families in each of the five question topics and in Spanish and Portuguese restaurant, every
+Spanish question translated for English speakers, interview cues), lesson (only questions, only
 the language spoken, box footer, miss reveal, pre-A1 recall from box 2, written up to A1, conquest melts no more,
 no question in the filters; the level-up offer once a day, 7 days after "not now", melting
 nothing, lower boxes kept), panel (the offer row in the status line's place, yes as a level

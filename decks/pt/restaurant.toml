@@ -5,6 +5,8 @@ topic = "restaurante"
 level = "A2"
 situation = "The waiter comes to your table, notepad in hand."
 say = "Vou querer o frango."
+family = "restaurant-order"
+ask = "O que você vai querer?"
 short = "O frango, por favor."
 polished = "Acho que vou querer o frango, por favor."
 meaning = "I'll have the chicken."
@@ -34,8 +36,10 @@ accept = ["Esse prato é picante?", "Esse prato tem pimenta?"]
 [[phrase]]
 topic = "restaurante"
 level = "A2"
-situation = "The food arrived, but they forgot your drink."
+situation = "The food arrived, but they forgot your drink, and the waiter asks if anything is missing."
 say = "Me traz uma água, por favor?"
+family = "restaurant-drink"
+ask = "Falta alguma coisa?"
 short = "Uma água, por favor."
 polished = "Você pode me trazer uma água, por favor?"
 meaning = "Can I have some water, please?"
@@ -47,7 +51,100 @@ topic = "restaurante"
 level = "A2"
 situation = "The waiter clears the plates and asks if everything was good."
 say = "Estava tudo delicioso."
+family = "restaurant-meal-end"
+ask = "Como estava a comida?"
 short = "Estava delicioso."
 polished = "Estava tudo delicioso, muito obrigado."
 meaning = "Everything was delicious."
 accept = ["Estava tudo uma delícia", "Estava tudo ótimo"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "You arrive at the restaurant with a friend and they ask how many people the table is for."
+say = "Uma mesa pra dois, por favor."
+family = "restaurant-table"
+ask = "Mesa pra quantos?"
+short = "Pra dois."
+polished = "Boa noite, tem uma mesa pra dois, por favor?"
+meaning = "A table for two, please."
+accept = ["Mesa pra dois, por favor", "Pra dois, por favor", "Uma mesa para dois, por favor"]
+tip = "'Tem uma mesa?' (literally 'has a table?') is how Brazilians ask if one is free."
+
+[[phrase]]
+topic = "restaurante"
+level = "A1"
+situation = "Before taking your order, the waiter asks if you have any allergies. You're allergic to peanuts."
+say = "Sou alérgico a amendoim."
+family = "restaurant-order"
+ask = "Você tem alguma alergia?"
+short = "Sem amendoim, por favor."
+polished = "Só pra avisar, sou alérgico a amendoim."
+meaning = "I'm allergic to peanuts."
+accept = ["Sou alérgica a amendoim", "Tenho alergia a amendoim"]
+tip = "A woman says 'alérgica'. 'Amendoim' ends in a nasal 'een': ah-men-doh-EEN."
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "The restaurant is almost empty and they ask where you'd like to sit. You want to watch the street."
+say = "A gente pode sentar perto da janela?"
+family = "restaurant-table"
+ask = "Onde vocês preferem sentar?"
+short = "Perto da janela."
+polished = "Se for possível, a gente pode sentar perto da janela?"
+meaning = "Could we sit by the window?"
+accept = ["Podemos sentar perto da janela?", "Dá pra sentar perto da janela?", "A gente pode sentar na janela?"]
+tip = "'A gente' (literally 'the people') is everyday Brazilian for 'we', and it takes a singular verb: 'a gente pode'."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "They seat you right next to a loudspeaker and ask if the table is okay."
+say = "Será que dá pra trocar por uma mesa mais tranquila?"
+family = "restaurant-table"
+ask = "Essa mesa está boa pra vocês?"
+short = "Dá pra trocar de mesa?"
+polished = "Desculpa incomodar, mas será que dá pra trocar por uma mesa mais tranquila?"
+meaning = "Would it be possible to move to a quieter table?"
+accept = ["Dá pra trocar por uma mesa mais tranquila?", "Será que a gente pode trocar por uma mesa mais tranquila?", "Será que dá pra mudar pra uma mesa mais tranquila?"]
+tip = "'Será que...?' softens a request, like 'I wonder if...'. 'Dá pra...?' is the everyday 'can we...?'."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "You're drinking water and the waiter suggests a wine, but you're driving after dinner."
+say = "Prefiro ficar na água, porque estou de carro."
+family = "restaurant-drink"
+ask = "Aceita um vinho pra acompanhar?"
+short = "Só água pra mim."
+polished = "Obrigado, mas prefiro ficar na água, porque hoje estou de carro."
+meaning = "I'd rather stick to water, I'm driving."
+accept = ["Vou ficar na água, porque estou de carro.", "Prefiro ficar só na água, porque estou de carro.", "Prefiro ficar na água, tô de carro."]
+tip = "'Estou de carro' means you came by car, so you're driving: it is the usual way to turn down a drink."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "The waiter comes back for the third time and you still haven't chosen a dish."
+say = "A gente ainda está decidindo, pode voltar daqui a pouco?"
+family = "restaurant-order"
+ask = "Já escolheram?"
+short = "Mais um minutinho."
+polished = "Desculpa, a gente ainda está decidindo, você pode voltar daqui a pouquinho?"
+meaning = "We're still deciding, could you come back in a bit?"
+accept = ["A gente ainda tá decidindo, pode voltar daqui a pouco?", "Ainda estamos decidindo, pode voltar daqui a pouco?", "Ainda não decidimos, pode voltar daqui a pouco?"]
+tip = "'Daqui a pouco' means 'in a little while' (literally 'from here to a little')."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "You ate too much and the waiter offers dessert."
+say = "Estou satisfeito, não cabe mais nada."
+family = "restaurant-meal-end"
+ask = "Vão querer sobremesa?"
+short = "Estou satisfeito, obrigado."
+polished = "Obrigado, estava tudo ótimo, mas não cabe mais nada."
+meaning = "I'm full, I couldn't eat another bite."
+accept = ["Estou satisfeita, não cabe mais nada.", "Estou cheio, não cabe mais nada.", "Tô satisfeito, não cabe mais nada."]
+tip = "'Não cabe mais nada' (literally 'nothing else fits') is the Brazilian 'I couldn't eat another bite'. A woman says 'satisfeita'."
