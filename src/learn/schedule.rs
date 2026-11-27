@@ -167,7 +167,8 @@ pub fn cards(log: &[QuestionAttempt], asked: Answer, max_tries: u32) -> HashMap<
     cards
 }
 
-fn card_of(cards: &HashMap<String, Card>, p: &Phrase) -> Card {
+/// `p`'s card; a phrase never asked (or with no `ask`) is in box 0.
+pub fn card_of(cards: &HashMap<String, Card>, p: &Phrase) -> Card {
     p.ask.as_ref().and_then(|a| cards.get(a)).copied().unwrap_or_default()
 }
 

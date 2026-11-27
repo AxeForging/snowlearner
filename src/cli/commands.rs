@@ -12,6 +12,7 @@ use crate::control::{
 };
 use crate::lang::{Native, T};
 use crate::learn::deck::Deck;
+use crate::learn::picker::Exercise;
 use crate::render::{canvas::Canvas, png_out};
 use crate::scene::Scene;
 use crate::scene::hud::{Caption, Status};
@@ -438,7 +439,12 @@ fn progress(settings: &Settings, paths: &Paths) -> Result<()> {
     let history = History::open(&paths.db_file())?;
     let stats = history.stats(&deck.language, Local::now().date_naive())?;
     let selection = deck.selection(&settings.topics, &settings.max_level);
-    let report = crate::learn::progress::progress(&deck.phrases, &selection, &stats);
+    let mut report = crate::learn::progress::progress(&deck.phrases, &selection, &stats);
+    if settings.exercise == Exercise::Questions {
+        let log = history.question_log(&deck.language)?;
+        let cards = crate::learn::schedule::cards(&log, settings.answer, crate::app::lesson::MAX_TRIES);
+        report = report.with_questions(&deck.phrases, &selection, &cards);
+    }
     print!("{}", report.render_text(&deck.language_name, settings.native));
     Ok(())
 }

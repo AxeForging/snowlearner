@@ -451,6 +451,46 @@ fn the_question_exercise_is_accepted_and_a_history_from_before_still_counts() {
     assert!(h.question_log("en").unwrap().is_empty(), "and stay phrase answers");
 }
 
+/// #228: the question exercise's conquests show in `progress --print`, read
+/// from the boxes a real history rebuilds.
+#[test]
+fn progress_prints_the_conquered_questions_of_a_seeded_history() {
+    use snowlearner::learn::deck::Answer;
+    use snowlearner::learn::picker::{Exercise, Mode};
+    use snowlearner::store::history::Answered;
+    let home = Home::new();
+    home.config("exercise = \"questions\"\nanswer = \"complete\"\n");
+    let h = home.history();
+    let how = Answered {
+        exercise: Exercise::Questions,
+        ask: Some("Anything to drink?".into()),
+        tier: Some(Answer::Complete),
+        try_number: 1,
+        mode: Some(Mode::Recall),
+    };
+    // Boxes 1 and 2 the first day, then 1, 3 and 7 days apart: conquered.
+    for days_ago in [11, 11, 10, 7, 0] {
+        let at = Local::now() - chrono::Duration::days(days_ago);
+        let a = Attempt {
+            at,
+            language: "en".into(),
+            say: "Water.".into(),
+            meaning: "Água.".into(),
+            heard: "water".into(),
+            score: 1.0,
+            success: true,
+        };
+        h.record_answer(&a, &how).unwrap();
+    }
+    let out = stdout(&home.run(&["progress", "--print"]));
+    assert!(out.contains("Perguntas por tema:"), "{out}");
+    let line = out.lines().find(|l| l.contains("restaurante") && l.contains("conquistadas")).unwrap_or_default();
+    assert!(line.contains(" 1 conquistadas · 0 em revisão · de "), "the restaurant line: {line:?}\n{out}");
+    home.config("exercise = \"phrases\"\n");
+    let phrases = stdout(&home.run(&["progress", "--print"]));
+    assert!(!phrases.contains("Perguntas por tema:"), "only in the question exercise: {phrases}");
+}
+
 #[test]
 fn progress_opens_the_panel_of_a_running_instance() {
     let home = Home::new();

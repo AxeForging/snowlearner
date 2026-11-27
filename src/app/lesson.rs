@@ -264,7 +264,11 @@ impl Lesson {
     /// What you know, are learning and comes next, for the current filters.
     pub fn progress(&self) -> crate::learn::progress::Progress {
         let stats = self.history.stats(&self.deck.language, Local::now().date_naive()).unwrap_or_default();
-        crate::learn::progress::progress(&self.deck.phrases, &self.selection(), &stats)
+        let progress = crate::learn::progress::progress(&self.deck.phrases, &self.selection(), &stats);
+        match self.opts.exercise {
+            Exercise::Questions => progress.with_questions(&self.deck.phrases, &self.selection(), &self.cards()),
+            Exercise::Phrases => progress,
+        }
     }
 
     /// Phrases currently in rotation (topic + level filters).

@@ -145,6 +145,10 @@ texts! {
         "Progress in {0}: {1} of {2} known ({3}%), {4} learning";
     StageNow => "Etapa atual: {0}", "Current stage: {0}";
     ByTopic => "Por tema:", "By topic:";
+    QuestionsByTopic => "Perguntas por tema:", "Questions by topic:";
+    QuestionsRow => "{0} conquistadas · {1} em revisão · de {2}", "{0} conquered · {1} in review · of {2}";
+    QuestionsPanelHead => "Conquistadas {0} · em revisão {1}", "Conquered {0} · in review {1}";
+    MoreTopics => "+{0} temas", "+{0} topics";
     Today => "Hoje: {0}/{1}  ·  combo x{2}", "Today: {0}/{1}  ·  combo x{2}";
     TestListening => "Ouvindo... fale uma frase em voz alta.", "Listening... say a phrase out loud.";
     TestPlaying => "Tocando as duas vozes...", "Playing both voices...";

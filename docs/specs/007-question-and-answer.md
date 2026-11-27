@@ -94,10 +94,16 @@ spacing in time (`learn/path.rs`, `001` left spaced repetition out).
     the 4 whose situation changed have their `decks/i18n/es.en` entries, and a test now fails
     when a Spanish question has no English translation (it used to be dropped silently).
     Portuguese is everyday Brazilian ("a gente", "pra"), written for English speakers.
+12. **Conquests in PROGRESSO** (#228) — in the question exercise, `progress --print` adds
+    "Perguntas por tema:", and each topic shows its questions conquered (box 5) and in review
+    (boxes 3-4) out of its total. The panel tab adds one line with the totals and a bar per
+    topic: green is conquered, yellow is in review, and the number is conquered/total. The
+    topics that do not fit above the footer are counted as "+N temas". The boxes are rebuilt
+    from the history, as the lesson does. In the phrase exercise nothing changes.
 
 ## Not in this change
 More topics (`trabalho`, `tecnologia` and the rest; other topics in Spanish and Portuguese), es and pt questions,
-"conquered X/Y" in PROGRESSO and the streak (006 R13), personal answers from settings.
+the streak (006 R13), personal answers from settings.
 
 ## Sources and judgment
 The growing gaps follow Cepeda et al. 2006 (the best gap grows with how long you must
@@ -117,5 +123,8 @@ Spanish question translated for English speakers, interview cues), lesson (only 
 the language spoken, box footer, miss reveal, pre-A1 recall from box 2, written up to A1, conquest melts no more,
 no question in the filters; the level-up offer once a day, 7 days after "not now", melting
 nothing, lower boxes kept), panel (the offer row in the status line's place, yes as a level
-change, not now changing nothing, clicks), matcher ("I live in Canada" never passes for "I live in
-Brazil."), binary (`exercise = "questions"` accepted; an old history still counts).
+change, not now changing nothing, clicks; the question boxes in PROGRESSO fit above the
+footer in both languages), progress (counts per topic match the boxes rebuilt from a log),
+matcher ("I live in Canada" never passes for "I live in
+Brazil."), binary (`exercise = "questions"` accepted; an old history still counts; `progress --print`
+shows the conquered questions of a seeded history, only in the question exercise).
