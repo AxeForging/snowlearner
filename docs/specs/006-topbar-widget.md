@@ -491,7 +491,7 @@ Other files:
 - `config/settings.rs`: `TopbarSettings`.
 - `config/edit.rs`: the `toml_edit` single-key writer.
 - `config/paths.rs`: `state_dir()`, `topbar_file()`, `overlay_file()`.
-- `learn/streak.rs`: `streak(days, today) -> Streak { days, alive_today }`. Pure.
+- `learn/streak.rs`: `streak(days, today) -> Streak { days, done_today }`. Pure (shipped in #229).
 - `store/history.rs`: `success_days(language)`, which runs `SELECT DISTINCT day … WHERE
   success = 1` and uses the existing `attempts_day` index.
 - `cli/mod.rs` + `commands.rs`: `Topbar { json, action }`, `Toggle`, the `lesson` alias,

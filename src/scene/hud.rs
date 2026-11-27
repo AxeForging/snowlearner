@@ -100,6 +100,8 @@ pub struct Stats {
     /// Right answers still missing for the next reward (1..=`PIPS`).
     pub to_reward: u32,
     pub reward: Reward,
+    /// The practice streak as read ("3 dias"); None at 0 days.
+    pub streak: Option<String>,
 }
 
 pub struct SummaryLine {
@@ -224,6 +226,9 @@ fn draw_stats(c: &mut Canvas, st: &Stats) {
     let mut text = format!("{} · {goal}", st.label);
     if st.combo >= 2 {
         text.push_str(&format!(" · x{}", st.combo));
+    }
+    if let Some(days) = &st.streak {
+        text.push_str(&format!(" · {days}"));
     }
     let w = font::text_width(&text);
     let (x, y) = (c.w - w - 6, 4 + font::LINE_H);
@@ -639,8 +644,9 @@ mod tests {
     }
 
     #[test]
-    fn stats_corner_shows_goal_progress_and_combo() {
-        let stats = Stats { done: 3, goal: 10, combo: 0, label: "EN".into(), to_reward: 3, reward: Reward::Sun };
+    fn stats_corner_shows_goal_progress_combo_and_streak() {
+        let stats =
+            Stats { done: 3, goal: 10, combo: 0, label: "EN".into(), to_reward: 3, reward: Reward::Sun, streak: None };
         let mut hud = Hud { stats: Some(stats), ..Default::default() };
         let mut plain = Canvas::new(200, 60);
         hud.draw(&mut plain, 60, 0.0);
@@ -649,12 +655,16 @@ mod tests {
         hud.draw(&mut combo, 60, 0.0);
         assert!(plain.opaque_in(100, 0, 100, 40) > 0);
         assert!(combo.opaque_in(0, 0, 200, 60) > plain.opaque_in(0, 0, 200, 60), "combo adds 'x4'");
+        hud.stats.as_mut().unwrap().streak = Some("3 dias".into());
+        let mut streak = Canvas::new(200, 60);
+        hud.draw(&mut streak, 60, 0.0);
+        assert!(streak.opaque_in(0, 0, 200, 60) > combo.opaque_in(0, 0, 200, 60), "the streak adds '3 dias'");
     }
 
     #[test]
     fn the_pips_fill_toward_the_reward_and_its_mark_shows() {
         let corner = |to_reward: u32, reward: Reward| {
-            let stats = Stats { done: 3, goal: 10, combo: 0, label: "EN".into(), to_reward, reward };
+            let stats = Stats { done: 3, goal: 10, combo: 0, label: "EN".into(), to_reward, reward, streak: None };
             let hud = Hud { stats: Some(stats), ..Default::default() };
             let mut c = Canvas::new(200, 60);
             hud.draw(&mut c, 60, 0.0);
@@ -750,7 +760,8 @@ mod tests {
             Caption { alts, heard: Some("sorry you're on mute".into()), footer: "Ctrl+Alt+M".into(), ..caption(None) };
         let draw = |caption: Option<Caption>| {
             let label = "EN · trabalho".into();
-            let stats = Some(Stats { done: 4, goal: 10, combo: 2, label, to_reward: 1, reward: Reward::Sun });
+            let stats =
+                Some(Stats { done: 4, goal: 10, combo: 2, label, to_reward: 1, reward: Reward::Sun, streak: None });
             let hud = Hud { caption, stats, ..Default::default() };
             let mut c = Canvas::new(320, 180);
             hud.draw(&mut c, 170, 0.0);

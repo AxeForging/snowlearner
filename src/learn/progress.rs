@@ -5,6 +5,7 @@ use super::deck::Phrase;
 use super::path::{self, Stage};
 use super::picker::PhraseStats;
 use super::schedule::{self, CONQUERED, Card, REINFORCED_BOX};
+use super::streak::Streak;
 use crate::lang::{Native, T};
 use std::collections::HashMap;
 
@@ -76,6 +77,8 @@ pub struct Progress {
     pub next_up: Vec<Item>,
     /// Questions per topic, in deck order; empty outside the question exercise.
     pub questions: Vec<(String, QuestionTally)>,
+    /// Days in a row with a right answer (spec 006 R13).
+    pub streak: Streak,
 }
 
 const NEXT_UP: usize = 3;
@@ -112,10 +115,14 @@ pub fn progress(phrases: &[Phrase], selection: &[usize], stats: &HashMap<String,
         }
     }
     topics.sort_by_key(|(t, _)| selection.iter().position(|&i| phrases[i].topic == *t));
-    Progress { overall, stages, topics, current, learning, next_up, questions: Vec::new() }
+    Progress { overall, stages, topics, current, learning, next_up, questions: Vec::new(), streak: Streak::default() }
 }
 
 impl Progress {
+    pub fn with_streak(self, streak: Streak) -> Progress {
+        Progress { streak, ..self }
+    }
+
     /// Adds the boxes of the selection's questions, rebuilt from the history.
     pub fn with_questions(
         mut self,
@@ -155,6 +162,9 @@ impl Progress {
         let o = self.overall;
         let mut out = T::ProgressReport.fill(native, &[&language_name, &o.known, &o.total, &o.percent(), &o.learning]);
         out += "\n";
+        if let Some(s) = crate::lang::text::streak(native, self.streak.days, self.streak.done_today) {
+            out += &format!("{s}\n");
+        }
         out += &match self.current {
             Some(s) => format!("{}\n\n", T::StageNow.fill(native, &[&s.label(native)])),
             None => format!("{}\n\n", T::KnowsAll.get(native)),
@@ -360,5 +370,16 @@ mod tests {
         let p = vec![question("Water.", "restaurante")];
         let text = progress(&p, &all(&p), &HashMap::new()).render_text("inglês", Native::PtBr);
         assert!(!text.contains("Perguntas"), "{text}");
+    }
+
+    #[test]
+    fn the_report_shows_the_streak_and_asks_to_practice_while_today_is_missing() {
+        let p = deck();
+        let pr = progress(&p, &all(&p), &HashMap::new());
+        assert!(!pr.render_text("inglês", Native::PtBr).contains("Sequência"), "hidden at 0");
+        let done = pr.clone().with_streak(Streak { days: 3, done_today: true });
+        assert!(done.render_text("inglês", Native::PtBr).contains("Sequência: 3 dias\n"));
+        let waiting = pr.clone().with_streak(Streak { days: 1, done_today: false });
+        assert!(waiting.render_text("English", Native::En).contains("Streak: 1 day · practice today"));
     }
 }

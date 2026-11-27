@@ -100,10 +100,16 @@ spacing in time (`learn/path.rs`, `001` left spaced repetition out).
     topic: green is conquered, yellow is in review, and the number is conquered/total. The
     topics that do not fit above the footer are counted as "+N temas". The boxes are rebuilt
     from the history, as the lesson does. In the phrase exercise nothing changes.
+13. **Practice streak** (#229, spec 006 R13) — `learn/streak.rs` counts the local days in a
+    row with a right answer in the language being learned, from `History::success_days`. It
+    ends today, or yesterday while today has none yet, so it stays alive until midnight.
+    PROGRESSO shows "Sequência: 3 dias" under the stages and in `progress --print`, with
+    "· pratique hoje" while today is still missing; the HUD corner adds "· 3 dias". Nothing
+    is shown at 0. The right-answer "streak" of the sun and comet (#115) is a different count.
 
 ## Not in this change
-More topics (`trabalho`, `tecnologia` and the rest; other topics in Spanish and Portuguese), es and pt questions,
-the streak (006 R13), personal answers from settings.
+More topics (`trabalho`, `tecnologia` and the rest; other topics in Spanish and Portuguese),
+the top-bar widget (rest of 006), personal answers from settings.
 
 ## Sources and judgment
 The growing gaps follow Cepeda et al. 2006 (the best gap grows with how long you must
@@ -124,7 +130,11 @@ the language spoken, box footer, miss reveal, pre-A1 recall from box 2, written 
 no question in the filters; the level-up offer once a day, 7 days after "not now", melting
 nothing, lower boxes kept), panel (the offer row in the status line's place, yes as a level
 change, not now changing nothing, clicks; the question boxes in PROGRESSO fit above the
-footer in both languages), progress (counts per topic match the boxes rebuilt from a log),
+footer in both languages, with the streak line), progress (counts per topic match the boxes
+rebuilt from a log; the streak line and its "practice today"), streak (none, today, alive
+from yesterday, a missed day, repeats; history: other languages and misses ignored), HUD
+(the streak in the corner),
 matcher ("I live in Canada" never passes for "I live in
 Brazil."), binary (`exercise = "questions"` accepted; an old history still counts; `progress --print`
-shows the conquered questions of a seeded history, only in the question exercise).
+shows the conquered questions of a seeded history, only in the question exercise; it shows
+the streak of a seeded history, alive from yesterday and two days once today has a right answer).
