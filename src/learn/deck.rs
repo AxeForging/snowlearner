@@ -982,8 +982,7 @@ mod tests {
                         families.entry(f).or_default().push(l);
                     }
                 }
-                let full =
-                    families.values().filter(|ls| ["PRE-A1", "A1", "A2", "B1"].iter().all(|l| ls.contains(l)));
+                let full = families.values().filter(|ls| ["PRE-A1", "A1", "A2", "B1"].iter().all(|l| ls.contains(l)));
                 assert!(full.count() >= 3, "{lang} {topic}: {families:?}");
             }
         }
