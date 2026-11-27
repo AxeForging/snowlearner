@@ -4,6 +4,7 @@
 use super::deck::Phrase;
 use super::path::{self, Stage};
 use super::picker::PhraseStats;
+use super::schedule::{self, CONQUERED, Card, REINFORCED_BOX};
 use crate::lang::{Native, T};
 use std::collections::HashMap;
 
@@ -30,6 +31,31 @@ impl Tally {
     }
 }
 
+/// Questions of the question exercise by box (#228): conquered = the top
+/// box, in review = from `REINFORCED_BOX` up to the one below it.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct QuestionTally {
+    pub conquered: usize,
+    pub review: usize,
+    pub total: usize,
+}
+
+impl QuestionTally {
+    fn add(&mut self, box_index: u8) {
+        self.total += 1;
+        if box_index >= CONQUERED {
+            self.conquered += 1;
+        } else if box_index >= REINFORCED_BOX {
+            self.review += 1;
+        }
+    }
+
+    /// As a bar: conquered is the green part, in review the yellow one.
+    pub fn as_tally(self) -> Tally {
+        Tally { known: self.conquered, learning: self.review, total: self.total }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Item {
     pub say: String,
@@ -48,6 +74,8 @@ pub struct Progress {
     pub learning: Vec<Item>,
     /// The next items that open as you learn, in path order.
     pub next_up: Vec<Item>,
+    /// Questions per topic, in deck order; empty outside the question exercise.
+    pub questions: Vec<(String, QuestionTally)>,
 }
 
 const NEXT_UP: usize = 3;
@@ -84,10 +112,44 @@ pub fn progress(phrases: &[Phrase], selection: &[usize], stats: &HashMap<String,
         }
     }
     topics.sort_by_key(|(t, _)| selection.iter().position(|&i| phrases[i].topic == *t));
-    Progress { overall, stages, topics, current, learning, next_up }
+    Progress { overall, stages, topics, current, learning, next_up, questions: Vec::new() }
 }
 
 impl Progress {
+    /// Adds the boxes of the selection's questions, rebuilt from the history.
+    pub fn with_questions(
+        mut self,
+        phrases: &[Phrase],
+        selection: &[usize],
+        cards: &HashMap<String, Card>,
+    ) -> Progress {
+        for &i in selection {
+            let p = &phrases[i];
+            if p.ask.is_none() {
+                continue;
+            }
+            let b = schedule::card_of(cards, p).box_index;
+            match self.questions.iter_mut().find(|(t, _)| *t == p.topic) {
+                Some((_, t)) => t.add(b),
+                None => {
+                    let mut t = QuestionTally::default();
+                    t.add(b);
+                    self.questions.push((p.topic.clone(), t));
+                }
+            }
+        }
+        self
+    }
+
+    /// Every topic's questions together.
+    pub fn questions_total(&self) -> QuestionTally {
+        self.questions.iter().fold(QuestionTally::default(), |a, (_, t)| QuestionTally {
+            conquered: a.conquered + t.conquered,
+            review: a.review + t.review,
+            total: a.total + t.total,
+        })
+    }
+
     /// Plain-text report for the terminal.
     pub fn render_text(&self, language_name: &str, native: Native) -> String {
         let o = self.overall;
@@ -117,6 +179,14 @@ impl Progress {
         for (topic, t) in &self.topics {
             let topic = crate::lang::text::topic(native, topic);
             out += &format!("  {:<22} {} {:>3}/{:<3}\n", topic, bar(*t, 12), t.known, t.total);
+        }
+        if !self.questions.is_empty() {
+            out += &format!("\n{}\n", T::QuestionsByTopic.get(native));
+            for (topic, t) in &self.questions {
+                let topic = crate::lang::text::topic(native, topic);
+                let row = T::QuestionsRow.fill(native, &[&t.conquered, &t.review, &t.total]);
+                out += &format!("  {:<22} {} {row}\n", topic, bar(t.as_tally(), 12));
+            }
         }
         out
     }
@@ -233,5 +303,62 @@ mod tests {
         assert!(text.contains("Aprendendo agora:\n  Water.  (<Water.>)"), "{text}");
         assert!(text.contains("Depois:"), "{text}");
         assert!(text.contains("restaurante"), "{text}");
+    }
+
+    fn question(say: &str, topic: &str) -> Phrase {
+        Phrase { ask: Some(format!("{say}?")), ..phrase(say, topic) }
+    }
+
+    /// One clean answer to `ask` on day `d`, from memory.
+    fn clean(ask: &str, d: i64) -> schedule::QuestionAttempt {
+        let day = chrono::NaiveDate::from_ymd_opt(2026, 11, 1).unwrap() + chrono::Duration::days(d);
+        let mode = crate::learn::picker::Mode::Recall;
+        schedule::QuestionAttempt { ask: ask.into(), day, success: true, tier: None, try_number: 1, mode }
+    }
+
+    #[test]
+    fn question_counts_per_topic_match_the_boxes_rebuilt_from_the_log() {
+        let p = vec![
+            question("Water.", "restaurante"),
+            question("Coffee.", "restaurante"),
+            question("The check, please.", "restaurante"),
+            phrase("Hello.", "primeiros contatos"),
+            question("A ticket.", "viagem"),
+            question("The station.", "viagem"),
+        ];
+        // Same-day answers climb boxes 1-2; then 1, 3 and 7 days apart.
+        let days = |ask: &str, ds: &[i64]| ds.iter().map(|&d| clean(ask, d)).collect::<Vec<_>>();
+        let log: Vec<_> = [
+            days("Water.?", &[0, 0, 1, 4, 11]),
+            days("Coffee.?", &[0, 0, 1]),
+            days("The check, please.?", &[0]),
+            days("A ticket.?", &[0, 0, 1, 4]),
+        ]
+        .concat();
+        let cards = schedule::cards(&log, crate::learn::deck::Answer::Complete, 3);
+        let boxes: Vec<u8> = p.iter().map(|q| schedule::card_of(&cards, q).box_index).collect();
+        assert_eq!(boxes, [CONQUERED, REINFORCED_BOX, 1, 0, 4, 0], "the log the counts are read from");
+        let pr = progress(&p, &all(&p), &HashMap::new()).with_questions(&p, &all(&p), &cards);
+        assert_eq!(
+            pr.questions,
+            [
+                ("restaurante".to_string(), QuestionTally { conquered: 1, review: 1, total: 3 }),
+                ("viagem".to_string(), QuestionTally { conquered: 0, review: 1, total: 2 }),
+            ],
+            "a topic without questions is not listed"
+        );
+        assert_eq!(pr.questions_total(), QuestionTally { conquered: 1, review: 2, total: 5 });
+        let text = pr.render_text("inglês", Native::PtBr);
+        assert!(text.contains("Perguntas por tema:"), "{text}");
+        assert!(text.contains("1 conquistadas · 1 em revisão · de 3"), "{text}");
+        let english = pr.render_text("English", Native::En);
+        assert!(english.contains("0 conquered · 1 in review · of 2"), "{english}");
+    }
+
+    #[test]
+    fn without_the_question_exercise_the_report_has_no_question_lines() {
+        let p = vec![question("Water.", "restaurante")];
+        let text = progress(&p, &all(&p), &HashMap::new()).render_text("inglês", Native::PtBr);
+        assert!(!text.contains("Perguntas"), "{text}");
     }
 }

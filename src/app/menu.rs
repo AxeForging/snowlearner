@@ -337,6 +337,28 @@ fn meter(c: &mut Canvas, x: i32, y: i32, w: i32, t: Tally) {
     c.rect(x + known, y, learning, 5, hex(0xffd64a));
 }
 
+/// The question exercise's boxes per topic (#228), from `y` down: as many
+/// topics as fit above the footer, the rest counted in one line.
+fn draw_questions(c: &mut Canvas, p: &Progress, mut y: i32, n: Native, [ink, dim, accent]: [Rgba; 3]) -> i32 {
+    let all = p.questions_total();
+    let head = T::QuestionsPanelHead.fill(n, &[&all.conquered, &all.review]);
+    font::draw(c, 6, y - 2, &fit(&head, WIDTH - 12), hex(0xffd64a));
+    let room = ((HEIGHT - 13 - font::LINE_H + 2 - y) / (ROW_H - 1)).max(0) as usize;
+    let shown = if p.questions.len() > room { room.saturating_sub(1) } else { p.questions.len() };
+    for (key, t) in p.questions.iter().take(shown) {
+        y += ROW_H - 1;
+        font::draw(c, 10, y - 2, &fit(&topic(n, key), 110), ink);
+        meter(c, 124, y + 3, 56, t.as_tally());
+        let num = format!("{}/{}", t.conquered, t.total);
+        font::draw(c, WIDTH - font::text_width(&num) - 6, y - 2, &num, accent);
+    }
+    if shown < p.questions.len() {
+        y += ROW_H - 1;
+        font::draw(c, 10, y - 2, &T::MoreTopics.fill(n, &[&(p.questions.len() - shown)]), dim);
+    }
+    y - 2 + font::LINE_H
+}
+
 impl Menu {
     pub fn new(languages: Vec<String>, topics: Vec<(String, usize)>) -> Menu {
         Menu {
@@ -916,11 +938,12 @@ impl Menu {
         .get(native)
     }
 
-    fn draw_progress(&self, c: &mut Canvas, n: Native, ink: Rgba, dim: Rgba, accent: Rgba) {
+    /// The PROGRESSO tab; returns where its last line ends.
+    fn draw_progress(&self, c: &mut Canvas, n: Native, ink: Rgba, dim: Rgba, accent: Rgba) -> i32 {
         let gold = hex(0xffd64a);
         let Some(p) = &self.progress else {
             font::draw(c, 6, TOP - 2, T::Loading.get(n), dim);
-            return;
+            return TOP - 2 + font::LINE_H;
         };
         let o = p.overall;
         let head = T::ProgressHead.fill(n, &[&o.known, &o.total, &o.percent(), &o.learning]);
@@ -939,18 +962,22 @@ impl Menu {
         let mut y = TOP + 4 * ROW_H + 2;
         if p.learning.is_empty() && p.next_up.is_empty() {
             font::draw(c, 6, y - 2, T::KnowsAll.get(n), gold);
-            return;
+        } else {
+            font::draw(c, 6, y - 2, T::LearningNow.get(n), dim);
+            for it in p.learning.iter().take(4) {
+                y += ROW_H - 1;
+                font::draw(c, 10, y - 2, &fit(&format!("{} = {}", it.say, it.meaning), WIDTH - 16), ink);
+            }
+            if !p.next_up.is_empty() {
+                y += ROW_H + 1;
+                let next: Vec<&str> = p.next_up.iter().map(|i| i.say.as_str()).collect();
+                font::draw(c, 6, y - 2, &fit(&T::NextUp.fill(n, &[&next.join(" · ")]), WIDTH - 12), dim);
+            }
         }
-        font::draw(c, 6, y - 2, T::LearningNow.get(n), dim);
-        for it in p.learning.iter().take(4) {
-            y += ROW_H - 1;
-            font::draw(c, 10, y - 2, &fit(&format!("{} = {}", it.say, it.meaning), WIDTH - 16), ink);
+        if p.questions.is_empty() {
+            return y - 2 + font::LINE_H;
         }
-        if !p.next_up.is_empty() {
-            y += ROW_H + 1;
-            let next: Vec<&str> = p.next_up.iter().map(|i| i.say.as_str()).collect();
-            font::draw(c, 6, y - 2, &fit(&T::NextUp.fill(n, &[&next.join(" · ")]), WIDTH - 12), dim);
-        }
+        draw_questions(c, p, y + ROW_H + 1, n, [ink, dim, accent])
     }
 
     /// Row `row` of an open list: its text, whether it is the current option
@@ -1377,6 +1404,58 @@ mod tests {
         }
         assert!(font::text_width(&fit(long, 100)) <= 100);
         assert!(font::supports(&fit(long, 100)));
+    }
+
+    /// #228: with every question topic of the real decks, a full learning
+    /// list and three-digit counts, the tab ends above the footer in both
+    /// languages: the topics that fit, then "+N". PNGs when
+    /// `SNOWLEARNER_PANEL_PNG` names a directory.
+    #[test]
+    fn the_question_boxes_fit_the_progress_tab_above_the_footer() {
+        use crate::learn::deck::Deck;
+        use crate::learn::progress::progress;
+        use crate::learn::schedule::{CONQUERED, Card};
+        for (native, language) in [(Native::PtBr, "en"), (Native::En, "es")] {
+            let deck = Deck::builtin_for(language, native).unwrap();
+            let all = deck.selection(&[], "B1");
+            let cards: std::collections::HashMap<String, Card> = deck
+                .phrases
+                .iter()
+                .filter_map(|p| p.ask.clone())
+                .enumerate()
+                .filter(|(i, _)| i % 3 != 2)
+                .map(|(i, a)| (a, Card { box_index: if i % 3 == 0 { CONQUERED } else { 3 }, ..Default::default() }))
+                .collect();
+            let pr = progress(&deck.phrases, &all, &Default::default()).with_questions(&deck.phrases, &all, &cards);
+            assert!(pr.learning.len() >= 4 && !pr.next_up.is_empty(), "the longest phrase part");
+            assert!(pr.questions_total().conquered > 0);
+            for (key, _) in &pr.questions {
+                assert!(font::text_width(&topic(native, key)) <= 110, "{key:?} is cut");
+            }
+            for text in [
+                T::QuestionsPanelHead.fill(native, &[&999, &999]),
+                T::MoreTopics.fill(native, &[&99]),
+                "999/999".to_string(),
+            ] {
+                assert!(font::text_width(&text) <= WIDTH - 12, "{text:?} does not fit");
+            }
+            let s = Settings { native, ..Default::default() };
+            let mut m = menu();
+            m.show(Tab::Progress);
+            let few = Progress { questions: pr.questions.iter().take(2).cloned().collect(), ..pr.clone() };
+            for (name, p) in [("all", pr), ("few", few)] {
+                m.progress = Some(p);
+                let mut c = Canvas::new(WIDTH, HEIGHT);
+                let (ink, dim, accent) = (hex(0xffffff), hex(0x8f8fb8), hex(0x7dd3ff));
+                let bottom = m.draw_progress(&mut c, native, ink, dim, accent);
+                assert!(bottom <= HEIGHT - 13, "{native:?} {name}: the questions end at {bottom}, into the footer");
+                let c = render(&m, &s);
+                if let Ok(dir) = std::env::var("SNOWLEARNER_PANEL_PNG") {
+                    let file = format!("panel-questions-{name}-{}.png", native.code());
+                    crate::render::png_out::write(&c, 3, &std::path::Path::new(&dir).join(file)).unwrap();
+                }
+            }
+        }
     }
 
     #[test]
