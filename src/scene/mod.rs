@@ -1259,12 +1259,7 @@ impl Scene {
         }
         self.frost.settle();
 
-        let ground = self.ground_y();
-        let snow = &self.snow;
-        for p in &mut self.particles {
-            p.step(dt, |x| ground - snow.height_at(x));
-        }
-        self.particles.retain(Particle::alive);
+        self.step_particles(dt);
         for f in &mut self.flashes {
             f.step(dt);
         }
@@ -1666,8 +1661,37 @@ impl Scene {
         }
     }
 
-    /// A friend sprays frost onto the nearest edge and one other edge; the
-    /// sparks leave no snow on the pile (#180).
+    /// Moves the particles. A friend's spray that came down on the pile
+    /// leaves one grain, as a sky flake does (`landing_share`, nothing under
+    /// the sun); one that left the screen leaves nothing (#216).
+    fn step_particles(&mut self, dt: f32) {
+        let ground = self.ground_y();
+        let snow = &self.snow;
+        for p in &mut self.particles {
+            p.step(dt, |x| ground - snow.height_at(x));
+        }
+        let (w, keep, sunny) = (self.w as f32, self.landing_share(), self.sun_t > 0.0);
+        let (snow, rng) = (&mut self.snow, &mut self.rng);
+        let mut _laid = 0.0;
+        for p in self.particles.iter_mut().filter(|p| p.kind == Kind::Spray) {
+            if p.x < 0.0 || p.x >= w {
+                p.life = 0.0;
+            } else if p.rest {
+                p.life = 0.0;
+                if !sunny && rng.chance(keep) && snow.add_grain(p.x) {
+                    _laid += 1.0;
+                }
+            }
+        }
+        #[cfg(test)]
+        {
+            self.laid.1 += _laid;
+        }
+        self.particles.retain(Particle::alive);
+    }
+
+    /// A friend sprays frost onto the nearest edge and one other edge, and
+    /// snow that falls back and piles one grain a flake (#216).
     fn frost_burst(&mut self, x: f32, y: f32) {
         let (w, h) = (self.w as f32, self.h as f32);
         let strength = self.frost_strength();
@@ -1682,15 +1706,7 @@ impl Scene {
         for i in 0..30 {
             let a = self.rng.range(-3.0, -0.14); // upward fan
             let sp = self.rng.range(60.0, 140.0);
-            let p = Particle::new(
-                Kind::Spark,
-                x,
-                y,
-                a.cos() * sp,
-                a.sin() * sp,
-                self.rng.range(0.5, 1.0),
-                hex(ICE_COLORS[i % 3]),
-            );
+            let p = Particle::new(Kind::Spray, x, y, a.cos() * sp, a.sin() * sp, SPRAY_LIFE, hex(ICE_COLORS[i % 3]));
             self.particles.push(p);
         }
     }
@@ -1908,6 +1924,10 @@ fn wind(time: f32, mean: f32, gust: f32) -> f32 {
 fn lands_on_pile(f: &Flake, transparent: bool) -> bool {
     transparent || f.speed >= 9.0
 }
+
+/// Seconds a friend's spray may stay in the air: long enough to come down
+/// from its highest point (~0.6 s up) onto the pile (#216).
+const SPRAY_LIFE: f32 = 4.0;
 
 /// Share of the gap to the target level a weather-only screen closes per second.
 const WEATHER_FOLLOW: f32 = 0.5;
@@ -3451,12 +3471,67 @@ mod tests {
         }
     }
 
+    /// Runs only the particles until the spray has landed or left (#216).
+    fn settle_spray(s: &mut Scene) {
+        for _ in 0..600 {
+            if !s.particles.iter().any(|p| p.kind == Kind::Spray) {
+                return;
+            }
+            s.step_particles(1.0 / 60.0);
+        }
+        panic!("the spray never came down");
+    }
+
     #[test]
-    fn an_ice_friend_s_spray_leaves_the_pile_untouched() {
+    fn an_ice_friend_s_spray_rises_then_falls() {
         let mut s = Scene::new(480, 270, 1, Commitment::Steady.pace(), true);
-        s.snow.add(240.0, 10.0, 480.0);
+        s.frost_burst(240.0, 200.0);
+        let mut top = f32::MAX;
+        for _ in 0..30 {
+            s.step_particles(1.0 / 60.0);
+            top = s.particles.iter().filter(|p| p.kind == Kind::Spray).map(|p| p.y).fold(top, f32::min);
+        }
+        assert!(top < 190.0, "the spray went up to {top}");
+        settle_spray(&mut s);
+    }
+
+    #[test]
+    fn an_ice_friend_s_spray_lands_as_one_grain_per_flake() {
+        let mut s = Scene::new(480, 270, 1, Commitment::Steady.pace(), true);
+        let share = s.landing_share();
+        let mut grown = Vec::new();
+        for _ in 0..10 {
+            let before = s.snow.total();
+            s.frost_burst(240.0, 200.0);
+            assert_eq!(s.snow.total(), before, "nothing lands before it falls");
+            settle_spray(&mut s);
+            grown.push(s.snow.total() - before);
+        }
+        assert!(grown.iter().all(|&g| g <= 30.0), "one pixel a flake at most: {grown:?}");
+        let mean = grown.iter().sum::<f32>() / grown.len() as f32;
+        let want = 30.0 * share;
+        assert!((mean / want - 1.0).abs() <= 0.3, "{mean:.1} px a spray, {want:.1} expected: {grown:?}");
+    }
+
+    #[test]
+    fn a_spray_flake_that_leaves_the_screen_adds_nothing() {
+        let mut s = Scene::new(480, 270, 1, Commitment::Steady.pace(), true);
         let before = s.snow.total();
-        s.frost_burst(200.0, 200.0);
+        for vx in [-200.0, 200.0] {
+            let x = if vx < 0.0 { 2.0 } else { 477.0 };
+            s.particles.push(Particle::new(Kind::Spray, x, 200.0, vx, -60.0, 5.0, hex(0xffffff)));
+        }
+        settle_spray(&mut s);
+        assert_eq!(s.snow.total(), before);
+    }
+
+    #[test]
+    fn under_the_sun_the_spray_leaves_nothing() {
+        let mut s = Scene::new(480, 270, 1, Commitment::Steady.pace(), true);
+        s.sun_t = 5.0;
+        let before = s.snow.total();
+        s.frost_burst(240.0, 200.0);
+        settle_spray(&mut s);
         assert_eq!(s.snow.total(), before);
     }
 
