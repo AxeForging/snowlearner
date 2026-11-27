@@ -3,14 +3,14 @@
 [[phrase]]
 topic = "viagem"
 level = "A2"
-situation = "Você chega na recepção do hotel e o recepcionista pergunta se você vai fazer o check-in."
-say = "I have a reservation under my name"
+situation = "Você chega na recepção do hotel, com reserva para duas noites, e o recepcionista pergunta se você vai fazer o check-in."
+say = "I have a reservation for two nights"
 family = "travel-hotel"
 ask = "Hi, are you checking in?"
 short = "I have a reservation"
-polished = "Hi, I have a reservation under my name"
-meaning = "Tenho uma reserva no meu nome"
-accept = ["I have a reservation", "Yes, I have a reservation under my name"]
+polished = "Hi, yes, I have a reservation for two nights"
+meaning = "Tenho uma reserva para duas noites"
+accept = ["I have a reservation", "Yes, I have a reservation for two nights", "I have a booking for two nights"]
 
 [[phrase]]
 topic = "viagem"

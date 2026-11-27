@@ -963,6 +963,21 @@ mod tests {
         }
     }
 
+    /// #245: one-word and set-expression answers sit where their mirror items
+    /// are (`Card.`, `Downtown.`, `One moment, please.`), and the hotel check-in
+    /// answer says something the clerk can use.
+    #[test]
+    fn re_leveled_answers_and_the_check_in_answer_load_as_reviewed() {
+        let deck = Deck::builtin_for("en", Native::PtBr).unwrap();
+        let level = |say: &str| deck.phrases.iter().find(|p| p.say == say).and_then(|p| p.level.clone());
+        for say in ["Cash.", "Airport.", "Here you go.", "Card.", "Downtown."] {
+            assert_eq!(level(say).as_deref(), Some(PRE_A1), "{say}");
+        }
+        let hotel = deck.phrases.iter().find(|p| p.say == "I have a reservation for two nights").unwrap();
+        assert_eq!((hotel.level.as_deref(), hotel.family.as_deref()), (Some("A2"), Some("travel-hotel")));
+        assert!(!deck.phrases.iter().any(|p| p.say.contains("under my name")));
+    }
+
     /// The topics with questions, each with at least three families climbing
     /// from pre-A1 to B1: in English restaurant and interview (#220), shopping,
     /// travel and first contact (#226); in Spanish and Portuguese, restaurant (#227).
