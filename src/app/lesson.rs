@@ -18,7 +18,7 @@ use crate::speech::matcher::{self, WordHit};
 use crate::speech::tts::Speed;
 use crate::speech::worker::{Job, SpeechEvent, Utterance};
 use crate::store::history::{Answered, Attempt, History};
-use chrono::{DateTime, Local, NaiveTime};
+use chrono::{DateTime, Local, NaiveDate, NaiveTime};
 
 pub const MAX_TRIES: u32 = 3;
 /// Correct answers in a row that call the sun.
@@ -49,6 +49,12 @@ const DEBOUNCE: f32 = 0.8;
 const WAIT_USER: f32 = 25.0;
 const SUMMARY_LINGER: f32 = 8.0;
 const LAST_SUMMARY_KEY: &str = "last_summary_day";
+/// The day moving up a level was last offered after an answer (once a day).
+const LEVEL_UP_OFFERED_KEY: &str = "level_up_offered_day";
+/// "<day> <level>": when the learner said "not now" to moving up from that level.
+const LEVEL_UP_DECLINED_KEY: &str = "level_up_declined";
+/// Days a "not now" keeps the offer away.
+pub const LEVEL_UP_PAUSE_DAYS: i64 = 7;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Input {
@@ -611,6 +617,49 @@ impl Lesson {
 
     /// The footer line for a question once it is over: its box move and when
     /// it comes back; a conquest is celebrated with a toast (no melt).
+    /// The level the learner may move up to now (#224): the questions at
+    /// this level are reinforced, and "not now" was not said from this level
+    /// in the last `LEVEL_UP_PAUSE_DAYS`. The game only offers; the learner decides.
+    pub fn level_offer(&self) -> Option<&'static str> {
+        let today = Local::now().date_naive();
+        let declined = self.history.meta(LEVEL_UP_DECLINED_KEY).ok().flatten();
+        let paused = declined.as_deref().and_then(|v| v.split_once(' ')).is_some_and(|(day, level)| {
+            let day = day.parse::<NaiveDate>().ok();
+            level == self.opts.max_level && day.is_some_and(|d| (today - d).num_days() < LEVEL_UP_PAUSE_DAYS)
+        });
+        if paused {
+            return None;
+        }
+        schedule::level_up(&self.deck.phrases, &self.questions(), &self.cards(), &self.opts.max_level)
+    }
+
+    /// "Not now": the offer stays away for `LEVEL_UP_PAUSE_DAYS` at this level.
+    pub fn decline_level_up(&mut self) {
+        let value = format!("{} {}", Local::now().date_naive(), self.opts.max_level);
+        let _ = self.history.set_meta(LEVEL_UP_DECLINED_KEY, &value);
+    }
+
+    /// After a right answer to a question: offers moving up, at most once a day.
+    fn offer_level_up(&mut self, scene: &mut Scene) {
+        let Some(next) = self.level_offer() else { return };
+        let today = Local::now().date_naive().to_string();
+        if self.history.meta(LEVEL_UP_OFFERED_KEY).ok().flatten().as_deref() == Some(today.as_str()) {
+            return;
+        }
+        let _ = self.history.set_meta(LEVEL_UP_OFFERED_KEY, &today);
+        let n = self.opts.native;
+        let here = text::level(n, &self.opts.max_level);
+        scene.hud.toast(T::LevelUpToast.fill(n, &[&here, &text::level(n, next)]), 6.0);
+        // What changes: leaving pre-A1 speeds the voice up (`target_speed`),
+        // from A2 the question is only heard (`question_written`).
+        let change = match next {
+            "A1" => T::LevelUpFaster,
+            "A2" => T::LevelUpHeard,
+            _ => T::LevelUpLonger,
+        };
+        scene.warrior.say(change.fill(n, &[&text::level(n, next)]), 6.0);
+    }
+
     fn question_news(&self, p: &Phrase, before: Card, scene: &mut Scene) -> String {
         let Some(ask) = &p.ask else { return String::new() };
         let today = Local::now().date_naive();
@@ -948,6 +997,9 @@ impl Lesson {
                 self.goal_celebrated = true;
                 scene.hud.toast(T::GoalToast.fill(n, &[&self.opts.daily_goal]), 5.0);
                 scene.warrior.say(T::GoalWarrior.get(n), 5.0);
+            }
+            if question.is_some() {
+                self.offer_level_up(scene);
             }
         } else {
             let laugh = self.line(Lines::MageLaugh);
@@ -2712,5 +2764,108 @@ mod tests {
         assert!(f.send(Input::Primary).is_empty());
         assert!(f.lesson.is_idle());
         assert_eq!(f.scene.hud.toast.as_ref().unwrap().text, T::NoQuestions.get(Native::PtBr));
+    }
+
+    /// The pre-A1 question in box 2, due today: one clean answer takes it to
+    /// box 3, which is every pre-A1 question in `QUESTION_DECK` reinforced.
+    fn one_answer_from_moving_up() -> Fixture {
+        let f = question_fixture("PRE-A1", Practice::Auto);
+        answered_before(&f, "Water.", "Anything to drink?", 3, Mode::Repeat);
+        answered_before(&f, "Water.", "Anything to drink?", 3, Mode::Repeat);
+        assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, 2);
+        assert_eq!(f.lesson.level_offer(), None, "box 2 is not reinforced yet");
+        f
+    }
+
+    fn answer_the_question(f: &mut Fixture) {
+        f.scene.hud.toast = None;
+        f.scene.warrior.bubble = None;
+        let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+        f.send(Input::Speech(SpeechEvent::Spoken { id }));
+        f.send(Input::Speech(SpeechEvent::Heard { id, text: "Water.".into() }));
+    }
+
+    fn toast(f: &Fixture) -> String {
+        f.scene.hud.toast.as_ref().map(|t| t.text.clone()).unwrap_or_default()
+    }
+
+    #[test]
+    fn moving_up_is_offered_after_a_right_answer_once_the_level_is_reinforced_at_most_once_a_day() {
+        let mut f = one_answer_from_moving_up();
+        answer_the_question(&mut f);
+        assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, 3);
+        assert_eq!(toast(&f), "Você reforçou bem o pré-A1! Quer subir para A1? Veja no painel.");
+        let said = f.scene.warrior.bubble.as_ref().map(|b| b.text.clone());
+        assert_eq!(said.as_deref(), Some("Bora pro A1? A voz fica um pouco mais rápida!"));
+        assert_eq!(f.lesson.level_offer(), Some("A1"), "the panel keeps offering it");
+        assert_eq!(f.lesson.options().max_level, "PRE-A1", "the game asks, never moves");
+        if let Ok(dir) = std::env::var("SNOWLEARNER_PANEL_PNG") {
+            f.tick(0.5);
+            let mut c = crate::render::canvas::Canvas::new(f.scene.w, f.scene.h);
+            f.scene.draw(&mut c);
+            crate::render::png_out::write(&c, 3, &std::path::Path::new(&dir).join("level-up-offer.png")).unwrap();
+            f.finish();
+            let mut c = crate::render::canvas::Canvas::new(f.scene.w, f.scene.h);
+            f.scene.draw(&mut c);
+            crate::render::png_out::write(&c, 3, &std::path::Path::new(&dir).join("level-up-warrior.png")).unwrap();
+        }
+        f.finish();
+        answer_the_question(&mut f);
+        assert!(!toast(&f).contains("subir"), "once a day: {}", toast(&f));
+    }
+
+    #[test]
+    fn not_now_keeps_the_offer_away_for_7_days_at_that_level() {
+        let mut f = one_answer_from_moving_up();
+        f.lesson.decline_level_up();
+        answer_the_question(&mut f);
+        assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, 3);
+        assert!(!toast(&f).contains("subir"), "declined today: {}", toast(&f));
+        assert_eq!(f.lesson.level_offer(), None);
+        let today = Local::now().date_naive();
+        let declined = |f: &Fixture, days_ago: i64, level: &str| {
+            let day = today - chrono::Duration::days(days_ago);
+            f.lesson.history.set_meta(LEVEL_UP_DECLINED_KEY, &format!("{day} {level}")).unwrap();
+            f.lesson.level_offer()
+        };
+        assert_eq!(declined(&f, LEVEL_UP_PAUSE_DAYS - 1, "PRE-A1"), None, "day 6: still away");
+        assert_eq!(declined(&f, LEVEL_UP_PAUSE_DAYS, "PRE-A1"), Some("A1"), "day 7: back");
+        assert_eq!(declined(&f, 0, "A1"), Some("A1"), "a \"not now\" at another level does not count here");
+    }
+
+    #[test]
+    fn the_offer_melts_nothing() {
+        let melt = |offered: bool| {
+            let mut f = one_answer_from_moving_up();
+            if !offered {
+                f.lesson.decline_level_up();
+            }
+            f.scene.fires.clear();
+            let (id, _) = Fixture::speak_job(&f.send(Input::Primary));
+            f.send(Input::Speech(SpeechEvent::Spoken { id }));
+            let before = f.scene.snow.fill();
+            f.send(Input::Speech(SpeechEvent::Heard { id, text: "Water.".into() }));
+            f.settle();
+            assert_eq!(toast(&f).contains("subir"), offered);
+            (before - f.scene.snow.fill(), f.lesson.combo())
+        };
+        let (with_offer, combo) = melt(true);
+        let (without, plain_combo) = melt(false);
+        assert!((with_offer - without).abs() < 1e-6, "offer {with_offer}, no offer {without}");
+        assert_eq!(combo, plain_combo);
+    }
+
+    #[test]
+    fn after_moving_up_the_lower_questions_keep_their_boxes_and_stay_in_rotation() {
+        let mut f = one_answer_from_moving_up();
+        answer_the_question(&mut f);
+        let level = f.lesson.level_offer().unwrap().to_string();
+        f.lesson.set_options(|o| o.max_level = level, &mut f.scene);
+        assert_eq!(f.lesson.cards()["Anything to drink?"].box_index, 3);
+        let ask = |&i: &usize| f.lesson.deck.phrases[i].ask.clone().unwrap();
+        let asks: Vec<String> = f.lesson.questions().iter().map(ask).collect();
+        assert!(asks.contains(&"Anything to drink?".to_string()), "{asks:?}");
+        assert!(asks.contains(&"Where are you based?".to_string()), "{asks:?}");
+        assert_eq!(f.lesson.level_offer(), None, "the A1 question is new: nothing to offer yet");
     }
 }

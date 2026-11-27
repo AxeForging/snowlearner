@@ -47,6 +47,9 @@ pub enum Item {
     Summary,
     Pause,
     Quit,
+    /// "Move up a level?": shown only while the lesson offers it (#224), in
+    /// the status line's place; ← → pick yes or not now, Enter confirms.
+    LevelUp,
     Mic,
     TestMic,
     /// Who turns answers into text: the app or a Whisper server.
@@ -96,6 +99,26 @@ pub const GAME: &[Item] = &[
     Item::Summary,
     Item::Pause,
     Item::Quit,
+];
+
+/// GAME while moving up a level is offered: the offer takes the status
+/// line's place at the bottom, so the other rows keep their places.
+pub const GAME_OFFER: &[Item] = &[
+    Item::Native,
+    Item::Language,
+    Item::Commitment,
+    Item::Topic,
+    Item::Level,
+    Item::Practice,
+    Item::Exercise,
+    Item::Answer,
+    Item::Goal,
+    Item::Mode,
+    Item::PracticeNow,
+    Item::Summary,
+    Item::Pause,
+    Item::Quit,
+    Item::LevelUp,
 ];
 
 pub const AUDIO: &[Item] = &[
@@ -170,6 +193,9 @@ pub enum Action {
     TogglePause,
     TestMic,
     TestVoices,
+    /// Not now to moving up a level: the offer stays away for a while.
+    /// (Yes is `Changed(Item::Level)`: the level row's own change.)
+    LevelStay,
     Quit,
     Close,
 }
@@ -202,6 +228,10 @@ pub struct Menu {
     edit: Option<(Item, String)>,
     /// The list open over the rows (every option of one item at once).
     list: Option<List>,
+    /// The level moving up to is offered for (the app keeps this current).
+    pub level_offer: Option<String>,
+    /// On the offer row: yes (true) or not now.
+    pub level_yes: bool,
 }
 
 /// A choice row opened as a list: every option at once, or, for topics, a
@@ -326,6 +356,8 @@ impl Menu {
             keys_taken: Vec::new(),
             edit: None,
             list: None,
+            level_offer: None,
+            level_yes: true,
         }
     }
 
@@ -393,6 +425,7 @@ impl Menu {
 
     pub fn items(&self) -> &'static [Item] {
         match self.tab {
+            Tab::Game if self.level_offer.is_some() => GAME_OFFER,
             Tab::Game => GAME,
             Tab::Audio => AUDIO,
             Tab::Keys => KEYS,
@@ -590,6 +623,15 @@ impl Menu {
             Item::Summary => Action::Summary,
             Item::Pause => Action::TogglePause,
             Item::Quit => Action::Quit,
+            Item::LevelUp => {
+                let Some(next) = self.level_offer.take() else { return Action::None };
+                self.sel = GAME.iter().position(|i| *i == Item::Level).unwrap_or(0);
+                if !self.level_yes {
+                    return Action::LevelStay;
+                }
+                s.max_level = next;
+                Action::Changed(Item::Level)
+            }
             Item::TestMic => Action::TestMic,
             Item::TestVoices => Action::TestVoices,
             Item::Endpoint | Item::SttEndpoint => {
@@ -664,6 +706,10 @@ impl Menu {
                 self.sel = (self.sel + 1) % n;
                 Action::None
             }
+            Key::Left | Key::Right if self.item() == Item::LevelUp => {
+                self.level_yes = !self.level_yes;
+                Action::None
+            }
             Key::Left => self.change(self.item(), s, false),
             Key::Right => self.change(self.item(), s, true),
             Key::Enter => self.activate(self.item(), s),
@@ -711,7 +757,29 @@ impl Menu {
             return Action::None;
         }
         self.sel = row;
+        if self.items()[row] == Item::LevelUp {
+            // A click on "yes" or "not now" confirms it; on the label it only selects.
+            let (yes_x, not_x) = self.offer_x(s.native);
+            match x {
+                x if x >= not_x - 3 => self.level_yes = false,
+                x if x >= yes_x - 3 => self.level_yes = true,
+                _ => return Action::None,
+            }
+        }
         self.activate(self.items()[row], s)
+    }
+
+    /// The offer row's two answers: "yes → A1" and "not now".
+    fn offer_words(&self, n: Native) -> (String, &'static str) {
+        let next = self.level_offer.as_deref().map(|l| crate::lang::text::level(n, l)).unwrap_or_default();
+        (T::LevelUpYes.fill(n, &[&next]), T::LevelUpNotNow.get(n))
+    }
+
+    /// Where "yes" and "not now" start on the offer row.
+    fn offer_x(&self, n: Native) -> (i32, i32) {
+        let (yes, not_now) = self.offer_words(n);
+        let not_x = WIDTH - 6 - font::text_width(not_now);
+        (not_x - 12 - font::text_width(&yes), not_x)
     }
 
     /// Under a Kokoro voice row: who the voice is (gender, language and
@@ -827,6 +895,7 @@ impl Menu {
             Item::Summary => T::ItemSummary,
             Item::Pause => T::ItemPause,
             Item::Quit => T::ItemQuit,
+            Item::LevelUp => T::ItemLevelUp,
             Item::Mic => T::ItemMic,
             Item::TestMic => T::ItemTestMic,
             Item::Engine => T::ItemEngine,
@@ -1027,6 +1096,18 @@ impl Menu {
                 font::draw(c, c.w - w - 6, y - 2, &text, hex(0xffd64a));
                 continue;
             }
+            if *item == Item::LevelUp {
+                let (yes, not_now) = self.offer_words(n);
+                let (yes_x, not_x) = self.offer_x(n);
+                let chosen = |on: bool| match (on, selected) {
+                    (true, true) => hex(0xffffff),
+                    (true, false) => accent,
+                    (false, _) => dim,
+                };
+                font::draw(c, yes_x, y - 2, &yes, chosen(self.level_yes));
+                font::draw(c, not_x, y - 2, not_now, chosen(!self.level_yes));
+                continue;
+            }
             let value = self.value(*item, s);
             if !value.is_empty() {
                 let text = if selected { format!("< {value} >") } else { value };
@@ -1063,7 +1144,7 @@ impl Menu {
             for (k, line) in font::wrap(T::KeysHelp.get(n), WIDTH - 16).iter().enumerate() {
                 font::draw(c, 6, y + k as i32 * (ROW_H - 1), line, dim);
             }
-        } else {
+        } else if self.level_offer.is_none() {
             font::draw(c, 6, foot_y - 2, &self.status, accent);
         }
         font::draw(c, 6, c.h - 13, T::PanelFooter.get(n), dim);
@@ -2003,5 +2084,81 @@ mod tests {
             crate::render::png_out::write(&levels, 3, &dir.join("panel-levels.png")).unwrap();
             crate::render::png_out::write(&scrolled, 3, &dir.join("panel-topics-scrolled.png")).unwrap();
         }
+    }
+
+    fn offering(level: &str) -> Menu {
+        let mut m = menu();
+        m.level_offer = Some(level.into());
+        m
+    }
+
+    #[test]
+    fn the_offer_row_shows_only_while_offered_in_the_status_line_s_place() {
+        let m = menu();
+        assert!(!m.items().contains(&Item::LevelUp));
+        let m = offering("A1");
+        assert_eq!(m.items().last(), Some(&Item::LevelUp));
+        assert_eq!(&m.items()[..GAME.len()], GAME, "every other row keeps its place");
+        let bottom = TOP + GAME_OFFER.len() as i32 * ROW_H;
+        assert!(bottom <= HEIGHT - 13, "the offer row ends at {bottom}, into the footer");
+        for native in Native::ALL {
+            let label = 10 + font::text_width(Menu::label(Item::LevelUp, native)) + font::ADVANCE;
+            let (yes_x, not_x) = m.offer_x(native);
+            assert!(
+                label <= yes_x && yes_x < not_x,
+                "{native:?}: label to {label}, yes at {yes_x}, not now at {not_x}"
+            );
+            let s = Settings { native, ..Default::default() };
+            let yes = render(&m, &s);
+            let mut not_now = offering("A1");
+            select(&mut not_now, Item::LevelUp);
+            not_now.level_yes = false;
+            let not_now = render(&not_now, &s);
+            if let Ok(dir) = std::env::var("SNOWLEARNER_PANEL_PNG") {
+                let dir = std::path::Path::new(&dir);
+                let code = native.code();
+                crate::render::png_out::write(&yes, 3, &dir.join(format!("panel-level-up-{code}.png"))).unwrap();
+                crate::render::png_out::write(&not_now, 3, &dir.join(format!("panel-level-up-not-now-{code}.png")))
+                    .unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn yes_on_the_offer_is_the_level_row_s_own_change_to_the_next_level() {
+        let mut m = offering("A1");
+        let mut s = Settings::default();
+        select(&mut m, Item::LevelUp);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::Changed(Item::Level));
+        assert_eq!(s.max_level, "A1");
+        assert_eq!(m.level_offer, None, "answered: the row goes away");
+        assert_eq!(m.item(), Item::Level, "the cursor lands on the level it changed");
+    }
+
+    #[test]
+    fn not_now_on_the_offer_changes_no_setting() {
+        let mut m = offering("A1");
+        let mut s = Settings::default();
+        let before = s.clone();
+        select(&mut m, Item::LevelUp);
+        assert_eq!(m.key(Key::Right, &mut s), Action::None, "the arrows only pick an answer");
+        assert!(!m.level_yes);
+        assert_eq!(m.key(Key::Enter, &mut s), Action::LevelStay);
+        assert_eq!(s, before);
+        assert_eq!(m.level_offer, None);
+    }
+
+    #[test]
+    fn a_click_on_yes_or_not_now_confirms_it_and_on_the_label_only_selects() {
+        let y = TOP + GAME.len() as i32 * ROW_H + 4;
+        let mut s = Settings::default();
+        let mut m = offering("A1");
+        assert_eq!(m.click(20, y, &mut s), Action::None);
+        assert_eq!(m.item(), Item::LevelUp);
+        let (yes_x, not_x) = m.offer_x(s.native);
+        assert_eq!(m.click(not_x + 2, y, &mut s), Action::LevelStay);
+        let mut m = offering("A1");
+        assert_eq!(m.click(yes_x + 2, y, &mut s), Action::Changed(Item::Level));
+        assert_eq!(s.max_level, "A1");
     }
 }
