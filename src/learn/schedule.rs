@@ -191,11 +191,8 @@ pub fn pick(
     day: NaiveDate,
     last: Option<&str>,
 ) -> Option<usize> {
-    let fresh: Vec<usize> = questions
-        .iter()
-        .copied()
-        .filter(|&i| questions.len() == 1 || phrases[i].ask.as_deref() != last)
-        .collect();
+    let fresh: Vec<usize> =
+        questions.iter().copied().filter(|&i| questions.len() == 1 || phrases[i].ask.as_deref() != last).collect();
     let card = |i: usize| card_of(cards, &phrases[i]);
     let oldest = |i: &usize| (card(*i).box_index, card(*i).last_day);
     let missed = fresh.iter().copied().filter(|&i| card(i).last_failed && !card(i).is_new()).min_by_key(oldest);
@@ -223,7 +220,12 @@ pub fn mode_for(practice: Practice, card: Card, beginner: bool) -> Mode {
 }
 
 /// What today holds: questions due for review and new ones still to meet.
-pub fn outlook(phrases: &[Phrase], questions: &[usize], cards: &HashMap<String, Card>, day: NaiveDate) -> (usize, usize) {
+pub fn outlook(
+    phrases: &[Phrase],
+    questions: &[usize],
+    cards: &HashMap<String, Card>,
+    day: NaiveDate,
+) -> (usize, usize) {
     let due = questions.iter().filter(|&&i| card_of(cards, &phrases[i]).is_due(day)).count();
     let unseen = questions.iter().filter(|&&i| card_of(cards, &phrases[i]).is_new()).count();
     (due, unseen.min(NEW_PER_DAY.saturating_sub(new_today(cards, day))))

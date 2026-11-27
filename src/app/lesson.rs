@@ -115,8 +115,19 @@ enum Stage {
 enum State {
     Idle,
     /// `card` is where a question stood when asked (the question exercise).
-    Challenge { phrase: usize, mode: Mode, stage: Stage, tries: u32, job: u64, card: Option<Card> },
-    Summary { job: u64, lines: usize, close_at: Option<f32> },
+    Challenge {
+        phrase: usize,
+        mode: Mode,
+        stage: Stage,
+        tries: u32,
+        job: u64,
+        card: Option<Card>,
+    },
+    Summary {
+        job: u64,
+        lines: usize,
+        close_at: Option<f32>,
+    },
 }
 
 pub struct Lesson {
@@ -1022,7 +1033,8 @@ impl Lesson {
             c.heard = None;
             c.footer = String::new();
             c.tag = tag;
-            c.segments = if card.is_some() && p.ask.is_some() { self.question_reveal(&p) } else { p.cue_for(self.opts.answer) };
+            c.segments =
+                if card.is_some() && p.ask.is_some() { self.question_reveal(&p) } else { p.cue_for(self.opts.answer) };
             c.alts = p.alternatives(self.opts.answer, self.opts.native);
             c.meaning = p.meaning.clone();
             c.active = c.segments.iter().position(|s| matches!(s, Segment::Target(t) if *t == shown));
