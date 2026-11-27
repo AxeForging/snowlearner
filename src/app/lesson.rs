@@ -2799,6 +2799,16 @@ mod tests {
         assert_eq!(said.as_deref(), Some("Bora pro A1? A voz fica um pouco mais rápida!"));
         assert_eq!(f.lesson.level_offer(), Some("A1"), "the panel keeps offering it");
         assert_eq!(f.lesson.options().max_level, "PRE-A1", "the game asks, never moves");
+        if let Ok(dir) = std::env::var("SNOWLEARNER_PANEL_PNG") {
+            f.tick(0.5);
+            let mut c = crate::render::canvas::Canvas::new(f.scene.w, f.scene.h);
+            f.scene.draw(&mut c);
+            crate::render::png_out::write(&c, 3, &std::path::Path::new(&dir).join("level-up-offer.png")).unwrap();
+            f.finish();
+            let mut c = crate::render::canvas::Canvas::new(f.scene.w, f.scene.h);
+            f.scene.draw(&mut c);
+            crate::render::png_out::write(&c, 3, &std::path::Path::new(&dir).join("level-up-warrior.png")).unwrap();
+        }
         f.finish();
         answer_the_question(&mut f);
         assert!(!toast(&f).contains("subir"), "once a day: {}", toast(&f));

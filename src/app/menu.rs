@@ -2108,7 +2108,19 @@ mod tests {
                 label <= yes_x && yes_x < not_x,
                 "{native:?}: label to {label}, yes at {yes_x}, not now at {not_x}"
             );
-            render(&m, &Settings { native, ..Default::default() });
+            let s = Settings { native, ..Default::default() };
+            let yes = render(&m, &s);
+            let mut not_now = offering("A1");
+            select(&mut not_now, Item::LevelUp);
+            not_now.level_yes = false;
+            let not_now = render(&not_now, &s);
+            if let Ok(dir) = std::env::var("SNOWLEARNER_PANEL_PNG") {
+                let dir = std::path::Path::new(&dir);
+                let code = native.code();
+                crate::render::png_out::write(&yes, 3, &dir.join(format!("panel-level-up-{code}.png"))).unwrap();
+                crate::render::png_out::write(&not_now, 3, &dir.join(format!("panel-level-up-not-now-{code}.png")))
+                    .unwrap();
+            }
         }
     }
 
