@@ -113,6 +113,9 @@ pub enum Kind {
     Ember,
     /// A burning chunk the comet throws (#172); bounces like a shard.
     Debris,
+    /// Snow an ice friend sprays (#216): flies up, falls back and stops on
+    /// the first surface it touches, where the scene turns it into a grain.
+    Spray,
 }
 
 pub struct Particle {
@@ -126,7 +129,7 @@ pub struct Particle {
     pub max: f32,
     pub color: Rgba,
     pub big: bool,
-    /// Resting on the ground (shards only).
+    /// Resting on the ground (shards), or landed (spray).
     pub rest: bool,
 }
 
@@ -134,7 +137,7 @@ impl Particle {
     #[allow(clippy::too_many_arguments)]
     pub fn new(kind: Kind, x: f32, y: f32, vx: f32, vy: f32, life: f32, color: Rgba) -> Self {
         let g = match kind {
-            Kind::Shard | Kind::Debris => 220.0,
+            Kind::Shard | Kind::Debris | Kind::Spray => 220.0,
             Kind::Steam => 0.0,
             Kind::Spark => 0.0,
             Kind::Ember => -12.0,
@@ -159,7 +162,13 @@ impl Particle {
         if self.kind == Kind::Steam {
             self.vx *= 0.97;
         }
-        if matches!(self.kind, Kind::Shard | Kind::Debris) {
+        if self.kind == Kind::Spray {
+            let f = floor(self.x) - 1.0;
+            if self.vy > 0.0 && self.y >= f {
+                self.y = f;
+                self.rest = true;
+            }
+        } else if matches!(self.kind, Kind::Shard | Kind::Debris) {
             let f = floor(self.x) - 1.0;
             if self.y >= f {
                 self.y = f;
@@ -179,7 +188,7 @@ impl Particle {
     pub fn draw(&self, c: &mut Canvas) {
         let a = self.life / self.max;
         let (xi, yi) = (self.x.round() as i32, self.y.round() as i32);
-        let flying = matches!(self.kind, Kind::Shard | Kind::Debris) && !self.rest;
+        let flying = matches!(self.kind, Kind::Shard | Kind::Debris | Kind::Spray) && !self.rest;
         let threshold = if flying { 0.0 } else { bayer(xi, yi) * 0.9 };
         if a < threshold {
             return;
@@ -231,6 +240,31 @@ mod tests {
         }
         assert!(p.rest);
         assert!((p.y - 49.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn a_spark_still_floats() {
+        let mut p = Particle::new(Kind::Spark, 10.0, 50.0, 0.0, 0.0, 2.0, hex(0xffffff));
+        for _ in 0..60 {
+            p.step(1.0 / 60.0, |_| 100.0);
+        }
+        assert_eq!(p.y, 50.0, "a cube's or the mage's sparks have no gravity");
+    }
+
+    #[test]
+    fn a_friend_s_spray_rises_falls_and_stops_where_it_lands() {
+        let mut p = Particle::new(Kind::Spray, 10.0, 50.0, 0.0, -100.0, 5.0, hex(0xffffff));
+        let mut top = p.y;
+        for _ in 0..300 {
+            p.step(1.0 / 60.0, |_| 80.0);
+            top = top.min(p.y);
+        }
+        assert!(top < 40.0, "it went up to {top}");
+        assert!(p.rest, "it landed");
+        assert!((p.y - 79.0).abs() < 1e-3, "on the surface, not under it: {}", p.y);
+        let (x, y) = (p.x, p.y);
+        p.step(1.0 / 60.0, |_| 80.0);
+        assert_eq!((p.x, p.y), (x, y), "no bounce");
     }
 
     #[test]

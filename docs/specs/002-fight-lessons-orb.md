@@ -60,8 +60,10 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    Steady (one cube every 6 s) a clear screen took about 48 min to freeze at the edges
    and one right answer there kept it clear for about 11 min (it was 26 and 3.3).
    The pile grows only from snow you see land (#180): a cube leaves its own 36 px, an
-   icicle 18, an owl's snowball 5, and a friend's spray leaves none on the ground (its
-   frost on the edges stays). It snows like real snow, as hard as the commitment says
+   icicle 18, an owl's snowball 5, and a friend's spray one grain for each of its 30 flakes
+   that comes back down on the pile (#216: it flies up, falls with gravity and settles like a
+   sky flake, nothing under the sun; a flake off the screen leaves nothing; its frost on the
+   edges stays). It snows like real snow, as hard as the commitment says
    and however buried the screen already is (`Pace::snowfall`, a share of a pool of one
    flake per 300 px): light at Chill, moderate at Steady, heavy at Committed and
    Relentless, in the ratio of real visibility classes (over 1 km, 0.5-1 km, under
@@ -69,8 +71,9 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    commitment's `Pace::settle_share` of whatever lands stays (#187: 0.5 / 0.5 / 0.8 /
    0.8; a flake stands for less snow, the snowfall looks the same), so on 480x270 a
    clear screen freezes at the edges in about 4 h at Chill, 2 h at Steady, 39 min at
-   Committed and 29 min at Relentless, one right answer keeps it clear for about 75 /
-   32 / 8 / 5.5 min, and the flakes lay 55-60% of the pile (44% at Relentless). Real snow piles up under 1 cm an hour (light) to
+   Committed and 30 min at Relentless, one right answer keeps it clear for about 75 /
+   34 / 9 / 5 min, and the flakes lay 54-60% of the pile (45% at Relentless; measured
+   with the falling spray, #216). Real snow piles up under 1 cm an hour (light) to
    10 cm in 12 h (heavy), about 0.1 px an hour at the scene's ~10 px per metre, so each
    flake stands for far more snow: the fill is time-compressed, the look is not. The
    wind follows the commitment (#183, `Pace::wind` ± `Pace::gust`, at ~10 px per metre):
@@ -90,8 +93,8 @@ screen, and there was no way to tweak it while running (hotkeys didn't work on W
    480x270 keeps those fill times (`view_scale` = rows / 270): the flakes and the wind
    move as fast on screen, the pile settles `view_scale`² times as often, and a sky pool
    holds `1 + Pace::thrown_ratio · (1 - 1/view_scale²)` times more flakes, because the
-   cubes, icicles and snowballs keep their size (`thrown_ratio` 0.8 / 0.7 / 0.7 / 1.05,
-   measured at 480x270). At 960x540 Steady freezes in about 2 h and Committed in 36-43 min.
+   cubes, icicles, snowballs and spray keep their size (`thrown_ratio` 0.84 / 0.74 / 0.7 /
+   1.22, measured at 480x270). At 960x540 Steady freezes in about 2 h and Committed in 36-43 min.
    Where a fireball lands, a brief local dithered flash sized by the spell's tier
    (6/10/16 px, never the whole screen, melts nothing). When a phrase becomes known the
    fire mage flares (full flame and a ring of sparks) and the warrior cheers, once per
