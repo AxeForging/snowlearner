@@ -23,6 +23,10 @@ pub const BOX_DAYS: [i64; 6] = [0, 0, 1, 3, 7, 21];
 /// The box that counts as conquered.
 pub const CONQUERED: u8 = 5;
 
+/// The box that counts as reinforced: answered clean on two separate days.
+/// It opens a family's next rung (#225) and counts toward moving up (#224).
+pub const REINFORCED_BOX: u8 = 3;
+
 /// First meetings a day; the rest of the day's answers are reviews. A new
 /// question stays in the learning boxes (1-2) until the next day, so with
 /// `LEARNING_SLOTS` (4) open at once that is the tighter limit in one day.
@@ -167,6 +171,16 @@ fn card_of(cards: &HashMap<String, Card>, p: &Phrase) -> Card {
     p.ask.as_ref().and_then(|a| cards.get(a)).copied().unwrap_or_default()
 }
 
+/// Whether `p`'s family has its rung one level below reinforced: then `p`
+/// is "almost the same question with a longer answer", due next (#225).
+fn lower_rung_reinforced(phrases: &[Phrase], cards: &HashMap<String, Card>, p: &Phrase) -> bool {
+    let rank = |q: &Phrase| q.level.as_deref().and_then(|l| LEVELS.iter().position(|x| *x == l));
+    let (Some(family), Some(here)) = (&p.family, rank(p)) else { return false };
+    let kin = phrases.iter().filter(|q| q.family.as_ref() == Some(family));
+    let below = kin.filter(|q| rank(q).is_some_and(|r| r < here));
+    below.max_by_key(|q| rank(q)).is_some_and(|q| card_of(cards, q).box_index >= REINFORCED_BOX)
+}
+
 /// First meetings so far on `day`.
 pub fn new_today(cards: &HashMap<String, Card>, day: NaiveDate) -> usize {
     cards.values().filter(|c| c.first_day == Some(day)).count()
@@ -181,7 +195,8 @@ fn may_open(phrases: &[Phrase], questions: &[usize], cards: &HashMap<String, Car
 
 /// The next question, from `questions` (indices into `phrases`, in path
 /// order, each with an `ask`): a missed one, then due reviews (lower box,
-/// then the longest unseen), then a new one while `may_open`, and with
+/// then the longest unseen), then a new one while `may_open` (first one whose
+/// family's lower rung is reinforced, else path order), and with
 /// nothing due the one seen longest ago. Never the same one twice in a row
 /// when there is another.
 pub fn pick(
@@ -198,8 +213,11 @@ pub fn pick(
     let missed = fresh.iter().copied().filter(|&i| card(i).last_failed && !card(i).is_new()).min_by_key(oldest);
     let due = || fresh.iter().copied().filter(|&i| !card(i).last_failed && card(i).is_due(day)).min_by_key(oldest);
     let new = || {
-        let open = may_open(phrases, questions, cards, day);
-        fresh.iter().copied().find(|&i| open && card(i).is_new())
+        if !may_open(phrases, questions, cards, day) {
+            return None;
+        }
+        let unseen = || fresh.iter().copied().filter(|&i| card(i).is_new());
+        unseen().find(|&i| lower_rung_reinforced(phrases, cards, &phrases[i])).or_else(|| unseen().next())
     };
     let extra = || fresh.iter().copied().filter(|&i| !card(i).is_new()).min_by_key(|&i| card(i).last_day);
     missed.or_else(due).or_else(new).or_else(extra).or_else(|| fresh.first().copied())
@@ -238,15 +256,12 @@ pub const LEVEL_UP_MIN: usize = 6;
 /// The share of them that must be reinforced.
 pub const LEVEL_UP_SHARE: f32 = 0.8;
 
-/// The box that counts as reinforced: answered clean on two separate days.
-pub const LEVEL_UP_BOX: u8 = 3;
-
 /// The last level moving up is offered to (levels above B1 are out of scope).
 const LEVEL_UP_TOP: &str = "B1";
 
 /// The level to offer once the questions at `max_level`, among `questions`
 /// (already narrowed to the chosen topics), are reinforced: with
-/// `LEVEL_UP_MIN` or more of them, `LEVEL_UP_SHARE` in `LEVEL_UP_BOX` or
+/// `LEVEL_UP_MIN` or more of them, `LEVEL_UP_SHARE` in `REINFORCED_BOX` or
 /// higher; with fewer, all of them; and every topic with a question at this
 /// level has one there. The game only offers it; the
 /// learner decides. The thresholds are the game designer's judgment.
@@ -262,7 +277,7 @@ pub fn level_up(
     }
     let here: Vec<&Phrase> =
         questions.iter().map(|&i| &phrases[i]).filter(|p| p.level.as_deref() == Some(max_level)).collect();
-    let reinforced = |p: &Phrase| card_of(cards, p).box_index >= LEVEL_UP_BOX;
+    let reinforced = |p: &Phrase| card_of(cards, p).box_index >= REINFORCED_BOX;
     let done = here.iter().filter(|p| reinforced(p)).count();
     // With fewer than the minimum, every one of them must be reinforced.
     let needed = if here.len() >= LEVEL_UP_MIN { LEVEL_UP_SHARE * here.len() as f32 } else { here.len() as f32 };
@@ -594,5 +609,70 @@ mod tests {
         assert_eq!(level_up(&b1, &all(&b1), &boxed(&[("b", 5)]), "B1"), None, "nothing above B1 is offered");
         let a2 = leveled(&[("a", "restaurante", "A2")]);
         assert_eq!(level_up(&a2, &all(&a2), &boxed(&[("a", 3)]), "A2"), Some("B1"));
+    }
+
+    /// `QUESTIONS` in path order: three new pre-A1 ones, then the drink
+    /// family's A1 rung.
+    fn family_ladder() -> Vec<Phrase> {
+        let mut p = leveled(&[
+            ("Anything to drink?", "restaurante", "PRE-A1"),
+            ("Fries or salad?", "restaurante", "PRE-A1"),
+            ("Inside or outside?", "restaurante", "PRE-A1"),
+            ("What can I get you to drink?", "restaurante", "A1"),
+        ]);
+        p[0].family = Some("restaurant-drink".into());
+        p[3].family = Some("restaurant-drink".into());
+        p
+    }
+
+    #[test]
+    fn a_family_s_next_rung_is_the_next_new_question_once_the_lower_one_is_reinforced() {
+        let p = family_ladder();
+        let c = boxed(&[("Anything to drink?", 3)]);
+        assert_eq!(pick(&p, &all(&p), &c, day(0), Some("Anything to drink?")), Some(3), "before the other new ones");
+        let c = boxed(&[("Anything to drink?", 2)]);
+        assert_eq!(pick(&p, &all(&p), &c, day(0), Some("Anything to drink?")), Some(1), "box 2: path order");
+    }
+
+    #[test]
+    fn a_family_s_next_rung_still_waits_for_a_free_slot_and_the_day_s_new_ones() {
+        let mut p = family_ladder();
+        p.extend(leveled(&(1..=4).map(|_| ("", "restaurante", "PRE-A1")).collect::<Vec<_>>()));
+        let asks = ["l1", "l2", "l3", "l4"];
+        for (k, a) in asks.iter().enumerate() {
+            p[4 + k].ask = Some(a.to_string());
+        }
+        // Four questions learning (box 1, seen today): no slot for anything new.
+        let mut c = boxed(&[("Anything to drink?", 3)]);
+        for a in asks {
+            let learning = Card { box_index: 2, first_day: Some(day(-1)), last_day: Some(day(0)), last_failed: false };
+            c.insert(a.into(), learning);
+        }
+        let picked = pick(&p, &all(&p), &c, day(0), Some("Anything to drink?"));
+        assert_eq!(picked, Some(4), "slots full: extra practice on a learning one, nothing new");
+        // Five first meetings today: no new one either.
+        let mut c = boxed(&[("Anything to drink?", 3)]);
+        for a in ["n1", "n2", "n3", "n4", "n5"] {
+            let met_today = Card { box_index: 3, first_day: Some(day(0)), last_day: Some(day(0)), last_failed: false };
+            c.insert(a.into(), met_today);
+        }
+        let picked = pick(&p, &all(&p), &c, day(0), Some("Anything to drink?"));
+        assert_ne!(picked, Some(3), "the day's new ones are used up");
+    }
+
+    #[test]
+    fn in_the_english_deck_water_reinforced_brings_just_water_please_next() {
+        use super::super::{deck::Deck, path};
+        use crate::lang::Native;
+        let deck = Deck::builtin_for("en", Native::PtBr).unwrap();
+        let with_ask: Vec<usize> =
+            deck.selection(&[], "A1").into_iter().filter(|&i| deck.phrases[i].ask.is_some()).collect();
+        let questions = path::ordered(&deck.phrases, &with_ask);
+        let ask = |say: &str| deck.phrases.iter().find(|p| p.say == say).and_then(|p| p.ask.clone()).unwrap();
+        let first_new = pick(&deck.phrases, &questions, &HashMap::new(), day(0), None).unwrap();
+        assert_ne!(deck.phrases[first_new].say, "Just water, please.", "an A1 rung does not open first on its own");
+        let c = boxed(&[(ask("Water.").as_str(), 3)]);
+        let next = pick(&deck.phrases, &questions, &c, day(0), Some(&ask("Water."))).unwrap();
+        assert_eq!(deck.phrases[next].say, "Just water, please.");
     }
 }
