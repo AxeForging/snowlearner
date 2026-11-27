@@ -72,8 +72,14 @@ spacing in time (`learn/path.rs`, `001` left spaced repetition out).
    - lower-level questions keep their boxes and stay in rotation (the level is a ceiling);
      nothing is offered at B1 or above, and the offer melts nothing.
 
+9. **A family's next rung first** (#225) — among new questions, one whose family's rung one
+   level below is reinforced (box 3, `REINFORCED_BOX`, the same mark moving up uses) opens
+   before the others; otherwise path order. "Water." reinforced brings "Just water, please."
+   next. It changes only which new question opens: misses and due reviews still come first,
+   the slot and daily limits still hold, and `max_level` still caps the rungs.
+
 ## Not in this change
-Preferring a family's next rung, more topics, es and pt questions,
+More topics, es and pt questions,
 "conquered X/Y" in PROGRESSO and the streak (006 R13), personal answers from settings.
 
 ## Sources and judgment
@@ -86,7 +92,8 @@ and the CEFR Companion Volume (2018) descriptors the language teacher quoted.
 
 ## Tests
 Schedule (box moves, intervals, extra practice, pick order, daily and slot limits, modes,
-the level-up condition: share, every topic, fewer than six, current level only, B1 top),
+the level-up condition: share, every topic, fewer than six, current level only, B1 top; a
+family's next rung first, still within the slot and daily limits, and in the English deck),
 history (columns kept, migration of an old file), deck (`{?}`, unique asks, families, three
 families per first topic, interview cues), lesson (only questions, only the language spoken,
 box footer, miss reveal, pre-A1 recall from box 2, written up to A1, conquest melts no more,
