@@ -29,6 +29,28 @@ pub enum Practice {
     Recall,
 }
 
+/// What a lesson asks: say a phrase, or answer a question in the target
+/// language with spaced reinforcement (#220, `learn::schedule`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum Exercise {
+    /// Today's lessons: hear or recall a phrase and say it.
+    #[default]
+    Phrases,
+    /// Questions asked in the target language, answered aloud (#220).
+    Questions,
+}
+
+impl Exercise {
+    /// The value written in the history (`attempts.exercise`).
+    pub fn key(self) -> &'static str {
+        match self {
+            Exercise::Phrases => "phrases",
+            Exercise::Questions => "questions",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Repeat,

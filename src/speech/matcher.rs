@@ -425,6 +425,25 @@ mod tests {
         }
     }
 
+    /// A question's answer with one word swapped for another true answer
+    /// ("Canada" for "Brazil") is not the lesson's answer (#220): the words
+    /// it shares with `say` must all be heard.
+    #[test]
+    fn a_swapped_word_in_a_question_s_answer_does_not_pass() {
+        let e = Expect {
+            answers: vec!["In Brazil.".into(), "I live in Brazil.".into(), "I'm based in Brazil.".into()],
+            say: "I live in Brazil.".into(),
+            lang: "en".into(),
+            slack: 0,
+            threshold: PASS,
+            hint: String::new(),
+        };
+        assert!(e.accepts("I live in Brazil."));
+        for heard in ["I live in Canada.", "In Canada.", "I'm based in Portugal."] {
+            assert!(!e.accepts(heard), "{heard:?} passed for \"I live in Brazil.\"");
+        }
+    }
+
     #[test]
     fn a_first_transcript_that_passes_skips_the_hinted_pass() {
         let mut ran = false;

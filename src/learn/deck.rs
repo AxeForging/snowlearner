@@ -119,6 +119,13 @@ struct PhraseFile {
     /// CEFR level (A1..C2).
     #[serde(default)]
     level: Option<String>,
+    /// The question someone asks that this phrase answers, in the target
+    /// language (#220). Never translated.
+    #[serde(default)]
+    ask: Option<String>,
+    /// Ties one situation's rungs across levels (#220): ASCII, kebab-case.
+    #[serde(default)]
+    family: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -196,8 +203,11 @@ struct OverlayPhrase {
 
 /// The cue a phrase gets without its own: the situation then "Say:", or the
 /// deck's default ("Repeat: {}").
-fn derived_cue(native: Native, situation: Option<&str>, default_cue: Option<&str>) -> String {
+fn derived_cue(native: Native, situation: Option<&str>, default_cue: Option<&str>, ask: bool) -> String {
     match (situation, default_cue) {
+        // A phrase that answers a question plays the question first (#220).
+        (Some(s), _) if ask => format!("{s} {{?}} {} {{}}", T::CueSay.get(native)),
+        (None, _) if ask => format!("{{?}} {} {{}}", T::CueSay.get(native)),
         (Some(s), _) => format!("{s} {} {{}}", T::CueSay.get(native)),
         (None, Some(d)) => d.to_string(),
         (None, None) => format!("{} {{}}", T::CueRepeat.get(native)),
@@ -258,6 +268,11 @@ pub struct Phrase {
     pub tip: Option<String>,
     /// CEFR level, when the deck says (A1..C2).
     pub level: Option<String>,
+    /// The question this phrase answers, in the target language (#220):
+    /// only phrases with one are asked in the question-and-answer exercise.
+    pub ask: Option<String>,
+    /// The situation this phrase is one rung of, across levels (#220).
+    pub family: Option<String>,
 }
 
 impl Phrase {
@@ -274,6 +289,8 @@ impl Phrase {
             cue: vec![Segment::Target(say.to_string())],
             tip: None,
             level: None,
+            ask: None,
+            family: None,
         }
     }
 
@@ -364,14 +381,29 @@ impl Deck {
         // Custom decks may name any native; their cue words fall back to pt-BR.
         let native = Native::parse(&file.native).unwrap_or_default();
         let mut phrases = Vec::with_capacity(file.phrases.len());
+        let mut asked = std::collections::HashSet::new();
         for (i, p) in file.phrases.into_iter().enumerate() {
             let say = p.say.trim().to_string();
             if say.is_empty() {
                 bail!("phrase #{} has an empty `say`", i + 1);
             }
-            let cue_src =
-                p.cue.unwrap_or_else(|| derived_cue(native, p.situation.as_deref(), file.default_cue.as_deref()));
-            let cue = cue::parse(&cue_src, &say).with_context(|| format!("phrase #{} ({say:?})", i + 1))?;
+            let ask = p.ask.map(|a| a.trim().to_string()).filter(|a| !a.is_empty());
+            if let Some(a) = &ask
+                && !asked.insert(same_key(a))
+            {
+                bail!("phrase #{} ({say:?}) asks {a:?}, which another phrase already asks", i + 1);
+            }
+            let family = p.family.map(|f| f.trim().to_string()).filter(|f| !f.is_empty());
+            if let Some(f) = &family
+                && !f.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            {
+                bail!("phrase #{} ({say:?}) has family {f:?}; use lowercase ASCII and '-'", i + 1);
+            }
+            let cue_src = p.cue.unwrap_or_else(|| {
+                derived_cue(native, p.situation.as_deref(), file.default_cue.as_deref(), ask.is_some())
+            });
+            let cue = cue::parse_with(&cue_src, &say, ask.as_deref())
+                .with_context(|| format!("phrase #{} ({say:?})", i + 1))?;
             let (short, polished) = clean_tiers(&say, p.short, p.polished);
             let topic = p.topic.map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty());
             let level = p.level.map(|l| l.trim().to_uppercase());
@@ -391,6 +423,8 @@ impl Deck {
                 cue,
                 tip: p.tip,
                 level,
+                ask,
+                family,
             });
         }
         let language_name = file.language_name.unwrap_or_else(|| file.language.clone());
@@ -486,8 +520,11 @@ impl Deck {
         let mut phrases = Vec::new();
         for mut p in std::mem::take(&mut self.phrases) {
             let Some((t, default_cue)) = by_say.remove(&same_key(&p.say)) else { continue };
-            let src = t.cue.unwrap_or_else(|| derived_cue(native, t.situation.as_deref(), default_cue.as_deref()));
-            p.cue = cue::parse(&src, &p.say).with_context(|| format!("translated cue of {:?}", p.say))?;
+            let src = t.cue.unwrap_or_else(|| {
+                derived_cue(native, t.situation.as_deref(), default_cue.as_deref(), p.ask.is_some())
+            });
+            p.cue = cue::parse_with(&src, &p.say, p.ask.as_deref())
+                .with_context(|| format!("translated cue of {:?}", p.say))?;
             p.meaning = t.meaning;
             p.situation = t.situation;
             p.tip = t.tip;
@@ -875,9 +912,71 @@ mod tests {
         }
         for p in items {
             let spoken: Vec<&str> = p.cue.iter().filter(|s| s.is_target()).map(|s| s.text()).collect();
+            let ask = p.ask.as_deref().unwrap_or_else(|| panic!("{:?} has no `ask`", p.say));
             assert_eq!(spoken.len(), 2, "{:?}: the question, then the answer", p.say);
-            assert_ne!(spoken[0], p.say, "{:?}: the first English part is the question", p.say);
+            assert_eq!(spoken[0], ask, "{:?}: the first English part is its `ask` (#220)", p.say);
             assert_eq!(spoken[1], p.say, "{:?}: the lesson ends asking for the answer", p.say);
+        }
+        let src = include_str!("../../decks/en/job-interview.toml");
+        assert!(!src.contains("{{"), "interview cues play the question through {{?}}, never a second copy");
+    }
+
+    /// A question is asked by one phrase only, across every file a deck joins.
+    #[test]
+    fn every_question_is_asked_by_one_phrase_only() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            let mut seen = std::collections::HashMap::new();
+            for p in deck.phrases.iter().filter(|p| p.ask.is_some()) {
+                let ask = p.ask.as_deref().unwrap();
+                if let Some(other) = seen.insert(same_key(ask), &p.say) {
+                    panic!("{lang}: {ask:?} is asked by {other:?} and {:?}", p.say);
+                }
+            }
+        }
+    }
+
+    /// The rungs of a family: one topic, one phrase per level, no gap (#220).
+    #[test]
+    fn a_family_climbs_one_rung_per_level_in_one_topic() {
+        for lang in Deck::builtin_languages() {
+            let deck = Deck::builtin(lang).unwrap();
+            let mut families: std::collections::BTreeMap<&str, Vec<&Phrase>> = Default::default();
+            for p in &deck.phrases {
+                if let Some(f) = &p.family {
+                    families.entry(f).or_default().push(p);
+                    assert!(p.ask.is_some(), "{lang}: {:?} is in family {f:?} but asks nothing", p.say);
+                }
+            }
+            for (f, rungs) in families {
+                assert!(rungs.iter().all(|p| p.topic == rungs[0].topic), "{lang}: {f} mixes topics");
+                let mut at: Vec<usize> = rungs
+                    .iter()
+                    .map(|p| LEVELS.iter().position(|l| Some(*l) == p.level.as_deref()).expect("leveled"))
+                    .collect();
+                at.sort();
+                let len = at.len();
+                at.dedup();
+                assert_eq!(at.len(), len, "{lang}: {f} has two rungs at one level");
+                assert!(at.windows(2).all(|w| w[1] == w[0] + 1), "{lang}: {f} skips a level: {at:?}");
+            }
+        }
+    }
+
+    /// The first questions: restaurant and interview, each with at least
+    /// three families climbing from pre-A1 to B1 (#220).
+    #[test]
+    fn restaurant_and_interview_each_have_three_families_from_pre_a1_to_b1() {
+        let deck = Deck::builtin("en").unwrap();
+        for topic in ["restaurante", "entrevista"] {
+            let mut families: std::collections::BTreeMap<&str, Vec<&str>> = Default::default();
+            for p in deck.phrases.iter().filter(|p| p.topic == topic) {
+                if let (Some(f), Some(l)) = (&p.family, &p.level) {
+                    families.entry(f).or_default().push(l);
+                }
+            }
+            let full = families.values().filter(|ls| ["PRE-A1", "A1", "A2", "B1"].iter().all(|l| ls.contains(l)));
+            assert!(full.count() >= 3, "{topic}: {families:?}");
         }
     }
 
@@ -1162,6 +1261,31 @@ mod tests {
         let answers: Vec<&str> = d.phrases[0].answers().into_iter().map(|(_, a)| a).collect();
         assert_eq!(answers, vec!["Could you repeat that?", "Can you repeat that?"]);
         assert_eq!(d.phrases[0].topic, "trabalho");
+    }
+
+    #[test]
+    fn a_phrase_with_a_question_plays_it_before_asking_for_the_answer() {
+        let d = Deck::parse(&format!(
+            "{HEAD}[[phrase]]\nsay='Water.'\nask='Anything to drink?'\nfamily='restaurant-drink'\nmeaning='Água.'\n\
+             situation='O garçom pergunta.'"
+        ))
+        .unwrap();
+        let p = &d.phrases[0];
+        assert_eq!(p.ask.as_deref(), Some("Anything to drink?"));
+        assert_eq!(p.family.as_deref(), Some("restaurant-drink"));
+        let texts: Vec<&str> = p.cue.iter().map(|s| s.text()).collect();
+        assert_eq!(texts, vec!["O garçom pergunta.", "Anything to drink?", "Diga:", "Water."]);
+    }
+
+    #[test]
+    fn two_phrases_asking_the_same_question_or_a_bad_family_are_rejected() {
+        let twice = format!(
+            "{HEAD}[[phrase]]\nsay='Water.'\nask='Anything to drink?'\nmeaning='x'\n\
+             [[phrase]]\nsay='Tea.'\nask='anything to drink'\nmeaning='y'"
+        );
+        assert!(Deck::parse(&twice).is_err());
+        let family = format!("{HEAD}[[phrase]]\nsay='Water.'\nask='Anything?'\nfamily='Bebida'\nmeaning='x'");
+        assert!(Deck::parse(&family).is_err(), "family ids are lowercase ASCII");
     }
 
     #[test]

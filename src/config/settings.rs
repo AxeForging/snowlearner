@@ -4,7 +4,7 @@
 use super::level::Commitment;
 use crate::lang::Native;
 use crate::learn::deck::{Answer, LEVELS};
-use crate::learn::picker::Practice;
+use crate::learn::picker::{Exercise, Practice};
 use crate::speech::remote::{Remote, SttEngine};
 use crate::speech::voices::TtsEngine;
 use anyhow::{Context, Result, bail};
@@ -88,6 +88,9 @@ pub struct Settings {
     pub speaker: String,
     /// auto (repeat new phrases, recall known ones) | repeat | recall.
     pub practice: Practice,
+    /// phrases (say a phrase) | questions (answer a question asked in the
+    /// language, with spaced reinforcement, #220).
+    pub exercise: Exercise,
     /// all (short, complete and polished shown) | short | complete | polished.
     pub answer: Answer,
     /// Only practice these topics; empty = all topics. An old config's
@@ -142,6 +145,7 @@ impl Default for Settings {
             mic: String::new(),
             speaker: String::new(),
             practice: Practice::Auto,
+            exercise: Exercise::Phrases,
             answer: Answer::All,
             topics: Vec::new(),
             max_level: "B2".into(),
@@ -199,7 +203,7 @@ const HEADER: &str = "# snowlearner config (also editable live: `snowlearner men
     # commitment: chill | steady | committed | relentless\n\
     # mode: auto | window | overlay    practice: auto | repeat | recall\n\
     # pixel_scale: size of the characters, 1..12 screen pixels per art pixel; 0 = by the screen\n\
-    # answer: all | short | complete | polished\n\
+    # answer: all | short | complete | polished    exercise: phrases | questions\n\
     # topics: [] for all, or e.g. [\"trabalho\", \"viagem\"]    max_level: PRE-A1, A1..C2\n\
     # keep_recordings: true keeps your last 20 answers as WAV in the log's folder (diagnostics)\n\
     # replay_voice: true plays your answer back when you get it right (kept in memory only)\n\
@@ -470,6 +474,7 @@ mod tests {
             commitment: Commitment::Committed,
             topics: vec!["trabalho".into(), "viagem".into()],
             practice: Practice::Recall,
+            exercise: Exercise::Questions,
             answer: Answer::Polished,
             ..Default::default()
         };

@@ -1,6 +1,7 @@
 //! Lesson cues mix the learner's native language with the target language:
 //! `Para dizer que estou com fome, devo dizer: {{I'm hungry}}`.
-//! `{{…}}` marks target-language text and `{}` is shorthand for the phrase itself.
+//! `{{…}}` marks target-language text, `{}` is shorthand for the phrase itself
+//! and `{?}` for the question someone asks it in (`ask`, #220).
 
 use anyhow::{Result, bail};
 
@@ -25,6 +26,11 @@ impl Segment {
 /// Parses a cue into ordered segments. A cue that never mentions the target
 /// gets the phrase appended, so every lesson ends up asking for it.
 pub fn parse(cue: &str, say: &str) -> Result<Vec<Segment>> {
+    parse_with(cue, say, None)
+}
+
+/// As `parse`, with `{?}` standing for `ask`, the question the phrase answers.
+pub fn parse_with(cue: &str, say: &str, ask: Option<&str>) -> Result<Vec<Segment>> {
     let mut out = Vec::new();
     let mut native = String::new();
     let mut rest = cue;
@@ -49,6 +55,13 @@ pub fn parse(cue: &str, say: &str) -> Result<Vec<Segment>> {
             flush(&mut native, &mut out);
             out.push(Segment::Target(inner.to_string()));
             rest = &after[end + 2..];
+        } else if let Some(after) = rest.strip_prefix("{?}") {
+            let Some(ask) = ask else {
+                bail!("'{{?}}' in a cue whose phrase has no `ask`: {cue:?}");
+            };
+            flush(&mut native, &mut out);
+            out.push(Segment::Target(ask.trim().to_string()));
+            rest = after;
         } else if let Some(after) = rest.strip_prefix("{}") {
             flush(&mut native, &mut out);
             out.push(Segment::Target(say.trim().to_string()));
@@ -106,6 +119,25 @@ mod tests {
         assert!(parse("diga {{hello", "hello").is_err());
         assert!(parse("diga hello}}", "hello").is_err());
         assert!(parse("diga {{  }}", "hello").is_err());
+    }
+
+    #[test]
+    fn a_question_mark_in_braces_inserts_the_question() {
+        let s = parse_with("O entrevistador pergunta: {?} Diga: {}", "Yes, I'm ready.", Some("Ready?")).unwrap();
+        assert_eq!(
+            s,
+            vec![
+                Native("O entrevistador pergunta:".into()),
+                Target("Ready?".into()),
+                Native("Diga:".into()),
+                Target("Yes, I'm ready.".into())
+            ]
+        );
+    }
+
+    #[test]
+    fn a_question_placeholder_without_a_question_is_rejected() {
+        assert!(parse("Diga: {?} {}", "hello").is_err());
     }
 
     #[test]
