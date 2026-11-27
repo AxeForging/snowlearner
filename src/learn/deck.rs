@@ -964,20 +964,41 @@ mod tests {
     }
 
     /// The topics with questions, each with at least three families climbing
-    /// from pre-A1 to B1: restaurant and interview (#220), shopping, travel
-    /// and first contact (#226).
+    /// from pre-A1 to B1: in English restaurant and interview (#220), shopping,
+    /// travel and first contact (#226); in Spanish and Portuguese, restaurant (#227).
     #[test]
     fn question_topics_each_have_three_families_from_pre_a1_to_b1() {
-        let deck = Deck::builtin("en").unwrap();
-        for topic in ["restaurante", "entrevista", "compras", "viagem", "primeiros contatos"] {
-            let mut families: std::collections::BTreeMap<&str, Vec<&str>> = Default::default();
-            for p in deck.phrases.iter().filter(|p| p.topic == topic) {
-                if let (Some(f), Some(l)) = (&p.family, &p.level) {
-                    families.entry(f).or_default().push(l);
+        let topics: &[(&str, &[&str])] = &[
+            ("en", &["restaurante", "entrevista", "compras", "viagem", "primeiros contatos"]),
+            ("es", &["restaurante"]),
+            ("pt-BR", &["restaurante"]),
+        ];
+        for (lang, topics) in topics {
+            let deck = Deck::builtin(lang).unwrap();
+            for topic in *topics {
+                let mut families: std::collections::BTreeMap<&str, Vec<&str>> = Default::default();
+                for p in deck.phrases.iter().filter(|p| p.topic == *topic) {
+                    if let (Some(f), Some(l)) = (&p.family, &p.level) {
+                        families.entry(f).or_default().push(l);
+                    }
                 }
+                let full = families.values().filter(|ls| ["PRE-A1", "A1", "A2", "B1"].iter().all(|l| ls.contains(l)));
+                assert!(full.count() >= 3, "{lang} {topic}: {families:?}");
             }
-            let full = families.values().filter(|ls| ["PRE-A1", "A1", "A2", "B1"].iter().all(|l| ls.contains(l)));
-            assert!(full.count() >= 3, "{topic}: {families:?}");
+        }
+    }
+
+    /// A phrase without a translation is dropped for that native, silently:
+    /// every Spanish question must reach English speakers too (#227).
+    #[test]
+    fn every_spanish_question_has_its_english_translation() {
+        let written = Deck::builtin("es").unwrap();
+        let translated = Deck::builtin_for("es", Native::En).unwrap();
+        for p in written.phrases.iter().filter(|p| p.ask.is_some()) {
+            let q = translated.phrases.iter().find(|t| t.say == p.say);
+            let q = q.unwrap_or_else(|| panic!("{:?} has no English overlay entry", p.say));
+            assert_eq!(q.ask, p.ask, "{:?}: the question is never translated", p.say);
+            assert!(q.meaning != p.meaning, "{:?}: its meaning is still the Portuguese one", p.say);
         }
     }
 

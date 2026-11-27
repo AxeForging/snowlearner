@@ -3,7 +3,7 @@
 [[phrase]]
 say = "La cuenta, por favor"
 meaning = "The check, please"
-situation = "You've finished eating and want to pay."
+situation = "You've finished dinner and the waiter asks if you'd like anything else, but you just want to pay."
 
 [[phrase]]
 say = "¿Me lo pone para llevar?"
@@ -13,7 +13,7 @@ situation = "You want to take the food with you."
 [[phrase]]
 say = "Soy alérgico a los frutos secos"
 meaning = "I'm allergic to nuts"
-situation = "You're allergic to nuts."
+situation = "Before taking your order, the waiter asks if you have any allergies. You're allergic to nuts."
 
 [[phrase]]
 say = "¿Qué me recomienda?"
@@ -23,7 +23,7 @@ situation = "You don't know what to order."
 [[phrase]]
 say = "Una mesa para dos, por favor"
 meaning = "A table for two, please"
-situation = "You arrive at a restaurant with a friend."
+situation = "You arrive at the restaurant with a friend and they ask how many people the table is for."
 
 [[phrase]]
 say = "¿Aceptan tarjeta?"
@@ -51,9 +51,39 @@ tip = "'Picar' = to burn with chili. Spicy is 'picante', never 'caliente' (hot i
 [[phrase]]
 say = "¿Me trae agua, por favor?"
 meaning = "Can I have some water, please?"
-situation = "The food arrived, but they forgot your drink."
+situation = "The food arrived, but they forgot your drink, and the waiter asks if anything is missing."
 
 [[phrase]]
 say = "Todo estuvo delicioso."
 meaning = "Everything was delicious."
 situation = "The waiter clears the plates and asks if everything was good."
+
+[[phrase]]
+say = "¿Podemos sentarnos junto a la ventana?"
+meaning = "Could we sit by the window?"
+situation = "The restaurant is almost empty and they ask where you'd like to sit. You want to watch the street."
+tip = "'Sentarse' is to sit down; the 'nos' sticks to the end of the verb: 'sentarnos'."
+
+[[phrase]]
+say = "¿Le importa si nos cambiamos a una mesa más tranquila?"
+meaning = "Would you mind if we moved to a quieter table?"
+situation = "They seat you right next to a loudspeaker and ask if the table is okay."
+tip = "After 'si' (if), Spanish keeps the present here: 'si nos cambiamos', where English says 'if we moved'."
+
+[[phrase]]
+say = "Prefiero seguir con agua, porque tengo que manejar."
+meaning = "I'd rather stick to water, I have to drive."
+situation = "You're drinking water and the waiter suggests a wine, but you're driving after dinner."
+tip = "To drive is 'manejar' in Latin America and 'conducir' in Spain."
+
+[[phrase]]
+say = "Todavía lo estamos pensando, ¿nos da unos minutos más?"
+meaning = "We're still thinking about it, could you give us a few more minutes?"
+situation = "The waiter comes back for the third time and you still haven't chosen a dish."
+tip = "'Thinking about it' is 'lo estamos pensando': 'lo' goes before the verb and there is no word for 'about'."
+
+[[phrase]]
+say = "Estoy lleno, ya no me cabe nada más."
+meaning = "I'm full, I can't fit anything else."
+situation = "You ate too much and the waiter offers dessert."
+tip = "A woman says 'estoy llena'. 'No me cabe nada más' is literally 'nothing more fits in me'."

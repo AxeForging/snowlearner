@@ -3,8 +3,10 @@
 [[phrase]]
 topic = "restaurante"
 level = "A1"
-situation = "Terminou de comer e quer pagar."
+situation = "Vocês terminaram de jantar e o garçom pergunta se querem mais alguma coisa, mas vocês só querem pagar."
 say = "La cuenta, por favor"
+family = "restaurant-meal-end"
+ask = "¿Les traigo algo más?"
 polished = "Cuando pueda, ¿nos trae la cuenta, por favor?"
 meaning = "A conta, por favor"
 accept = ["¿Me trae la cuenta, por favor?"]
@@ -22,11 +24,14 @@ accept = ["Para llevar, por favor", "¿Me lo puede poner para llevar?", "¿Me lo
 [[phrase]]
 topic = "restaurante"
 level = "A1"
-situation = "Tem alergia a nozes."
+situation = "Antes de anotar o pedido, o garçom pergunta se você tem alguma alergia. Você é alérgico a nozes e castanhas."
 say = "Soy alérgico a los frutos secos"
+family = "restaurant-order"
+ask = "¿Tiene alguna alergia?"
 short = "Sin frutos secos"
 polished = "Para que lo sepa, soy alérgico a los frutos secos"
 meaning = "Sou alérgico a nozes e castanhas"
+accept = ["Soy alérgica a los frutos secos", "Tengo alergia a los frutos secos"]
 
 [[phrase]]
 topic = "restaurante"
@@ -40,8 +45,10 @@ accept = ["¿Qué me recomiendas?"]
 [[phrase]]
 topic = "restaurante"
 level = "A1"
-situation = "Chegou com um amigo."
+situation = "Você chega ao restaurante com um amigo e perguntam pra quantas pessoas é a mesa."
 say = "Una mesa para dos, por favor"
+family = "restaurant-table"
+ask = "¿Para cuántas personas?"
 short = "Para dos"
 polished = "Buenas, ¿tiene una mesa para dos, por favor?"
 meaning = "Uma mesa pra dois, por favor"
@@ -60,6 +67,8 @@ topic = "restaurante"
 level = "A2"
 situation = "O garçom chega à mesa com o bloquinho na mão."
 say = "Voy a pedir el pollo."
+family = "restaurant-order"
+ask = "¿Qué va a pedir?"
 short = "El pollo, por favor."
 polished = "Creo que voy a pedir el pollo, por favor."
 meaning = "Vou querer o frango."
@@ -91,8 +100,10 @@ tip = "'Picar' = arder de pimenta. Apimentado é 'picante'."
 [[phrase]]
 topic = "restaurante"
 level = "A2"
-situation = "A comida chegou, mas esqueceram a sua bebida."
+situation = "A comida chegou, mas esqueceram a sua bebida, e o garçom pergunta se falta alguma coisa."
 say = "¿Me trae agua, por favor?"
+family = "restaurant-drink"
+ask = "¿Le falta algo?"
 short = "Agua, por favor."
 polished = "¿Me podría traer agua, por favor?"
 meaning = "Pode me trazer uma água, por favor?"
@@ -103,7 +114,74 @@ topic = "restaurante"
 level = "A2"
 situation = "O garçom tira os pratos e pergunta se estava tudo bom."
 say = "Todo estuvo delicioso."
+family = "restaurant-meal-end"
+ask = "¿Cómo estuvo todo?"
 short = "Estuvo delicioso."
 polished = "Todo estuvo delicioso, muchas gracias."
 meaning = "Estava tudo delicioso."
 accept = ["Todo estaba delicioso", "Todo estuvo muy rico"]
+
+[[phrase]]
+topic = "restaurante"
+level = "A2"
+situation = "O restaurante está quase vazio e perguntam onde vocês querem sentar. Vocês querem ver o movimento da rua."
+say = "¿Podemos sentarnos junto a la ventana?"
+family = "restaurant-table"
+ask = "¿Dónde quieren sentarse?"
+short = "Junto a la ventana."
+polished = "Si es posible, ¿podríamos sentarnos junto a la ventana?"
+meaning = "Podemos sentar perto da janela?"
+accept = ["¿Podemos sentarnos cerca de la ventana?", "¿Nos podemos sentar junto a la ventana?"]
+tip = "Em espanhol se diz 'sentarse', com o pronome grudado: 'sentarnos'. Sem o 'nos', 'podemos sentar' soa incompleto."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "Colocam vocês numa mesa colada na caixa de som e perguntam se a mesa está boa."
+say = "¿Le importa si nos cambiamos a una mesa más tranquila?"
+family = "restaurant-table"
+ask = "¿Esta mesa les parece bien?"
+short = "¿Podemos cambiarnos de mesa?"
+polished = "Disculpe la molestia, ¿nos podríamos cambiar a una mesa más tranquila?"
+meaning = "Você se importa se a gente mudar pra uma mesa mais tranquila?"
+accept = ["¿Podemos cambiarnos a una mesa más tranquila?", "¿Nos podemos cambiar a una mesa más tranquila?"]
+tip = "Mudar de mesa é 'cambiarse de mesa'. 'Mudarse' em espanhol é mudar de casa."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "Você está tomando água e o garçom sugere um vinho, mas você vai dirigir depois do jantar."
+say = "Prefiero seguir con agua, porque tengo que manejar."
+family = "restaurant-drink"
+ask = "¿Le gustaría una copa de vino con la cena?"
+short = "Solo agua, gracias."
+polished = "Muchas gracias, pero prefiero seguir con agua, que hoy me toca manejar."
+meaning = "Prefiro ficar na água, porque tenho que dirigir."
+accept = ["Prefiero seguir con agua, que tengo que manejar.", "Prefiero seguir con agua, porque tengo que conducir.", "Mejor sigo con agua, porque tengo que manejar."]
+tip = "Dirigir carro é 'manejar' na América Latina e 'conducir' na Espanha."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "O garçom volta pela terceira vez e vocês ainda não escolheram o prato."
+say = "Todavía lo estamos pensando, ¿nos da unos minutos más?"
+family = "restaurant-order"
+ask = "¿Ya están listos para pedir?"
+short = "Un minutito, por favor."
+polished = "Disculpe, todavía lo estamos pensando, ¿nos podría dar unos minutos más?"
+meaning = "Ainda estamos pensando, pode nos dar mais uns minutos?"
+accept = ["Todavía no decidimos, ¿nos da unos minutos más?", "Todavía lo estamos pensando, ¿nos puede dar unos minutos más?", "Aún lo estamos pensando, ¿nos da unos minutos más?"]
+tip = "O espanhol não larga o pronome: 'lo estamos pensando' (estamos pensando nisso). Sem o 'lo' soa incompleto."
+
+[[phrase]]
+topic = "restaurante"
+level = "B1"
+situation = "Você comeu demais e o garçom oferece a sobremesa."
+say = "Estoy lleno, ya no me cabe nada más."
+family = "restaurant-meal-end"
+ask = "¿Van a querer postre?"
+short = "Estoy lleno, gracias."
+polished = "Muchas gracias, todo muy rico, pero ya no me cabe nada más."
+meaning = "Estou cheio, não cabe mais nada."
+accept = ["Estoy llena, ya no me cabe nada más.", "Estoy satisfecho, ya no me cabe nada más.", "Ya no me cabe nada más."]
+tip = "Falso amigo: sobremesa é 'postre'. 'Sobremesa' em espanhol é a conversa à mesa depois de comer."

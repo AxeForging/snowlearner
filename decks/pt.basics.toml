@@ -68,10 +68,48 @@ topic = "restaurante"
 level = "PRE-A1"
 situation = "At the restaurant, the waiter asks what you'd like to drink."
 say = "Água."
+family = "restaurant-drink"
+ask = "Alguma coisa pra beber?"
 polished = "Uma água sem gás, por favor."
 meaning = "Water."
 accept = ["Água, por favor", "Uma água"]
 tip = "Waiters will ask 'com gás ou sem gás?': sparkling or still."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "At the door of a restaurant with sidewalk tables, they ask if you want to sit inside or outside. It's a beautiful day."
+say = "Lá fora."
+family = "restaurant-table"
+ask = "Dentro ou lá fora?"
+polished = "Lá fora, por favor."
+meaning = "Outside."
+accept = ["Fora", "Lá fora, por favor"]
+tip = "The 'r' in 'fora' is a quick tap, like the 'tt' in American 'better': FOH-ruh."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "At a burger place, you order a burger and they ask if you want fries or salad on the side. You want salad."
+say = "Salada."
+family = "restaurant-order"
+ask = "Batata frita ou salada?"
+polished = "Salada, por favor."
+meaning = "Salad."
+accept = ["Uma salada", "Salada, por favor"]
+tip = "Stress the middle: sa-LAH-dah, not SAL-ad."
+
+[[phrase]]
+topic = "restaurante"
+level = "PRE-A1"
+situation = "Halfway through dinner, the waiter stops by and asks if everything is okay. The food is great."
+say = "Uma delícia!"
+family = "restaurant-meal-end"
+ask = "Tudo certo por aqui?"
+polished = "Uma delícia, obrigado!"
+meaning = "Delicious!"
+accept = ["Delicioso", "Tudo ótimo", "Uma delícia, obrigada"]
+tip = "'Uma delícia!' is how Brazilians praise food day to day. A woman says 'obrigada'."
 
 [[phrase]]
 topic = "restaurante"
@@ -623,8 +661,10 @@ tip = "'Português' sounds like 'por-too-GAYS' (or 'GAYSH' in Rio)."
 [[phrase]]
 topic = "restaurante"
 level = "A1"
-situation = "You've finished dinner and want to pay."
+situation = "You've finished dinner and the waiter asks if you'd like anything else, but you just want to pay."
 say = "A conta."
+family = "restaurant-meal-end"
+ask = "Mais alguma coisa?"
 polished = "A conta, por favor."
 meaning = "The check."
 accept = ["Conta, por favor", "Traz a conta, por favor"]
@@ -662,6 +702,8 @@ topic = "restaurante"
 level = "A1"
 situation = "The waiter offers juice, soda and wine, but you only want water."
 say = "Só água."
+family = "restaurant-drink"
+ask = "Vai querer suco, refrigerante ou vinho?"
 polished = "Só uma água, por favor."
 meaning = "Just water."
 accept = ["Só água, por favor"]
