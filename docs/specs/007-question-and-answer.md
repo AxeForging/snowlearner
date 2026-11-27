@@ -78,8 +78,17 @@ spacing in time (`learn/path.rs`, `001` left spaced repetition out).
    next. It changes only which new question opens: misses and due reviews still come first,
    the slot and daily limits still hold, and `max_level` still caps the rungs.
 
+10. **Shopping, travel and first contact** (#226, written and reviewed by `language-teacher`):
+    `compras` (`shopping-help`, `shopping-bag`, `shopping-pay`, `shopping-fit`), `viagem`
+    (`travel-immigration`, `travel-seat`, `travel-hotel`, `travel-taxi`) and `primeiros
+    contatos` (`first-home`, `first-goodbye`, `first-meet`), each PRE-A1 → B1: 28 new items
+    and 16 existing ones that gained a question (no `say` changed, so no progress resets).
+    `Card.`, `Aisle.` and `Downtown.` moved from A1 to pre-A1 (one word the question
+    offers, like `Fries.`), and `Yes.` (a hotel reservation) moved from `primeiros contatos`
+    to `viagem`. `primeiros contatos` gets its first curated A1 items.
+
 ## Not in this change
-More topics, es and pt questions,
+More topics (`trabalho`, `tecnologia` and the rest), es and pt questions,
 "conquered X/Y" in PROGRESSO and the streak (006 R13), personal answers from settings.
 
 ## Sources and judgment
@@ -95,8 +104,8 @@ Schedule (box moves, intervals, extra practice, pick order, daily and slot limit
 the level-up condition: share, every topic, fewer than six, current level only, B1 top; a
 family's next rung first, still within the slot and daily limits, and in the English deck),
 history (columns kept, migration of an old file), deck (`{?}`, unique asks, families, three
-families per first topic, interview cues), lesson (only questions, only the language spoken,
-box footer, miss reveal, pre-A1 recall from box 2, written up to A1, conquest melts no more,
+families in each of the five question topics, interview cues), lesson (only questions, only
+the language spoken, box footer, miss reveal, pre-A1 recall from box 2, written up to A1, conquest melts no more,
 no question in the filters; the level-up offer once a day, 7 days after "not now", melting
 nothing, lower boxes kept), panel (the offer row in the status line's place, yes as a level
 change, not now changing nothing, clicks), matcher ("I live in Canada" never passes for "I live in

@@ -963,12 +963,13 @@ mod tests {
         }
     }
 
-    /// The first questions: restaurant and interview, each with at least
-    /// three families climbing from pre-A1 to B1 (#220).
+    /// The topics with questions, each with at least three families climbing
+    /// from pre-A1 to B1: restaurant and interview (#220), shopping, travel
+    /// and first contact (#226).
     #[test]
-    fn restaurant_and_interview_each_have_three_families_from_pre_a1_to_b1() {
+    fn question_topics_each_have_three_families_from_pre_a1_to_b1() {
         let deck = Deck::builtin("en").unwrap();
-        for topic in ["restaurante", "entrevista"] {
+        for topic in ["restaurante", "entrevista", "compras", "viagem", "primeiros contatos"] {
             let mut families: std::collections::BTreeMap<&str, Vec<&str>> = Default::default();
             for p in deck.phrases.iter().filter(|p| p.topic == topic) {
                 if let (Some(f), Some(l)) = (&p.family, &p.level) {
