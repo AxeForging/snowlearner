@@ -10,7 +10,7 @@
 //! comes back, because testing again is what keeps it (Karpicke & Roediger
 //! 2008). The intervals themselves are the game designer's choice.
 
-use super::deck::{Answer, Phrase};
+use super::deck::{Answer, LEVELS, Phrase};
 use super::path::LEARNING_SLOTS;
 use super::picker::{Mode, Practice};
 use chrono::NaiveDate;
@@ -229,6 +229,46 @@ pub fn outlook(
     let due = questions.iter().filter(|&&i| card_of(cards, &phrases[i]).is_due(day)).count();
     let unseen = questions.iter().filter(|&&i| card_of(cards, &phrases[i]).is_new()).count();
     (due, unseen.min(NEW_PER_DAY.saturating_sub(new_today(cards, day))))
+}
+
+/// Questions at a level that must exist before moving up is offered; a level
+/// with fewer counts all of them (#224).
+pub const LEVEL_UP_MIN: usize = 6;
+
+/// The share of them that must be reinforced.
+pub const LEVEL_UP_SHARE: f32 = 0.8;
+
+/// The box that counts as reinforced: answered clean on two separate days.
+pub const LEVEL_UP_BOX: u8 = 3;
+
+/// The last level moving up is offered to (levels above B1 are out of scope).
+const LEVEL_UP_TOP: &str = "B1";
+
+/// The level to offer once the questions at `max_level`, among `questions`
+/// (already narrowed to the chosen topics), are reinforced: with
+/// `LEVEL_UP_MIN` or more of them, `LEVEL_UP_SHARE` in `LEVEL_UP_BOX` or
+/// higher; with fewer, all of them; and every topic with a question at this
+/// level has one there. The game only offers it; the
+/// learner decides. The thresholds are the game designer's judgment.
+pub fn level_up(
+    phrases: &[Phrase],
+    questions: &[usize],
+    cards: &HashMap<String, Card>,
+    max_level: &str,
+) -> Option<&'static str> {
+    let rank = LEVELS.iter().position(|l| *l == max_level)?;
+    if rank >= LEVELS.iter().position(|l| *l == LEVEL_UP_TOP)? {
+        return None;
+    }
+    let here: Vec<&Phrase> =
+        questions.iter().map(|&i| &phrases[i]).filter(|p| p.level.as_deref() == Some(max_level)).collect();
+    let reinforced = |p: &Phrase| card_of(cards, p).box_index >= LEVEL_UP_BOX;
+    let done = here.iter().filter(|p| reinforced(p)).count();
+    // With fewer than the minimum, every one of them must be reinforced.
+    let needed = if here.len() >= LEVEL_UP_MIN { LEVEL_UP_SHARE * here.len() as f32 } else { here.len() as f32 };
+    let enough = !here.is_empty() && done as f32 >= needed;
+    let every_topic = here.iter().all(|p| here.iter().any(|q| q.topic == p.topic && reinforced(q)));
+    (enough && every_topic).then(|| LEVELS[rank + 1])
 }
 
 #[cfg(test)]
@@ -480,5 +520,79 @@ mod tests {
         clean(&mut log, "a", 0);
         let c = cards(&log, Answer::All, TRIES);
         assert_eq!(outlook(&p, &all(&p), &c, day(0)), (1, 2));
+    }
+
+    /// Questions `(ask, topic, level)` and their boxes.
+    fn leveled(items: &[(&str, &str, &str)]) -> Vec<Phrase> {
+        let one = |(a, t, l): &(&str, &str, &str)| Phrase {
+            ask: Some(a.to_string()),
+            topic: t.to_string(),
+            level: Some(l.to_string()),
+            ..Phrase::new(&format!("answer to {a}"), "")
+        };
+        items.iter().map(one).collect()
+    }
+
+    fn boxed(boxes: &[(&str, u8)]) -> HashMap<String, Card> {
+        boxes.iter().map(|(a, b)| (a.to_string(), Card { box_index: *b, ..Card::default() })).collect()
+    }
+
+    /// Six pre-A1 questions over two topics, plus one at A1.
+    fn ladder() -> Vec<Phrase> {
+        leveled(&[
+            ("r1", "restaurante", "PRE-A1"),
+            ("r2", "restaurante", "PRE-A1"),
+            ("r3", "restaurante", "PRE-A1"),
+            ("i1", "entrevista", "PRE-A1"),
+            ("i2", "entrevista", "PRE-A1"),
+            ("i3", "entrevista", "PRE-A1"),
+            ("up", "restaurante", "A1"),
+        ])
+    }
+
+    #[test]
+    fn moving_up_is_offered_once_most_questions_of_every_topic_are_reinforced() {
+        let p = ladder();
+        let c = boxed(&[("r1", 3), ("r2", 4), ("r3", 5), ("i1", 3), ("i2", 3), ("i3", 2)]);
+        assert_eq!(level_up(&p, &all(&p), &c, "PRE-A1"), Some("A1"), "5 of 6 (83%) in box 3+");
+    }
+
+    #[test]
+    fn moving_up_waits_while_fewer_than_80_percent_are_reinforced() {
+        let p = ladder();
+        let c = boxed(&[("r1", 3), ("r2", 4), ("r3", 5), ("i1", 3), ("i2", 2), ("i3", 2)]);
+        assert_eq!(level_up(&p, &all(&p), &c, "PRE-A1"), None, "4 of 6 (67%)");
+    }
+
+    #[test]
+    fn moving_up_waits_while_a_topic_has_nothing_reinforced() {
+        let mut p = ladder();
+        p.extend(leveled(&[("r4", "restaurante", "PRE-A1"), ("r5", "restaurante", "PRE-A1")]));
+        let c = boxed(&[("r1", 3), ("r2", 3), ("r3", 3), ("r4", 3), ("r5", 3), ("i1", 2), ("i2", 2), ("i3", 2)]);
+        assert_eq!(level_up(&p, &all(&p), &c, "PRE-A1"), None, "8 of 9 would pass the share, entrevista has none");
+        let c = boxed(&[("r1", 3), ("r2", 3), ("r3", 3), ("r4", 3), ("r5", 3), ("i1", 3), ("i2", 3), ("i3", 2)]);
+        assert_eq!(level_up(&p, &all(&p), &c, "PRE-A1"), Some("A1"));
+    }
+
+    #[test]
+    fn with_fewer_than_six_questions_every_one_must_be_reinforced() {
+        let p = ladder();
+        let restaurant: Vec<usize> = (0..p.len()).filter(|&i| p[i].topic == "restaurante").collect();
+        let c = boxed(&[("r1", 3), ("r2", 3), ("r3", 2)]);
+        assert_eq!(level_up(&p, &restaurant, &c, "PRE-A1"), None, "only restaurante chosen: 2 of 3");
+        let c = boxed(&[("r1", 3), ("r2", 3), ("r3", 3)]);
+        assert_eq!(level_up(&p, &restaurant, &c, "PRE-A1"), Some("A1"), "3 of 3");
+        assert_eq!(level_up(&p, &[], &c, "PRE-A1"), None, "no question at this level, nothing to prove");
+    }
+
+    #[test]
+    fn moving_up_counts_only_the_current_level_and_stops_at_b1() {
+        let p = ladder();
+        let c = boxed(&[("r1", 5), ("r2", 5), ("r3", 5), ("i1", 5), ("i2", 5), ("i3", 5)]);
+        assert_eq!(level_up(&p, &all(&p), &c, "A1"), None, "the A1 question is new: pre-A1 boxes do not count");
+        let b1 = leveled(&[("b", "restaurante", "B1")]);
+        assert_eq!(level_up(&b1, &all(&b1), &boxed(&[("b", 5)]), "B1"), None, "nothing above B1 is offered");
+        let a2 = leveled(&[("a", "restaurante", "A2")]);
+        assert_eq!(level_up(&a2, &all(&a2), &boxed(&[("a", 3)]), "A2"), Some("B1"));
     }
 }

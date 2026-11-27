@@ -56,22 +56,41 @@ spacing in time (`learn/path.rs`, `001` left spaced repetition out).
    questions are choices that contain the answer ("Fries or salad?"), yes/no about the moment
    ("Can you hear me?") or a personal detail ("Where are you from?").
 
+8. **Moving up a level** (#224, asked by the learner on 2026-11-27) — `schedule::level_up`
+   measures the questions at `max_level` within the chosen topics: with 6 or more, at least
+   80% in box 3 or higher; with fewer (pre-A1 has 4 per topic), all of them; and every topic
+   with a question at that level has one there. Box 3 means answered clean on two separate
+   days. The game **asks, never moves**:
+   - after a right answer to a question, at most once a day (`level_up_offered_day` in the
+     history's `meta`), a toast ("Você reforçou bem o pré-A1! Quer subir para A1? Veja no
+     painel.") and the warrior saying what changes: leaving pre-A1 the voice gets a little
+     faster (`target_speed`), at A2 the question is only heard, at B1 the answers get longer;
+   - the panel's JOGO tab shows "Subir de nível?" in the status line's place while it holds;
+     ← → pick "sim → A1" or "agora não", Enter (or a click on one) confirms. Yes is the level
+     row's own change (saved and applied as usual); "agora não" keeps the offer away for
+     7 days at that level (`level_up_declined` = "<day> <level>");
+   - lower-level questions keep their boxes and stay in rotation (the level is a ceiling);
+     nothing is offered at B1 or above, and the offer melts nothing.
+
 ## Not in this change
-The level-up offer, preferring a family's next rung, more topics, es and pt questions,
+Preferring a family's next rung, more topics, es and pt questions,
 "conquered X/Y" in PROGRESSO and the streak (006 R13), personal answers from settings.
 
 ## Sources and judgment
 The growing gaps follow Cepeda et al. 2006 (the best gap grows with how long you must
 remember); conquered questions keep coming back because retrieval practice is what keeps
-them (Karpicke & Roediger 2008). The intervals, `NEW_PER_DAY` and the grades are the game
-designer's judgment. Word and grammar levels were not checked against the English Vocabulary
+them (Karpicke & Roediger 2008). The intervals, `NEW_PER_DAY`, the grades and the level-up
+thresholds (6, 80%, box 3, 7 days) are the game designer's judgment. Word and grammar levels were not checked against the English Vocabulary
 or Grammar Profile (not reachable by automated clients); they rest on comparable deck items
 and the CEFR Companion Volume (2018) descriptors the language teacher quoted.
 
 ## Tests
-Schedule (box moves, intervals, extra practice, pick order, daily and slot limits, modes),
+Schedule (box moves, intervals, extra practice, pick order, daily and slot limits, modes,
+the level-up condition: share, every topic, fewer than six, current level only, B1 top),
 history (columns kept, migration of an old file), deck (`{?}`, unique asks, families, three
 families per first topic, interview cues), lesson (only questions, only the language spoken,
 box footer, miss reveal, pre-A1 recall from box 2, written up to A1, conquest melts no more,
-no question in the filters), matcher ("I live in Canada" never passes for "I live in
+no question in the filters; the level-up offer once a day, 7 days after "not now", melting
+nothing, lower boxes kept), panel (the offer row in the status line's place, yes as a level
+change, not now changing nothing, clicks), matcher ("I live in Canada" never passes for "I live in
 Brazil."), binary (`exercise = "questions"` accepted; an old history still counts).

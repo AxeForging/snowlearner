@@ -199,6 +199,18 @@ texts! {
     ReturnsInDays => "volta em {0} dias", "back in {0} days";
     Conquered => "Conquistada! {0}", "Conquered! {0}";
     QuestionsToday => "Hoje: {0} para revisar, {1} novas", "Today: {0} to review, {1} new";
+    LevelPreA1 => "pré-A1", "pre-A1";
+    ItemLevelUp => "Subir de nível?", "Move up a level?";
+    LevelUpYes => "sim → {0}", "yes → {0}";
+    LevelUpNotNow => "agora não", "not now";
+    LevelUpLater => "Tudo bem! Pergunto de novo em {0} dias.", "Alright! I'll ask again in {0} days.";
+    LevelUpToast => "Você reforçou bem o {0}! Quer subir para {1}? Veja no painel.",
+        "You've reinforced {0} well! Move up to {1}? See the panel.";
+    LevelUpFaster => "Bora pro {0}? A voz fica um pouco mais rápida!",
+        "Ready for {0}? The voice gets a little faster!";
+    LevelUpHeard => "Bora pro {0}? A pergunta passa a ser só ouvida!",
+        "Ready for {0}? The question is only heard from now on!";
+    LevelUpLonger => "Bora pro {0}? As respostas ficam mais longas!", "Ready for {0}? The answers get longer!";
     AllTopics => "todos os temas", "all topics";
     PausedToast => "Em pausa: botão direito no orbe (ou P) para voltar", "Paused: right-click the orb (or P) to come back";
     Analyzing => "Ok, analisando...", "Ok, checking...";
@@ -452,6 +464,11 @@ pub const TOPICS: &[(&str, &str)] = &[
 ];
 
 /// A topic as the learner reads it; unknown topics (custom decks) as written.
+/// A CEFR level as the learner reads it: "pré-A1", "A1"...
+pub fn level(native: Native, key: &str) -> String {
+    if key == crate::learn::deck::PRE_A1 { T::LevelPreA1.get(native).to_string() } else { key.to_string() }
+}
+
 pub fn topic(native: Native, key: &str) -> String {
     match native {
         Native::PtBr => key.to_string(),

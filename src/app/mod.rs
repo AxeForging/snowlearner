@@ -766,7 +766,17 @@ impl App {
     fn menu_action(&mut self, action: Action, el: &ActiveEventLoop) {
         match action {
             Action::None => {}
-            Action::Changed(item) => self.apply(item),
+            Action::Changed(item) => {
+                self.apply(item);
+                self.refresh_level_offer();
+            }
+            Action::LevelStay => {
+                self.lesson.decline_level_up();
+                let days = crate::app::lesson::LEVEL_UP_PAUSE_DAYS;
+                if let Some(scene) = &mut self.scene {
+                    scene.hud.toast(T::LevelUpLater.fill(self.settings.native, &[&days]), 4.0);
+                }
+            }
             Action::PracticeNow => {
                 self.menu_win = None;
                 self.input(Input::Primary);
@@ -910,6 +920,15 @@ impl App {
         scene.hud.cheats = Some(Cheats::from_hotkeys(scene.hole, &keys, T::CheatFooter.get(n)));
     }
 
+    /// Whether the panel offers moving up a level (#224), as the lesson says.
+    fn refresh_level_offer(&mut self) {
+        let offer = self.lesson.level_offer().map(str::to_string);
+        if offer.is_some() && self.menu.level_offer.is_none() {
+            self.menu.level_yes = true;
+        }
+        self.menu.level_offer = offer;
+    }
+
     fn open_menu(&mut self, el: &ActiveEventLoop) {
         if let Some(m) = &self.menu_win {
             m.window.focus_window();
@@ -917,6 +936,7 @@ impl App {
         }
         self.refresh_audio_lists();
         self.menu.close_list(); // a fresh panel opens on its rows
+        self.refresh_level_offer();
         let size = PhysicalSize::new(menu::WIDTH as u32 * MENU_SCALE, menu::HEIGHT as u32 * MENU_SCALE);
         let attrs = Window::default_attributes()
             .with_title(T::PanelWindow.get(self.settings.native))
