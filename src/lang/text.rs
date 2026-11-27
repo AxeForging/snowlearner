@@ -149,6 +149,11 @@ texts! {
     QuestionsRow => "{0} conquistadas · {1} em revisão · de {2}", "{0} conquered · {1} in review · of {2}";
     QuestionsPanelHead => "Conquistadas {0} · em revisão {1}", "Conquered {0} · in review {1}";
     MoreTopics => "+{0} temas", "+{0} topics";
+    StreakDays => "Sequência: {0} dias", "Streak: {0} days";
+    StreakOneDay => "Sequência: 1 dia", "Streak: 1 day";
+    StreakKeep => "{0} · pratique hoje", "{0} · practice today";
+    HudStreakDays => "{0} dias", "{0} days";
+    HudStreakOneDay => "1 dia", "1 day";
     Today => "Hoje: {0}/{1}  ·  combo x{2}", "Today: {0}/{1}  ·  combo x{2}";
     TestListening => "Ouvindo... fale uma frase em voz alta.", "Listening... say a phrase out loud.";
     TestPlaying => "Tocando as duas vozes...", "Playing both voices...";
@@ -466,6 +471,26 @@ pub const TOPICS: &[(&str, &str)] = &[
     ("vida no exterior", "life abroad"),
     ("geral", "general"),
 ];
+
+/// The practice streak for PROGRESSO: "Sequência: 3 dias", plus "pratique
+/// hoje" while today has no right answer yet. None at 0 days.
+pub fn streak(native: Native, days: u32, done_today: bool) -> Option<String> {
+    let line = match days {
+        0 => return None,
+        1 => T::StreakOneDay.get(native).to_string(),
+        n => T::StreakDays.fill(native, &[&n]),
+    };
+    Some(if done_today { line } else { T::StreakKeep.fill(native, &[&line]) })
+}
+
+/// The streak in the HUD corner: "3 dias". None at 0 days.
+pub fn streak_short(native: Native, days: u32) -> Option<String> {
+    match days {
+        0 => None,
+        1 => Some(T::HudStreakOneDay.get(native).to_string()),
+        n => Some(T::HudStreakDays.fill(native, &[&n])),
+    }
+}
 
 /// A topic as the learner reads it; unknown topics (custom decks) as written.
 /// A CEFR level as the learner reads it: "pré-A1", "A1"...

@@ -491,6 +491,32 @@ fn progress_prints_the_conquered_questions_of_a_seeded_history() {
     assert!(!phrases.contains("Perguntas por tema:"), "only in the question exercise: {phrases}");
 }
 
+/// #229: the practice streak shows in `progress --print`, counted from a
+/// real history: yesterday and today make two days; a miss is no practice.
+#[test]
+fn progress_prints_the_practice_streak_of_a_seeded_history() {
+    let home = Home::new();
+    home.config("");
+    let h = home.history();
+    let answer = |days_ago: i64, success: bool| Attempt {
+        at: Local::now() - chrono::Duration::days(days_ago),
+        language: "en".into(),
+        say: "Water.".into(),
+        meaning: "Água.".into(),
+        heard: "water".into(),
+        score: if success { 1.0 } else { 0.1 },
+        success,
+    };
+    h.record(&answer(1, true)).unwrap();
+    let out = stdout(&home.run(&["progress", "--print"]));
+    assert!(out.contains("Sequência: 1 dia · pratique hoje"), "alive until midnight: {out}");
+    h.record(&answer(0, false)).unwrap();
+    assert!(stdout(&home.run(&["progress", "--print"])).contains("pratique hoje"), "a miss is not practice");
+    h.record(&answer(0, true)).unwrap();
+    let out = stdout(&home.run(&["progress", "--print"]));
+    assert!(out.contains("Sequência: 2 dias\n"), "{out}");
+}
+
 #[test]
 fn progress_opens_the_panel_of_a_running_instance() {
     let home = Home::new();

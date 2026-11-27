@@ -7,7 +7,7 @@
 
 use crate::config::level::Commitment;
 use crate::config::settings::{Settings, WindowMode};
-use crate::lang::text::{language_name, topic, topics_label};
+use crate::lang::text::{self, language_name, topic, topics_label};
 use crate::lang::{Native, T};
 use crate::learn::deck::{Answer, LEVELS, PRE_A1};
 use crate::learn::picker::{Exercise, Practice};
@@ -960,6 +960,10 @@ impl Menu {
             font::draw(c, WIDTH - font::text_width(&n) - 6, y - 2, &n, accent);
         }
         let mut y = TOP + 4 * ROW_H + 2;
+        if let Some(line) = text::streak(n, p.streak.days, p.streak.done_today) {
+            font::draw(c, 6, y - 2, &fit(&line, WIDTH - 12), if p.streak.done_today { gold } else { hex(0xffb03a) });
+            y += ROW_H;
+        }
         if p.learning.is_empty() && p.next_up.is_empty() {
             font::draw(c, 6, y - 2, T::KnowsAll.get(n), gold);
         } else {
@@ -1407,7 +1411,7 @@ mod tests {
     }
 
     /// #228: with every question topic of the real decks, a full learning
-    /// list and three-digit counts, the tab ends above the footer in both
+    /// list, a streak line (#229) and three-digit counts, the tab ends above the footer in both
     /// languages: the topics that fit, then "+N". PNGs when
     /// `SNOWLEARNER_PANEL_PNG` names a directory.
     #[test]
@@ -1426,7 +1430,10 @@ mod tests {
                 .filter(|(i, _)| i % 3 != 2)
                 .map(|(i, a)| (a, Card { box_index: if i % 3 == 0 { CONQUERED } else { 3 }, ..Default::default() }))
                 .collect();
-            let pr = progress(&deck.phrases, &all, &Default::default()).with_questions(&deck.phrases, &all, &cards);
+            let streak = crate::learn::streak::Streak { days: 365, done_today: false };
+            let pr = progress(&deck.phrases, &all, &Default::default())
+                .with_questions(&deck.phrases, &all, &cards)
+                .with_streak(streak);
             assert!(pr.learning.len() >= 4 && !pr.next_up.is_empty(), "the longest phrase part");
             assert!(pr.questions_total().conquered > 0);
             for (key, _) in &pr.questions {
@@ -1436,6 +1443,7 @@ mod tests {
                 T::QuestionsPanelHead.fill(native, &[&999, &999]),
                 T::MoreTopics.fill(native, &[&99]),
                 "999/999".to_string(),
+                text::streak(native, 999, false).unwrap(),
             ] {
                 assert!(font::text_width(&text) <= WIDTH - 12, "{text:?} does not fit");
             }

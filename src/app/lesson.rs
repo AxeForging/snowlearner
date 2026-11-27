@@ -10,6 +10,7 @@ use crate::learn::deck::{Answer, Deck, LEVELS, PRE_A1, Phrase};
 use crate::learn::path;
 use crate::learn::picker::{self, Exercise, Mode, Practice};
 use crate::learn::schedule::{self, CONQUERED, Card};
+use crate::learn::streak::{self, Streak};
 use crate::scene::Scene;
 use crate::scene::hud::{self, Caption, Meter, Reward, Stats, Status, SummaryLine, SummaryPanel};
 use crate::scene::pyro::Spell;
@@ -264,11 +265,18 @@ impl Lesson {
     /// What you know, are learning and comes next, for the current filters.
     pub fn progress(&self) -> crate::learn::progress::Progress {
         let stats = self.history.stats(&self.deck.language, Local::now().date_naive()).unwrap_or_default();
-        let progress = crate::learn::progress::progress(&self.deck.phrases, &self.selection(), &stats);
+        let progress =
+            crate::learn::progress::progress(&self.deck.phrases, &self.selection(), &stats).with_streak(self.streak());
         match self.opts.exercise {
             Exercise::Questions => progress.with_questions(&self.deck.phrases, &self.selection(), &self.cards()),
             Exercise::Phrases => progress,
         }
+    }
+
+    /// Days in a row with a right answer in this language (spec 006 R13).
+    pub fn streak(&self) -> Streak {
+        let days = self.history.success_days(&self.deck.language).unwrap_or_default();
+        streak::streak(&days, Local::now().date_naive())
     }
 
     /// Phrases currently in rotation (topic + level filters).
@@ -375,6 +383,7 @@ impl Lesson {
     fn refresh_stats(&self, scene: &mut Scene) {
         let (to_reward, reward) = next_reward(self.combo);
         scene.hud.stats = Some(Stats {
+            streak: text::streak_short(self.opts.native, self.streak().days),
             to_reward,
             reward,
             done: self.done_today,

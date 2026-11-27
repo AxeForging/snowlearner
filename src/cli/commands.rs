@@ -439,7 +439,9 @@ fn progress(settings: &Settings, paths: &Paths) -> Result<()> {
     let history = History::open(&paths.db_file())?;
     let stats = history.stats(&deck.language, Local::now().date_naive())?;
     let selection = deck.selection(&settings.topics, &settings.max_level);
-    let mut report = crate::learn::progress::progress(&deck.phrases, &selection, &stats);
+    let today = Local::now().date_naive();
+    let streak = crate::learn::streak::streak(&history.success_days(&deck.language)?, today);
+    let mut report = crate::learn::progress::progress(&deck.phrases, &selection, &stats).with_streak(streak);
     if settings.exercise == Exercise::Questions {
         let log = history.question_log(&deck.language)?;
         let cards = crate::learn::schedule::cards(&log, settings.answer, crate::app::lesson::MAX_TRIES);
@@ -698,7 +700,7 @@ fn snapshot(
             let n = settings.native;
             let label = format!("{} · {}", deck.language.to_uppercase(), crate::lang::text::topic(n, &phrase.topic));
             let (to_reward, reward) = crate::app::lesson::next_reward(2);
-            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label, to_reward, reward });
+            scene.hud.stats = Some(Stats { done: 4, goal: 10, combo: 2, label, to_reward, reward, streak: None });
             scene.set_practicing(true);
             scene.mage_say(crate::lang::Lines::MageAskRepeat.get(n)[0], 3.0);
             step(&mut scene, 1.0);

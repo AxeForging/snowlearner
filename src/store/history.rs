@@ -203,6 +203,21 @@ impl History {
         Ok(out)
     }
 
+    /// Days with at least one right answer in `language`, oldest first: what
+    /// the practice streak counts (`learn::streak`).
+    pub fn success_days(&self, language: &str) -> Result<Vec<NaiveDate>> {
+        let mut stmt =
+            self.conn.prepare("SELECT DISTINCT day FROM attempts WHERE language = ?1 AND success = 1 ORDER BY day")?;
+        let rows = stmt.query_map(params![language], |r| r.get::<_, String>(0))?;
+        let mut out = Vec::new();
+        for day in rows {
+            if let Ok(d) = day?.parse::<NaiveDate>() {
+                out.push(d);
+            }
+        }
+        Ok(out)
+    }
+
     /// Phrases practiced on `day`, in the order they were first tried.
     pub fn day_summary(&self, language: &str, day: NaiveDate) -> Result<Vec<DayPhrase>> {
         let mut stmt = self.conn.prepare(
@@ -341,6 +356,19 @@ mod tests {
         assert_eq!(s["Hi"], PhraseStats { successes_today: 1, successes_total: 2, last_failed: true });
         h.record(&attempt(27, 11, "en", "Hi", 1.0, true)).unwrap();
         assert!(!h.stats("en", at(27, 0).date_naive()).unwrap()["Hi"].last_failed, "fixed by the latest try");
+    }
+
+    #[test]
+    fn success_days_are_distinct_right_answer_days_of_one_language() {
+        let (_d, h) = db();
+        h.record(&attempt(25, 9, "en", "Hi", 1.0, true)).unwrap();
+        h.record(&attempt(25, 10, "en", "Bye", 1.0, true)).unwrap();
+        h.record(&attempt(26, 9, "en", "Hi", 0.2, false)).unwrap();
+        h.record(&attempt(27, 9, "es", "Hola", 1.0, true)).unwrap();
+        h.record(&attempt(27, 10, "en", "Hi", 1.0, true)).unwrap();
+        let days: Vec<String> = h.success_days("en").unwrap().iter().map(|d| d.to_string()).collect();
+        assert_eq!(days, ["2026-09-25", "2026-09-27"], "a failed day and another language do not count");
+        assert!(h.success_days("pt").unwrap().is_empty());
     }
 
     #[test]
