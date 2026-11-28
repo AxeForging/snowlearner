@@ -527,7 +527,17 @@ mod tests {
     fn command_engine_passes_text_on_stdin_when_not_in_the_template() {
         let dir = tempfile::tempdir().unwrap();
         let out = dir.path().join("got.txt");
-        let v = Voice::new(TtsEngine::Command, "", "", &format!("tee {}", out.display()), "");
+        // A stdin sink each OS has: raw bytes, so the UTF-8 text round-trips (#250).
+        let sink = if cfg!(windows) {
+            format!(
+                "powershell -NoProfile -Command \"$m = New-Object IO.MemoryStream; \
+                 [Console]::OpenStandardInput().CopyTo($m); [IO.File]::WriteAllBytes('{}', $m.ToArray())\"",
+                out.display()
+            )
+        } else {
+            format!("tee {}", out.display())
+        };
+        let v = Voice::new(TtsEngine::Command, "", "", &sink, "");
         v.speak("Olá mundo", "pt-BR", "", Speed::Normal).unwrap();
         assert_eq!(std::fs::read_to_string(&out).unwrap(), "Olá mundo");
     }
